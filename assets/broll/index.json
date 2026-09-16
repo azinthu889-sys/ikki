@@ -1,0 +1,1456 @@
+{
+ "clips": [
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4992441352.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0124.MP4",
+   "size": 637550556,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားနောက်ခန်း",
+    "နေရောင်ခြည်",
+    "လူငယ်",
+    "မြို့ပြလမ်းမ",
+    "ကားတံခါးဖွင့်ထား"
+   ],
+   "en": [
+    "car trunk",
+    "sunlight",
+    "young man",
+    "city street",
+    "open car door"
+   ],
+   "kind": "people",
+   "lum": 63.9,
+   "det": 1.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/2179359395.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0126.MP4",
+   "size": 197139690,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားအတွင်းခန်း",
+    "ကလေးထိုင်ခုံ",
+    "ဖခင်နှင့်ကလေး",
+    "ကလေးကိုခါးပတ်ပတ်ပေးခြင်း"
+   ],
+   "en": [
+    "car interior",
+    "baby car seat",
+    "father and baby",
+    "fastening seatbelt"
+   ],
+   "kind": "people",
+   "lum": 67.2,
+   "det": 5.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9919078076.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0130.MP4",
+   "size": 306193734,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားအတွင်းခန်း",
+    "ကားမောင်းသူ",
+    "လမ်းမမြင်ကွင်း",
+    "ကားရှေ့ခန်း"
+   ],
+   "en": [
+    "car interior",
+    "driver",
+    "road view",
+    "dashboard"
+   ],
+   "kind": "indoor",
+   "lum": 35.8,
+   "det": 1.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3962402093.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0131.MP4",
+   "size": 318776886,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "လမ်းမပေါ်",
+    "ခရီးသွားခြင်း"
+   ],
+   "en": [
+    "driver",
+    "car interior",
+    "road trip",
+    "driving"
+   ],
+   "kind": "people",
+   "lum": 53.7,
+   "det": 2.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7835006135.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0132.MP4",
+   "size": 230694750,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "အဝေးပြေးလမ်းမ",
+    "ကားရှေ့မှန်"
+   ],
+   "en": [
+    "driver",
+    "car interior",
+    "highway",
+    "dashboard",
+    "driving"
+   ],
+   "kind": "indoor",
+   "lum": 72.8,
+   "det": 4.1
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6836890504.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0135.MP4",
+   "size": 482358158,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "နေကာမျက်မှန်တပ်ထားသူ",
+    "ခရီးသွားခြင်း"
+   ],
+   "en": [
+    "man driving car",
+    "car interior",
+    "wearing sunglasses",
+    "road trip"
+   ],
+   "kind": "people",
+   "lum": 88.2,
+   "det": 4.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7217362405.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0136.MP4",
+   "size": 188750942,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသောလူငယ်",
+    "ကားအတွင်းခန်း",
+    "ခရီးသွားခြင်း",
+    "နေကာမျက်မှန်တပ်ထားသူ"
+   ],
+   "en": [
+    "young man driving",
+    "car interior",
+    "traveling",
+    "wearing sunglasses"
+   ],
+   "kind": "people",
+   "lum": 79.2,
+   "det": 4.2
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9684807047.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0137.MP4",
+   "size": 499135738,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "ခရီးသွားခြင်း",
+    "နေကာမျက်မှန်တပ်ထားသူ"
+   ],
+   "en": [
+    "man driving car",
+    "car interior",
+    "traveling",
+    "wearing sunglasses"
+   ],
+   "kind": "people",
+   "lum": 90.0,
+   "det": 4.2
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5137209851.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0138.MP4",
+   "size": 146807034,
+   "dur": 11.52,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားအတွင်းမှမြင်ရသောလမ်း",
+    "ဂျပန်နိုင်ငံလမ်းမ",
+    "နေရောင်ခြည်",
+    "တောင်တန်းရှုခင်း"
+   ],
+   "en": [
+    "view from inside car",
+    "Japanese road",
+    "sun flare",
+    "mountain scenery"
+   ],
+   "kind": "place",
+   "lum": 114.1,
+   "det": 4.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5248811931.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0139.MP4",
+   "size": 683689012,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားအတွင်းခန်း",
+    "ရယ်မောနေသောမိန်းကလေး",
+    "နေရောင်ခြည်",
+    "ခရီးသွားခြင်း"
+   ],
+   "en": [
+    "car interior",
+    "smiling girl",
+    "sunlight",
+    "traveling"
+   ],
+   "kind": "people",
+   "lum": 131.6,
+   "det": 3.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1469493814.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0140.MP4",
+   "size": 260055510,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "လူငယ်",
+    "ကားစတီယာရင်"
+   ],
+   "en": [
+    "young man driving",
+    "car interior",
+    "steering wheel",
+    "driver"
+   ],
+   "kind": "people",
+   "lum": 86.9,
+   "det": 4.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3203558323.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0141.MP4",
+   "size": 176167666,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားလမ်း",
+    "တောင်ကုန်း",
+    "ခုံးကျော်တံတား",
+    "ယာဉ်သွားလာမှု"
+   ],
+   "en": [
+    "road",
+    "hill",
+    "arched bridge",
+    "traffic"
+   ],
+   "kind": "place",
+   "lum": 64.1,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/833478617.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0145.MP4",
+   "size": 117446274,
+   "dur": 9.01,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဂျပန်လမ်းမ",
+    "ကားလမ်း",
+    "မြို့ပြမြင်ကွင်း",
+    "ယာဉ်သွားလာမှု"
+   ],
+   "en": [
+    "Japanese street",
+    "road traffic",
+    "city street",
+    "cars on road"
+   ],
+   "kind": "city",
+   "lum": 156.5,
+   "det": 5.1
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9097199252.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0148.MP4",
+   "size": 138418298,
+   "dur": 11.02,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဂျပန်လမ်းမ",
+    "ကားလမ်း",
+    "တောင်တန်း",
+    "ယာဉ်ကြော"
+   ],
+   "en": [
+    "Japanese road",
+    "traffic",
+    "mountain landscape",
+    "cars"
+   ],
+   "kind": "place",
+   "lum": 109.8,
+   "det": 3.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7618058538.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0152.MP4",
+   "size": 184556526,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားမောင်းနေသူ",
+    "ကားအတွင်းခန်း",
+    "လမ်းခရီး",
+    "လူငယ်"
+   ],
+   "en": [
+    "man driving car",
+    "car interior",
+    "road trip",
+    "young man"
+   ],
+   "kind": "people",
+   "lum": 63.8,
+   "det": 3.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4590746933.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0154.MP4",
+   "size": 469775118,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကားအတွင်းမှမြင်ရသောလမ်း",
+    "ဆောင်းရာသီတောလမ်း",
+    "တောင်တန်းရှုခင်း",
+    "ကားမောင်းနေစဉ်"
+   ],
+   "en": [
+    "road view from car",
+    "winter forest road",
+    "mountain landscape",
+    "driving scene"
+   ],
+   "kind": "place",
+   "lum": 101.5,
+   "det": 7.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9914123398.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0155.MP4",
+   "size": 54530452,
+   "dur": 4.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "တောင်ပေါ်အပန်းဖြေစခန်း",
+    "ဆောင်းရာသီသစ်ပင်များ",
+    "ကားပါကင်",
+    "တောင်ကုန်းပေါ်ရှိအိမ်"
+   ],
+   "en": [
+    "mountain resort",
+    "winter trees",
+    "parking lot",
+    "hillside house"
+   ],
+   "kind": "place",
+   "lum": 114.8,
+   "det": 5.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8327636685.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0158.MP4",
+   "size": 83891214,
+   "dur": 6.51,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဂျပန်ပုံစံအိမ်",
+    "သစ်သားအခန်း",
+    "ထမင်းစားပွဲ",
+    "အိမ်တွင်းမြင်ကွင်း"
+   ],
+   "en": [
+    "japanese style house",
+    "wooden interior",
+    "dining table",
+    "indoor room"
+   ],
+   "kind": "indoor",
+   "lum": 113.1,
+   "det": 5.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7806852072.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0160.MP4",
+   "size": 46141720,
+   "dur": 3.5,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "မီးဖိုချောင်",
+    "အိမ်တွင်းဒီဇိုင်း",
+    "ခေတ်မီမီးဖိုချောင်",
+    "ချက်ပြုတ်ရာနေရာ"
+   ],
+   "en": [
+    "kitchen",
+    "interior design",
+    "modern kitchen",
+    "cooking area"
+   ],
+   "kind": "indoor",
+   "lum": 71.4,
+   "det": 1.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/549915458.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0161.MP4",
+   "size": 46141720,
+   "dur": 3.5,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "မီးဖိုချောင်",
+    "ရေခဲသေတ္တာ",
+    "မိုက်ခရိုဝေ့ဖ်",
+    "အိမ်တွင်း"
+   ],
+   "en": [
+    "kitchen",
+    "refrigerator",
+    "microwave",
+    "indoor"
+   ],
+   "kind": "indoor",
+   "lum": 122.6,
+   "det": 1.3
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/309496357.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0162.MP4",
+   "size": 71308050,
+   "dur": 5.51,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဂျပန်ပုံစံ ထမင်းစားခန်း",
+    "သစ်သားစားပွဲ",
+    "ထိုင်ခုံများ",
+    "ဂျပန်တံခါး",
+    "အိမ်တွင်းမြင်ကွင်း"
+   ],
+   "en": [
+    "Japanese style dining room",
+    "wooden dining table",
+    "chairs",
+    "shoji door",
+    "interior"
+   ],
+   "kind": "indoor",
+   "lum": 102.8,
+   "det": 4.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1537483768.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0163.MP4",
+   "size": 71308050,
+   "dur": 5.51,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဂျပန်ပုံစံအခန်း",
+    "စားပွဲနှင့်ကုလားထိုင်",
+    "အိမ်တွင်းအလှဆင်မှု",
+    "ပြတင်းပေါက်"
+   ],
+   "en": [
+    "Japanese style room",
+    "table and chairs",
+    "interior design",
+    "window"
+   ],
+   "kind": "indoor",
+   "lum": 102.8,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3697772102.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0165.MP4",
+   "size": 117446367,
+   "dur": 9.51,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "တောင်တန်းမြင်ကွင်း",
+    "ပြတင်းပေါက်",
+    "အခန်းတွင်း",
+    "သစ်ပင်များ"
+   ],
+   "en": [
+    "mountain view",
+    "window",
+    "indoor",
+    "trees",
+    "balcony"
+   ],
+   "kind": "indoor",
+   "lum": 73.7,
+   "det": 6.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5499690477.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0168.MP4",
+   "size": 100668806,
+   "dur": 8.01,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "မီးဖိုချောင်",
+    "ဖန်ခွက်",
+    "ကော်ဖီစက်",
+    "စားပွဲတင်ပစ္စည်း"
+   ],
+   "en": [
+    "kitchen",
+    "glass cups",
+    "coffee maker",
+    "kitchen counter"
+   ],
+   "kind": "indoor",
+   "lum": 102.1,
+   "det": 3.1
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1325192864.mp4",
+   "src": "/Volumes/i/Hakone Travel/C0170.MP4",
+   "size": 331360190,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "အိမ်တွင်းလှေကား",
+    "လှေကားလက်ရန်း",
+    "အိမ်တွင်းဒီဇိုင်း",
+    "အလင်းရောင်"
+   ],
+   "en": [
+    "indoor staircase",
+    "staircase railing",
+    "home interior",
+    "dim lighting"
+   ],
+   "kind": "indoor",
+   "lum": 78.4,
+   "det": 0.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6186485017.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_6185249.mp4",
+   "size": 22693382,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လက်ပ်တော့",
+    "ဗလာစာအုပ်",
+    "ခဲတံ",
+    "အလုပ်စားပွဲ"
+   ],
+   "en": [
+    "laptop",
+    "blank notebook",
+    "pencil",
+    "desk"
+   ],
+   "kind": "indoor",
+   "lum": 189.4,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1350376229.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_7942759.mp4",
+   "size": 10949659,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "ညဘက် ကွန်ပျူတာသုံးနေသူ",
+    "အလုပ်လုပ်နေသော လူငယ်",
+    "မှောင်သောအခန်း",
+    "လက်ပ်တော့အသုံးပြုသူ"
+   ],
+   "en": [
+    "man using laptop at night",
+    "working in dark room",
+    "focused young man",
+    "night office work"
+   ],
+   "kind": "people",
+   "lum": 22.5,
+   "det": 1.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5355610366.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_854136.mp4",
+   "size": 6387636,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ဖုန်းပုံဆွဲနေသည့်လက်",
+    "စားပွဲပေါ်ရှိမှတ်စုစာအုပ်",
+    "ကော်ဖီခွက်",
+    "ဒီဇိုင်းရေးဆွဲခြင်း"
+   ],
+   "en": [
+    "hand drawing smartphone",
+    "sketchbook on desk",
+    "coffee cup",
+    "designing process"
+   ],
+   "kind": "indoor",
+   "lum": 114.3,
+   "det": 3.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3125883867.mp4",
+   "src": "/Volumes/i/ZJL_stock/money_7735814.mp4",
+   "size": 7644229,
+   "dur": 10.68,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "ငွေစက္ကူ",
+    "ရေတွက်နေသည်",
+    "လက်ပ်တော့",
+    "ရုံးခန်း"
+   ],
+   "en": [
+    "person",
+    "counting money",
+    "US dollar bills",
+    "laptop",
+    "office"
+   ],
+   "kind": "people",
+   "lum": 189.8,
+   "det": 7.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3888094827.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_14003577.mp4",
+   "size": 15772752,
+   "dur": 9.73,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "အိုင်မက်",
+    "ဗီဒီယိုတည်းဖြတ်နေသည်",
+    "စားပွဲခုံ",
+    "ကွန်ပျူတာစခရင်"
+   ],
+   "en": [
+    "iMac",
+    "video editing",
+    "desk",
+    "computer screen",
+    "workspace"
+   ],
+   "kind": "screen",
+   "lum": 86.9,
+   "det": 3.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5492121094.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_18662635.mp4",
+   "size": 4521522,
+   "dur": 5.4,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "တိုကျိုမြို့",
+    "ကဘူးကီချိုလမ်း",
+    "လူအုပ်ကြီး",
+    "နီယွန်မီးရောင်",
+    "ညဘက်"
+   ],
+   "en": [
+    "Tokyo",
+    "Kabukicho street",
+    "crowded street",
+    "neon signs",
+    "nightlife"
+   ],
+   "kind": "city",
+   "lum": 100.4,
+   "det": 13.3
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9792477503.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_32150707.mp4",
+   "size": 23655472,
+   "dur": 9.08,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဗီဒီယိုတည်းဖြတ်နေသူ",
+    "ကွန်ပျူတာမော်နီတာ",
+    "DaVinci Resolve",
+    "အလုပ်စားပွဲ"
+   ],
+   "en": [
+    "video editor",
+    "computer monitor",
+    "DaVinci Resolve",
+    "video editing software",
+    "workspace"
+   ],
+   "kind": "screen",
+   "lum": 75.7,
+   "det": 5.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1178070715.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771078.mp4",
+   "size": 11864025,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်ရိုက်နေသည်",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "typing on keyboard",
+    "working"
+   ],
+   "kind": "people",
+   "lum": 20.4,
+   "det": 0.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6865845713.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771081.mp4",
+   "size": 9845558,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်",
+    "စာရိုက်နေသည်",
+    "မှောင်သောအခန်း"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "keyboard",
+    "typing",
+    "dark room"
+   ],
+   "kind": "indoor",
+   "lum": 18.2,
+   "det": 0.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3833489944.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771086.mp4",
+   "size": 5946139,
+   "dur": 8.52,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "keyboard",
+    "typing",
+    "working"
+   ],
+   "kind": "indoor",
+   "lum": 19.2,
+   "det": 0.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1759442499.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_3941990.mp4",
+   "size": 6573624,
+   "dur": 10.28,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ဂျပန်လမ်းမ",
+    "ညဘက်",
+    "မိုးရွာနေသည်",
+    "လူများထီးဆောင်းလျှောက်သွားနေ",
+    "နီယွန်မီးရောင်"
+   ],
+   "en": [
+    "Japanese street",
+    "night time",
+    "raining",
+    "people walking with umbrellas",
+    "neon signs"
+   ],
+   "kind": "city",
+   "lum": 50.9,
+   "det": 10.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5921542288.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_5475310.mp4",
+   "size": 15468655,
+   "dur": 9.64,
+   "w": 2560,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "စာရေးနေသည်",
+    "မှတ်စုစာအုပ်",
+    "စားပွဲခုံ",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "writing",
+    "notebook",
+    "desk",
+    "working",
+    "close-up"
+   ],
+   "kind": "indoor",
+   "lum": 124.2,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3844811914.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_6185249.mp4",
+   "size": 22693382,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လက်ပ်တော့",
+    "ဗလာစာအုပ်",
+    "ခဲတံ",
+    "စာအုပ်ဖွင့်နေသည့်လက်"
+   ],
+   "en": [
+    "laptop",
+    "blank notebook",
+    "pencil",
+    "hand opening notebook"
+   ],
+   "kind": "indoor",
+   "lum": 189.4,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4290923461.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_6186872.mp4",
+   "size": 53785889,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လူလက်",
+    "မှတ်စုစာအုပ်",
+    "စာရေးကိရိယာ",
+    "စားပွဲခုံ"
+   ],
+   "en": [
+    "human hands",
+    "notebook",
+    "stationery",
+    "desk"
+   ],
+   "kind": "object",
+   "lum": 171.6,
+   "det": 3.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5104726633.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_7942759.mp4",
+   "size": 10949659,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လူငယ်",
+    "လက်ပ်တော့",
+    "အလုပ်လုပ်နေသည်",
+    "ညအချိန်",
+    "အိမ်တွင်း"
+   ],
+   "en": [
+    "young man",
+    "laptop",
+    "working",
+    "night time",
+    "indoor"
+   ],
+   "kind": "people",
+   "lum": 22.5,
+   "det": 1.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9057177865.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_854136.mp4",
+   "size": 6387636,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "စာရွက်ပေါ်တွင် ပုံဆွဲနေသည်",
+    "စားပွဲခုံ",
+    "ကော်ဖီခွက်",
+    "ဘောပင်"
+   ],
+   "en": [
+    "person",
+    "drawing on paper",
+    "desk",
+    "coffee cup",
+    "markers"
+   ],
+   "kind": "indoor",
+   "lum": 91.0,
+   "det": 5.2
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3459033613.mp4",
+   "src": "/Volumes/i/ZJL_stock/shibuya_31044319.mp4",
+   "size": 9786084,
+   "dur": 5.7,
+   "w": 1080,
+   "h": 1920,
+   "my": [
+    "တိုကျိုမြို့ည",
+    "လမ်းမပေါ်ရှိကားများ",
+    "လူသွားလမ်း",
+    "ညဘက်မြို့ပြမြင်ကွင်း"
+   ],
+   "en": [
+    "Tokyo city night",
+    "traffic on street",
+    "pedestrians walking",
+    "urban night scene"
+   ],
+   "kind": "city",
+   "lum": 101.6,
+   "det": 17.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/201903852.mp4",
+   "src": "/Volumes/i/ZJL_stock/study_30592298.mp4",
+   "size": 21080899,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ကျောင်းသား",
+    "လက်ပ်တော့",
+    "မှတ်စုစာအုပ်",
+    "စာလေ့လာနေသည်",
+    "အိမ်တွင်း"
+   ],
+   "en": [
+    "student",
+    "laptop",
+    "notebook",
+    "studying",
+    "indoor"
+   ],
+   "kind": "people",
+   "lum": 92.3,
+   "det": 10.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5643303575.mp4",
+   "src": "/Volumes/i/ZJL_stock/watch_6230465.mp4",
+   "size": 4524616,
+   "dur": 10.52,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ရိုလက်ဇ် နာရီ",
+    "အပြာရောင် နာရီမျက်နှာပြင်",
+    "ဇိမ်ခံလက်ပတ်နာရီ",
+    "အနီးကပ်ရိုက်ချက်"
+   ],
+   "en": [
+    "Rolex watch",
+    "blue watch face",
+    "luxury wristwatch",
+    "close-up shot"
+   ],
+   "kind": "object",
+   "lum": 33.2,
+   "det": 4.1
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/2161873344.jpg",
+   "src": "/Users/zinthuaung/.ikki/scratch/broll_in/clean.jpg",
+   "size": 106185,
+   "dur": 6.0,
+   "w": 1600,
+   "h": 900,
+   "my": [
+    "3D ဂရပ်ဖစ်",
+    "အရည်ပုံစံ",
+    "အလင်းတန်းများ",
+    "စိတ္တဇပုံစံ"
+   ],
+   "en": [
+    "3D graphics",
+    "liquid metal",
+    "glowing light trails",
+    "abstract tunnel"
+   ],
+   "kind": "object",
+   "still": true,
+   "lum": 56.7,
+   "det": 11.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/2340067440.mp4",
+   "src": "/Volumes/i/ZJL_stock/money_7735814.mp4",
+   "size": 7644229,
+   "dur": 10.68,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "ငွေစက္ကူ",
+    "ရေတွက်နေသည်",
+    "လက်ပ်တော့",
+    "ရုံးခန်း"
+   ],
+   "en": [
+    "person",
+    "counting money",
+    "US dollar bills",
+    "laptop",
+    "office"
+   ],
+   "kind": "people",
+   "lum": 189.8,
+   "det": 7.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/726440793.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_14003577.mp4",
+   "size": 15772752,
+   "dur": 9.73,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "အိုင်မက်",
+    "ဗီဒီယိုတည်းဖြတ်နေသည်",
+    "စားပွဲခုံ",
+    "ကွန်ပျူတာစခရင်"
+   ],
+   "en": [
+    "iMac",
+    "video editing",
+    "desk",
+    "computer screen",
+    "workspace"
+   ],
+   "kind": "screen",
+   "lum": 86.9,
+   "det": 3.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8863493851.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_18662635.mp4",
+   "size": 4521522,
+   "dur": 5.4,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "တိုကျိုမြို့",
+    "ကဘူးကီချိုလမ်း",
+    "လူအုပ်ကြီး",
+    "နီယွန်မီးရောင်",
+    "ညဘက်"
+   ],
+   "en": [
+    "Tokyo",
+    "Kabukicho street",
+    "crowded street",
+    "neon signs",
+    "nightlife"
+   ],
+   "kind": "city",
+   "lum": 100.4,
+   "det": 13.3
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4168096446.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_32150707.mp4",
+   "size": 23655472,
+   "dur": 9.08,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဗီဒီယိုတည်းဖြတ်နေသူ",
+    "ကွန်ပျူတာမော်နီတာ",
+    "DaVinci Resolve",
+    "အလုပ်စားပွဲ"
+   ],
+   "en": [
+    "video editor",
+    "computer monitor",
+    "DaVinci Resolve",
+    "video editing software",
+    "workspace"
+   ],
+   "kind": "screen",
+   "lum": 75.7,
+   "det": 5.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8861639493.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771078.mp4",
+   "size": 11864025,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်ရိုက်နေသည်",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "typing on keyboard",
+    "working"
+   ],
+   "kind": "people",
+   "lum": 20.4,
+   "det": 0.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7021639156.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771081.mp4",
+   "size": 9845558,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်",
+    "စာရိုက်နေသည်",
+    "မှောင်သောအခန်း"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "keyboard",
+    "typing",
+    "dark room"
+   ],
+   "kind": "indoor",
+   "lum": 18.2,
+   "det": 0.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1405845613.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_34771086.mp4",
+   "size": 5946139,
+   "dur": 8.52,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "လက်ပ်တော့",
+    "ကီးဘုတ်",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "laptop",
+    "keyboard",
+    "typing",
+    "working"
+   ],
+   "kind": "indoor",
+   "lum": 19.2,
+   "det": 0.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/2642642731.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_3941990.mp4",
+   "size": 6573624,
+   "dur": 10.28,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ဂျပန်လမ်းမ",
+    "ညဘက်",
+    "လူများ",
+    "ထီးဆောင်းထားသည်",
+    "နီယွန်မီးရောင်"
+   ],
+   "en": [
+    "Japanese street",
+    "night time",
+    "people walking",
+    "holding umbrellas",
+    "neon signs"
+   ],
+   "kind": "city",
+   "lum": 50.9,
+   "det": 10.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/7985787540.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_5475310.mp4",
+   "size": 15468655,
+   "dur": 9.64,
+   "w": 2560,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "စာရေးနေသည်",
+    "မှတ်စုစာအုပ်",
+    "စားပွဲခုံ",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "person",
+    "writing",
+    "notebook",
+    "desk",
+    "working",
+    "close-up"
+   ],
+   "kind": "indoor",
+   "lum": 124.2,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6461844154.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_6185249.mp4",
+   "size": 22693382,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လက်ပ်တော့",
+    "ဗလာစာအုပ်",
+    "ခဲတံ",
+    "စာအုပ်ဖွင့်နေသည့်လက်"
+   ],
+   "en": [
+    "laptop",
+    "blank notebook",
+    "pencil",
+    "hand opening notebook"
+   ],
+   "kind": "indoor",
+   "lum": 189.4,
+   "det": 2.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/1072801312.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_6186872.mp4",
+   "size": 53785889,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လူလက်",
+    "မှတ်စုစာအုပ်",
+    "စာရေးကိရိယာ",
+    "စားပွဲခုံ",
+    "အပေါ်စီးမှရိုက်ချက်"
+   ],
+   "en": [
+    "human hands",
+    "notebook",
+    "stationery",
+    "desk",
+    "top view"
+   ],
+   "kind": "object",
+   "lum": 171.6,
+   "det": 3.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/353424874.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_7942759.mp4",
+   "size": 10949659,
+   "dur": 12.0,
+   "w": 4096,
+   "h": 2160,
+   "my": [
+    "လူငယ်",
+    "လက်ပ်တော့",
+    "အလုပ်လုပ်နေသည်",
+    "ညအချိန်",
+    "အိမ်တွင်း"
+   ],
+   "en": [
+    "young man",
+    "laptop",
+    "working",
+    "night time",
+    "indoor"
+   ],
+   "kind": "people",
+   "lum": 22.5,
+   "det": 1.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4343289740.mp4",
+   "src": "/Volumes/i/ZJL_stock/pexels_854136.mp4",
+   "size": 6387636,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လူ",
+    "စာရွက်ပေါ်တွင် ပုံဆွဲနေသည်",
+    "စားပွဲခုံ",
+    "ကော်ဖီခွက်",
+    "ဘောပင်"
+   ],
+   "en": [
+    "person",
+    "drawing on paper",
+    "desk",
+    "coffee cup",
+    "markers"
+   ],
+   "kind": "indoor",
+   "lum": 114.3,
+   "det": 3.8
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9550405304.mp4",
+   "src": "/Volumes/i/ZJL_stock/shibuya_31044319.mp4",
+   "size": 9786084,
+   "dur": 5.7,
+   "w": 1080,
+   "h": 1920,
+   "my": [
+    "တိုကျိုမြို့ည",
+    "လမ်းမပေါ်ရှိကားများ",
+    "လူသွားလမ်း",
+    "ညဘက်မြို့ပြမြင်ကွင်း"
+   ],
+   "en": [
+    "Tokyo city night",
+    "traffic on street",
+    "pedestrians walking",
+    "urban night scene"
+   ],
+   "kind": "city",
+   "lum": 101.6,
+   "det": 17.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/611305948.mp4",
+   "src": "/Volumes/i/ZJL_stock/study_30592298.mp4",
+   "size": 21080899,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ကျောင်းသား",
+    "လက်ပ်တော့",
+    "မှတ်စုစာအုပ်",
+    "စာလေ့လာနေသည်",
+    "အိမ်တွင်း"
+   ],
+   "en": [
+    "student",
+    "laptop",
+    "notebook",
+    "studying",
+    "indoor"
+   ],
+   "kind": "people",
+   "lum": 105.0,
+   "det": 8.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6896294844.mp4",
+   "src": "/Volumes/i/ZJL_stock/watch_6230465.mp4",
+   "size": 4524616,
+   "dur": 10.52,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ရိုလက်ဇ် နာရီ",
+    "အပြာရောင် နာရီမျက်နှာပြင်",
+    "ဇိမ်ခံလက်ပတ်နာရီ",
+    "အနီးကပ်ရိုက်ချက်"
+   ],
+   "en": [
+    "Rolex watch",
+    "blue watch face",
+    "luxury wristwatch",
+    "close-up shot"
+   ],
+   "kind": "object",
+   "lum": 36.3,
+   "det": 6.2
+  }
+ ]
+}

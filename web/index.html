@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
+<title>IKKI 一気</title>
+<link rel="icon" type="image/png" href="/img/ikki-icon-64.png?v=2">
+<link rel="apple-touch-icon" href="/img/ikki-touch-180.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Myanmar:wght@400;500;600;700&family=Padauk:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500&display=swap&text=%E4%B8%80%E6%B0%97">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="stylesheet" href="/app.css?v=1789487380">
+</head>
+<body>
+
+<header class="top">
+  <span class="brand"><span class="mk" role="img" aria-label="IKKI"></span><span class="k">IKKI</span><span class="jp">一気</span></span>
+  <nav class="pillnav" aria-label="Main">
+    <button data-go="v-new" aria-current="page" data-my="အသစ်" data-en="Create">အသစ်</button>
+    <button data-go="v-lib" data-my="ဗီဒီယိုများ" data-en="Videos">ဗီဒီယိုများ</button>
+    <button data-go="v-sty" data-my="စတိုင်" data-en="Style">စတိုင်</button>
+    <button data-go="v-acc" data-my="အကောင့်" data-en="Account">အကောင့်</button>
+  </nav>
+  <div class="topr">
+    <div class="lang" role="group" aria-label="Language">
+      <button id="l-my" aria-pressed="true">မြန်မာ</button><button id="l-en" aria-pressed="false">EN</button>
+    </div>
+    <span id="acctchip" class="mono" style="font-size:12px;color:var(--tx3);
+      padding:0 10px;white-space:nowrap"></span>
+    <button class="ico" id="logout" aria-label="Log out"
+      data-my-tt="ထွက်မယ်" data-en-tt="Log out" title="Log out">⏻</button>
+    <button class="ico" id="priv" aria-label="File privacy" data-my-tt="ဖိုင် လုံခြုံရေး" data-en-tt="File privacy" title="ဖိုင် လုံခြုံရေး">🔒</button>
+    <button class="ico" id="thm" aria-label="Theme">◑</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Sections">
+    <button class="nav" data-go="v-new" aria-current="page">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-my="ဗီဒီယို အသစ်" data-en="New video">ဗီဒီယို အသစ်</span></button>
+    <button class="nav" data-go="v-lib">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M10 9l5 3-5 3z"/></svg><span data-my="ဗီဒီယိုများ" data-en="Videos">ဗီဒီယိုများ</span><span class="n" id="nrun">0</span></button>
+    <button class="nav" data-go="v-sty">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4M3.8 12h16.4"/></svg><span data-my="စတိုင် & ဘရန်း" data-en="Style & brand">စတိုင် & ဘရန်း</span></button>
+    <div class="sdiv"></div>
+    <button class="nav" data-go="v-acc">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.4 3.1-5.6 7-5.6s7 2.2 7 5.6"/></svg><span data-my="အကောင့်" data-en="Account">အကောင့်</span></button>
+    <div class="sdiv"></div>
+    <div class="suse">
+      <span data-my="ဒီလ သုံးထားမှု" data-en="This month">ဒီလ သုံးထားမှု</span>
+      <div class="meter"><i id="umeter" style="width:0%"></i></div><span class="mono" id="utext">— / —</span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <!-- ══ CREATE ══ -->
+    <section id="v-new">
+      <div id="s-ready">
+        <h1 class="hero" data-my="မလိုတာ <span class='ac'>အမြန် ဖြတ်</span>။<br>တစ်ချက်တည်းနဲ့ အကုန်။"
+          data-en="<span class='ac'>Cuts the dead air.</span><br>All of it, in one go.">မလိုတာ <span class="ac">အမြန် ဖြတ်</span>။<br>တစ်ချက်တည်းနဲ့ အကုန်။</h1>
+        <p class="lede" style="margin:12px 0 22px"
+          data-my="တိတ်နေတာ · ထပ်နေတာ · ဖြည့်စကား · ချောင်းဆိုးသံ — အမြန် ဖြုတ်ပြီး မြန်မာစာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးတယ်။"
+          data-en="Silence, repeats, fillers and coughs go. Burmese captions, graphics and sound arrive.">တိတ်နေတာ · ထပ်နေတာ · ဖြည့်စကား · ချောင်းဆိုးသံ — အမြန် ဖြုတ်ပြီး မြန်မာစာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးတယ်။</p>
+
+        <div class="hrow">
+          <button class="dropbig" id="drop">
+            <div class="ring"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M3.5 15.5v2.8A2.2 2.2 0 0 0 5.7 20.5h12.6a2.2 2.2 0 0 0 2.2-2.2v-2.8"/></svg></div>
+            <div><h4 data-my="ဗီဒီယို တင်ရန်" data-en="Upload video">ဗီဒီယို တင်ရန်</h4>
+              <p data-my="MP4 · MOV · 4K · 8 GB အထိ" data-en="MP4 · MOV · 4K · up to 8 GB">MP4 · MOV · 4K · 8 GB အထိ</p></div>
+          </button>
+          <div class="hcard"><div class="bgim im1"></div><div class="grain"></div><div class="grd"></div><div class="in">
+            <span class="kick" data-my="အသုံးများဆုံး" data-en="Most used">အသုံးများဆုံး</span>
+            <h4>Cinematic Vlog</h4><p>Pyidaungsu · 24fps</p></div></div>
+          <div class="hcard"><div class="bgim im4"></div><div class="grain"></div><div class="grd"></div><div class="in">
+            <span class="kick" data-my="အမြန်ဆုံး" data-en="Fastest">အမြန်ဆုံး</span>
+            <h4>Short Video</h4><p>9:16 · ၉ မိနစ်</p></div></div>
+          <div class="hcard"><div class="bgim im3"></div><div class="grain"></div><div class="grd"></div><div class="in">
+            <span class="kick" data-my="ကျောင်းအတွက်" data-en="For teaching">ကျောင်းအတွက်</span>
+            <h4>Course</h4><p data-my="အနားယူချိန် ချန်ထားတယ်" data-en="Keeps the pauses">အနားယူချိန် ချန်ထားတယ်</p></div></div>
+        </div>
+        <input type="file" id="file" accept="video/*" hidden>
+
+        <!-- ⚠️ ဗီဒီယို ပုံစံ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်ကြောင်း
+             တိုင်းထားသည် (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。
+             မရွေးလျှင် ပြန်စ ရှာဖွေမှု **ပိတ်** — တိတ်ဆိတ်မှု ဖြတ်တာက ပုံမှန်အတိုင်း。 -->
+        <div class="sech"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
+        <div class="chips" id="vfmtbox" style="margin-bottom:8px">
+          <button class="chip vfmt" data-vfmt="camera" aria-pressed="false"
+            data-my="ကင်မရာကို ပြောတာ" data-en="Talking to camera">ကင်မရာကို ပြောတာ</button>
+          <button class="chip vfmt" data-vfmt="podcast" aria-pressed="false"
+            data-my="podcast · အင်တာဗျူး" data-en="Podcast · interview">podcast · အင်တာဗျူး</button>
+          <button class="chip vfmt" data-vfmt="other" aria-pressed="false"
+            data-my="အခြား" data-en="Other">အခြား</button>
+        </div>
+        <p id="vfmtnote" style="font-size:12.5px;color:var(--tx2);margin:0 0 10px"
+          data-my="«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။"
+          data-en="For “talking to camera” we look for retakes and show them (nothing is cut — you choose).">«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။</p>
+
+        <div class="sech"><h3 data-my="ပုံစံ ရွေးပါ" data-en="Choose a style">ပုံစံ ရွေးပါ</h3></div>
+        <div class="chips" style="margin-bottom:8px">
+          <button class="chip cat" data-cat="creator" aria-pressed="true">Creator</button>
+          <button class="chip cat" data-cat="biz">Business</button>
+          <button class="chip cat" data-cat="edu">Education</button>
+        </div>
+        <div class="list styles" data-cat="creator" id="styles"></div>
+
+        <div class="sech"><h3 data-my="ဘရန်း" data-en="Brand">ဘရန်း</h3>
+          <button class="more" id="gostyle" data-my="ဘရန်း ပြင်မယ် →" data-en="Edit brands →">ဘရန်း ပြင်မယ် →</button></div>
+        <p class="lede" style="margin:0 0 12px;font-size:13px"
+          data-my="အရောင်နှင့် ဖောင့်ကို ဘရန်းက ဆုံးဖြတ်တယ်။ အရွယ်က သီးသန့်။"
+          data-en="The brand sets colours and type. Size is separate.">အရောင်နှင့် ဖောင့်ကို ဘရန်းက ဆုံးဖြတ်တယ်။ အရွယ်က သီးသန့်။</p>
+        <div class="chips" id="brandpick"></div>
+
+        <div class="sech"><h3 data-my="အရွယ်" data-en="Size">အရွယ်</h3>
+          <button class="more" id="fmtreset" data-my="ဘရန်း ပုံသေ ပြန်သုံး" data-en="Use brand default">ဘရန်း ပုံသေ ပြန်သုံး</button></div>
+        <p class="lede" style="margin:0 0 12px;font-size:13px"
+          data-my="တင်မယ့် platform အလိုက် ရွေးပါ။ ဘရန်းက ဘယ်အရွယ်နဲ့မဆို အလုပ်လုပ်တယ်။"
+          data-en="Pick the platform you post to. Any brand works at any size.">တင်မယ့် platform အလိုက် ရွေးပါ။ ဘရန်းက ဘယ်အရွယ်နဲ့မဆို အလုပ်လုပ်တယ်။</p>
+        <div id="fmtpick"></div>
+
+        <div class="sech"><h3 data-my="စာတန်း အရွယ်" data-en="Subtitle size">စာတန်း အရွယ်</h3>
+          <button class="more" id="capreset" data-my="ပုံစံ ပုံသေ ပြန်သုံး" data-en="Use style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
+        <p class="lede" style="margin:0 0 12px;font-size:13px"
+          data-my="ဖုန်းမှာ ကြည့်ရင် ကြီးတာက ဖတ်ရလွယ်တယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ သုံးပါမယ်။"
+          data-en="Bigger reads better on a phone. Leave it unset to use the style's default.">ဖုန်းမှာ ကြည့်ရင် ကြီးတာက ဖတ်ရလွယ်တယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ သုံးပါမယ်။</p>
+        <div class="chips" id="cappick"></div>
+
+        <div class="sech"><h3 data-my="မြန်မာ ဖောင့်" data-en="Burmese font">မြန်မာ ဖောင့်</h3>
+          <button class="more" id="fontreset" data-my="ပုံစံ ပုံသေ ပြန်သုံး" data-en="Use style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
+        <p class="lede" style="margin:0 0 12px;font-size:13px"
+          data-my="ရွေးလိုက်တဲ့ ဖောင့်အတိုင်း ထွက်လာပါမယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ ဖောင့် သုံးပါမယ်။"
+          data-en="The font you pick is the font you get. Leave it unset to use the style's default.">ရွေးလိုက်တဲ့ ဖောင့်အတိုင်း ထွက်လာပါမယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ ဖောင့် သုံးပါမယ်။</p>
+        <div class="btns" style="margin:0 0 12px">
+          <button class="btn" id="fontai"
+            data-my="AI ကို ရွေးခိုင်းမယ်" data-en="Let AI pick">AI ကို ရွေးခိုင်းမယ်</button>
+          <input id="fontnote" class="inp" style="flex:1;min-width:200px"
+            placeholder="ဘယ်လို ခံစားချက် လိုချင်လဲ — ဥပမာ: ချောမွေ့ · ခိုင်မာ · ချစ်စရာ">
+        </div>
+        <p id="fontwhy" class="lede" style="margin:0 0 12px;font-size:13px;color:var(--ac)" hidden></p>
+        <div class="list" id="fontpick"></div>
+      </div>
+
+      <!-- တင်နေဆဲ -->
+      <div id="s-up" class="stage" hidden><div class="st">
+        <div class="cap2 gold">↑</div>
+        <h2 id="upttl" data-my="တင်နေပါပြီ" data-en="Uploading">တင်နေပါပြီ</h2>
+        <p class="why" id="upname"></p>
+        <div class="upbar"><i id="upbar" style="width:0%"></i></div>
+        <p class="mono" id="upnum" style="font-size:12.5px;color:var(--tx3)">0%</p>
+        <div class="do" data-my="<b>ပြတ်သွားရင် ဆက်တင်ပေးပါမယ်။ အစကနေ ပြန်တင်စရာ မလိုပါ။</b>"
+          data-en="<b>If it drops, it resumes. You never start over.</b>"><b>ပြတ်သွားရင် ဆက်တင်ပေးပါမယ်။ အစကနေ ပြန်တင်စရာ မလိုပါ။</b></div>
+        <div class="btns"><button class="btn" id="upcancel" data-my="ပယ်ဖျက်မယ်" data-en="Cancel">ပယ်ဖျက်မယ်</button></div>
+      </div></div>
+
+      <!-- လုပ်နေဆဲ -->
+      <div id="s-work" class="stage" hidden>
+        <div id="wbanner" class="wbanner" hidden></div>
+        <h1 class="t" style="margin-bottom:32px" data-my="လုပ်နေပါပြီ…" data-en="Working on it…">လုပ်နေပါပြီ…</h1>
+        <div class="work">
+          <div><div class="dial"><svg viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="tk" cx="110" cy="110" r="100"/><circle class="pg" id="arc" cx="110" cy="110" r="100"/></svg>
+            <div class="mid"><div class="pct" id="pct">0%</div><div class="of" id="eta"></div></div></div></div>
+          <ul class="steps" id="steps"></ul>
+        </div>
+        <div class="btns" style="justify-content:center;margin-top:26px">
+          <button class="btn" id="jcancel" data-my="ရပ်မယ်" data-en="Stop">ရပ်မယ်</button></div>
+      </div>
+
+      <!-- ပြီးပြီ -->
+      <div id="s-done" class="stage" hidden>
+        <div class="check"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></svg></div>
+        <h1 class="t" data-my="ပြီးသွားပြီ။" data-en="Done.">ပြီးသွားပြီ။</h1>
+        <p class="lede" id="donesum" style="margin:10px auto 0"></p>
+        <video id="prev" controls playsinline preload="metadata"
+               style="max-width:300px;width:100%;border-radius:12px;margin:20px auto 0;display:block;background:#000"></video>
+        <p id="pvnote" hidden class="lede" style="max-width:620px;margin:10px auto 0;
+           font-size:12.5px;color:var(--ac)"></p>
+        <div id="flagbox" hidden style="max-width:620px;margin:20px auto 0;text-align:left">
+          <div class="sech"><h3 data-my="သင် အတည်ပြုရန်" data-en="For you to approve">သင် အတည်ပြုရန်</h3>
+            <span class="more" id="flagn"></span></div>
+          <p style="font-size:13px;color:var(--tx2);margin-bottom:10px"
+            data-my="ဒါတွေကို <b>အလိုအလျောက် မဖြတ်ပါ</b> — ဘယ်ဟာ ပြည့်စုံလဲ စက်က မဆုံးဖြတ်နိုင်လို့ပါ။"
+            data-en="These are <b>never cut automatically</b> — no machine can tell which half completes the thought.">ဒါတွေကို <b>အလိုအလျောက် မဖြတ်ပါ</b> — ဘယ်ဟာ ပြည့်စုံလဲ စက်က မဆုံးဖြတ်နိုင်လို့ပါ။</p>
+          <div class="rows" id="flags"></div>
+        </div>
+        <!-- ── ပြင်ပြီး ပြန်ထုတ် ── -->
+        <div id="adjbox" hidden style="max-width:680px;margin:22px auto 0;text-align:left">
+          <div class="sech"><h3 data-my="ပြင်ပြီး ပြန်ထုတ်မယ်" data-en="Adjust and re-render">ပြင်ပြီး ပြန်ထုတ်မယ်</h3>
+            <button class="more" id="adjreset" data-my="ပုံသေ ပြန်သုံး" data-en="Back to default">ပုံသေ ပြန်သုံး</button></div>
+          <p class="lede" style="font-size:13px;margin:0 0 14px"
+            data-my="ဒါတွေက ဗီဒီယိုထဲ ရိုက်ထည့်ထားတာမို့ ပြောင်းရင် ပြန်ထုတ်မှ ရပါမယ်။ ပြန်ထုတ်တာက အရည်အသွေး မကျပါဘူး — မူရင်းဖိုင်ကနေ ပြန်စလို့ပါ။ ပြင်ချက်အားလုံးကို တစ်ခါတည်း ပြန်ထုတ်ပါမယ်။"
+            data-en="These are burned into the video, so changing them needs a re-render. Re-rendering costs no quality — it starts from your original file. All your changes go in one render.">ဒါတွေက ဗီဒီယိုထဲ ရိုက်ထည့်ထားတာမို့ ပြောင်းရင် ပြန်ထုတ်မှ ရပါမယ်။ ပြန်ထုတ်တာက အရည်အသွေး မကျပါဘူး — မူရင်းဖိုင်ကနေ ပြန်စလို့ပါ။ ပြင်ချက်အားလုံးကို တစ်ခါတည်း ပြန်ထုတ်ပါမယ်။</p>
+          <div class="rows" id="adjrows"></div>
+          <p id="adjcost" class="lede" style="font-size:12.5px;color:var(--tx3);margin:12px 0 0"></p>
+        </div>
+        <div id="txbox" hidden style="max-width:680px;margin:22px auto 0;text-align:left">
+          <div class="sech"><h3 data-my="စာသား ပြင်ရန်" data-en="Edit the transcript">စာသား ပြင်ရန်</h3>
+            <button class="more" id="txre" data-my="ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →" data-en="Re-render with edits →">ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →</button></div>
+          <p style="font-size:13px;color:var(--tx2);margin-bottom:10px"
+            data-my="<b>ဖျက်ရင်</b> ဗီဒီယိုပါ ဖြတ်ပါမယ် — အသံပါ ပါသွားမယ်။ <b>စာလုံး ပြင်ရင်</b> စာတန်းပဲ ပြောင်းပါမယ် — အသံနဲ့ ဖြတ်မှတ် မထိပါဘူး (ASR မှားဖတ်တာ ပြင်ဖို့)။ ဘယ်ဟာက ဘာဖြစ်မလဲ စာကြောင်းဘေးမှာ ပြပါမယ်။"
+            data-en="<b>Delete</b> and the video is cut there — the audio goes too. <b>Edit a word</b> and only the caption changes — the audio and the cut are untouched (for fixing what the transcriber misheard). Each line tells you which it will be.">
+            <b>ဖျက်ရင်</b> ဗီဒီယိုပါ ဖြတ်ပါမယ် — အသံပါ ပါသွားမယ်။ <b>စာလုံး ပြင်ရင်</b> စာတန်းပဲ ပြောင်းပါမယ် — အသံနဲ့ ဖြတ်မှတ် မထိပါဘူး (ASR မှားဖတ်တာ ပြင်ဖို့)။ ဘယ်ဟာက ဘာဖြစ်မလဲ စာကြောင်းဘေးမှာ ပြပါမယ်။</p>
+          <!-- ⚠️ Edit မလုပ်ခင် စာတမ်းကို အတည်ပြုတဲ့ အဆင့် — review မှာသာ ပေါ်သည် -->
+          <div id="revbar" hidden style="border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:14px;background:var(--bg2)">
+            <p style="font-size:13px;color:var(--tx1);margin:0 0 10px;font-weight:600"
+              data-my="ဗီဒီယို မဖြတ်ရသေးပါ — ဘယ်အပိုင်း ကျန်မလဲ သင် ဆုံးဖြတ်ပါ"
+              data-en="Nothing has been cut yet — you decide what stays">ဗီဒီယို မဖြတ်ရသေးပါ — ဘယ်အပိုင်း ကျန်မလဲ သင် ဆုံးဖြတ်ပါ</p>
+            <p id="revsum" style="font-size:12.5px;color:var(--tx2);margin:0 0 12px"></p>
+            <details style="margin-bottom:12px">
+              <summary style="font-size:13px;cursor:pointer;color:var(--tx2)"
+                data-my="Script ရှိပါသလား? ဒီမှာ ထည့်ပါ" data-en="Have a script? Paste it here">Script ရှိပါသလား? ဒီမှာ ထည့်ပါ</summary>
+              <p style="font-size:12.5px;color:var(--tx3);margin:8px 0"
+                data-my="Script ထဲ ပါတဲ့ စာပိုဒ်တွေကိုပဲ ချန်ပြီး ကျန်တာ ဖျက်ပေးပါမယ်။ စာလုံး အသစ် ထည့်လို့ မရပါ — အသံထဲ မရှိတာ ဖြတ်စရာ မရှိလို့ပါ။"
+                data-en="Only the lines your script covers are kept; the rest are marked for cutting. New words can't be added — there is nothing in the audio to cut to.">Script ထဲ ပါတဲ့ စာပိုဒ်တွေကိုပဲ ချန်ပြီး ကျန်တာ ဖျက်ပေးပါမယ်။ စာလုံး အသစ် ထည့်လို့ မရပါ — အသံထဲ မရှိတာ ဖြတ်စရာ မရှိလို့ပါ။</p>
+              <textarea id="scr" rows="5" style="width:100%;font:inherit;font-size:13px;padding:9px;border:1px solid var(--ln);border-radius:9px;background:var(--bg);color:var(--tx1)" placeholder="…"></textarea>
+              <button class="more" id="scrgo" style="margin-top:8px"
+                data-my="Script နဲ့ ကိုက်ညှိမယ်" data-en="Match to script">Script နဲ့ ကိုက်ညှိမယ်</button>
+              <p id="scrst" style="font-size:12px;color:var(--tx3);margin-top:7px"></p>
+            </details>
+            <!-- ⚠️ ပြန်စ အကြံပြုချက် — **စက်က မဖြတ်** · တစ်ခုချင်း ✓/✗ (ground truth စုရန်) -->
+            <div id="rtbox" hidden style="margin:0 0 12px">
+              <p style="font-size:13px;color:var(--tx1);margin:0 0 6px;font-weight:600">
+                <span data-my="ပြန်စ ထင်ရတဲ့ အပိုင်း" data-en="Possible retakes">ပြန်စ ထင်ရတဲ့ အပိုင်း</span>
+                <span class="more" id="rtn"></span></p>
+              <p style="font-size:12.5px;color:var(--tx2);margin:0 0 8px"
+                data-my="စက်က <b>မဖြတ်ပါ</b> — တစ်ခုချင်း <b>✓ ဖြတ်</b> / <b>✗ မဖြတ်</b> ရွေးပါ။ ရွေးချယ်မှုတိုင်းက app ကို ပိုတိကျအောင် သင်ပေးပါတယ်။"
+                data-en="Nothing here is cut automatically — pick <b>✓ cut</b> or <b>✗ keep</b> for each. Every choice teaches the app.">စက်က <b>မဖြတ်ပါ</b> — တစ်ခုချင်း <b>✓ ဖြတ်</b> / <b>✗ မဖြတ်</b> ရွေးပါ။ ရွေးချယ်မှုတိုင်းက app ကို ပိုတိကျအောင် သင်ပေးပါတယ်။</p>
+              <div class="rows" id="rts"></div>
+            </div>
+            <!-- ⚠️ review v2 — အုပ်စု တစ်ခုချင်း **ဘယ် take ချန်မလဲ** ရွေးရန်。
+                 cluster အပြည့်ကို တစ်တုံးတည်း မပြရ (R20 က ၉၄s ရှည်) — take တစ်ခုချင်း。 -->
+            <div id="clbox" hidden style="margin:0 0 12px">
+              <p style="font-size:13px;color:var(--tx1);margin:0 0 6px;font-weight:600">
+                <span data-my="ပြန်စထားတဲ့ အပိုင်း — ဘယ်တစ်ခု ချန်မလဲ" data-en="Retake groups — which take to keep">ပြန်စထားတဲ့ အပိုင်း — ဘယ်တစ်ခု ချန်မလဲ</span>
+                <span class="more" id="cln"></span></p>
+              <p style="font-size:12.5px;color:var(--tx2);margin:0 0 8px"
+                data-my="တစ်ခုတည်းသော အကြောင်းအရာကို အကြိမ်ကြိမ် ပြောထားတာ ဖြစ်နိုင်ပါတယ်။ <b>ချန်ချင်တဲ့ take ကို ရွေးပါ</b> — ကျန်တာကို ဖြတ်ပါမယ်။ <b>ပုံသေက ဘာမှ မဖျက်ပါ</b>။"
+                data-en="These look like several attempts at the same thing. <b>Pick the take to keep</b> — the rest are cut. <b>Default is: cut nothing</b>.">တစ်ခုတည်းသော အကြောင်းအရာကို အကြိမ်ကြိမ် ပြောထားတာ ဖြစ်နိုင်ပါတယ်။ <b>ချန်ချင်တဲ့ take ကို ရွေးပါ</b> — ကျန်တာကို ဖြတ်ပါမယ်။ <b>ပုံသေက ဘာမှ မဖျက်ပါ</b>။</p>
+              <div id="cls"></div>
+            </div>
+            <p id="rtoff" hidden style="font-size:12.5px;color:var(--tx2);margin:0 0 12px;
+               border:1px solid var(--ln);border-radius:10px;padding:9px 11px"></p>
+            <button class="cta" id="revgo" style="width:100%"
+              data-my="ဒီအတိုင်း ဖြတ်ပြီး Edit လုပ်မယ် →" data-en="Cut to this and edit →">ဒီအတိုင်း ဖြတ်ပြီး Edit လုပ်မယ် →</button>
+          </div>
+          <div class="rows" id="tx"></div>
+          <p id="txstat" style="font-size:12px;color:var(--tx3);margin-top:9px"></p>
+        </div>
+        <div id="verbox" hidden style="max-width:680px;margin:20px auto 0;text-align:left">
+          <div class="sech"><h3 data-my="ဗားရှင်း မှတ်တမ်း" data-en="Version history">ဗားရှင်း မှတ်တမ်း</h3></div>
+          <p style="font-size:12.5px;color:var(--tx2);margin-bottom:10px"
+            data-my="ဗားရှင်း အဟောင်းများကို သိမ်းထားပါတယ်။ ပြန်ထုတ်လည်း အရင်ဟာ ကျန်နေပါတယ်။"
+            data-en="Older versions are kept. Re-rendering never overwrites what you had.">ဗားရှင်း အဟောင်းများကို သိမ်းထားပါတယ်။ ပြန်ထုတ်လည်း အရင်ဟာ ကျန်နေပါတယ်။</p>
+          <div class="rows" id="vers"></div>
+        </div>
+        <!-- ⚠️ ပြင်ချက် ရှိလျှင် **ဒီမှာ** အဓိက ခလုပ် ဖြစ်ရမည် — သုံးစွဲသူက
+             အပေါ်မှာ ပြင်ပြီး အောက်ဆုံး ဆင်းလာတော့ ခလုပ် ရှာမတွေ့ခဲ့
+             ("ဘယ်နားကို သွားနှိပ်ရမှာလဲ" — တကယ် ဖြစ်ခဲ့)。 -->
+        <div id="rrbar" hidden style="max-width:680px;margin:22px auto 0;
+             padding:14px 16px;border:1px solid var(--ac);border-radius:14px;
+             display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+          <span id="rrsum" class="lede" style="font-size:13px;margin:0;text-align:left"></span>
+          <button class="cta" id="rrgo" style="padding:11px 24px;white-space:nowrap"
+            data-my="ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →" data-en="Re-render with changes →">ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →</button>
+        </div>
+        <div class="acts" style="margin-top:24px">
+          <a class="cta" id="dl" style="padding:12px 28px;text-decoration:none;display:inline-block" data-my="ဒေါင်းလုပ်" data-en="Download">ဒေါင်းလုပ်</a>
+          <a class="btn" id="dlsrt" style="text-decoration:none;display:inline-block" data-my="စာတန်း (SRT)" data-en="Subtitles (SRT)">စာတန်း (SRT)</a>
+          <button class="btn" id="again" data-my="နောက်တစ်ခု" data-en="Next video">နောက်တစ်ခု</button>
+          <button class="btn idel" id="jdel" data-my="ဖျက်မယ်" data-en="Delete">ဖျက်မယ်</button>
+        </div>
+      </div>
+
+      <!-- ပျက်သွားပြီ -->
+      <div id="s-err" class="stage" hidden><div class="st">
+        <div class="cap2 warn">!</div>
+        <h2 id="errttl" data-my="ရပ်သွားပါတယ်" data-en="It stopped">ရပ်သွားပါတယ်</h2>
+        <p class="why" id="errwhy"></p>
+        <ul class="facts">
+          <li><span data-my="သုံးပြီးသား မိနစ်" data-en="Minutes used">သုံးပြီးသား မိနစ်</span>
+            <span data-my="<b>ပြန်ထည့်ပေးပြီးပါပြီ။</b> ပျက်သွားတဲ့ အလုပ်အတွက် မိနစ် မယူပါ" data-en="<b>Refunded.</b> A failed run never costs you minutes"><b>ပြန်ထည့်ပေးပြီးပါပြီ။</b> ပျက်သွားတဲ့ အလုပ်အတွက် မိနစ် မယူပါ</span></li>
+          <li><span data-my="မူရင်း ဗီဒီယို" data-en="Your original">မူရင်း ဗီဒီယို</span>
+            <span data-my="<b>ဘာမှ မထိပါ</b>" data-en="<b>Untouched</b>"><b>ဘာမှ မထိပါ</b></span></li>
+        </ul>
+        <div class="btns">
+          <button class="cta" style="padding:12px 26px" id="retry" data-my="ထပ်လုပ်မယ်" data-en="Try again">ထပ်လုပ်မယ်</button>
+          <button class="btn" data-go="v-lib" data-my="ဗီဒီယိုများသို့" data-en="Back to videos">ဗီဒီယိုများသို့</button></div>
+      </div></div>
+
+      <!-- မိနစ်ကုန် -->
+      <div id="s-quota" class="stage" hidden><div class="st">
+        <div class="cap2 gold">◍</div>
+        <h2 data-my="ဒီလအတွက် မိနစ် ကုန်သွားပါပြီ" data-en="You've used this month's minutes">ဒီလအတွက် မိနစ် ကုန်သွားပါပြီ</h2>
+        <p class="why" data-my="ပြီးသွားတဲ့ ဗီဒီယိုတွေ အားလုံး ဆက်ရောက်လို့ရပါတယ် — ကြည့်လို့ရ · ဒေါင်းလို့ရပါတယ်။"
+          data-en="Everything you've already made is still here — watch and download as usual.">ပြီးသွားတဲ့ ဗီဒီယိုတွေ အားလုံး ဆက်ရောက်လို့ရပါတယ် — ကြည့်လို့ရ · ဒေါင်းလို့ရပါတယ်။</p>
+        <div class="do" data-my="<b>လုပ်နေဆဲ အလုပ်တွေကို ပြီးအောင် လုပ်ပေးပါမယ်။ အလယ်မှာ မရပ်ပါဘူး။</b>"
+          data-en="<b>Anything already running will finish. Nothing stops halfway.</b>"><b>လုပ်နေဆဲ အလုပ်တွေကို ပြီးအောင် လုပ်ပေးပါမယ်။ အလယ်မှာ မရပ်ပါဘူး။</b></div>
+        <div class="btns"><button class="btn" data-go="v-lib" data-my="ပြီးသား ဗီဒီယိုများ" data-en="My videos">ပြီးသား ဗီဒီယိုများ</button></div>
+      </div></div>
+    </section>
+
+    <!-- ══ VIDEOS ══ -->
+    <section id="v-lib" hidden>
+      <h1 class="t" data-my="ဗီဒီယိုများ" data-en="Videos">ဗီဒီယိုများ</h1>
+      <div class="filters">
+        <label class="srch"><span aria-hidden="true">⌕</span>
+          <input id="q" type="search" data-my-ph="ရှာရန်  /" data-en-ph="Search  /" placeholder="ရှာရန်  /" aria-label="Search"></label>
+        <button class="fdrop stf" aria-pressed="true" data-st="all" data-my="အားလုံး" data-en="All">အားလုံး</button>
+        <button class="fdrop stf" data-st="running" data-my="လုပ်နေဆဲ" data-en="Running">လုပ်နေဆဲ</button>
+        <button class="fdrop stf" data-st="failed" data-my="ပျက်သွား" data-en="Failed">ပျက်သွား</button>
+        <button class="fdrop stf" data-st="done" data-my="ပြီးပြီ" data-en="Done">ပြီးပြီ</button>
+      </div>
+      <!-- ⚠️ ဖျက်တာက ပြန်ရနိုင်ရမည် — ၂၄ နာရီအတွင်း -->
+        <div id="undobar" hidden style="margin:0 0 14px;padding:12px 16px;
+             border:1px solid var(--ac);border-radius:12px;display:flex;gap:14px;
+             align-items:center;justify-content:space-between;flex-wrap:wrap">
+          <span id="undotxt" style="font-size:13.5px"></span>
+          <button class="btn" id="undogo" data-my="ပြန်ယူမယ်" data-en="Undo">ပြန်ယူမယ်</button>
+        </div>
+        <div class="list" id="jobs"></div>
+
+      <!-- ⚠️ ဗီဒီယို **တစ်ခုမှ မရှိ**တာနဲ့ **ရှာလို့ မတွေ့**တာ မတူ —
+           အသစ် စသုံးသူကို "စာလုံး လျှော့ကြည့်ပါ" ပြောလျှင် ရူးသွားမည်。 -->
+      <div id="nojobs" hidden style="padding:34px 4px">
+        <h3 style="font-size:17px;font-weight:600;margin-bottom:7px"
+          data-my="ဗီဒီယို မရှိသေးပါ" data-en="No videos yet">ဗီဒီယို မရှိသေးပါ</h3>
+        <p style="font-size:13.5px;color:var(--tx2);max-width:46ch"
+          data-my="ဗီဒီယိုတစ်ခု တင်လိုက်ရင် ဒီမှာ ပေါ်လာပါမယ်။ တိတ်နေတာတွေ ဖြတ်ပြီး စာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးပါမယ်။"
+          data-en="Upload one and it shows up here — cut, captioned, with graphics and sound.">ဗီဒီယိုတစ်ခု တင်လိုက်ရင် ဒီမှာ ပေါ်လာပါမယ်။ တိတ်နေတာတွေ ဖြတ်ပြီး စာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးပါမယ်။</p>
+        <button class="cta" data-go="v-new" style="margin-top:18px"
+          data-my="ဗီဒီယို တင်မယ် →" data-en="Upload a video →">ဗီဒီယို တင်မယ် →</button>
+      </div>
+      <div id="noq" hidden style="padding:30px 4px">
+        <h3 style="font-size:17px;font-weight:600;margin-bottom:7px" data-my="ရှာမတွေ့ပါ" data-en="Nothing matched">ရှာမတွေ့ပါ</h3>
+        <p style="font-size:13.5px;color:var(--tx2);max-width:46ch"
+          data-my="ခေါင်းစဉ် · ဘရန်း · ပုံစံနဲ့ ရှာလို့ရပါတယ်။ စာလုံး လျှော့ကြည့်ပါ။"
+          data-en="Search by title, brand or style. Try fewer words.">ခေါင်းစဉ် · ဘရန်း · ပုံစံနဲ့ ရှာလို့ရပါတယ်။ စာလုံး လျှော့ကြည့်ပါ။</p>
+        <button class="btn" id="qclear" style="margin-top:16px" data-my="ရှင်းမယ်" data-en="Clear">ရှင်းမယ်</button>
+      </div>
+        <!-- ── အမှိုက်ပုံး ── -->
+        <div class="sech" id="trashsec" hidden style="margin-top:26px">
+          <h3 data-my="အမှိုက်ပုံး" data-en="Trash">အမှိုက်ပုံး</h3>
+          <span class="more" id="trashnote"></span></div>
+        <div class="list" id="trashlist"></div>
+    </section>
+
+    <!-- ══ STYLE ══ -->
+    <section id="v-sty" hidden>
+      <h1 class="t" data-my="စတိုင် & ဘရန်း" data-en="Style & brand">စတိုင် & ဘရန်း</h1>
+      <p class="lede" style="margin-top:10px" data-my="တစ်ခါ သတ်မှတ်ပြီး ဗီဒီယိုတိုင်းမှာ အလိုအလျောက် သုံးတယ်။"
+        data-en="Set once, applied to every video.">တစ်ခါ သတ်မှတ်ပြီး ဗီဒီယိုတိုင်းမှာ အလိုအလျောက် သုံးတယ်။</p>
+      <div class="sech"><h3 data-my="ဘရန်း ကစ်" data-en="Brand kits">ဘရန်း ကစ်</h3>
+        <button class="more" id="bnew" data-my="+ ဘရန်း အသစ်" data-en="+ New brand">+ ဘရန်း အသစ်</button></div>
+      <div class="grid2" id="kits"></div>
+
+      <!-- ── ရုပ်ကြမ်း စာကြည့်တိုက် ── -->
+      <div class="sech"><h3 data-my="ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်" data-en="Footage &amp; photo library">ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်</h3>
+        <label class="more" style="cursor:pointer" data-my="+ ထည့်မယ်" data-en="+ Add">+ ထည့်မယ်
+          <input type="file" id="brollup" accept="image/*,video/mp4,video/quicktime" multiple hidden></label></div>
+      <p class="lede" style="margin:0 0 12px;font-size:13px"
+        data-my="ပုံ ဒါမှမဟုတ် ရုပ်ကြမ်း ထည့်ထားရင် ပြောနေတဲ့ အကြောင်းအရာနဲ့ ကိုက်တဲ့နေရာမှာ AI က ကိုယ်တိုင် ထည့်ပေးပါမယ်။ ပုံဆိုရင် နှေးနှေး တိုးဝင်သွားအောင် လုပ်ပေးတယ် — တည်ငြိမ်နေရင် ရုပ်သေနေသလို ဖြစ်လို့ပါ။"
+        data-en="Add photos or footage and the AI places them where the speech actually matches. A photo gets a slow push so the frame never sits still.">ပုံ ဒါမှမဟုတ် ရုပ်ကြမ်း ထည့်ထားရင် ပြောနေတဲ့ အကြောင်းအရာနဲ့ ကိုက်တဲ့နေရာမှာ AI က ကိုယ်တိုင် ထည့်ပေးပါမယ်။ ပုံဆိုရင် နှေးနှေး တိုးဝင်သွားအောင် လုပ်ပေးတယ် — တည်ငြိမ်နေရင် ရုပ်သေနေသလို ဖြစ်လို့ပါ။</p>
+      <div class="rows" id="brolllist"></div>
+
+      <div class="sech"><h3 data-my="ပုံစံ" data-en="Styles">ပုံစံ</h3></div>
+      <p class="lede" style="margin:0 0 12px;font-size:13px"
+        data-my="ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။"
+        data-en="Every style's numbers were measured from reference videos. You can change them, and reset back.">ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။</p>
+      <div class="list" id="stylist"></div>
+
+      <!-- ပုံစံ ပြင်ခြင်း -->
+      <div id="sedit" class="card" hidden style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <b id="settl" style="font-size:17px;letter-spacing:-.02em"></b>
+          <span class="mono" id="seid" style="font-size:11px;color:var(--tx3)"></span></div>
+        <div id="sefields"></div>
+        <div class="btns" style="margin-top:16px">
+          <button class="btn pri" id="sesave" data-my="သိမ်းမယ်" data-en="Save">သိမ်းမယ်</button>
+          <button class="btn" id="secancel" data-my="ပယ်မယ်" data-en="Cancel">ပယ်မယ်</button>
+          <button class="btn dg" id="sereset" data-my="ပုံသေ ပြန်သုံး" data-en="Reset to default">ပုံသေ ပြန်သုံး</button></div>
+      </div>
+
+      <!-- ဘရန်း ပြင်ခြင်း — ⚠️ Create စာမျက်နှာမှာ **ရွေးရုံ**၊ ပြင်တာ ဒီမှာ -->
+      <div id="bedit" class="card" hidden style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <b id="bettl" style="font-size:17px;letter-spacing:-.02em">ဘရန်း ပြင်မယ်</b>
+          <span class="mono" id="beid" style="font-size:11px;color:var(--tx3)"></span></div>
+        <div class="opt"><div class="txt"><b data-my="နာမည်" data-en="Name">နာမည်</b></div>
+          <label class="srch" style="min-width:240px"><input id="bename" placeholder="My Brand" aria-label="Name"></label></div>
+        <div class="opt"><div class="txt"><b data-my="အရောင်" data-en="Colours">အရောင်</b>
+          <span data-my="နောက်ခံ · အကွက် · အဓိက · အရံ · သတိပေး"
+            data-en="background · panel · accent · secondary · alert">နောက်ခံ · အကွက် · အဓိက · အရံ · သတိပေး</span></div>
+          <div class="bcols" id="becols"></div></div>
+        <div class="opt"><div class="txt"><b data-my="မြန်မာ ဖောင့်" data-en="Burmese type">မြန်မာ ဖောင့်</b></div>
+          <select id="bemmf" class="sel" aria-label="Burmese font"></select></div>
+        <div class="opt"><div class="txt"><b data-my="Latin ဖောင့်" data-en="Latin type">Latin ဖောင့်</b></div>
+          <select id="belatin" class="sel" aria-label="Latin font"></select></div>
+        <div class="opt"><div class="txt"><b data-my="ပုံသေ အရွယ်" data-en="Default size">ပုံသေ အရွယ်</b>
+          <span data-my="ဗီဒီယိုတစ်ခုချင်း ပြောင်းလို့ရတယ်" data-en="Changeable per video">ဗီဒီယိုတစ်ခုချင်း ပြောင်းလို့ရတယ်</span></div>
+          <select id="beaspect" class="sel" aria-label="Default size"></select></div>
+        <div class="btns" style="margin-top:16px">
+          <button class="btn pri" id="besave" data-my="သိမ်းမယ်" data-en="Save">သိမ်းမယ်</button>
+          <button class="btn" id="becancel" data-my="ပယ်မယ်" data-en="Cancel">ပယ်မယ်</button>
+          <button class="btn dg" id="bedel" data-my="ဖျက်မယ်" data-en="Delete">ဖျက်မယ်</button></div>
+      </div>
+    </section>
+
+    <!-- ══ ACCOUNT ══ -->
+    <section id="v-acc" hidden>
+      <h1 class="t" data-my="အကောင့်" data-en="Account">အကောင့်</h1>
+      <div class="sech"><h3 data-my="ဒီလ" data-en="This month">ဒီလ</h3></div>
+      <div class="grid3" id="usage"></div>
+      <!-- ── အကောင့် ── -->
+      <div class="sech"><h3 data-my="အကောင့်" data-en="Account">အကောင့်</h3>
+        <button class="more" id="acctnew" data-my="+ အကောင့် အသစ်" data-en="+ New account">+ အကောင့် အသစ်</button></div>
+      <div class="card" id="acctcard" style="margin-bottom:22px"></div>
+
+      <!-- ── Plan ── -->
+      <div class="sech"><h3 data-my="အစီအစဉ်" data-en="Plan">အစီအစဉ်</h3>
+        <button class="more" id="planedit" data-my="ပြင်မယ်" data-en="Edit">ပြင်မယ်</button></div>
+      <div class="card" id="plancard" style="margin-bottom:22px"></div>
+      <div class="card" id="planform" hidden style="margin-bottom:22px"></div>
+
+      <!-- ── ငွေပေးချေမှု · KBZPay / Wave / CB Pay ── -->
+      <!-- ⚠️ card gateway မဟုတ် — QR နဲ့ လွှဲပြီး ငွေလွှဲနံပါတ် တင်ရသည်。
+           "ငွေရပြီးပါပြီ" ဟု **မပြရ**、ပိုင်ရှင် အတည်ပြုမှသာ မိနစ် တက်သည်。 -->
+      <div class="sech"><h3 data-my="ငွေပေးချေမှု" data-en="Payment">ငွေပေးချေမှု</h3>
+        <button class="more" id="payedit" hidden data-my="ဆက်တင်" data-en="Settings">ဆက်တင်</button></div>
+      <div class="card" id="paycard" style="margin-bottom:22px"></div>
+      <div class="card" id="payform" hidden style="margin-bottom:22px"></div>
+      <div class="sech" id="paysech" hidden><h3 data-my="ငွေလွှဲ စစ်ဆေးရန်" data-en="Payments to review">ငွေလွှဲ စစ်ဆေးရန်</h3>
+        <button class="more" id="payrefresh" data-my="ပြန်ဆွဲ" data-en="Refresh">ပြန်ဆွဲ</button></div>
+      <div class="card" id="payadmin" hidden style="margin-bottom:22px"></div>
+
+      <div class="sech"><h3 data-my="Telegram အကြောင်းကြားချက်" data-en="Telegram notifications">Telegram အကြောင်းကြားချက်</h3>
+        <button class="more" id="tgsave" data-my="သိမ်းမယ်" data-en="Save">သိမ်းမယ်</button></div>
+      <div class="card">
+        <div class="opt"><div class="txt"><b>Bot token</b>
+          <span data-my="BotFather ကနေ ရတဲ့ token" data-en="From BotFather">BotFather ကနေ ရတဲ့ token</span></div>
+          <label class="srch" style="min-width:230px"><input id="tgtok" type="password" placeholder="123456:ABC…" aria-label="Bot token"></label></div>
+        <div class="opt"><div class="txt"><b>Chat ID</b>
+          <span data-my="သင့် chat id ဒါမှမဟုတ် group id" data-en="Your chat or group id">သင့် chat id ဒါမှမဟုတ် group id</span></div>
+          <label class="srch" style="min-width:230px"><input id="tgchat" placeholder="123456789" aria-label="Chat ID"></label></div>
+        <p style="font-size:12.5px;color:var(--tx3);padding:10px 0 0"
+          data-my="ဗီဒီယို ပြီးတိုင်း ဖြတ်ချက်အရေအတွက်နဲ့ အတည်ပြုရန် အရေအတွက်ကို ပို့ပါမယ်။"
+          data-en="Every finished video sends the cut count and anything awaiting your approval.">ဗီဒီယို ပြီးတိုင်း ဖြတ်ချက်အရေအတွက်နဲ့ အတည်ပြုရန် အရေအတွက်ကို ပို့ပါမယ်။</p>
+      </div>
+
+      <div class="sech" id="privacy"><h3 data-my="သင့် ဖိုင်တွေ ဘာဖြစ်သွားလဲ" data-en="What happens to your files">သင့် ဖိုင်တွေ ဘာဖြစ်သွားလဲ</h3></div>
+      <p style="font-size:13.5px;color:var(--tx2);margin-bottom:13px"
+        data-my="မထုတ်ရသေးတဲ့ ဗီဒီယိုတွေ တင်ရမှာမို့ အတိအကျ ပြောပြပါမယ်။ ဥပဒေဘာသာစကား မသုံးပါဘူး။"
+        data-en="You're uploading footage that isn't published yet, so here it is plainly.">မထုတ်ရသေးတဲ့ ဗီဒီယိုတွေ တင်ရမှာမို့ အတိအကျ ပြောပြပါမယ်။ ဥပဒေဘာသာစကား မသုံးပါဘူး။</p>
+      <div class="card">
+        <div class="opt"><div class="txt"><b data-my="ဖိုင်တွေ ဘယ်မှာ သိမ်းလဲ" data-en="Where your files sit">ဖိုင်တွေ ဘယ်မှာ သိမ်းလဲ</b>
+          <span data-my="ဂျပန်နိုင်ငံ · သင့်အကောင့်နဲ့ ခွဲထားတဲ့ သိုလှောင်မှု" data-en="Japan · storage scoped to your account">ဂျပန်နိုင်ငံ · သင့်အကောင့်နဲ့ ခွဲထားတဲ့ သိုလှောင်မှု</span></div></div>
+        <div class="opt"><div class="txt"><b data-my="ဘယ်လောက်ကြာ သိမ်းလဲ" data-en="How long">ဘယ်လောက်ကြာ သိမ်းလဲ</b>
+          <span data-my="မူရင်း ရက် ၇ · ပြီးသား ရက် ၃၀" data-en="Source 7 days · finished 30 days">မူရင်း ရက် ၇ · ပြီးသား ရက် ၃၀</span></div></div>
+        <div class="opt"><div class="txt"><b data-my="မြန်မာစာသား ထုတ်ရန် အသံ ပြင်ပ ပို့ရသည်" data-en="Burmese text needs an outside service">မြန်မာစာသား ထုတ်ရန် အသံ ပြင်ပ ပို့ရသည်</b>
+          <span data-my="မြန်မာလို စာသားထုတ်နိုင်တဲ့ စက်တွင်း model မရှိသေးလို့ အသံကို Google Gemini ဆီ ပို့ပါတယ် (၂၀ စက္ကန့်လျှင် ~55 KB)။ ဗီဒီယို တစ်ခုလုံး မပို့ပါ — အသံပဲ ပို့ပါတယ်။"
+                data-en="No on-device model can write Burmese yet, so the audio (not the video) goes to Google Gemini — about 55 KB per 20 seconds.">မြန်မာလို စာသားထုတ်နိုင်တဲ့ စက်တွင်း model မရှိသေးလို့ အသံကို Google Gemini ဆီ ပို့ပါတယ် (၂၀ စက္ကန့်လျှင် ~55 KB)။ ဗီဒီယို တစ်ခုလုံး မပို့ပါ — အသံပဲ ပို့ပါတယ်။</span></div>
+          <span class="pill p-no" data-my="ပို့သည်" data-en="Yes">ပို့သည်</span></div>
+        <div class="opt"><div class="txt"><b data-my="ကျွန်ုပ်တို့က AI သင်ကြားရေးအတွက် သုံးလား" data-en="Do we train AI on your files?">ကျွန်ုပ်တို့က AI သင်ကြားရေးအတွက် သုံးလား</b>
+          <span data-my="မသုံးပါ။ ဘယ်တော့မှ မသုံးပါဘူး။ (Google ရဲ့ သုံးစွဲမှုကို ကျွန်ုပ်တို့ မထိန်းချုပ်နိုင်ပါ)"
+                data-en="Never. (We cannot control what Google does with it.)">မသုံးပါ။ ဘယ်တော့မှ မသုံးပါဘူး။ (Google ရဲ့ သုံးစွဲမှုကို ကျွန်ုပ်တို့ မထိန်းချုပ်နိုင်ပါ)</span></div>
+          <span class="pill p-ok" data-my="မသုံးပါ" data-en="No">မသုံးပါ</span></div>
+        <div class="opt"><div class="txt"><b data-my="ဂျပန်/အင်္ဂလိပ် ဆိုရင်" data-en="Japanese / English">ဂျပန်/အင်္ဂလိပ် ဆိုရင်</b>
+          <span data-my="စက်တွင်းမှာပဲ လုပ်ပါတယ် — ပြင်ပကို ဘာမှ မပို့ပါ" data-en="Handled on-device. Nothing leaves.">စက်တွင်းမှာပဲ လုပ်ပါတယ် — ပြင်ပကို ဘာမှ မပို့ပါ</span></div>
+          <span class="pill p-ok" data-my="မပို့ပါ" data-en="Local">မပို့ပါ</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="dock" id="dock" hidden>
+  <div class="th2"></div>
+  <div class="info"><b id="dkname">—</b><span id="dkstage">—</span></div>
+  <div class="prog"><span class="mono" id="dkn" style="font-size:11.5px;color:var(--tx3)">0/7</span>
+    <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
+</div>
+
+<script src="/app.js?v=1789567168"></script>
+</body>
+</html>

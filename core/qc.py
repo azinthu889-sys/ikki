@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""IKKI core · QC gate — မအောင်လျှင် **မပို့ရ**。
+
+⚠️ ဤ gate က product ရဲ့ ရောင်းချက်ပါ။ CapCut မှာ မရှိ。
+   UI မှာ ကတိပေးထားသဖြင့် ကုဒ်ထဲ တကယ် ရှိရမည် — ပြောရုံ မဟုတ်。
+"""
+import json, re, subprocess
+
+# ⚠️ ပစ်မှတ်တွေက ခန့်မှန်းချက် မဟုတ် — တိုင်းထားပြီးသား house standard
+# ⚠️ tp_max ကို −0.5 မှ **−1.0** သို့ တင်းလိုက်သည် — skill `ikki-presentation`
+#    P5。 REF-A ကိုယ်တိုင် +0.19 dBTP ဖြင့် ကပ်နေသည် (ပြတ်သည်) — reference ရဲ့
+#    mastering ကို မကူးရ、ဖွဲ့စည်းပုံကိုသာ ကူးရမည်。
+T = dict(lufs=(-16.0, -12.0), tp_max=-1.0, cut_in_speech=0, min_dur=1.0)
+
+# ── skill `ikki-presentation` ရဲ့ တိုင်းထားသော ဘောင်များ ──
+SFX_MAX_PER_MIN = 1.5      # P3 — REF-A 1.1 · REF-B 0.6
+SFX_MIN_GAP     = 8.0      # P3 — ၈ စက္ကန့်အတွင်း နှစ်ခု မရှိရ
+SFX_LAYER_W     = 0.60     # ⚠️ ဒီအတွင်း ကပ်နေတဲ့ cue = **အသံတစ်ခု၏ အထပ်**
+CARD_MIN, CARD_MAX = 1.0, 10.5   # P2
+LUFS_LO, LUFS_HI   = -15.5, -13.5   # integrated (ပစ်မှတ် −14.5)
+
+def _lufs(p):
+    # ⚠️ ebur128 က **peak=true မပါလျှင် True peak မတိုင်း** — None ပြန်လာပြီး
+    #    QC က သူ့ကိုယ်သူ့ bug နဲ့ ရှုံးသည် (တကယ် ဖြစ်ခဲ့)。
+    r = subprocess.run(["ffmpeg","-hide_banner","-nostats","-i",p,
+        "-af","ebur128=peak=true:framelog=quiet","-f","null","-"],
+        capture_output=True, text=True).stderr
+    def g(k):
+        m = re.search(rf"{k}:\s*(-?[\d.]+)", r)
+        return float(m.group(1)) if m else None
+    return g("I"), g("Peak")
+
+def _probe(p):
+    o = subprocess.run(["ffprobe","-v","error","-select_streams","v:0",
+        "-show_entries","stream=width,height,nb_read_packets",
+        "-show_entries","format=duration","-of","json","-count_packets",p],
+        capture_output=True, text=True).stdout
+    j = json.loads(o); s = j["streams"][0]
+    return dict(w=s["width"], h=s["height"], dur=float(j["format"]["duration"]))
+
+def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None):
+    """(ok, checks) — checks က UI ရဲ့ QC ကတ်တွေအတွက်"""
+    m = _probe(out)
+    I, tp = _lufs(out)
+    C=[]
+    def add(key, ok, val, want):
+        C.append(dict(key=key, ok=bool(ok), value=val, want=want))
+
+    # ① စကားပြောနေတုန်း ဖြတ်မိတာ — ဤ product ရဲ့ အဓိက ကတိ
+    add("cut_in_speech", cut_stats.get("in_speech",0) == T["cut_in_speech"],
+        cut_stats.get("in_speech",0), "0")
+    # ② အသံ အဆင့်
+    # ⚠️ ပစ်မှတ်က recipe အလိုက် ကွာသည် — ZAE −17.7 · ZJL −14 (နှစ်ခုလုံး တိုင်းထား)
+    # ⚠️ ဘောင်က **ပုံသေ −15.5 … −13.5** (work order နောက်ဆက်တွဲ က)。
+    #    အရင်က `tgt ± 2` ဖြစ်၍ −16.0 အထိ ခွင့်ပြုခဲ့ · ပြီးတော့ ±1.5 က
+    #    အထက်ဘက်မှာ −12.5 အထိ ဖွင့်ပေးမိသေးသည် (မှား)。
+    add("lufs", I is not None and LUFS_LO <= I <= LUFS_HI,
+        None if I is None else round(I,1), f"{LUFS_LO:+.1f} … {LUFS_HI:+.1f}")
+    add("true_peak", tp is not None and tp <= T["tp_max"],
+        None if tp is None else round(tp,1), f"≤ {T['tp_max']}")
+    # ③ အရွယ်အစား — theme နဲ့ ကိုက်ရမည်
+    add("frame", m["w"]==theme["W"] and m["h"]==theme["H"],
+        f"{m['w']}×{m['h']}", f"{theme['W']}×{theme['H']}")
+    # ④ ဗလာ ဗီဒီယို မဖြစ်ရ
+    add("duration", m["dur"] >= T["min_dur"], round(m["dur"],1), f"≥ {T['min_dur']}s")
+    # ⑤ စာတန်း safe zone — ⚠️ ဘောင်ပြင် ထွက်လျှင် TikTok UI က ဖုံးသည်
+    if caps is not None:
+        # ⚠️ BOT နဲ့ မစစ်ရ — BOT က **ဂရပ်ဖစ်** အတွက် ကန့်သတ်ချက်ပါ
+        #    (စာတမ်းပေါ် မတက်စေရန်)。 စာတန်းက အဲဒီအောက် ရှိရမှာပဲ。
+        #    တကယ် စစ်ရမှာ — TikTok ရဲ့ UI ဖုံးတဲ့ အောက်ခြေ 320/1920 = 16.7%
+        #    ကို ကျော်မကျော် (tiktok-safe-area မှ တိုင်းထား)。
+        lim = theme.get("cap_max") or 0.833
+        band = int(theme.get("cap_h", 0))
+        maxy = int(theme["H"] * lim)
+        add("caption_zone", band == 0 or band <= maxy,
+            band or "—", f"≤ {maxy} ({lim*100:.0f}% of H)")
+    # ⑥ ─ presentation layer (skill `ikki-presentation`) ─────────
+    # ⚠️ P1 ရဲ့ ဘောင် 0.10–0.17 ဟာ **ZJL knowledge reference ၂ ခု**မှ。
+    #    ZAE short မှာ full-frame card လုံးဝ မသုံး (ထောင့် overlay သာ) ⇒
+    #    `share` မပေးလျှင် **မစစ်ရ**。 ZJL grade အတွက် တွက်ထားသော
+    #    "luma median > 110" detector ကလည်း ZAE ရဲ့ အလင်း A-roll (၂၁၅) မှာ
+    #    အလုပ် မဖြစ် — ဘောင်ရော detector ရော ချန်နယ်အလိုက် ဖြစ်သည်。
+    if cards is not None and m["dur"] > 0:
+        tot = sum(float(d) for _a, d in cards)
+        sh = tot/m["dur"]
+        if share:
+            add("gfx_share", share[0] <= sh <= share[1], round(sh,3),
+                f"{share[0]:.2f}–{share[1]:.2f}")
+        # ⚠️ ၁.၀–၁၀.၅s ဘောင်က **motion card** အတွက် တိုင်းထားတာ。
+        #    full-frame slide က မတူ — reference ၂ ခုရဲ့ slide ၂၃ ခုကို
+        #    တိုင်းကြည့်ရာ **၀.၅s မှ ၁၇.၀s** အထိ ရှိသည် (စာရင်း ရှည်လျှင်
+        #    ဖတ်ချိန် ပေးရ၍)。 ⇒ theme က ဘောင် ပေးလျှင် အဲဒါကို သုံးသည်。
+        cmin = float(theme.get("card_min") or CARD_MIN)
+        cmax = float(theme.get("card_max_s") or CARD_MAX)
+        bad = [round(float(d),1) for _a, d in cards
+               if not (cmin <= float(d) <= cmax)]
+        add("card_len", not bad, bad or "—", f"{cmin}–{cmax}s")
+    if sfx is not None and m["dur"] > 0:
+        # ⚠️ **အထပ်ကို တစ်ခုလို့ ရေတွက်ရမည်**。 `dress.sfx()` က ဂရပ်ဖစ်
+        #    တစ်ခုအတွက် `whoosh_in` (0.22s အလို) နဲ့ `click` ကို တွဲထုတ်သည် —
+        #    နားထောင်သူ ကြားရတာက **အသံ တစ်ခု**、နှစ်ခု မဟုတ်。 ခွဲရေလျှင်
+        #    ဘယ်တော့မှ 8s ဘောင်ကို မကျော်နိုင်ဘဲ QC က အမြဲ ကျမည် —
+        #    တိုင်းထားသော ပစ်မှတ် (REF-A 1.1/min) ကလည်း **အသံဖြစ်ရပ်** ကို
+        #    ရေတွက်ထားခြင်း ဖြစ်သည်、track အရေအတွက် မဟုတ်。
+        ts = sorted(float(t) for t in sfx)
+        moments = []
+        for t in ts:
+            if not moments or t - moments[-1] > SFX_LAYER_W:
+                moments.append(t)
+        per = len(moments)/(m["dur"]/60.0)
+        add("sfx_density", per <= SFX_MAX_PER_MIN, round(per,2),
+            f"≤ {SFX_MAX_PER_MIN}/min")
+        gaps = [round(b-a, 1) for a, b in zip(moments, moments[1:])]
+        close = [g for g in gaps if g < SFX_MIN_GAP]
+        # ⚠️ အရင်က မကျလျှင် "—" ပြသဖြင့် **မတိုင်းရသေးသလို** မြင်ရသည်。
+        #    ⇒ တကယ့် အနီးဆုံး အကွာကို ပြသည် — ✓ က အဓိပ္ပာယ် ရှိစေရန်。
+        add("sfx_spacing", not close,
+            (min(gaps) if gaps else "—"), f"≥ {SFX_MIN_GAP}s ခြား")
+        add("sfx_moments", True, len(moments), f"cue {len(ts)} → အသံဖြစ်ရပ်")
+    ok = all(c["ok"] for c in C)
+    return ok, C
+
+def summary(C, my=True):
+    return " · ".join(f"{c['key']}={c['value']}{'' if c['ok'] else ' ✗'}" for c in C)

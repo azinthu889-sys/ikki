@@ -1,0 +1,616 @@
+/* IKKI · ဒီဇိုင်း token နှင့် component — mockup မှ တိုက်ရိုက်。
+   ⚠️ ဒီဇိုင်းကို အတည်ပြုပြီးသား — ပြန်မဆောက်ရ။ ဖြည့်စွက်ရုံသာ。 */
+:root{
+  --bg:#0A0A0A; --sur:#141414; --up:#1C1C1C; --up2:#242424;
+  --line:#262626; --line2:#383838;
+  --tx:#FFFFFF; --tx2:#A3A3A3; --tx3:#8B8B8B;   /* 4.56 on --up2 · 5.81 on --bg */
+  --ac:#FFE000; --ac-ink:#0A0A0A; --ac-dim:#3A3400;
+  /* ⚠️ --ac က background/border/stroke အတွက်။ စာလုံးအတွက် --ac-text ကိုသာ
+     သုံးရမည် — light theme မှာ #F5D000 on #FFFFFF က 1.51:1 သာ ရှိသည်。 */
+  --ac-text:#FFE000;
+  --ok:#4ADE80; --ok-dim:#0F2A1A; --no:#FF5A5A; --no-dim:#2E1212; --bl:#5B9BD5;
+  --r:12px; --r2:18px;
+}
+:root[data-theme="light"]{
+  --bg:#FFFFFF; --sur:#F6F6F4; --up:#EFEFEC; --up2:#E7E7E3;
+  --line:#E4E4E0; --line2:#CFCFC9;
+  --tx:#0A0A0A; --tx2:#57574F; --tx3:#676767;   /* 4.56 on --up2 · 5.66 on --bg */
+  --ac:#F5D000; --ac-ink:#0A0A0A; --ac-dim:#FFF6C2; --ac-text:#7A6000;
+  --ok:#177245; --ok-dim:#E4F5EA; --no:#C0392B; --no-dim:#FBE9E7; --bl:#2C5F8C;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#FFFFFF; --sur:#F6F6F4; --up:#EFEFEC; --up2:#E7E7E3;
+  --line:#E4E4E0; --line2:#CFCFC9;
+  --tx:#0A0A0A; --tx2:#57574F; --tx3:#676767;   /* 4.56 on --up2 · 5.66 on --bg */
+  --ac:#F5D000; --ac-ink:#0A0A0A; --ac-dim:#FFF6C2; --ac-text:#7A6000;
+  --ok:#177245; --ok-dim:#E4F5EA; --no:#C0392B; --no-dim:#FBE9E7; --bl:#2C5F8C;
+}}
+
+*{box-sizing:border-box}
+/* ⚠️ Outfit က Latin သာ — မြန်မာစာ ပါလျှင် system fallback ကို ကျပြီး
+   line-height မကိုက်တော့ **စာလုံးတွေ ထပ်သည်** (တကယ် ဖြစ်ခဲ့)。
+   ⇒ font stack ထဲ **Noto Sans Myanmar** ကို Outfit နောက်မှာ ထည့်ရသည် —
+     Latin က Outfit · မြန်မာက Noto Sans Myanmar ကို အလိုအလျောက် ယူသည်。
+   ⚠️ မြန်မာစာက အထက်အောက် သင်္ကေတ (ေ ြ ွ ့ ်) ရှိသဖြင့်
+     line-height **၁.၄ အောက် မဆင်းရ** ပြီး letter-spacing **အနုတ် မထားရ**。*/
+body{margin:0; background:var(--bg); color:var(--tx); overflow-x:hidden;
+  font-family:Outfit,"Noto Sans Myanmar",-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:14px; line-height:1.62; -webkit-font-smoothing:antialiased; padding-bottom:76px}
+h1,h2,h3,h4,p{margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.my{font-family:"Noto Sans Myanmar",Padauk,sans-serif; line-height:1.78}
+:focus-visible{outline:2px solid var(--ac); outline-offset:2px; border-radius:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+[hidden]{display:none!important}
+button{font-family:inherit}
+
+/* ══ top ══ */
+.top{display:flex; align-items:center; gap:16px; padding:14px 26px; border-bottom:1px solid var(--line);
+  position:sticky; top:0; background:var(--bg); z-index:40; flex-wrap:wrap}
+.brand{display:flex; align-items:center; gap:7px; min-width:118px}
+/* ⚠️ mark ကို **site ရဲ့ အရောင်** နဲ့ ခြယ်သည် — ပုံထဲက အရောင်ကို
+   မသုံးဘူး。 mask သုံးသဖြင့် --ac ပြောင်းလျှင် mark လိုက်ပြောင်းပြီး
+   theme ၂ ခုလုံးမှာ site နဲ့ အမြဲ တူနေမည် (ကွဲသွားခြင်း မရှိ)。 */
+.brand .mk{height:19px; width:26px; display:block; flex:none;
+  background:var(--ac);
+  -webkit-mask:url(/img/ikki-mark.png?v=2) no-repeat center/contain;
+          mask:url(/img/ikki-mark.png?v=2) no-repeat center/contain}
+.brand .k{font-size:21px; font-weight:800; letter-spacing:.01em; line-height:1.1}
+.brand .jp{font-family:"Noto Sans JP",sans-serif; font-size:13px; font-weight:500;
+  color:var(--ac); letter-spacing:.06em; padding-bottom:1px}
+.pillnav{display:flex; gap:2px; background:var(--sur); border-radius:999px; padding:4px; margin:0 auto}
+.pillnav button{background:none;border:0;cursor:pointer;color:var(--tx2);font-size:13.5px;font-weight:500;
+  padding:9px 19px;border-radius:999px;transition:.18s;white-space:nowrap;line-height:1.5}
+.pillnav button:hover{color:var(--tx)}
+.pillnav button[aria-current="page"]{background:var(--up2);color:var(--tx)}
+.topr{display:flex;align-items:center;gap:9px;margin-left:auto}
+.lang{display:flex;background:var(--sur);border-radius:999px;padding:3px}
+.lang button{background:none;border:0;cursor:pointer;color:var(--tx3);font-size:11.5px;font-weight:600;
+  padding:5px 12px;border-radius:999px;transition:.18s;letter-spacing:.02em}
+.lang button[aria-pressed="true"]{background:var(--up2);color:var(--tx)}
+.ico{background:var(--sur);border:0;border-radius:999px;color:var(--tx2);width:32px;height:32px;cursor:pointer;font-size:13px;transition:.18s}
+.ico:hover{color:var(--ac)}
+.cta{background:var(--ac);color:var(--ac-ink);border:0;border-radius:999px;padding:9px 20px;
+  font-size:13.5px;font-weight:700;cursor:pointer;letter-spacing:-.01em;transition:.18s}
+.cta:hover{filter:brightness(1.08)}
+
+/* ══ shell ══ */
+.shell{display:grid; grid-template-columns:218px minmax(0,1fr)}
+@media (max-width:900px){.shell{grid-template-columns:1fr}}
+.side{padding:20px 14px 34px; border-right:1px solid var(--line)}
+@media (max-width:900px){.side{border-right:0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px}}
+.nav{display:flex;width:100%;align-items:center;gap:12px;background:none;border:0;cursor:pointer;
+  color:var(--tx2);font-size:14px;padding:10px 13px;border-radius:var(--r);transition:.18s;text-align:left}
+@media (max-width:900px){.nav{width:auto}}
+.nav:hover{background:var(--sur);color:var(--tx)}
+.nav[aria-current="page"]{background:var(--up);color:var(--tx);font-weight:600}
+.nav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav .n{margin-left:auto;font-size:10.5px;font-family:"IBM Plex Mono",monospace;background:var(--ac);
+  color:var(--ac-ink);border-radius:999px;padding:1px 7px;font-weight:600}
+.sdiv{height:1px;background:var(--line);margin:16px 6px}
+.suse{padding:0 13px;font-size:11.5px;color:var(--tx3)}
+.meter{height:4px;background:var(--up2);border-radius:3px;margin:9px 0 7px;overflow:hidden}
+.meter i{display:block;height:100%;width:27%;background:var(--ac);border-radius:3px}
+
+.main{padding:24px 26px 40px;min-width:0}
+
+/* ══ type ══ */
+h1.t{font-size:clamp(24px,3.1vw,32px);font-weight:700;letter-spacing:-.01em;line-height:1.42}
+h1.hero{font-size:clamp(27px,4.2vw,46px);font-weight:700;letter-spacing:-.012em;line-height:1.38}
+.lede{font-size:14.5px;color:var(--tx2);line-height:1.72;max-width:58ch}
+.sech{display:flex;align-items:center;gap:12px;margin:32px 0 14px}
+.sech h3{font-size:16.5px;font-weight:600;letter-spacing:-.005em;line-height:1.5}
+.sech .more{margin-left:auto;font-size:12.5px;color:var(--tx3);cursor:pointer;background:none;border:0}
+.sech .more:hover{color:var(--ac)}
+.ac{color:var(--ac-text,var(--ac))}
+
+/* ══ hero cards row — Artlist ပုံစံ ══ */
+.hrow{display:grid;grid-template-columns:1.55fr 1fr 1fr 1fr;gap:13px}
+@media (max-width:1080px){.hrow{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.hrow{grid-template-columns:1fr}}
+.hcard{position:relative;border-radius:var(--r2);overflow:hidden;min-height:196px;cursor:pointer;
+  border:1px solid var(--line);transition:.22s;display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
+.hcard:hover{transform:translateY(-3px);border-color:var(--line2)}
+.hcard .bgim{position:absolute;inset:0;z-index:0}
+.hcard .grd{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.82) 100%)}
+.hcard .in{position:relative;z-index:2}
+.hcard .kick{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  background:rgba(0,0,0,.62);color:#fff;padding:4px 9px;border-radius:5px;display:inline-block;margin-bottom:9px;backdrop-filter:blur(6px)}
+.hcard h4{color:#fff;font-size:17px;font-weight:600;letter-spacing:-.02em}
+.hcard p{color:rgba(255,255,255,.72);font-size:12px;margin-top:3px}
+/* ဗီဒီယို frame ပုံစံ နောက်ခံများ */
+.im1{background:linear-gradient(150deg,#1B2A33,#3E5A5E 45%,#8A6E4B)}
+.im2{background:linear-gradient(160deg,#2A1F2E,#6B3A4A 55%,#C07A5A)}
+.im3{background:linear-gradient(155deg,#13202E,#2D4A6B 50%,#5E86A8)}
+.im4{background:linear-gradient(145deg,#2C2A16,#6A6222 50%,#C4B23E)}
+.im5{background:linear-gradient(150deg,#1A1A1E,#3A3A42 55%,#6E6E78)}
+.grain{position:absolute;inset:0;opacity:.10;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.6) 0 1px,transparent 1px 3px)}
+
+/* ══ big drop ══ */
+.dropbig{position:relative;border-radius:var(--r2);overflow:hidden;min-height:196px;cursor:pointer;
+  background:var(--ac);display:flex;flex-direction:column;justify-content:space-between;padding:20px;
+  border:0;text-align:left;transition:.22s;width:100%}
+.dropbig:hover{filter:brightness(1.06);transform:translateY(-3px)}
+.dropbig .ring{width:44px;height:44px;border-radius:50%;background:rgba(10,10,10,.14);display:grid;place-items:center}
+.dropbig .ring svg{width:22px;height:22px;fill:none;stroke:var(--ac-ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.dropbig h4{color:var(--ac-ink);font-size:21px;font-weight:700;letter-spacing:-.005em;line-height:1.45}
+.dropbig p{color:rgba(10,10,10,.68);font-size:12.5px;margin-top:4px;font-weight:500}
+
+/* ══ filter row ══ */
+.filters{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:22px 0 14px}
+.fdrop{background:var(--sur);border:0;border-radius:999px;color:var(--tx2);font-size:13px;
+  padding:9px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.18s}
+.fdrop:hover{color:var(--tx);background:var(--up)}
+.fdrop::after{content:"⌄";font-size:13px;opacity:.6;line-height:0;position:relative;top:-2px}
+.fdrop[aria-pressed="true"]{background:var(--ac);color:var(--ac-ink);font-weight:600}
+.fright{margin-left:auto;display:flex;align-items:center;gap:14px}
+.tgl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tx2);cursor:pointer;background:none;border:0}
+.sw2{position:relative;width:34px;height:19px;border-radius:999px;background:var(--line2);border:0;cursor:pointer;transition:.2s;flex:none}
+.sw2::after{content:"";position:absolute;top:2.5px;left:2.5px;width:14px;height:14px;border-radius:50%;background:var(--bg);transition:.2s}
+.sw2[aria-checked="true"]{background:var(--ac)}
+.sw2[aria-checked="true"]::after{left:17.5px;background:var(--ac-ink)}
+
+/* ══ list rows ══ */
+.list{border-radius:var(--r);overflow:hidden}
+.lrow{display:grid;grid-template-columns:58px minmax(150px,1.5fr) minmax(90px,.85fr) 54px minmax(120px,1fr) auto;
+  gap:16px;align-items:center;padding:11px 14px;border-radius:var(--r);transition:.16s;cursor:pointer}
+.lrow:hover{background:var(--sur)}
+.lrow.sel{background:var(--sur)}
+@media (max-width:860px){.lrow{grid-template-columns:58px minmax(0,1fr) auto;gap:12px}
+  .lrow .hidesm{display:none}}
+.thumb{width:58px;aspect-ratio:1;border-radius:9px;position:relative;overflow:hidden;border:1px solid var(--line)}
+.thumb .pl{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.34);opacity:0;transition:.18s}
+.lrow:hover .thumb .pl{opacity:1}
+.thumb .pl svg{width:17px;height:17px;fill:#fff}
+.lname b{display:block;font-size:14.5px;font-weight:600;letter-spacing:0;line-height:1.5}
+.lname span{font-size:12px;color:var(--tx3)}
+.lmeta{font-size:12.5px;color:var(--tx2)}
+.ldur{font-size:12.5px;color:var(--tx3);font-family:"IBM Plex Mono",monospace}
+.wave{display:flex;align-items:center;gap:1.5px;height:26px}
+.wave i{flex:1;background:var(--line2);border-radius:1px;transition:.2s}
+.lrow:hover .wave i{background:var(--tx3)}
+.wave i.hot{background:var(--ac)}
+.lacts{display:flex;align-items:center;gap:3px}
+.iact{background:none;border:0;color:var(--tx3);width:30px;height:30px;border-radius:8px;cursor:pointer;transition:.16s;font-size:14px}
+.iact:hover{color:var(--tx);background:var(--up2)}
+.iact svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ══ pills / cards ══ */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;padding:3px 9px;border-radius:5px}
+.p-ac{background:var(--ac);color:var(--ac-ink)}
+.p-ok{background:var(--ok-dim);color:var(--ok)}
+.p-no{background:var(--no-dim);color:var(--no)}
+.p-dim{background:var(--up2);color:var(--tx2)}
+.card{background:var(--sur);border-radius:var(--r2);padding:20px 22px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.stat{font-size:34px;font-weight:700;letter-spacing:-.05em;line-height:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--sur);border:0;border-radius:999px;color:var(--tx2);font-size:13px;
+  padding:9px 17px;cursor:pointer;transition:.18s}
+.chip:hover{color:var(--tx);background:var(--up)}
+.chip[aria-pressed="true"]{background:var(--ac);color:var(--ac-ink);font-weight:600}
+.chip small{display:block;font-size:10px;opacity:.72;margin-top:1px}
+.btn{background:var(--up);border:0;border-radius:999px;color:var(--tx);font-size:13.5px;
+  padding:10px 22px;cursor:pointer;transition:.18s;font-weight:500}
+.btn:hover{background:var(--up2)}
+.opt{display:flex;align-items:center;gap:14px;padding:13px 0}
+.opt + .opt{border-top:1px solid var(--line)}
+.opt .txt{flex:1;min-width:0}
+.opt .txt b{display:block;font-weight:600;font-size:14px}
+.opt .txt span{font-size:12px;color:var(--tx3)}
+.range{-webkit-appearance:none;appearance:none;width:118px;height:4px;border-radius:3px;background:var(--line2);flex:none}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--ac);cursor:pointer}
+.range::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:var(--ac);cursor:pointer}
+.rows{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:grid;grid-template-columns:108px minmax(0,1fr) 92px;gap:13px;padding:11px 15px;align-items:start}
+.row + .row{border-top:1px solid var(--line)}
+.row.ed{background:var(--ac-dim)} .row.fl{background:var(--no-dim)}
+/* ⚠️ အရောင်တစ်ခုတည်းဖြင့် အခြေအနေ မပြောရ — အရောင်မမြင်ရသူအတွက် ခွဲ၍ မရ。
+   ရှိပြီးသား element ပေါ်တွင် ::before ဖြင့်သာ ထည့်သည် (markup အသစ် မထည့်)。
+   "/ \"\"" က alt text ဗလာ — screen reader က အလှဆင်ချက်ကို မဖတ်တော့。 */
+.row.ed .tc::before{content:"✎ " / "";color:var(--ac-text,var(--ac));font-weight:700}
+.row.fl .tc::before{content:"⚑ " / "";color:var(--no);font-weight:700}
+.lrow.sel .lname::before{content:"● " / "";color:var(--ac-text,var(--ac))}
+.steps li.on  span::before{content:"▸ " / ""}
+.steps li.fin span::before{content:"✓ " / "";color:var(--ok)}
+.steps li.err span::before{content:"✗ " / "";color:var(--no)}
+.row .tc::before,.lrow .lname::before,.steps li span::before{speak:never}
+.row .tc{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);padding-top:3px}
+.row .tx{font-size:14px} .row .tx del{color:var(--no)} .row .tx ins{color:var(--ok);text-decoration:none}
+.row .tx u{text-decoration:underline wavy var(--no);text-underline-offset:4px;text-decoration-thickness:1px}
+.row .rt{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--tx3);padding-top:3px}
+.row .rt.lo{color:var(--no)}
+.note{border-left:3px solid var(--ac);background:var(--sur);padding:13px 16px;border-radius:0 var(--r) var(--r) 0;
+  font-size:13px;color:var(--tx2);margin-top:16px}
+.note b{color:var(--tx);font-weight:600}
+.note.bad{border-left-color:var(--no)}
+.sws{display:flex;height:40px;border-radius:10px;overflow:hidden}
+.sws i{flex:1;position:relative}
+.sws i::after{content:attr(data-h);position:absolute;left:0;right:0;bottom:4px;text-align:center;
+  font-family:"IBM Plex Mono",monospace;font-size:7px;color:rgba(255,255,255,.75)}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+table.tb th{text-align:left;padding:0 14px 9px 0;border-bottom:1px solid var(--line);color:var(--tx3);
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+table.tb td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line);color:var(--tx2)}
+table.tb td:first-child{color:var(--tx)}
+.scroll{overflow-x:auto}
+.tmpl{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:9px}
+.tmpl div{aspect-ratio:16/10;border-radius:10px;background:var(--sur);display:grid;place-items:center;
+  font-size:11px;color:var(--tx3);text-align:center;padding:6px;cursor:pointer;transition:.18s}
+.tmpl div:hover{background:var(--up);color:var(--tx)}
+
+/* ══ magic flow ══ */
+.stage{text-align:center;padding:30px 0 10px}
+.work{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:42px;align-items:center;max-width:800px;margin:0 auto;text-align:left}
+@media (max-width:760px){.work{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.dial{position:relative;width:214px;height:214px;margin:0 auto}
+.dial svg{transform:rotate(-90deg);width:100%;height:100%}
+.dial .tk{fill:none;stroke:var(--up2);stroke-width:7}
+.dial .pg{fill:none;stroke:var(--ac);stroke-width:7;stroke-linecap:round;
+  stroke-dasharray:628;stroke-dashoffset:628;transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)}
+.dial .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.dial .pct{font-size:44px;font-weight:700;letter-spacing:-.05em;line-height:1}
+.dial .of{font-size:11px;color:var(--tx3);margin-top:5px}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;align-items:center;gap:12px;padding:8px 0;color:var(--tx3);font-size:15px;transition:.4s}
+.steps li i{width:7px;height:7px;border-radius:50%;background:var(--line2);flex:none;transition:.4s}
+.steps li.on{color:var(--tx);font-weight:600}
+.steps li.on i{background:var(--ac);transform:scale(1.5)}
+.steps li.fin{color:var(--tx2)} .steps li.fin i{background:var(--ok)}
+.steps li.err{color:var(--no)} .steps li.err i{background:var(--no)}
+.frame{position:relative;aspect-ratio:3/4;border-radius:var(--r);overflow:hidden;border:1px solid var(--line)}
+.frame .plate{position:absolute;inset:0;background:linear-gradient(160deg,#33414A,#5A6260 55%,#7A6E58);
+  filter:saturate(.2) brightness(.7);transition:filter 1.3s ease}
+.frame.graded .plate{filter:saturate(1.2) brightness(1.05) contrast(1.08)}
+.frame .cap,.frame .l3{opacity:0;transform:translateY(9px);transition:.65s cubic-bezier(.2,.8,.2,1)}
+.frame.capped .cap{opacity:1;transform:none}
+.frame.gfx .l3{opacity:1;transform:none}
+.frame .cap{position:absolute;left:8%;right:8%;bottom:8%;text-align:center;color:#fff;font-size:11px;text-shadow:0 2px 8px rgba(0,0,0,.75)}
+.frame .l3{position:absolute;left:8%;bottom:23%;width:74%}
+.frame .l3 .r{height:3px;width:72%;background:var(--ac)}
+.frame .l3 .n{color:#fff;font-weight:700;font-size:12px;margin-top:6px}
+.frame .l3 .s{color:#A9CBEA;font-size:8px;font-weight:600;letter-spacing:.07em;margin-top:2px}
+.frame .shim{position:absolute;inset:0;pointer-events:none;opacity:0}
+.frame.busy .shim{opacity:1;background:linear-gradient(100deg,transparent 42%,rgba(255,224,0,.16) 50%,transparent 58%);
+  background-size:280% 100%;animation:shim 1.8s linear infinite}
+@keyframes shim{0%{background-position:150% 0}100%{background-position:-150% 0}}
+.check{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:var(--ac);
+  animation:pop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.check svg{width:26px;height:26px;fill:none;stroke:var(--ac-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.pair{display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;margin:24px 0}
+.pair .frame{width:148px} .pair figure{margin:0}
+.pair figcaption{font-size:11px;color:var(--tx3);margin-top:9px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+.srch{display:inline-flex;align-items:center;gap:8px;background:var(--sur);border-radius:999px;
+  padding:0 15px;height:37px;min-width:196px}
+.srch span{color:var(--tx3);font-size:15px}
+.srch input{background:none;border:0;color:var(--tx);font:inherit;font-size:13px;width:100%;outline:0;-webkit-appearance:none}
+.srch input::placeholder{color:var(--tx3)}
+.daygrp{margin-bottom:6px}
+.daygrp summary{cursor:pointer;font-size:12.5px;color:var(--tx3);padding:11px 4px;list-style:none;
+  letter-spacing:.03em;border-bottom:1px solid var(--line)}
+.daygrp summary::-webkit-details-marker{display:none}
+.daygrp summary::before{content:"▸ ";display:inline-block;transition:transform .18s}
+.daygrp[open] summary::before{content:"▾ "}
+.daygrp summary:hover{color:var(--tx)}
+
+/* ══ FIX 4 · ပြန်ပြင်လို့မရသော လုပ်ဆောင်ချက်များ ══
+   ⚠️ ဖြတ်ချက် အတည်ပြုခြင်းက ပြန်ပြင်ရခက်သည် — ကြားမှာ အတည်ပြုချက်၊
+      ပြီးလျှင် ပြန်ဖျက်နိုင်သော bar (toast မဟုတ်) ရှိရမည်。 */
+.confirm{border:1px solid var(--ac);border-radius:var(--r);background:var(--sur);padding:16px 18px;margin-bottom:14px}
+.confirm h4{font-size:15px;font-weight:700;margin-bottom:10px}
+.confirm .ln{display:flex;justify-content:space-between;gap:14px;padding:7px 0;font-size:13.5px;color:var(--tx2);flex-wrap:wrap}
+.confirm .ln b{color:var(--tx);font-weight:600}
+.confirm .acts2{display:flex;gap:9px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.undobar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--up);
+  border:1px solid var(--line2);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;font-size:13.5px}
+.undobar .cd{font-family:"IBM Plex Mono",monospace;color:var(--tx3);font-variant-numeric:tabular-nums}
+.undobar .btn{margin-left:auto}
+.vrow{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:14px;align-items:center;
+  padding:12px 14px;border-radius:var(--r)}
+.vrow + .vrow{border-top:1px solid var(--line)}
+.vrow:hover{background:var(--sur)}
+.vrow .vn{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500}
+.vrow .vm b{display:block;font-size:13.5px;font-weight:500}
+.vrow .vm span{font-size:12px;color:var(--tx3)}
+.vrow .va{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ══ FIX 5 · ဖုန်း ≤430px ══
+   ⚠️ ဖုန်းမှာ brand kit ပြင်မှာ မဟုတ်ဘူး — Telegram ကနေ နှိပ်ဝင်လာပြီး
+      **render ကောင်းလား စစ်ပြီး အတည်ပြုဖို့** တစ်ခုတည်းအတွက် ဒီဇိုင်းလုပ်သည်。 */
+@media (max-width:430px){
+  body{padding-bottom:20px}
+  .shell{grid-template-columns:1fr}
+  .side{display:none}
+  .main{padding:16px 14px 30px}
+  .top{padding:11px 14px;gap:10px}
+  .topr{gap:7px;margin-left:0;width:100%;justify-content:flex-end}
+  .pillnav{margin:0;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;
+    scrollbar-width:none;max-width:100%;order:3;width:100%}
+  .pillnav::-webkit-scrollbar{display:none}
+  .pillnav button{white-space:nowrap;font-size:13px;padding:10px 15px;min-height:44px}
+
+  /* ⚠️ `.hrow` တစ်ခုလုံး ဖျောက်၍ **မရ** — ဗီဒီယို တင်တဲ့ ခလုတ် (`.dropbig`)
+     က အဲဒီအထဲ ရှိသည်。 ဖျောက်လျှင် ဖုန်းမှာ **တင်လို့ လုံးဝ မရ** ဖြစ်သည်
+     (တကယ် ဖြစ်ခဲ့ — width 0 တိုင်းရသည်)。 ⇒ အလှဆင် ကတ်တွေပဲ ဖျောက်ရမည်。 */
+  .hrow{grid-template-columns:1fr;gap:10px}
+  .hcard{display:none}
+  .dropbig{min-height:150px;padding:18px}
+  .dropbig h4{font-size:19px}
+
+  h1.hero{font-size:25px;letter-spacing:-.008em;line-height:1.42}
+  .lede{font-size:14px}
+  h1.t{font-size:21px;line-height:1.42}
+  .sech{margin:24px 0 10px}
+  .sech h3{font-size:15px}
+
+  /* list row — thumbnail + နာမည် + အခြေအနေ သာ */
+  .lrow{grid-template-columns:48px minmax(0,1fr) auto;gap:11px;padding:10px 8px}
+  .hidesm{display:none!important}
+  .thumb{width:48px}
+
+  /* စာသား ပြင်ကွက် · ဖြတ်စာရင်း — အထပ်လိုက် */
+  .row{grid-template-columns:1fr;gap:4px;padding:11px 12px}
+  .row .rt{text-align:left}
+  .st .facts li{flex-direction:column;gap:3px}
+  .st .facts li span:first-child{min-width:0}
+
+  /* player — အကျယ် အပြည့် */
+  #prev{max-width:100%!important}
+
+  /* ဂရပ်ဖစ်/dial — ဖုန်းမှာ မလို */
+  .dial{width:170px;height:170px}
+  .work{grid-template-columns:1fr;gap:22px;justify-items:center}
+  .tmpl,.sws,.wave{display:none!important}
+
+  /* အနည်းဆုံး စာလုံး 12px · အနည်းဆုံး ခလုတ် 44px */
+  .lbl,.row .tc,.row .rt,table.tb th,.pill,.lname span,.ldur,.lmeta,
+  .vrow .vm span,.dock .info span{font-size:12px!important}
+  .btn,.cta,.chip,.fdrop{min-height:44px}
+  .iact{width:40px;height:40px}
+  .srch{min-width:0;width:100%}
+  .filters{gap:7px}
+  .grid3,.grid2{grid-template-columns:1fr}
+  .dock{position:sticky;min-height:48px;padding:10px 14px;gap:10px}
+  .dock .th2{display:none}
+}
+
+/* ══ state စခရင်များ — happy path မဟုတ်သည့် အခြေအနေများ ══
+   ⚠️ state တိုင်းတွင် "အခု ဘာလုပ်ရမလဲ" ကို မျက်နှာပြင်ပေါ်၌ တစ်ကြောင်းဖြင့်
+      ဖြေထားရမည်။ primary ခလုတ် တစ်လုံးတည်းသာ။ */
+.st{max-width:620px;margin:0 auto;text-align:left}
+.st .cap2{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;margin-bottom:18px;
+  font-size:24px;font-weight:700}
+.st .cap2.warn{background:var(--no-dim);color:var(--no)}
+.st .cap2.gold{background:var(--ac-dim);color:var(--ac-text,var(--ac))}
+.st h2{font-size:24px;font-weight:700;letter-spacing:-.008em;line-height:1.45}
+.st .why{font-size:15px;color:var(--tx2);margin-top:10px;line-height:1.6}
+.st .do{font-size:15px;margin-top:14px;padding:13px 16px;border-radius:var(--r);
+  background:var(--sur);border-left:3px solid var(--ac)}
+.st .do b{font-weight:600}
+.st .facts{margin:18px 0 0;padding:0;list-style:none}
+.st .facts li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px;align-items:baseline}
+.st .facts li span:first-child{color:var(--tx3);flex:none;min-width:132px}
+.st .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.upbar{height:6px;background:var(--up2);border-radius:4px;overflow:hidden;margin:14px 0 7px}
+.upbar i{display:block;height:100%;background:var(--ac);border-radius:4px}
+.demosel{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);color:var(--tx2);
+  font:inherit;font-size:12px;padding:7px 10px;cursor:pointer;max-width:168px}
+.demosel:hover{color:var(--tx)}
+
+/* ══ bottom render bar ══ */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--sur);
+  border-top:1px solid var(--line);padding:11px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.dock .th2{width:42px;aspect-ratio:3/4;border-radius:7px;background:linear-gradient(160deg,#33414A,#7A6E58);flex:none}
+.dock .info{min-width:140px}
+.dock .info b{display:block;font-size:13.5px;font-weight:600}
+.dock .info span{font-size:11.5px;color:var(--tx3)}
+.dock .prog{flex:1;min-width:150px;display:flex;align-items:center;gap:11px}
+.dock .tr{flex:1;height:4px;background:var(--up2);border-radius:3px;overflow:hidden}
+.dock .tr i{display:block;height:100%;width:59%;background:var(--ac);border-radius:3px}
+.dock .right{display:flex;align-items:center;gap:8px;margin-left:auto}
+
+/* ⚠️ ဖျက်ထားတဲ့ စာကြောင်း — အရောင်တစ်ခုတည်းနဲ့ မပြောရ */
+.row.gone{background:var(--no-dim)}
+.row.gone .tc::before{content:"✕ " / "";color:var(--no);font-weight:700}
+[contenteditable="true"]:focus{outline:1.5px solid var(--ac);outline-offset:3px;border-radius:4px}
+
+/* render server ပိတ်နေချိန် ပြသချက် — queued အနေနဲ့ ရပ်နေတာ ဘာမှ မပြခဲ့သဖြင့် */
+.wbanner{margin:0 auto 18px;max-width:520px;padding:12px 16px;border-radius:12px;
+  background:#3A2A0B;border:1px solid #7A5A12;color:#F2D98C;
+  font-size:13px;line-height:1.6;text-align:center}
+
+/* ── အရွယ် ရွေးခြင်း ── */
+/* ⚠️ group (ဒေါင်/စတုရန်း/အလျား) အလိုက် ခွဲပြရမည် — ရောပြလျှင်
+   သုံးစွဲသူက ဘယ်ဟာ ဘယ် platform အတွက်လဲ မသိဘူး。 */
+.fmtg{margin:0 0 14px}
+.fmtg > span{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--tx3);margin:0 0 7px}
+.fmts{display:flex;flex-wrap:wrap;gap:8px}
+.fmt{display:flex;align-items:center;gap:10px;padding:9px 13px 9px 10px;border-radius:12px;
+  border:1px solid var(--line);background:var(--sf);cursor:pointer;color:var(--tx);
+  font:inherit;text-align:left;transition:border-color .12s,background .12s}
+.fmt:hover{border-color:var(--tx3)}
+.fmt[aria-pressed="true"]{background:var(--ac);border-color:var(--ac);color:#171717}
+.fmt i{display:block;border:1.5px solid currentColor;border-radius:3px;opacity:.55;flex:none}
+.fmt b{display:block;font-size:13.5px;font-weight:650;letter-spacing:-.01em}
+.fmt small{display:block;font-size:11px;opacity:.7;margin-top:1px}
+.fmt .dflt{font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+
+/* ── ဘရန်း ပြင်ခြင်း ── */
+.bcols{display:flex;gap:9px;flex-wrap:wrap}
+.bcols label{display:flex;flex-direction:column;gap:4px;align-items:center}
+.bcols input[type=color]{width:44px;height:34px;padding:0;border:1px solid var(--line);
+  border-radius:9px;background:none;cursor:pointer}
+.bcols small{font-size:9.5px;letter-spacing:.05em;color:var(--tx3);font-family:ui-monospace,monospace}
+.sel{min-width:210px;padding:9px 11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--sf);color:var(--tx);font:inherit;font-size:13.5px}
+.btn.dg{margin-left:auto;color:#E5484D;border-color:#5c2326}
+.btn.dg:hover{background:#2a1416}
+.kit-e{margin-top:12px;width:100%}
+
+/* ── ပုံစံ ပြင်ခြင်း ── */
+/* ⚠️ ပုံသေကို field တိုင်းမှာ ပြရမည် — မပြလျှင် သုံးစွဲသူက ဘယ်ဟာ
+   ပြင်ထားတာလဲ၊ ဘယ်ဟာ တိုင်းထားတာလဲ မသိဘူး。 */
+.sef{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:11px 0;border-top:1px solid var(--line)}
+.sef:first-child{border-top:0}
+.sef .k{min-width:0;flex:1}
+.sef .k b{display:block;font-size:13.5px;font-weight:620;letter-spacing:-.01em}
+.sef .k span{display:block;font-size:11.5px;color:var(--tx3);margin-top:2px}
+.sef .v{display:flex;align-items:center;gap:9px;flex:none}
+.sef .dflt{font-size:10.5px;color:var(--tx3);font-family:ui-monospace,monospace}
+.sef input[type=range]{width:150px;accent-color:var(--ac)}
+.sef .num{min-width:46px;text-align:right;font-family:ui-monospace,monospace;font-size:12.5px}
+.sef input[type=checkbox]{width:20px;height:20px;accent-color:var(--ac)}
+.chg{color:var(--ac)}
+.pill.p-chg{background:#3a3416;color:var(--ac)}
+
+/* ── ဖောင့် နမူနာ ── */
+/* ⚠️ ပုံက အဖြူ alpha — mask နဲ့ theme ရဲ့ စာအရောင် ယူသည်。 <img> နဲ့
+   တိုက်ရိုက် ပြလျှင် light theme မှာ အဖြူပေါ်အဖြူ ဖြစ်ပြီး မမြင်ရ。 */
+.fprev{display:block;flex:none;width:190px;height:26px;background:var(--tx);
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:left center;mask-position:left center;
+  -webkit-mask-size:contain;mask-size:contain;opacity:.92}
+.lrow.sel .fprev{background:var(--ac)}
+@media (max-width:640px){ .fprev{width:130px;height:22px} }
+
+/* ── ပုံငယ် အစစ် ── */
+/* ⚠️ <img> ကို .thumb ပေးလျှင် object-fit မပါရင် ပုံက ဆန့်သွားသည် */
+/* ⚠️ `background` ကို **[src] ရှိမှ** ပေးရမည် — onerror မှာ src ဖြုတ်ပြီး
+   .imN gradient သို့ ပြောင်းသည်。 img.thumb က specificity ပိုမြင့်၍
+   background ပေးထားလျှင် gradient ကို ဖုံးပြီး **အဖြူတုံး** ဖြစ်နေသည်。 */
+img.thumb{object-fit:cover;display:block}
+img.thumb[src]{background:var(--bg2)}
+/* ── ဖျက်ခလုပ် — မတော်တဆ မနှိပ်မိစေရန် အနီက hover မှသာ ── */
+.iact.idel{color:var(--tx3)}
+.iact.idel:hover{color:#E5484D;border-color:#E5484D}
+/* ── စာသား ပြင်ချက် အမှတ်အသား ── */
+.tflag{margin-right:8px;font-size:11px;white-space:nowrap}
+/* ── ဘရန်း logo ── */
+.logobox{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+.logoprev{width:64px;height:64px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg2) center/contain no-repeat;flex:none}
+.swatches{display:flex;gap:6px;align-items:center}
+.sw{width:26px;height:26px;border-radius:7px;border:1px solid var(--line)}
+
+/* ══════════════════════════════════════════════════════════
+   Animation theme — ပုံစံကတ်များ
+   ⚠️ easing ကို skill `ikki-presentation` §5 အတိုင်း — area 0.55–0.68。
+      အပြည့် ease-out (cubic-out) က area 0.75 ဖြစ်ပြီး အဆုံးမှာ ရပ်သွား၍
+      "သေနေသလို" ခံစားရသည်。 အောက်က bezier က ~0.60。
+   ⚠️ overshoot **မထည့်ရ** (<0.02) — ခုန်တက်တဲ့ animation က ဈေးပေါဆန်သည်。
+   ⚠️ `prefers-reduced-motion` ကို လေးစားရမည်。
+   ══════════════════════════════════════════════════════════ */
+:root{ --ez: cubic-bezier(.17,.72,.28,1); --ez-slow: cubic-bezier(.22,.68,.24,1) }
+
+/* ── ① ဝင်လာချိန် — အောက်ကနေ တက် + မှုန်ကနေ ကြည် ── */
+@keyframes ikRise{ from{opacity:0; transform:translateY(14px) scale(.985)}
+                   to  {opacity:1; transform:none} }
+.hrow > *{ animation: ikRise .62s var(--ez) both }
+.hrow > *:nth-child(1){ animation-delay:.00s }
+.hrow > *:nth-child(2){ animation-delay:.07s }
+.hrow > *:nth-child(3){ animation-delay:.14s }
+.hrow > *:nth-child(4){ animation-delay:.21s }
+
+/* ── ② နောက်ခံ gradient က တိုးတိုးလေး ရွေ့နေသည် (မရပ်စေရ) ── */
+@keyframes ikDrift{ 0%{transform:scale(1.06) translate3d(0,0,0)}
+                    50%{transform:scale(1.12) translate3d(-1.6%,-1.2%,0)}
+                    100%{transform:scale(1.06) translate3d(0,0,0)} }
+.hcard .bgim{ animation: ikDrift 26s var(--ez-slow) infinite; will-change:transform }
+.hcard:nth-child(3) .bgim{ animation-duration:31s; animation-delay:-6s }
+.hcard:nth-child(4) .bgim{ animation-duration:36s; animation-delay:-13s }
+
+/* ── ③ hover — မြှင့် + အလင်း တစ်ချက် ဖြတ်သွား ── */
+.hcard{ transition: transform .42s var(--ez), box-shadow .42s var(--ez) }
+.hcard:hover{ transform: translateY(-4px); box-shadow:0 18px 44px rgba(0,0,0,.34) }
+.hcard::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:3;
+  background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.16) 48%,
+             transparent 58%);
+  transform:translateX(-120%); transition:transform .85s var(--ez); }
+.hcard:hover::after{ transform:translateX(120%) }
+.dropbig{ transition: transform .42s var(--ez), filter .42s var(--ez) }
+
+/* ── ④ ရွေးထားတာ — အသက်ရှုသလို နှေးနှေး တောက်ပြ ── */
+@keyframes ikBreathe{ 0%,100%{box-shadow:0 0 0 2px var(--ac), 0 0 0 0 rgba(233,227,11,.28)}
+                      50%    {box-shadow:0 0 0 2px var(--ac), 0 0 22px 4px rgba(233,227,11,.16)} }
+.list.styles .lrow.sel{ animation: ikBreathe 3.4s var(--ez-slow) infinite }
+
+/* ── ⑤ ပုံစံစာရင်း — အဆင့်လိုက် ဝင်လာ ── */
+.list.styles .lrow{ animation: ikRise .5s var(--ez) both }
+.list.styles .lrow:nth-child(1){animation-delay:.02s}
+.list.styles .lrow:nth-child(2){animation-delay:.06s}
+.list.styles .lrow:nth-child(3){animation-delay:.10s}
+.list.styles .lrow:nth-child(4){animation-delay:.14s}
+.list.styles .lrow:nth-child(5){animation-delay:.18s}
+.list.styles .lrow:nth-child(n+6){animation-delay:.22s}
+
+/* ── ⑥ chip · ခလုပ် — နှိပ်လိုက်တာ ခံစားရအောင် ── */
+.chip{ transition: background .26s var(--ez), color .26s var(--ez), transform .18s var(--ez) }
+.chip:active{ transform: scale(.97) }
+.cta{ transition: transform .22s var(--ez), filter .22s var(--ez) }
+.cta:hover{ transform: translateY(-2px) }
+.cta:active{ transform: translateY(0) scale(.985) }
+
+@media (prefers-reduced-motion: reduce){
+  .hrow > *, .list.styles .lrow{ animation:none }
+  .hcard .bgim{ animation:none }
+  .list.styles .lrow.sel{ animation:none; box-shadow:0 0 0 2px var(--ac) }
+  .hcard::after{ display:none }
+  .hcard:hover,.cta:hover{ transform:none }
+}
+
+/* ══ form အခြေခံ — .inp/.btns/.lnk/.chk က HTML ထဲ သုံးထားပြီး
+      CSS မှာ **မရှိ**ခဲ့ ⇒ plan form က browser ပုံသေ အတိုင်း ရိုင်းနေသည်。 */
+.inp{background:var(--sur);border:1px solid var(--line);border-radius:9px;color:var(--tx);
+  font:inherit;font-size:13px;padding:8px 11px;outline:0;-webkit-appearance:none;min-width:0}
+.inp:focus-visible{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-dim,rgba(245,197,67,.25))}
+.btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.lnk{background:none;border:0;color:var(--tx3);font:inherit;font-size:12.5px;
+  cursor:pointer;padding:4px 6px;border-radius:6px;text-decoration:underline}
+.lnk:hover{color:var(--no,#E5484D)}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--ac)}
+
+/* ══ ငွေပေးချေမှု · QR ═══════════════════════════════════════
+   ⚠️ QR ကို **ဖုန်းက app နဲ့ scan ဖတ်ရ**မည် ⇒ သေးလွန်းလျှင် မဖတ်ရ。
+      အနည်းဆုံး 160px ထား၊ နောက်ခံ အဖြူ ဖြစ်ရမည် (dark theme မှာ
+      QR အနက်ကို မှောင်တဲ့ နောက်ခံပေါ် တင်လျှင် contrast မလုံလောက်)。 */
+.paygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px}
+.paym{border:1px solid var(--line);border-radius:13px;padding:13px;display:flex;
+  flex-direction:column;gap:10px;align-items:center;text-align:center}
+.pmh{display:flex;flex-direction:column;gap:2px;line-height:1.35}
+.pmh b{font-size:14px}
+.pmh .mono{font-size:11.5px;color:var(--tx3)}
+.pqr{width:100%;max-width:190px;aspect-ratio:1;object-fit:contain;border-radius:9px;
+  background:#fff;padding:7px}
+.pqr.none{display:flex;align-items:center;justify-content:center;background:var(--sur);
+  color:var(--tx3);font-size:12px;padding:0}
+.pnum{background:var(--up);border:0;border-radius:999px;color:var(--tx);cursor:pointer;
+  font:inherit;font-size:13px;font-variant-numeric:tabular-nums;padding:7px 13px;
+  display:inline-flex;gap:7px;align-items:center;min-height:36px}
+.pnum:hover{background:var(--up2)}
+.pnum span{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.paysteps{margin:16px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;
+  font-size:13px;color:var(--tx2);line-height:1.55}
+.paysteps li::marker{color:var(--ac);font-weight:700}
+.paycfg{border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px}
+.paycfg:last-of-type{border-bottom:0}
+@media (max-width:600px){ .paygrid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))} }
+
+/* ── ပြန်စ (retake) review — စက်က မဖြတ် · ✓/✗ တစ်ခုချင်း ── */
+#rts .row{grid-template-columns:92px minmax(0,1fr) 84px}
+#rts .tx del{color:var(--tx2)}
+#rts .rtwhy{display:block;margin-top:6px;font:inherit;font-size:12px;padding:5px 7px;
+  border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--tx)}
+#rts .rtwhy[hidden]{display:none}
+#rts .iact[aria-pressed="true"].rtok{background:var(--no-dim);color:var(--no)}
+#rts .iact[aria-pressed="true"].rtno{background:var(--ac-dim);color:var(--ac)}
+.row.rtcut .tc::after{content:" ↺" / "";color:var(--no);font-weight:700}

@@ -1,0 +1,20 @@
+._*
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+data/
+
+# ⚠️ လျှို့ဝှက်ချက် — ဘယ်တော့မှ မတင်ရ (၂၀၂၆-၀၉-၁၇)
+.env
+.env.local
+.env.*.local
+*.key
+# ⚠️ ကြီးမားသော media — git ထဲ မထည့် (broll ၄၉၈ MB · music ၂၅ MB)
+assets/broll/clips/
+assets/music/
+scratch/
+*.mp4
+*.wav
+*.m4a
+work/

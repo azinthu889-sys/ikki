@@ -1,0 +1,82 @@
+{
+  "container": {
+    "width": 2880,
+    "height": 1800,
+    "fps": 60.0,
+    "duration_s": 17.333333,
+    "nb_frames": 1042,
+    "bitrate_bps": 32665959,
+    "codec": "h264 Main L5.1",
+    "audio_streams": 0,
+    "method": "ffprobe -show_format -show_streams"
+  },
+  "B_cuts": {
+    "n_cuts": 7,
+    "cut_frames": [
+      189,
+      544,
+      552,
+      560,
+      570,
+      692,
+      918
+    ],
+    "cut_times_s": [
+      3.15,
+      9.067,
+      9.2,
+      9.333,
+      9.5,
+      11.533,
+      15.3
+    ],
+    "sec_per_cut": 2.476,
+    "threshold_used": 14.676,
+    "method": "mean abs interframe gray diff @640px, spike > max(mean+4sd, 12)"
+  },
+  "C_focus": {
+    "lap_var_min": 79.9,
+    "lap_var_p05": 93.6,
+    "lap_var_median": 282.4,
+    "lap_var_p95": 1512.6,
+    "lap_var_max": 1515.9,
+    "sharp_to_blur_ratio": 19.0,
+    "blurred_pct_at_10pct_of_max": 28.9,
+    "method": "variance of Laplacian on grayscale @640px, per frame"
+  },
+  "D_motion": {
+    "interframe_diff_mean": 1.04,
+    "interframe_diff_p95": 5.583,
+    "interframe_diff_max": 47.439,
+    "still_frame_pct_lt0.5": 78.2,
+    "method": "mean abs gray diff between consecutive frames @640px"
+  },
+  "G_color": {
+    "luma_mean": 52.6,
+    "luma_p05": 36.4,
+    "luma_p50": 55.6,
+    "luma_p95": 77.1,
+    "sat_mean": 78.7,
+    "method": "BGR->GRAY mean and BGR->HSV S-channel mean @640px"
+  },
+  "F_audio": {
+    "status": "NOT MEASURABLE",
+    "reason": "file contains 0 audio streams (ffprobe -select_streams a returned nothing)"
+  },
+  "UI_chrome": {
+    "menubar_visible_pct": 31.9,
+    "transitions": [
+      {
+        "frame": 193,
+        "t_s": 3.217,
+        "menubar_visible": false
+      },
+      {
+        "frame": 901,
+        "t_s": 15.017,
+        "menubar_visible": true
+      }
+    ],
+    "method": "mean luma of top 24 native px (macOS menu bar strip); threshold at 40% of range above median"
+  }
+}

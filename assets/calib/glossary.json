@@ -1,0 +1,44 @@
+{
+  "enabled": false,
+  "_off_note": "၂၀၂၆-၀၉-၁၆ **ပိတ်** (Zin ညွှန်ကြား) — `self value` ကို ဗီဒီယို ၄ ခု · ၁၆ ကြိမ် ထုတ်ခဲ့ (C0714 ၁ · Smart Goal ၇ · Habit ၃ · Podcast ၅)၊ အားလုံး တိတ်ဆိတ်မှု ၉၀%+ chunk များတွင်။ ပိတ်ပြီး အဲဒီ chunk များ ပြန် run ၍ ထွက်သေးမထွက် စစ်ရန် — ထွက်သေးလျှင် ASR ကိုယ်ပိုင် ချို့ယွင်းချက် (တိတ်သော chunk မှာ ဝါကျ အတု)။",
+  "_enabled_note": "၂၀၂၆-၀၉-၁၆ ဖွင့် — self value တစ်လုံးတည်း။ self value+overtime (n=၈): overtime ၈/၈ · self value ၁၅/၁၆ · ဗီဇာ/upgrade မကျ · **ဂျပန်အက္ခရာ ၃/၃၂ ✗** (c28 アルバイト ၃/၈ · အခြား run ၀/၁၅၂) ⇒ overtime ဖယ်။ self value တစ်လုံး — CJK ၀/၁၆ · c29 ၃/၈→၁၄/၁၆ p ၀.၀၂၁ · c30 ၀/၈→၁၆/၁၆ p ၀.၀၀၀၀၀၁ · ⚠️ Overtime ၇/၈→၇/၁၂ (p ၀.၃၂) ကျနိုင်ခြေ — KNOWLEDGE.md",
+  "_note": "ASR prompt ထဲ ထည့်သော အသုံးအနှုန်း စာရင်း — core/asr.py က ဖတ်သည်။ ⚠️ သေးသေးလေးသာ ထားရမည်။ v2 SRT မှာ မှန်နေပြီးသား စကားလုံး (ဗီဇာ · upgrade · confidence · Overtime · inner peace · Mindset · skill set · content creation · business · product · launch · platform) ကို မထည့်ရ — ထည့်လျှင် ပြောင်းလဲမှု အန္တရာယ်သာ တိုးသည်။ `write` ကို မျက်နှာပြင်မှာ မြင်ရမည့် စာလုံးအတိုင်း ရေးရမည် — ဂျပန်အက္ခရာ ထည့်လျှင် စာတန်းထဲ ဂျပန်လို ထွက်သည် (၂၀၂၆-၀၉-၁၅ တိုင်းချက်: 4/4)。",
+  "header": "အသုံးအနှုန်း စာရင်း — အောက်ပါ စကားလုံးကို ကြားရလျှင် ဤ စာလုံးပေါင်း အတိအကျ ရေးပါ:",
+  "terms": [
+    "self value"
+  ],
+  "rules": [
+    "စာရင်းထဲ မပါသော စကားလုံးကို စာရင်းထဲမှ တစ်ခုအဖြစ် **မပြောင်းရ** — ကြားရသည့်အတိုင်းသာ ရေးပါ။",
+    "ဂျပန် · တရုတ် အက္ခရာ **လုံးဝ မသုံးရ** — ဖောင့်မှာ glyph မရှိ၍ □□□□ ဖြစ်မည်။ ဂျပန်စကား ကြားရလျှင် မြန်မာ သို့ English စာလုံးဖြင့် ရေးပါ။"
+  ],
+  "_rules_note": "prompt ထဲ ဂျပန်/တရုတ် အက္ခရာ နမူနာ မထည့်ရ — model ကို အဲဒီ အက္ခရာ ထုတ်ဖို့ လှုံ့ဆော်နိုင်၍။",
+  "_terms_note": "hint (heard) မထည့်ရ — ၂၀၂၆-၀၉-၁၆ တိုင်းချက်: `heard: 'ဂျပန်စကား arubaito'` ထည့်တော့ c29 ကြိမ် ၄ ခုအနက် ၂ ကြိမ်မှာ model က `arubaito` ဟု hint ကိုပဲ ကူးရေးသွားသည်။",
+  "_terms_decision": "၂၀၂၆-၀၉-၁၆ Zin — self value (Fisher p c30 ၀.၀၀၀၀၀၁ · c29 ၀.၀၂၁) + overtime (Overtime ကျနိုင်ခြေကို term အဖြစ် ထည့်ပြီး ကာကွယ်)။ ဂိတ် n=၈: overtime c28 ≥၇/၈ · self value c29+c30 ≥၁၄/၁၆ · ဗီဇာ/upgrade base ထက် မကျ · CJK ၀။",
+  "watch": [
+    "overtime",
+    "upgrade",
+    "ဗီဇာ"
+  ],
+  "_watch_note": "glossary term မဟုတ်သော်လည်း glossary ကြောင့် ပျက်နိုင်သည်ဟု တိုင်းထားသော စကားလုံး — render report မှာ ပြရန်သာ (prompt ထဲ မဝင်)",
+  "report": {
+    "similarity": 0.7,
+    "_similarity_note": "Latin စာလုံး ပုံစံကွဲ ရှာရန် difflib ratio — ယာယီ (မတိုင်းရသေး)",
+    "known_bad": {
+      "self value": [
+        "sex value",
+        "Shes value",
+        "assess value",
+        "self-value"
+      ],
+      "overtime": [
+        "over time",
+        "over-time",
+        "အိုဗာတိုင်"
+      ],
+      "ဗီဇာ": [
+        "ပီဇာ"
+      ]
+    },
+    "_known_bad_note": "C0736 run များမှာ တကယ် ထွက်ခဲ့သော ပုံစံများ (၂၀၂၆-၀၉-၁၅/၁၆)"
+  }
+}

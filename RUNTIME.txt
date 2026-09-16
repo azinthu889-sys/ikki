@@ -1,0 +1,9 @@
+ကုဒ်     ~/ikki                  ← Mac ထဲ (ပြင်ပ disk မလိုတော့)
+venv     ~/.ikki/venv
+data     ~/.ikki/data            (စက်တွင်း စမ်းသပ်မှုအတွက်သာ)
+scratch  ~/.ikki/scratch         (render လုပ်နေစဉ် ယာယီ)
+B-roll   ~/ikki/assets/broll/    (clip + index.json)
+
+⚠️ ပြင်ပ disk (/Volumes/i) မှာ ကုဒ် မထားတော့ပါ — disk ခွာလိုက်လျှင်
+   အလုပ် ရပ်သွားခဲ့သည် (တကယ် ဖြစ်ခဲ့)。 footage ကိုသာ အဲဒီမှာ ထားပြီး
+   **သုံးဖြစ်တဲ့ clip တွေကို ~/ikki/assets/broll/ ထဲ ကူးယူသည်**。

@@ -1,0 +1,31 @@
+# IKKI · VPS မှာ n8n/traefik ဘေးမှာ တင်ရန်
+# ⚠️ TOKEN ၂ ခုကို .env ထဲမှာ ပြောင်းပါ — dev-* ကို မသုံးရ
+services:
+  ikki:
+    build: .
+    container_name: ikki
+    restart: unless-stopped
+    environment:
+      IKKI_USER_TOKEN:   ${IKKI_USER_TOKEN}
+      IKKI_WORKER_TOKEN: ${IKKI_WORKER_TOKEN}
+      # ⚠️ R2 (object storage)。 ၄ လုံးလုံး ပြည့်မှ R2 mode ဖွင့်သည် —
+      #    မပြည့်လျှင် local disk mode ဖြင့် အလုပ်လုပ်နေမည် (ပျက်မသွားဘူး)。
+      R2_ACCOUNT_ID:        ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID:     ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET:            ${R2_BUCKET:-ikki}
+    volumes:
+      - ikki_data:/data
+    networks: [n8n_default]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=n8n_default
+      - traefik.http.routers.ikki.rule=Host(`${IKKI_HOST}`)
+      - traefik.http.routers.ikki.entrypoints=websecure
+      - traefik.http.routers.ikki.tls.certresolver=mytlschallenge
+      - traefik.http.services.ikki.loadbalancer.server.port=8080
+volumes:
+  ikki_data:
+networks:
+  n8n_default:
+    external: true
