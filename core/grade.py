@@ -77,7 +77,18 @@ def chain(rc):
     #    တင်သည် (ပစ်မှတ် ၆.၉)。 vignette ကတော့ ထောင့်/အလယ် အချိုးကို
     #    ၁.၃၅ → ၁.၁၁ ချသည် — N5 က ၁.၃၅၇ · မူရင်း ၁.၃၆၈ ⇒ **N5 မှာ
     #    vignette လုံးဝ မရှိ** (တိုင်း၍ အတည်ပြုပြီး)。
-    parts.append(f"eq=saturation={sat}")
+    # ⚠️ **အသားအရောင် လိုက်ဖက်စေရန် gamma** (၂၀၂၆-၀၉-၁၇ Zin: "မျက်နှာ အရမ်း မဲနေတယ်")。
+    #    တိုင်းချက် — tokutei (နောက်ကွယ် ကောင်းကင် လင်းနေသော backlit shot) မှာ
+    #    မူရင်း skin Y ၁၅၇ ⇒ IKKI ထွက် **၁၄၅** (−၁၀ ~ −၁၆)。 အကြောင်းရင်းက
+    #    `colorlevels` ရဲ့ `imin` ၀.၁၀ — အဲဒါ ZAE ရဲ့ **အဖြူနံရံ studio** အတွက်
+    #    တိုင်းထားတာ ဖြစ်ပြီး အပြင်မှာ ရိုက်သော shot မှာ မျက်နှာကို ချသည်。
+    #    ⇒ worker က skin Y တိုင်းပြီး `gamma` ပေးလျှင် ဒီမှာ တင်သည် (ပုံသေ မပါ)。
+    g = rc.get("gamma")
+    if g:
+        g = max(0.85, min(1.30, float(g)))
+        parts.append(f"eq=gamma={g:.3f}:saturation={sat}")
+    else:
+        parts.append(f"eq=saturation={sat}")
     if vign > 0: parts.append(f"vignette=a={vign}")
     return ",".join(parts)
 

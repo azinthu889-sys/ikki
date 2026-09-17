@@ -1451,6 +1451,434 @@
    "kind": "object",
    "lum": 36.3,
    "det": 6.2
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/4048218997.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb106038.mp4",
+   "size": 1076382,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လက်များ",
+    "ပေါင်းစည်းမှု",
+    "အင်္ကျီလက်များ",
+    "လက်စုခြင်း"
+   ],
+   "en": [
+    "hands stack",
+    "unity",
+    "teamwork",
+    "colorful sleeves"
+   ],
+   "kind": "object",
+   "lum": 140.5,
+   "det": 2.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9747185604.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb10822.mp4",
+   "size": 7266383,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လက်",
+    "ကီးဘုတ်",
+    "စာရိုက်နေသည်",
+    "အတွင်းပိုင်း"
+   ],
+   "en": [
+    "hands",
+    "keyboard",
+    "typing",
+    "indoor"
+   ],
+   "kind": "object",
+   "lum": 93.9,
+   "det": 2.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3963324012.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb12040.mp4",
+   "size": 4711881,
+   "dur": 10.04,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ကျောင်းသား",
+    "ဘောပင်",
+    "စာအုပ်",
+    "စာရေးနေသည်"
+   ],
+   "en": [
+    "student",
+    "pen",
+    "notebook",
+    "writing"
+   ],
+   "kind": "indoor",
+   "lum": 139.8,
+   "det": 2.1
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5190429600.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb215470.mp4",
+   "size": 13484709,
+   "dur": 11.84,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဆရာ",
+    "ကျောင်းသားများ",
+    "စာသင်ခန်း",
+    "ကျောပိုးအိတ်"
+   ],
+   "en": [
+    "teacher",
+    "students",
+    "classroom",
+    "backpacks"
+   ],
+   "kind": "people",
+   "lum": 91.9,
+   "det": 9.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3214720204.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb215475.mp4",
+   "size": 13203128,
+   "dur": 10.24,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ကျောင်းသားများ",
+    "ဆရာ",
+    "စာသင်ခန်း",
+    "ခုံတန်းလျား",
+    "စာအုပ်များ"
+   ],
+   "en": [
+    "students",
+    "teacher",
+    "classroom",
+    "desks",
+    "books"
+   ],
+   "kind": "people",
+   "lum": 141.1,
+   "det": 8.4
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/2118992302.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb23008.mp4",
+   "size": 61772918,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ဆိပ်ကမ်း",
+    "ကုန်တင်သင်္ဘော",
+    "ကွန်တိန်နာများ",
+    "မိုးပျံထောက်တိုင် ကရိန်းစက်များ"
+   ],
+   "en": [
+    "port",
+    "container ship",
+    "shipping containers",
+    "gantry cranes"
+   ],
+   "kind": "place",
+   "lum": 125.6,
+   "det": 11.2
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9397551823.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb250395.mp4",
+   "size": 68350145,
+   "dur": 12.0,
+   "w": 2160,
+   "h": 3840,
+   "my": [
+    "အိုဆာကာ ရဲတိုက်",
+    "လခြမ်း",
+    "ညအချိန်",
+    "ရှေးဟောင်းအဆောက်အအုံ"
+   ],
+   "en": [
+    "Osaka Castle",
+    "crescent moon",
+    "night scene",
+    "historic building"
+   ],
+   "kind": "place",
+   "lum": 28.9,
+   "det": 4.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/175951802.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb25639.mp4",
+   "size": 65046414,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "ရေကူးကန်ဘေး",
+    "საუစာ",
+    "သစ်သီးဖျော်ရည်",
+    "အစားအစာ",
+    "အပန်းဖြေစခန်း"
+   ],
+   "en": [
+    "poolside",
+    "breakfast",
+    "juice",
+    "food",
+    "resort"
+   ],
+   "kind": "food",
+   "lum": 108.8,
+   "det": 4.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6266544984.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb262484.mp4",
+   "size": 24561183,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "အလုပ်သမား",
+    "ချည်စက်ရုံ",
+    "ချည်မျှင်",
+    "စက်ကိရိယာ",
+    "အလုပ်လုပ်နေသည်"
+   ],
+   "en": [
+    "factory worker",
+    "textile mill",
+    "yarn spools",
+    "machinery",
+    "working"
+   ],
+   "kind": "indoor",
+   "lum": 187.8,
+   "det": 12.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/827141543.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb271466.mp4",
+   "size": 25519342,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "အထည်ချုပ်စက်ရုံ",
+    "အလုပ်သမား",
+    "အထည်ပုံများ",
+    "ထုတ်လုပ်ရေး"
+   ],
+   "en": [
+    "garment factory",
+    "worker",
+    "fabric stacks",
+    "production"
+   ],
+   "kind": "indoor",
+   "lum": 118.9,
+   "det": 5.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/15455945.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb285991.mp4",
+   "size": 754196,
+   "dur": 10.07,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "အင်တာဗิวတွေ့နေသည်",
+    "အလုပ်ခန့်",
+    "စီဗီဖိုင်",
+    "စားပွဲ",
+    "လူနှစ်ဦး"
+   ],
+   "en": [
+    "job interview",
+    "hiring",
+    "cv resume",
+    "desk",
+    "people"
+   ],
+   "kind": "people",
+   "lum": 129.1,
+   "det": 6.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/3314464088.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb30872.mp4",
+   "size": 14489189,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လေယာဉ်မယ်",
+    "ခရီးသည်",
+    "ခရီးဆောင်အိတ်",
+    "လေဆိပ်",
+    "လမ်းလျှောက်နေသည်"
+   ],
+   "en": [
+    "flight attendant",
+    "passenger",
+    "luggage",
+    "airport",
+    "walking"
+   ],
+   "kind": "people",
+   "lum": 89.9,
+   "det": 11.5
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/9498600553.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb30876.mp4",
+   "size": 9468471,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "လေဆိပ်",
+    "ခရီးသည်",
+    "လမ်းလျှောက်နေသည်",
+    "လေဆိပ်ဆိုင်းဘอร์ด",
+    "စင်္ကြံ"
+   ],
+   "en": [
+    "airport",
+    "passenger",
+    "walking",
+    "airport sign",
+    "corridor"
+   ],
+   "kind": "place",
+   "lum": 100.2,
+   "det": 12.9
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8386361484.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb41121.mp4",
+   "size": 7763437,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ဖောင်တိန်",
+    "စာအုပ်",
+    "စားပွဲ",
+    "ဒီဇိုင်းပုံ"
+   ],
+   "en": [
+    "fountain pen",
+    "book",
+    "desk",
+    "design drawing"
+   ],
+   "kind": "object",
+   "lum": 90.8,
+   "det": 3.0
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8483810586.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb41957.mp4",
+   "size": 4113749,
+   "dur": 6.68,
+   "w": 1920,
+   "h": 888,
+   "my": [
+    "ဂျပန်မြို့လမ်း",
+    "နီယွန်မီးများ",
+    "ဆိုင်းဘုတ်များ",
+    "ညအချိန်"
+   ],
+   "en": [
+    "japanese street",
+    "neon lights",
+    "signs",
+    "night time"
+   ],
+   "kind": "city",
+   "lum": 91.8,
+   "det": 16.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/5724763090.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb42923.mp4",
+   "size": 10492103,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ဆောက်လုပ်ရေးလုပ်သားများ",
+    "သံဘောင်များ",
+    "အဆောက်အအုံဆောက်လုပ်နေသည်",
+    "ဦးထုပ်ဆောင်းထားသည်"
+   ],
+   "en": [
+    "construction workers",
+    "scaffolding",
+    "building construction",
+    "hard hats"
+   ],
+   "kind": "place",
+   "lum": 100.1,
+   "det": 19.6
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/6815720669.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb66410.mp4",
+   "size": 19925819,
+   "dur": 12.0,
+   "w": 1920,
+   "h": 1080,
+   "my": [
+    "ရထားဘူတာ",
+    "ရှင်သန်ခရီးသည်တင်ရထား",
+    "ရထားလမ်း",
+    "မြို့ပြမြင်ကွင်း"
+   ],
+   "en": [
+    "train station",
+    "bullet train",
+    "railway tracks",
+    "urban cityscape"
+   ],
+   "kind": "place",
+   "lum": 102.6,
+   "det": 7.7
+  },
+  {
+   "path": "/Users/zinthuaung/ikki/assets/broll/clips/8520168947.mp4",
+   "src": "/Users/zinthuaung/ikki/assets/broll/stock_ja/pb87592.mp4",
+   "size": 32293218,
+   "dur": 12.0,
+   "w": 3840,
+   "h": 2160,
+   "my": [
+    "လူ",
+    "ခဲတံ",
+    "စာရွက်",
+    "လက်ပ်တော့",
+    "စာရေးနေသည်"
+   ],
+   "en": [
+    "person",
+    "pencil",
+    "paper",
+    "laptop",
+    "writing"
+   ],
+   "kind": "object",
+   "lum": 110.0,
+   "det": 4.8
   }
  ]
 }

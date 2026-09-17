@@ -21,7 +21,7 @@
 import os, subprocess
 
 FRAC_H = 460/1440.0   # frame အမြင့်၏ ~32%
-ALPHA  = 0.62
+ALPHA  = 0.35   # ⚠️ ၀.၆၂ → ၀.၅၀ → ၀.၃၅ (Zin ၂၀၂၆-၀၉-၁၇ "ပိုပြီး မှိန်ပေးပါ")
 
 def png(work, W, H, navy, frac=FRAC_H, alpha=ALPHA):
     h = int(H*frac)
@@ -40,7 +40,7 @@ def png(work, W, H, navy, frac=FRAC_H, alpha=ALPHA):
     return p, h
 
 
-def _band(W, H, navy, a, y0, y1, out, soft=100, maxfrac=0.34):
+def _band(W, H, navy, a, y0, y1, out, soft=190, maxfrac=0.34):
     """y0..y1 ကို ဖုံးသော gradient band — အနားနှစ်ဖက် ပျောက်သွားသည်。
 
     ⚠️ band ကို **ကန့်သတ်ရမည်** — ဂရပ်ဖစ်ရဲ့ bbox က ကျယ်နေလျှင်
@@ -63,8 +63,21 @@ def _band(W, H, navy, a, y0, y1, out, soft=100, maxfrac=0.34):
                f'<stop offset="{f1*100:.1f}%" stop-color="{navy}" stop-opacity="{a:.3f}"/>'
                f'<stop offset="{f2*100:.1f}%" stop-color="{navy}" stop-opacity="{a:.3f}"/>'
                f'<stop offset="100%" stop-color="{navy}" stop-opacity="0"/>'
-               f'</linearGradient></defs>'
-               f'<rect x="0" y="{top}" width="{W}" height="{h}" fill="url(#g)"/></svg>')
+               f'</linearGradient>'
+               # ⚠️ **ဘေးနှစ်ဖက် ပျောက်ရမည်** — အရင်က `x=0 · width=W` ဖြစ်၍
+               #    ဖန်သားပြင် အနားကနေ အနားထိ မှောင်ပြီး "သဘာဝ မကျ" ဟု
+               #    Zin ဆိုသည် (၂၀၂၆-၀၉-၁၇)。 ⇒ ၈၂% ကျယ် · ဘေး ၁၆% fade。
+               f'<linearGradient id="hx" x1="0" y1="0" x2="1" y2="0">'
+               f'<stop offset="0%" stop-color="#fff" stop-opacity="0"/>'
+               f'<stop offset="30%" stop-color="#fff" stop-opacity="1"/>'
+               f'<stop offset="70%" stop-color="#fff" stop-opacity="1"/>'
+               f'<stop offset="100%" stop-color="#fff" stop-opacity="0"/>'
+               f'</linearGradient>'
+               f'<mask id="m"><rect x="{int(W*0.09)}" y="{top}" '
+               f'width="{int(W*0.82)}" height="{h}" fill="url(#hx)"/></mask>'
+               f'</defs>'
+               f'<rect x="{int(W*0.09)}" y="{top}" width="{int(W*0.82)}" '
+               f'height="{h}" fill="url(#g)" mask="url(#m)"/></svg>')
     subprocess.run(["rsvg-convert","-w",str(W),"-h",str(H),"-o",out],
                    input=svg.encode(), check=True)
     return out

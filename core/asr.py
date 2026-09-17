@@ -45,6 +45,13 @@ PROMPT = ("ဤအသံဖိုင်ထဲက စကားပြောသံ�
           "  ❌ 'တစ်လ ကို ဘယ်လောက် စု မိ မလဲ'  ✅ 'တစ်လကို ဘယ်လောက် စုမိမလဲ'\n"
           "  စကားလုံးတစ်လုံးအတွင်း space **လုံးဝ မထားရ**\n"
           "\n"
+          "\n"
+          "⚠️ **စကားလုံးအလိုက် အချိန်မှတ်ပါ ထည့်ပါ** — ဝါကျတစ်ခုချင်းစီမှာ\n"
+          '  "words": [{"w":"စကားလုံး","s":0.0,"e":0.4}, ...]\n'
+          "  · `w` = စာလုံး (ဝါကျထဲက အတိအကျ · မပြင်ရ)\n"
+          "  · `s`/`e` = ဤအသံဖိုင်ရဲ့ အစကနေ စက္ကန့်\n"
+          "  · စကားလုံးများ **အစဉ်လိုက်** ဖြစ်ရမည် · မထပ်ရ\n"
+          "\n"
           "- JSON အပြင် ဘာမှ မရေးပါနှင့်")
 
 # ── အသုံးအနှုန်း စာရင်း — assets/calib/glossary.json (code ထဲ မရေးရ · R5) ──
@@ -227,7 +234,21 @@ def _parse_timed(txt, a, b):
             continue
         # chunk ဘောင်ထဲ ဝင်ရမည် — ကျော်လျှင် ညှိသည်
         st = max(0.0, min(dur, st)); en = max(st + 0.3, min(dur, en))
-        out.append(dict(text=t, start=round(a + st, 2), end=round(a + en, 2)))
+        e = dict(text=t, start=round(a + st, 2), end=round(a + en, 2))
+        ws = x.get("words")
+        if isinstance(ws, list) and ws:
+            wl = []
+            for w in ws:
+                try:
+                    s2 = max(0.0, min(dur, float(w.get("s"))))
+                    e2 = max(s2, min(dur, float(w.get("e"))))
+                except Exception:
+                    continue
+                t2 = str(w.get("w") or "")
+                if not t2.strip(): continue
+                wl.append(dict(w=t2, s=round(a + s2, 2), e=round(a + e2, 2)))
+            if wl: e["words"] = wl
+        out.append(e)
     return out or None
 
 def _b64(p):
@@ -237,9 +258,18 @@ def _b64(p):
 #    ပုံစံမမှန် `\uXXXX` escape (ဥပမာ `\u10`) ထွက်စရာ လမ်း မရှိတော့ပါ。
 #    ၂၀၂၆-၀၉-၁၅ တိုင်းချက် — အဲဒီ escape တစ်ခုကြောင့် chunk တစ်ခုလုံး
 #    (ဝါကျ ၃ ခု) ပြုတ်ကျခဲ့သည်。 run ၃ ခုမှာ ၀ · ၂ · ၁ chunk ကျခဲ့သည်。
+# ⚠️ `words` — **စကားလုံးအလိုက် အချိန်မှတ်** (Zin ခွင့်ပြု ၂၀၂၆-၀၉-၁၇)。
+#    ဖြတ်ပြီးသား ဗီဒီယို (ခေတ္တရပ် မရှိ) မှာ ဝါကျအဆင့် အချိန်က ±၀.၄–၁.၅s
+#    လွဲသည် (တိုင်းထားသည်) ⇒ ကျောက်ချစရာ အဖြစ် စကားလုံး အချိန် လိုသည်。
+#    ⚠️ `required` ထဲ **မထည့်ရ** — model က မပေးနိုင်လျှင် ဝါကျအဆင့်နဲ့ ဆက်သွားရန်。
 SCHEMA = {"type":"ARRAY","items":{"type":"OBJECT","properties":{
-    "start":{"type":"NUMBER"},"end":{"type":"NUMBER"},"text":{"type":"STRING"}},
-    "required":["start","end","text"]}}
+    "start":{"type":"NUMBER"},"end":{"type":"NUMBER"},"text":{"type":"STRING"},
+    "words":{"type":"ARRAY","items":{"type":"OBJECT","properties":{
+        "w":{"type":"STRING"},"s":{"type":"NUMBER"},"e":{"type":"NUMBER"}},
+        "required":["w","s","e"]}}},
+    # ⚠️ `words` ကို **required ထဲ ထည့်မှ** model က ပေးသည် — မထည့်လျှင်
+    #    ချန်ထားတတ်သည် (တိုင်းချက် ၂၀၂၆-၀၉-၁၇: ဝါကျ ၂၃/၂၃ မှာ words ၀)。
+    "required":["start","end","text","words"]}}
 SCHEMA_OK = [True]        # model က မထောက်ပံ့လျှင် ပိတ်ပြီး ဆက်သွားသည်
 
 def _call(b64, mime="audio/ogg", tries=4, schema=None):
@@ -365,8 +395,12 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
             if tm:
                 TIMED[0] += len(tm); TIMED[1] += 1
                 for x in tm:
-                    out.append(dict(text=x["text"], chunk=i, a=round(a,2),
-                                    b=round(b,2), start=x["start"], end=x["end"]))
+                    # ⚠️ `words` ကို **ဒီမှာ ပါ သယ်ရမည်** — မသယ်လျှင် `_place`
+                    #    မှာ မမြင်ရဘဲ ဝါကျအဆင့် အချိန်ပဲ သုံးဖြစ်သည် (တကယ် ဖြစ်ခဲ့)。
+                    _e = dict(text=x["text"], chunk=i, a=round(a,2),
+                              b=round(b,2), start=x["start"], end=x["end"])
+                    if x.get("words"): _e["words"] = x["words"]
+                    out.append(_e)
             else:
                 # ပုံစံ မမှန် — ယခင်နည်း (တစ်တုံးတည်း) · **ကျဘမ်း မဖြစ်စေရ**
                 # ⚠️ **JSON အကြမ်းကို စာတန်းအဖြစ် မသိမ်းရ** — ပုံစံ မမှန်တဲ့
@@ -450,7 +484,23 @@ def _place(lines, meas, cfg=None):
         # ⚠️ **bias ကို အရင် ပြင်ပြီးမှ snap** — snap က bias ကို ပြိုင်တာ မဟုတ်ဘဲ
         #    သန့်စင်ပေးတာ。 မူရင်း start နဲ့ တိုင်းလျှင် accept ဘောင်က ပျမ်းမျှ
         #    လွဲချက် ဖြစ်နေ၍ **သင်္ချာအရ တစ်ဝက် ပယ်မိ**သည် (sweep ဖြင့် အတည်ပြု)。
-        sent = [(float(l["start"]) + bias, float(l["end"]) + bias) for l in timed]
+        # ⚠️ **စကားလုံး အချိန် ရှိလျှင် အဲဒါကို ဦးစားပေး** (Zin ခွင့်ပြု ၂၀၂၆-၀၉-၁၇) —
+        #    ဖြတ်ပြီးသား ဖိုင် (ခေတ္တရပ် မရှိ) မှာ ဝါကျအဆင့် အချိန်က ±၀.၄–၁.၅s
+        #    လွဲသည်。 စကားလုံး အချိန်က ပထမစာလုံးရဲ့ စချိန်ကို ပိုတိကျစေသည်。
+        _nw = 0
+        def _span(l):
+            global _nw
+            ws = l.get("words") or []
+            if len(ws) >= 2:
+                try:
+                    return float(ws[0]["s"]), float(ws[-1]["e"]), True
+                except Exception:
+                    pass
+            return float(l["start"]), float(l["end"]), False
+        _pairs = [_span(l) for l in timed]
+        _nw = sum(1 for _s, _e, ok in _pairs if ok)
+        STAT["word_ts"] = _nw
+        sent = [(s0 + bias, e0 + bias) for s0, e0, _ok in _pairs]
         # ရနိုင်သူ = W အတွင်း onset ရှိသော ဝါကျ。 ဂိတ်ကို ဒီနဲ့ တိုင်းရမည် —
         # ခေတ္တရပ် မရှိသော ဝါကျကို snap မရတာ ချို့ယွင်းချက် မဟုတ်ပါ。
         STAT["reach"] = sum(1 for st0, _e in sent

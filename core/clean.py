@@ -327,10 +327,18 @@ def retakes(segs, meas, cal, log=print, ask=None):
 # ⚠️ ဘယ် take ချန်မလဲ **စက်က မဆုံးဖြတ်ရ** — တိုင်းချက်: ချန်ထားသော take က ရှေ့မှာ
 #    ဖြစ်တာ ၂၃/၆၇ = ၃၄% (podcast ၁၁/၂၁ = ၅၂%) ⇒ "နောက်ဆုံး take ချန်" စည်းမျဉ်းက
 #    သုံးပုံတစ်ပုံ မှား。 ဤ function က **အုပ်စု + ရွေးစရာ** သာ ထုတ်သည် — မဖျက်ပါ。
-def _drop_intervals(segs, sp, drop_idx, edge):
+def _drop_intervals(segs, sp, drop_idx, edge, dur=None):
     """([[a,b],…], None) | (None, အကြောင်းရင်း) — ဖျက်မည့် ဝါကျများ → လုံခြုံသော ဖြတ်မှတ်。
 
     နယ်နိမိတ်က `retakes()` နဲ့ **အတူတူ** (M.speech ကျောက်ချ · gap အလယ် · F2 စစ်)。
+
+    ⚠️ **ဖိုင်အစ / ဖိုင်အဆုံး anchor** (၂၀၂၆-၀၉-၁၇ Zin ခွင့်ပြု) — ဖျက်ရမည့် အပိုင်းက
+       ဗီဒီယိုရဲ့ **ပထမဆုံး စကား**ကနေ စလျှင် ရှေ့မှာ anchor မရှိသဖြင့် ယခင်က
+       **ငြင်းပယ်**ခဲ့သည် ⇒ C0088 cl00 မှာ နိဒါန်း take ၅ ခုထဲ take 1 သာ ရွေးလို့ရဘဲ
+       **နာမည် မှားနေသော take** ကျန်ခဲ့သည် (Zin ၂၀၂၆-၀၉-၁၇)。
+       တိုင်းချက် — ဖိုင်အစကနေ ပထမ စကားအထိ ၃၃၆၀ms တိတ်ဆိတ် ⇒ `a = 0.0` မှာ ဖြတ်လျှင်
+       စကား **၀ ms** ထိ。 ထို့အတူ နောက်ဆုံး ဝါကျအထိ ဖျက်လျှင် `b = dur`。
+       `dur` မပေးလျှင် ယခင်အတိုင်း ငြင်းသည် (backward compatible)。
     """
     n, drop = len(segs), sorted(drop_idx)
     if not drop: return [], None
@@ -353,11 +361,16 @@ def _drop_intervals(segs, sp, drop_idx, edge):
             keep_on = inside[0] if inside else min((s_ for s_, e in sp if s_ >= on), default=None)
             if keep_on is not None:
                 del_end = max((e for s_, e in sp if e <= keep_on), default=None)
-        if None in (prev_end, del_on, keep_on, del_end):
+        head = prev_end is None and del_on is None      # ဖိုင်အစကနေ ဖျက်မည်
+        tail = nk is None and dur is not None            # ဖိုင်အဆုံးအထိ ဖျက်မည်
+        if (prev_end is None or del_on is None) and not head:
+            return None, "ရှေ့/နောက် စကား နယ်နိမိတ် မရ"
+        if (keep_on is None or del_end is None) and not tail:
             return None, "ရှေ့/နောက် စကား နယ်နိမိတ် မရ"
         pt = lambda end_, start_, side: ((end_ + start_) / 2.0 if start_ - end_ < 2 * edge
                                          else (end_ + edge if side == "a" else start_ - edge))
-        a, b = pt(prev_end, del_on, "a"), pt(del_end, keep_on, "b")
+        a = 0.0 if head else pt(prev_end, del_on, "a")
+        b = float(dur) if tail else pt(del_end, keep_on, "b")
         if b <= a: return None, "နယ်နိမိတ် ပြောင်းပြန်"
         hit = [k + 1 for k in range(n) if k not in drop and a < segs[k]["start"] < b]
         if hit: return None, f"ထားမည့် ဝါကျ {hit} ကို ထိ"
@@ -441,7 +454,8 @@ def retake_clusters(segs, meas, cal, log=print, ask=None):
                  for t, i in enumerate(idx)]
         opts, blocked = {}, {}
         for t, keep_i in enumerate(idx):
-            iv, why = _drop_intervals(segs, sp, [i for i in idx if i != keep_i], edge)
+            iv, why = _drop_intervals(segs, sp, [i for i in idx if i != keep_i], edge,
+                                      dur=meas[2])
             if iv is None: blocked[str(t + 1)] = why
             else: opts[str(t + 1)] = iv
         clusters.append(dict(id=f"cl{k:02d}", takes=takes, options=opts, blocked=blocked,

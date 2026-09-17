@@ -408,7 +408,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
         log(f"  brand {bid} ({native}) → {TH['W']}×{TH['H']} · BOT {TH['BOT']}")
     else:
         # brand ရဲ့ အရောင်/ဖောင့် — DB မှာ ရှိလျှင် အဲဒါ၊ မရှိလျှင် house ရဲ့
-        if brand and brand.get("colors"):
+        # ⚠️ **house brand (zae · zjl) က DB အရောင်ကို မယူရ** — `zae` record ထဲမှာ
+        #    logo ကနေ ထုတ်ထားသော အညိုရောင် palette (#210F0F · #3D2222 · #F20000)
+        #    ဝင်နေပြီး အလျားလိုက် format မှာ **ကတ်တွေ အညို/အနီ** ထွက်ခဲ့သည်
+        #    (Zin ၂၀၂၆-၀၉-၁၇: "color က ZAE Themes ဖြစ်ရပါမယ်")。 house theme က
+        #    reference ကနေ တိုင်းထားသည် ⇒ format ပြောင်းလည်း အဲဒါပဲ သုံးရမည်。
+        if house:
+            base = dict(theme.THEMES[bid])
+            bd = dict(id=bid,
+                      colors=[base["NAVY"], base["DEEP"], base["GOLD"],
+                              base["SKY"], base["RED"]],
+                      mmf=base["MMF"], latin=base["LATIN"], jp=base["JP"])
+            log(f"  အရောင် · house brand {bid} ⇒ theme palette (DB အရောင် မယူ)")
+        elif brand and brand.get("colors"):
             bd = dict(id=bid, colors=brand["colors"],
                       mmf=brand.get("mmf"), latin=brand.get("latin"),
                       jp=brand.get("jp"))
@@ -472,6 +484,44 @@ def render(job, brand, src, out, stage, log=print, over=None):
         # ⚠️ recipe က ကိန်း ပေးထားလျှင် **အဲဒါကို** သုံးရမည် — ZAE ရဲ့
         #    ၈% အရွယ်နှင့် ၈၁% baseline က reference မှ တိုင်းယူထားသည်。
         pct = rc.get("cap_pct") or (0.046 if rc["captions"]=="big" else 0.034)
+        # ⚠️ **brand ÷ format** — ZAE ရဲ့ `cap_pct` ၀.၁၀ က သူ့ native **3:4
+        #    ဒေါင်လိုက်** မှာ တိုင်းထားသည် (၁၃၆px @ H=1440)。 အလျားလိုက် 16:9
+        #    မှာ အဲဒါက ၂၁၆px (H=2160) ဖြစ်ပြီး band က frame ရဲ့ **၄၂%** ယူကာ
+        #    **ပြောသူရဲ့ မျက်နှာကို ဖုံး**သည် — Zin ၂၀၂၆-၀၉-၁၇ (tokutei ZAE 4K)。
+        #    ⇒ အလျားလိုက်မှာ ကန့်သတ်ပြီး baseline ကို အောက် ချသည်。
+        #    ⚠️ baseline ကို **format ရဲ့ BOT (safe zone) အတိုင်း** ထားရမည် —
+        #       ၀.၈၈ ချလိုက်တော့ QC `caption_zone` ကျခဲ့သည် (1900 > BOT 1660)。
+        if TH["W"] > TH["H"] and pct > 0.06:
+            _old = pct; pct = 0.045
+            # ⚠️ baseline — QC ရဲ့ `cap_max` ၀.၈၃၃ အောက်မှာ ရှိရမည်。 BOT (၀.၇၆၉)
+            #    က အပေါ်လွန်းသည် ⇒ Zin ၂၀၂၆-၀၉-၁၇ "subtitle ကို အောက်ကို နည်းနည်း
+            #    ချချင်တယ်" ⇒ ၀.၈၀ (QC ဘောင်အတွင်း · ဘေးလွတ် ၃%)。
+            rc["cap_base"] = 0.80
+            # ⚠️ ဖောင့် — Zin ရွေးချယ်ချက် (၂၀၂၆-၀၉-၁၇ · နမူနာ ၄ ခုထဲက ၂)。
+            #    `MyanmarHeadOne` က ဖောင့်စာရင်းမှာ «ZAE **ခေါင်းစဉ်**» အတွက်
+            #    မှတ်ထားပြီး `Pyidaungsu-Bold` က «Short Video · ZAE» အတွက်。
+            rc["mmf"] = "Pyidaungsu-Bold"
+            log(f"  စာတန်း · အလျားလိုက် format ⇒ အရွယ် {_old} → {pct} · "
+                f"baseline {rc['cap_base']} · ဖောင့် {rc['mmf']}")
+            # ⚠️ **ဂရပ်ဖစ် ပိုများစေရန်** (၂၀၂၆-၀၉-၁၇ Zin: "Infography များများလေး
+            #    သုံးပေးပါ")。 အလျားလိုက် frame မှာ စာတန်း band ကျဉ်းသွား၍ ကတ်
+            #    တင်ဖို့ နေရာ ပိုရသည် ⇒ recipe ရဲ့ ၅ ကို ၁၀ သို့。 QC ရဲ့
+            #    `gfx_share` က အလွန်အကျွံ ဖြစ်လျှင် ဖမ်းမည်。
+            # ⚠️ **ကတ် အရောင် — navy + gold သာ** (Zin ၂၀၂၆-၀၉-၁၇)。 template
+            #    တချို့က RED ကို accent အဖြစ် ယူသဖြင့် "တစ်နှစ် Program" ကတ်က
+            #    အနီရောင် ထွက်ခဲ့သည်。 ⇒ RED/SKY ကို GOLD ဖြင့် အစားထိုး。
+            try:
+                _t = theme.THEMES.get("_ikki")
+                if _t and _t.get("GOLD"):
+                    _t["RED"] = _t["GOLD"]; _t["SKY"] = _t["GOLD"]
+                    theme.use("_ikki")
+                    log("  အရောင် · ကတ်များ navy + gold သာ (RED/SKY → GOLD)")
+            except Exception as _e:
+                log(f"  ⚠️ အရောင် မပြောင်းနိုင်: {_e}")
+            _g0 = int(rc.get("gfx") or 0)
+            if _g0 and _g0 < 10:
+                rc["gfx"] = 10
+                log(f"  ဂရပ်ဖစ် · အလျားလိုက် format ⇒ {_g0} → 10 ကတ်")
         csize = int(TH["H"] * pct)
         cband = int(csize*2.2)*2
         # ⚠️ စာတန်း band ရဲ့ **အပေါ်ဆုံး** — ဂရပ်ဖစ်က ဒီအောက် ဆင်းလျှင်
@@ -590,7 +640,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             gmov, ng = DR.track(gfx, None, os.path.join(work,"gx"), TH["W"], TH["H"],
                                 rc["fps"], T1, T2, (brand or {}).get("name","IKKI"),
                                 rc["label"], log,
-                                avoid=faceband(src, TH["W"], TH["H"], log),
+                                avoid=_avoid_band(src, TH, log),
                                 capy=cap_top, hold=_hold)
             # ⚠️ စာတန်းနဲ့ ဒေါင်လိုက် ထပ်တာကို **စစ်စရာ မလိုတော့** —
             #    ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်းကို `hide` ဖြင့် ဖျောက်ပြီးသား。
@@ -875,6 +925,25 @@ def render(job, brand, src, out, stage, log=print, over=None):
     SP.spans(src, spans, cutv, os.path.join(work,"sp"), fps=rc["fps"])
     # ⚠️ grade ကို **ရုပ်ပေါ်မှာသာ** ချရသည် — overlay တင်ပြီးမှ ချလျှင်
     #    စာတန်း အဖြူက မွဲပြီး stroke ပျက်သည်。 ⇒ ဒီနေရာ (overlay မတင်ခင်)。
+    # ⚠️ **အသားအရောင် ချိန်ညှိချက်** (၂၀၂၆-၀၉-၁၇ Zin: "မျက်နှာ အရမ်း မဲနေတယ်")。
+    #    grade မချခင် ဖြတ်ပြီး ရုပ်ပေါ်မှာ skin Y ကို တိုင်းပြီး ပစ်မှတ် (၁၅၈) နဲ့
+    #    နှိုင်းကာ `gamma` ကို တွက်သည် — **ကိန်းသေ မထားရ**、ဗီဒီယိုအလိုက် ကွာသည်
+    #    (studio အဖြူနံရံ ↔ အပြင် backlit shot)。 skin mask = YCbCr。
+    try:
+        _sy = _skin_y(cutv, log=log)
+        if _sy and _sy < 158:          # ⚠️ ပစ်မှတ်နဲ့ တူညီစွာ — grade ရဲ့ levels က
+        #    ထပ် ~၁၀ Y ချသေးသည် (v5: pre-grade ၁၅၃ ⇒ ထွက် ~၁၄၃)。
+            import math as _mth
+            _tgt = 158.0
+            _g = _mth.log(max(0.04, _sy) / 255.0) / _mth.log(_tgt / 255.0)
+            rc["gamma"] = max(1.0, min(1.25, _g))
+            if (rc.get("lv_imin") or 0) > 0.05: rc["lv_imin"] = 0.04
+            log(f"  အသားအရောင် · skin Y {_sy:.0f} < ပစ်မှတ် {_tgt:.0f} ⇒ "
+                f"gamma {rc['gamma']:.3f} · levels imin {rc.get('lv_imin')}")
+        elif _sy:
+            log(f"  အသားအရောင် · skin Y {_sy:.0f} — ချိန်ညှိချက် မလို")
+    except Exception as e:
+        log(f"  ⚠️ အသားအရောင် မတိုင်းနိုင်: {type(e).__name__}: {e}")
     try:
         import grade as GR
         gv = os.path.join(work, "graded.mp4")
@@ -1491,6 +1560,61 @@ def sweep_scratch(keep=None, failed=False):
         print(f"  📦 work/ ချန်ထား {len(_kept)} ခု: {', '.join(_kept[:4])}", flush=True)
     return n
 
+
+
+
+def _avoid_band(src, TH, log=print):
+    """ဂရပ်ဖစ် ရှောင်ရမည့် ဒေါင်လိုက် အပိုင်း。
+
+    ⚠️ `faceband` က **မျက်နှာ**ကိုသာ ရှောင်သည် ⇒ ကတ်တွေ **ရင်ဘတ်ပေါ်** ကျခဲ့သည်
+       (Zin ၂၀၂၆-၀၉-၁၇: "လူပေါ် မကျအောင်")。 အလျားလိုက် talking-head မှာ
+       အပေါ်ပိုင်း (နောက်ခံ) က လွတ်နေသဖြင့် **မျက်နှာ + ကိုယ်ထည်** ကို ရှောင်ပြီး
+       ကတ်ကို အပေါ်/ဘေး ပို့သည်。 ဒေါင်လိုက် (3:4) မှာ နေရာ မလွတ်၍ မထိ。
+    """
+    fb = faceband(src, TH["W"], TH["H"], log)
+    if not fb or TH["W"] <= TH["H"]: return fb
+    y0, y1 = fb
+    h = max(1, y1 - y0)
+    # ⚠️ **ချဲ့လွန်းလျှင် ကတ် နေရာ လုံးဝ မကျန်** — v7 မှာ faceband က 0–1392
+    #    ပြန်ပေးပြီး ၂.၂ ဆ ချဲ့တော့ 0–2160 (frame တစ်ခုလုံး) ဖြစ်ကာ ကတ်
+    #    **၀ ခု** ထွက်ခဲ့သည်。 ⇒ frame ရဲ့ ၇၀% ထက် မကျော်ရ · ၆၀% ကျော်
+    #    ဖုံးပြီးသားဆိုလျှင် ထပ်မချဲ့ရ。
+    if (y1 - y0) > TH["H"] * 0.60:
+        log(f"  ဂရပ်ဖစ် ရှောင်နယ် · {y0}–{y1} (ကျယ်ပြီးသား — မချဲ့)")
+        return fb
+    y1b = min(int(TH["H"] * 0.70), int(y1 + h * 0.6))
+    log(f"  ဂရပ်ဖစ် ရှောင်နယ် · မျက်နှာ {y0}–{y1} → ကိုယ်ထည်အထိ {y0}–{y1b}")
+    return (y0, y1b)
+
+def _skin_y(path, n=8, log=print):
+    """(float|None) — YCbCr skin mask ရဲ့ Y ပျမ်းမျှ。 ဗီဒီယို တစ်ခုလုံးမှ frame n ခု。
+
+    ⚠️ skin မတွေ့လျှင် None — ချိန်ညှိချက် မလုပ်ရ (B-roll ချည်း ဖြစ်နိုင်)。
+    """
+    import subprocess as _sp
+    d = probe(path).get("dur") or 0
+    if d <= 0: return None
+    W, H = 320, 180
+    vals = []
+    for k in range(n):
+        t = d * (k + 0.5) / n
+        p = _sp.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", path,
+                     "-frames:v", "1", "-vf", f"scale={W}:{H}", "-pix_fmt", "yuvj444p",
+                     "-f", "rawvideo", "-"], capture_output=True)
+        buf = p.stdout
+        if len(buf) < W * H * 3: continue
+        nn = W * H
+        Y, Cb, Cr = buf[:nn], buf[nn:2*nn], buf[2*nn:3*nn]
+        ys = 0; c = 0
+        for i in range(0, nn, 3):
+            y, cb, cr = Y[i], Cb[i], Cr[i]
+            if 77 <= cb <= 127 and 133 <= cr <= 173 and 40 <= y <= 240:
+                ys += y; c += 1
+        if c >= (nn / 3) * 0.02:          # frame ရဲ့ ၂% ကျော် skin ဖြစ်မှ
+            vals.append(ys / c)
+    if not vals: return None
+    vals.sort()
+    return vals[len(vals) // 2]
 
 def handle(d):
     job, brand = d["job"], d.get("brand")

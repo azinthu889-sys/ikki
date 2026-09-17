@@ -347,7 +347,10 @@ def match(segs, want, used=None, log=print):
 
     ids = {}
     rows = []
-    for i, c in enumerate(av[:60]):
+    # ⚠️ ၆၀ ကန့်သတ်ချက်က **အသစ် ထည့်ထားသော clip တွေကို Gemini မမြင်**စေခဲ့
+    #    (၂၀၂၆-၀၉-၁၇ — stock ၁၈ ခု ထည့်ပြီးနောက် index ၇၉ ဖြစ်သွားပြီး
+    #     အသစ်တွေက စာရင်း အောက်ဆုံးမှာ ကျန်ခဲ့သည်)。 ⇒ ၁၂၀ သို့ တိုးသည်。
+    for i, c in enumerate(av[:120]):
         cid = "c%02d" % i; ids[cid] = c
         rows.append(f'{cid}: {" · ".join((c.get("my") or [])[:4])}  [{c["dur"]:.0f}s]')
     lines = "\n".join(f"{i+1}. {s['text']}" for i, s in enumerate(segs[:80]))
@@ -388,7 +391,10 @@ def match(segs, want, used=None, log=print):
             G.log_fail("broll_match", k + 1, 2, None, f"{type(e).__name__}: {e}", final=(k == 1))
             time.sleep(4*(k+1))
     G.tally("broll", False, "Gemini တွဲ မရ")
-    lex = pick(segs, want, used)
+    # ⚠️ Gemini မရလျှင် စာလုံးတူမှုဖြင့် ဖြည့်သည် — ဒါပေမဲ့ **အမှတ် နိမ့်တာကို
+    #    မယူရ**。 ၃ နဲ့ ယူတော့ "ROLEX နာရီ" · "Hakone ကားလမ်း" တို့ ဂျပန်စာ
+    #    သင်တန်း ဗီဒီယိုထဲ ဝင်လာခဲ့သည် (Zin ၂၀၂၆-၀၉-၁၇)。 ⇒ ၆ သို့ တင်。
+    lex = pick(segs, want, used, min_score=6)
     if lex: log(f"  B-roll · စာလုံးတူမှုဖြင့် {len(lex)} ခု (Gemini မရ)")
     return lex
 
