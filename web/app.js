@@ -27,8 +27,10 @@ var STYLES={creator:[
   /* ⚠️ **Headtop** — plan-driven。 ကျန်ပုံစံတွေက worker က ဆုံးဖြတ်ပြီး
         ဒီတစ်ခုကတော့ **AI plan ကို အကောင်အထည်ဖော်**သည် ⇒ event တိုင်း
         သုံးစွဲသူ ပြင်နိုင်သည် (Zin ၂၀၂၆-၀၉-၂၀ spec)。 */
-  ["headtop","Headtop","စာတန်း ဖတ်လွယ် · အဓိပ္ပာယ်အလိုက် ဂရပ်ဖစ် · ပြင်လို့ရ",
-   "Readable captions · semantic graphics · editable","MasterpieceUniRound","plan"],
+  /* ⚠️ ၇ ခုမြောက်က **နမူနာပုံ ဘယ်ဟာ သုံးမလဲ** — `prev/headtop.jpg` မရှိသေး၍
+        `ref-talk` ကို ချေးသည်。 မထည့်လျှင် ပုံ ပျက်နေသည် (၂၀၂၆-၀၉-၂၁ တွေ့)。 */
+  ["headtop","Headtop · Motion Edit","စာတန်း ဖတ်လွယ် · အဓိပ္ပာယ်အလိုက် ဂရပ်ဖစ် · ပြင်လို့ရ",
+   "Readable captions · semantic graphics · editable","MasterpieceUniRound","plan","ref-talk"],
   /* ⚠️ "Fast Cut" ကို ဤပုံစံထဲ **ပေါင်းထားသည်** (Zin ၂၀၂၆-၀၉-၂၀) —
         ကွာတာက ဖြတ်နှုန်းတစ်ခုတည်း ဖြစ်၍ ပုံစံ သီးသန့် မလို。
         ပုံစံ ဆက်တင်ထဲက 「အရှိန်」 ကနေ မြန်/ပုံမှန် ရွေးပါ。 */
@@ -85,7 +87,7 @@ var FMTS=[];
 /* ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ် တန်း edit လုပ်လို့ရအောင်」
    ⇒ ရွေးချယ်မှုကို **မှတ်ထား**သည် — နောက်ဗီဒီယိုမှာ အစကနေ ပြန်ရွေးစရာ မလို。 */
 var SKEY='ikki_prefs';
-var state={style:'short-video', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', job:null, poll:null, up:null,
+var state={style:'short-video', family:'', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', job:null, poll:null, up:null,
   ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
   ['style','brand','font','fmt','cap','vfmt'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
@@ -148,6 +150,12 @@ function go(id){
 }
 var scenes=['s-ready','s-up','s-work','s-done','s-err','s-quota'];
 function scene(id){scenes.forEach(function(s){var e=$(s); if(e) e.hidden=s!==id})}
+/* Keep keyboard, screen-reader and visual order identical: Brand → Style → Video. */
+function orderProjectFlow(){
+  var root=$('s-ready'), style=root&&root.querySelector('.project-style');
+  var video=root&&root.querySelector('.project-video');
+  if(root&&style&&video) root.insertBefore(video,style.nextSibling);
+}
 
 function nice(t){
   t=String(t||'').replace(/\.(mp4|mov|m4v|mkv|webm|avi)$/i,'');
@@ -158,6 +166,14 @@ function nice(t){
       ⚠️ category tab (Creator/Business/Education) **ဖျောက်ပြီး** — အားလုံး တစ်နေရာ、
          optgroup နဲ့ ခွဲပြသည် ⇒ နှိပ်ရမယ့် အကြိမ် ၂ → ၁。 */
 var CATN={creator:['Creator','Creator'],biz:['Business','Business'],edu:['Education','Education']};
+var STYLE_FAMILY={creator:'creator',biz:'business',edu:'business'};
+function familyForStyle(id){
+  var found='creator';
+  Object.keys(STYLES).forEach(function(group){
+    STYLES[group].forEach(function(style){ if(style[0]===id) found=STYLE_FAMILY[group]||'creator' });
+  });
+  return found;
+}
 function markPick(){
   document.querySelectorAll('[data-pick]').forEach(function(c){
     var on=c.getAttribute('data-pick')===state.style;
@@ -182,6 +198,23 @@ function paintAdv(){
   el.textContent='— '+((bn&&bn.name)||state.brand)+' · '+sz
     + (state.ovrBrand||state.ovrFmt ? ' (ကိုယ်တိုင် ရွေးထား)' : '');
 }
+function paintProjectBrand(){
+  var el=$('projectbrand'); if(!el) return;
+  var brand=BRANDS.filter(function(b){return b.id===state.brand})[0]||BRANDS[0];
+  if(!brand){
+    el.innerHTML='<span class="brand-loading">'+(cur==='my'?'ဘရန်းကို ဖွင့်နေသည်…':'Loading your brand…')+'</span>';
+    return;
+  }
+  var colors=(brand.colors||[]).slice(0,5);
+  var logo=brand.logo ? ' style="background-image:url(/api/brands/'+esc(brand.id)+'/logo?t='+encodeURIComponent(TOKEN)+'&v='+Date.now()+')"' : '';
+  el.innerHTML='<div class="brand-summary">'
+    +'<div class="brand-mark"'+logo+'>'+(!brand.logo?esc((brand.name||'I').slice(0,1).toUpperCase()):'')+'</div>'
+    +'<div class="brand-detail"><span class="eyebrow">'+(cur==='my'?'ACTIVE BRAND':'ACTIVE BRAND')+'</span>'
+    +'<b>'+esc(brand.name)+'</b><small>'+esc(brand.mmf||'')+' · '+esc(brand.aspect||'')+'</small></div>'
+    +'<div class="brand-swatches">'+colors.map(function(color){return '<i style="background:'+esc(color)+'"></i>'}).join('')+'</div></div>'
+    +'<div class="brand-quick">'+BRANDS.map(function(b){return '<button class="bp" data-b="'+esc(b.id)+'"'
+      +(b.id===state.brand?' aria-pressed="true"':'')+'>'+esc(b.name)+'</button>'}).join('')+'</div>';
+}
 function paintStyles(){
   var el=$('styles'); if(!el) return;
   /* ⚠️ Zin ၂၀၂၆-၀၉-၂၀: 「dropdown ပုံစံကြီးက မမိုက်ဘူး — နမူနာ ဗီဒီယို
@@ -195,16 +228,28 @@ function paintStyles(){
   if(!pick){ pick=STYLES[Object.keys(STYLES)[0]][0]; cur_=state.style=pick[0]; }
   function dsc(t){ return cur==='my'?t[2]:t[3]; }
 
-  var h='<div class="sgal">';
-  Object.keys(STYLES).forEach(function(c){
+  var family=state.family||familyForStyle(cur_);
+  if(family!=='creator'&&family!=='business') family='creator';
+  state.family=family;
+  var groups=family==='creator'?['creator']:['biz','edu'];
+  var h='<div class="audience-tabs" role="tablist" aria-label="Audience">'
+    +'<button type="button" data-family="creator" role="tab" aria-selected="'+(family==='creator')+'">'
+    +(cur==='my'?'Creator':'Creator')+'</button>'
+    +'<button type="button" data-family="business" role="tab" aria-selected="'+(family==='business')+'">'
+    +(cur==='my'?'Business / Education':'Business / Education')+'</button></div>';
+  h+='<div class="style-spotlight"><span class="eyebrow">'+(cur==='my'?'SELECTED DIRECTION':'SELECTED DIRECTION')+'</span>'
+    +'<b>'+esc(pick[1])+'</b><p>'+esc(dsc(pick))+'</p></div>';
+  h+='<div class="sgal">';
+  groups.forEach(function(c){
     h+='<div class="sgal-h">'+esc(CATN[c][0])+'</div>';
     STYLES[c].forEach(function(t){
       var id=t[0];
+      var preview=t[6]||id;
       h+='<button type="button" class="scard" data-sv="'+esc(id)+'"'
        + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
        + '<span class="thumb">'
-       +   '<img src="prev/'+esc(id)+'.jpg" alt="" loading="lazy" decoding="async">'
-       +   '<video src="prev/'+esc(id)+'.mp4" muted loop playsinline preload="none"'
+       +   '<img src="prev/'+esc(preview)+'.jpg" alt="" loading="lazy" decoding="async">'
+       +   '<video src="prev/'+esc(preview)+'.mp4" muted loop playsinline preload="none"'
        +   ' disablepictureinpicture></video>'
        +   '<span class="tick" aria-hidden="true">✓</span>'
        + '</span>'
@@ -234,6 +279,7 @@ function paintStyles(){
       var v=card.getAttribute('data-sv');
       if(v===state.style) return;
       state.style=v;
+      state.family=familyForStyle(v);
       if(styleDefaults()) loadMeta();
       paintStyles();
     };
@@ -299,6 +345,7 @@ function loadMeta(){
           '</div></div>'+
         '<button class="btn kit-e" data-edit="'+b.id+'">'+(cur==='my'?'ပြင်မယ်':'Edit')+'</button></div>';
     }).join('');
+    paintProjectBrand();
   }).catch(function(){});
   paintBroll();
   api('/capsizes').then(function(d){
@@ -858,15 +905,24 @@ document.addEventListener('click',function(e){
   var op=e.target.closest&&e.target.closest('[data-open]');
   if(op){ go('v-new'); watch(op.getAttribute('data-open')); return }
   var n=e.target.closest&&e.target.closest('[data-go]'); if(n) go(n.getAttribute('data-go'));
+  var audience=e.target.closest&&e.target.closest('[data-family]');
+  if(audience){
+    state.family=audience.getAttribute('data-family');
+    if(familyForStyle(state.style)!==state.family){
+      state.style=(state.family==='creator'?STYLES.creator[0]:STYLES.biz[0])[0];
+      if(styleDefaults()) loadMeta();
+    }
+    paintStyles(); return;
+  }
   // ⚠️ category chip ဖယ်ပြီး (dropdown ထဲ optgroup နဲ့ ပါပြီးသား) — handler မလိုတော့
   // ⚠️ hero ကတ် ၃ ခုက ယခင်က **နှိပ်လို့ရပုံ ပေါ်နေပြီး ဘာမှ မဖြစ်**ခဲ့ (၂၀၂၆-၀၉-၁၉ တိုင်းစစ်ပြီး)
   //    ⇒ recipe ရွေးပေးပြီး dropdown ကိုပါ ညှိသည် (နှစ်နေရာ မကွဲစေရန်)。
   var hp=e.target.closest&&e.target.closest('[data-pick]');
-  if(hp){ state.style=hp.getAttribute('data-pick'); styleDefaults(); paintStyles(); markPick();
+  if(hp){ state.style=hp.getAttribute('data-pick'); state.family=familyForStyle(state.style); styleDefaults(); paintStyles(); markPick();
     var el=document.getElementById('styles'); if(el&&el.scrollIntoView)
       el.scrollIntoView({behavior:'smooth',block:'center'}); return }
   var s=e.target.closest&&e.target.closest('[data-style]');
-  if(s){state.style=s.getAttribute('data-style'); styleDefaults(); paintStyles()}
+  if(s){state.style=s.getAttribute('data-style'); state.family=familyForStyle(state.style); styleDefaults(); paintStyles()}
   var dl=e.target.closest&&e.target.closest('[data-del]');
   if(dl){
     var row=dl.closest('.row');
@@ -1248,6 +1304,11 @@ var ME=null;
 function paintMe(){
   api('/me').then(function(a){
     ME=a;
+    var own=!!a.owner;
+    var anew=$('acctnew'); if(anew) anew.hidden=!own;
+    ['tgchat','tgtok','tgsave'].forEach(function(id){
+      var node=$(id); if(node) node.disabled=!own;
+    });
     var c=$('acctchip'); if(c) c.textContent=a.name||'';
     var el=$('acctcard'); if(!el) return;
     var my=(cur==='my');
@@ -1979,7 +2040,7 @@ $('qclear').onclick=function(){$('q').value='';
 
 /* ── စတင် ── */
 var t=localStorage.getItem('ikki_theme'); if(t) document.documentElement.setAttribute('data-theme',t);
-lang(cur); paintStyles(); loadMeta(); loadJobs(); scene('s-ready');
+orderProjectFlow(); lang(cur); paintStyles(); loadMeta(); loadJobs(); scene('s-ready');
 
 // ══ render server အခြေအနေ ════════════════════════════════
 function checkWorker(){
@@ -2169,7 +2230,7 @@ function sopen(id){
       sel('lufs',SMETA.lufs.map(function(l){return [l.v, cur==='my'?l.my:l.en]}),
           (o.lufs!==undefined?o.lufs:st.lufs)), st.lufs);
   h+=row('scrim', cur==='my'?'Scrim (အမှောင် အလွှာ)':'Scrim (dark layer)',
-      cur==='my'?'စာတန်း အောက်မှာ ချထားပြီး ဖတ်လို့ရစေတယ်':'Sits under captions so they read',
+      cur==='my'?'စာတန်း/ဂရပ်ဖစ် ပေါ်ချိန်မှာသာ ဖတ်လို့ရစေတယ်':'Appears only behind captions and graphics',
       '<input type="checkbox" data-sk="scrim"'+(((o.scrim!==undefined?o.scrim:st.scrim))?' checked':'')+'>',
       st.scrim?'on':'off');
   $('sefields').innerHTML=h;

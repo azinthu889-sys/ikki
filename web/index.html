@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0A0A">
-<link rel="stylesheet" href="/app.css?v=1789837035">
+<link rel="stylesheet" href="/app.css?v=1789927551">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
   <nav class="pillnav" aria-label="Main">
     <button data-go="v-new" aria-current="page" data-my="အသစ်" data-en="Create">အသစ်</button>
     <button data-go="v-lib" data-my="ဗီဒီယိုများ" data-en="Videos">ဗီဒီယိုများ</button>
-    <button data-go="v-sty" data-my="စတိုင်" data-en="Style">စတိုင်</button>
+    <button data-go="v-sty" data-my="ဘရန်း" data-en="Brand">ဘရန်း</button>
     <button data-go="v-acc" data-my="အကောင့်" data-en="Account">အကောင့်</button>
   </nav>
   <div class="topr">
@@ -45,7 +45,7 @@
     <button class="nav" data-go="v-lib">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M10 9l5 3-5 3z"/></svg><span data-my="ဗီဒီယိုများ" data-en="Videos">ဗီဒီယိုများ</span><span class="n" id="nrun">0</span></button>
     <button class="nav" data-go="v-sty">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4M3.8 12h16.4"/></svg><span data-my="စတိုင် & ဘရန်း" data-en="Style & brand">စတိုင် & ဘရန်း</span></button>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4M3.8 12h16.4"/></svg><span data-my="ဘရန်း စတူဒီယို" data-en="Brand Studio">ဘရန်း စတူဒီယို</span></button>
     <div class="sdiv"></div>
     <button class="nav" data-go="v-acc">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.4 3.1-5.6 7-5.6s7 2.2 7 5.6"/></svg><span data-my="အကောင့်" data-en="Account">အကောင့်</span></button>
@@ -60,33 +60,37 @@
     <!-- ══ CREATE ══ -->
     <section id="v-new">
       <div id="s-ready">
-        <h1 class="hero" data-my="မလိုတာ <span class='ac'>အမြန် ဖြတ်</span>။<br>တစ်ချက်တည်းနဲ့ အကုန်။"
-          data-en="<span class='ac'>Cuts the dead air.</span><br>All of it, in one go.">မလိုတာ <span class="ac">အမြန် ဖြတ်</span>။<br>တစ်ချက်တည်းနဲ့ အကုန်။</h1>
-        <p class="lede" style="margin:12px 0 22px"
-          data-my="တိတ်နေတာ · ထပ်နေတာ · ဖြည့်စကား · ချောင်းဆိုးသံ — အမြန် ဖြုတ်ပြီး မြန်မာစာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးတယ်။"
-          data-en="Silence, repeats, fillers and coughs go. Burmese captions, graphics and sound arrive.">တိတ်နေတာ · ထပ်နေတာ · ဖြည့်စကား · ချောင်းဆိုးသံ — အမြန် ဖြုတ်ပြီး မြန်မာစာတန်း · ဂရပ်ဖစ် · အသံ တွဲပေးတယ်။</p>
-
-        <div class="hrow">
-          <button class="dropbig" id="drop">
-            <div class="ring"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M3.5 15.5v2.8A2.2 2.2 0 0 0 5.7 20.5h12.6a2.2 2.2 0 0 0 2.2-2.2v-2.8"/></svg></div>
-            <div><h4 data-my="ဗီဒီယို တင်ရန်" data-en="Upload video">ဗီဒီယို တင်ရန်</h4>
-              <p data-my="MP4 · MOV · 4K · 8 GB အထိ" data-en="MP4 · MOV · 4K · up to 8 GB">MP4 · MOV · 4K · 8 GB အထိ</p></div>
-          </button>
-          <div class="hcard" data-pick="cinematic-vlog" role="button" tabindex="0"><div class="bgim im1"></div><div class="grain"></div><div class="grd"></div><div class="in">
-            <span class="kick" data-my="အသုံးများဆုံး" data-en="Most used">အသုံးများဆုံး</span>
-            <h4>Cinematic Vlog</h4><p>Pyidaungsu · 24fps</p></div></div>
-          <div class="hcard" data-pick="short-video" role="button" tabindex="0"><div class="bgim im4"></div><div class="grain"></div><div class="grd"></div><div class="in">
-            <span class="kick" data-my="အမြန်ဆုံး" data-en="Fastest">အမြန်ဆုံး</span>
-            <h4>Short Video</h4><p>9:16 · ၉ မိနစ်</p></div></div>
-          <div class="hcard" data-pick="course" role="button" tabindex="0"><div class="bgim im3"></div><div class="grain"></div><div class="grd"></div><div class="in">
-            <span class="kick" data-my="ကျောင်းအတွက်" data-en="For teaching">ကျောင်းအတွက်</span>
-            <h4>Course</h4><p data-my="အနားယူချိန် ချန်ထားတယ်" data-en="Keeps the pauses">အနားယူချိန် ချန်ထားတယ်</p></div></div>
+        <div class="studio-hero">
+          <span class="eyebrow">IKKI STUDIO</span>
+          <h1 class="hero" data-my="သင့်ဘရန်းနဲ့ <span class='ac'>သင့်အသံ</span> ကို<br>ဗီဒီယိုတိုင်းမှာ တစ်သမတ်တည်းထားပါ။"
+            data-en="Make every video feel<br><span class='ac'>unmistakably yours.</span>">သင့်ဘရန်းနဲ့ <span class="ac">သင့်အသံ</span> ကို<br>ဗီဒီယိုတိုင်းမှာ တစ်သမတ်တည်းထားပါ။</h1>
+          <p class="lede" data-my="AI က အကြံပြုချက်ပေးတယ်။ သင်က transcript ထဲမှာ အတည်ပြုပြီးမှ final video ထုတ်တယ်။"
+            data-en="AI proposes the edit. You approve it in the transcript before the final video is made.">AI က အကြံပြုချက်ပေးတယ်။ သင်က transcript ထဲမှာ အတည်ပြုပြီးမှ final video ထုတ်တယ်။</p>
+          <div class="flow-rail" aria-label="Editing workflow">
+            <div class="flow-step done"><i>01</i><span data-my="ဘရန်း" data-en="Brand">ဘရန်း</span></div>
+            <div class="flow-step active"><i>02</i><span data-my="ပုံစံ" data-en="Style">ပုံစံ</span></div>
+            <div class="flow-step"><i>03</i><span data-my="ဗီဒီယို" data-en="Video">ဗီဒီယို</span></div>
+            <div class="flow-step"><i>04</i><span data-my="စာတန်းစစ်" data-en="Transcript">စာတန်းစစ်</span></div>
+            <div class="flow-step"><i>05</i><span data-my="Final" data-en="Final">Final</span></div>
+          </div>
         </div>
-        <input type="file" id="file" accept="video/*" hidden>
+
+        <section class="setup-section project-brand" aria-labelledby="brandstep">
+          <div class="setup-head"><span>01</span><div><p class="eyebrow" data-my="YOUR VISUAL SYSTEM" data-en="YOUR VISUAL SYSTEM">YOUR VISUAL SYSTEM</p>
+            <h2 id="brandstep" data-my="ဘရန်းကို အရင်တည်ဆောက်ပါ" data-en="Start with your brand">ဘရန်းကို အရင်တည်ဆောက်ပါ</h2></div></div>
+          <p class="lede" data-my="Logo, colour, font ကို တစ်ခါသတ်မှတ်ထားရင် caption နဲ့ graphic တွေမှာ အလိုအလျောက်လိုက်သုံးမယ်။"
+            data-en="Set your logo, colour and type once; captions and graphics will carry them forward.">Logo, colour, font ကို တစ်ခါသတ်မှတ်ထားရင် caption နဲ့ graphic တွေမှာ အလိုအလျောက်လိုက်သုံးမယ်။</p>
+          <div id="projectbrand" class="brand-pulse" aria-live="polite"></div>
+          <div class="reference-note"><span>✦</span><p><b data-my="ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?" data-en="Want to use your own video style?">ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?</b><br><span data-my="Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။" data-en="Reference-video style analysis is not connected to the engine yet. Once connected, it will learn timing, captions and motion from a sample video.">Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။</span></p></div>
+          <button class="btn" data-go="v-sty" data-my="Brand Studio ဖွင့်မယ် →" data-en="Open Brand Studio →">Brand Studio ဖွင့်မယ် →</button>
+        </section>
 
         <!-- ⚠️ ဗီဒီယို ပုံစံ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်ကြောင်း
              တိုင်းထားသည် (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。
              မရွေးလျှင် ပြန်စ ရှာဖွေမှု **ပိတ်** — တိတ်ဆိတ်မှု ဖြတ်တာက ပုံမှန်အတိုင်း。 -->
+        <section class="setup-section project-video" aria-labelledby="videostep">
+          <div class="setup-head"><span>03</span><div><p class="eyebrow" data-my="SOURCE VIDEO" data-en="SOURCE VIDEO">SOURCE VIDEO</p>
+            <h2 id="videostep" data-my="ဗီဒီယိုတင်ပြီး Transcript ထဲကနေဆုံးဖြတ်ပါ" data-en="Upload, then decide in the transcript">ဗီဒီယိုတင်ပြီး Transcript ထဲကနေဆုံးဖြတ်ပါ</h2></div></div>
 <div class="sech"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
         <div class="chips" id="vfmtbox" style="margin-bottom:8px">
           <button class="chip vfmt" data-vfmt="camera" aria-pressed="false"
@@ -116,6 +120,25 @@
             <input type="file" id="audfile" accept="audio/*,.m4a,.wav,.mp3" hidden></label>
           <button class="more" id="audclr" hidden data-my="ဖယ်" data-en="Clear">ဖယ်</button>
         </div>
+        <div class="project-upload">
+          <div><span class="eyebrow" data-my="READY WHEN YOU ARE" data-en="READY WHEN YOU ARE">READY WHEN YOU ARE</span>
+            <p data-my="တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။"
+              data-en="After upload, review every AI edit suggestion in the Transcript Editor.">တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။</p></div>
+          <button class="dropbig" id="drop">
+            <div class="ring"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M3.5 15.5v2.8A2.2 2.2 0 0 0 5.7 20.5h12.6a2.2 2.2 0 0 0 2.2-2.2v-2.8"/></svg></div>
+            <div><h4 data-my="ဗီဒီယို ရွေးပြီး စတင်မယ်" data-en="Choose video &amp; start">ဗီဒီယို ရွေးပြီး စတင်မယ်</h4>
+              <!-- ⚠️ ၂၀ GB ဟု မရေးရ — server ဘက် ကန့်သတ်ချက် မပြောင်းပါ、worker ရဲ့
+                   disk guard က ဗီဒီယိုအရွယ်နဲ့ အချိုးကျ နေရာ တောင်းသည်。 စမ်းပြီး
+                   အတည်ပြုထားသော ကိန်း = ၈ GB (၂၀၂၆-၀၉-၂၁)。 -->
+              <p data-my="MP4 · MOV · 4K · 8 GB အထိ" data-en="MP4 · MOV · 4K · up to 8 GB">MP4 · MOV · 4K · 8 GB အထိ</p></div>
+          </button>
+          <input type="file" id="file" accept="video/*" hidden>
+        </div>
+        </section>
+
+        <section class="setup-section project-style" aria-labelledby="stylestep">
+          <div class="setup-head"><span>02</span><div><p class="eyebrow" data-my="EDIT DIRECTION" data-en="EDIT DIRECTION">EDIT DIRECTION</p>
+            <h2 id="stylestep" data-my="သင့် audience နဲ့ကိုက်တဲ့ edit style ရွေးပါ" data-en="Choose an edit direction for your audience">သင့် audience နဲ့ကိုက်တဲ့ edit style ရွေးပါ</h2></div></div>
         <div class="sech"><h3 data-my="ပုံစံ ရွေးပါ" data-en="Choose a style">ပုံစံ ရွေးပါ</h3></div>
         <!-- ⚠️ category tab ဖယ်ပြီး — dropdown ထဲ optgroup နဲ့ ပါပြီးသား -->
         <div id="styles"></div>
@@ -162,6 +185,7 @@
         <div class="list" id="fontpick"></div>
           </div>
         </details>
+        </section>
 
       </div>
 
@@ -376,15 +400,18 @@
 
     <!-- ══ STYLE ══ -->
     <section id="v-sty" hidden>
-      <h1 class="t" data-my="စတိုင် & ဘရန်း" data-en="Style & brand">စတိုင် & ဘရန်း</h1>
-      <p class="lede" style="margin-top:10px" data-my="တစ်ခါ သတ်မှတ်ပြီး ဗီဒီယိုတိုင်းမှာ အလိုအလျောက် သုံးတယ်။"
-        data-en="Set once, applied to every video.">တစ်ခါ သတ်မှတ်ပြီး ဗီဒီယိုတိုင်းမှာ အလိုအလျောက် သုံးတယ်။</p>
-      <div class="sech"><h3 data-my="ဘရန်း ကစ်" data-en="Brand kits">ဘရန်း ကစ်</h3>
+      <div class="brand-studio-hero"><span class="eyebrow">YOUR VISUAL SYSTEM</span>
+        <h1 class="t" data-my="ဘရန်း စတူဒီယို" data-en="Brand Studio">ဘရန်း စတူဒီယို</h1>
+        <p class="lede" data-my="Logo, colour နဲ့ type ကို တစ်နေရာတည်းမှာ ထိန်းပါ။ Edit အားလုံးက သင့် brand အတိုင်း ထွက်လာမယ်။"
+          data-en="Keep your logo, colour and type in one place. Every edit leaves looking like your brand.">Logo, colour နဲ့ type ကို တစ်နေရာတည်းမှာ ထိန်းပါ။ Edit အားလုံးက သင့် brand အတိုင်း ထွက်လာမယ်။</p>
+        <div class="brand-studio-points"><span>Logo</span><span>Palette</span><span>Typography</span><span>Motion direction</span></div>
+      </div>
+      <div class="sech"><h3 data-my="01 · ဘရန်း ကစ်" data-en="01 · Brand kits">01 · ဘရန်း ကစ်</h3>
         <button class="more" id="bnew" data-my="+ ဘရန်း အသစ်" data-en="+ New brand">+ ဘရန်း အသစ်</button></div>
       <div class="grid2" id="kits"></div>
 
       <!-- ── ရုပ်ကြမ်း စာကြည့်တိုက် ── -->
-      <div class="sech"><h3 data-my="ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်" data-en="Footage &amp; photo library">ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်</h3>
+      <div class="sech"><h3 data-my="02 · ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်" data-en="02 · Footage &amp; photo library">02 · ရုပ်ကြမ်း · ပုံ စာကြည့်တိုက်</h3>
         <label class="more" style="cursor:pointer" data-my="+ ထည့်မယ်" data-en="+ Add">+ ထည့်မယ်
           <input type="file" id="brollup" accept="image/*,video/mp4,video/quicktime" multiple hidden></label></div>
       <p class="lede" style="margin:0 0 12px;font-size:13px"
@@ -392,7 +419,7 @@
         data-en="Add photos or footage and the AI places them where the speech actually matches. A photo gets a slow push so the frame never sits still.">ပုံ ဒါမှမဟုတ် ရုပ်ကြမ်း ထည့်ထားရင် ပြောနေတဲ့ အကြောင်းအရာနဲ့ ကိုက်တဲ့နေရာမှာ AI က ကိုယ်တိုင် ထည့်ပေးပါမယ်။ ပုံဆိုရင် နှေးနှေး တိုးဝင်သွားအောင် လုပ်ပေးတယ် — တည်ငြိမ်နေရင် ရုပ်သေနေသလို ဖြစ်လို့ပါ။</p>
       <div class="rows" id="brolllist"></div>
 
-      <div class="sech"><h3 data-my="ပုံစံ" data-en="Styles">ပုံစံ</h3></div>
+      <div class="sech"><h3 data-my="03 · Engine defaults" data-en="03 · Engine defaults">03 · Engine defaults</h3></div>
       <p class="lede" style="margin:0 0 12px;font-size:13px"
         data-my="ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။"
         data-en="Every style's numbers were measured from reference videos. You can change them, and reset back.">ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။</p>
@@ -508,6 +535,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1789917948"></script>
+<script src="/app.js?v=1789927551"></script>
 </body>
 </html>

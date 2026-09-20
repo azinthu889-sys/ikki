@@ -83,6 +83,12 @@ def me(authorization: str = Header(None)):
     a.pop("token", None)                 # ⚠️ token ကို ပြန်မပို့ရ
     n = db.one("SELECT COUNT(*) n FROM jobs WHERE acct=? AND deleted IS NULL", a["id"])
     a["videos"] = (n or {}).get("n", 0)
+    # ⚠️ UI က ပိုင်ရှင်သာ မြင်ရမည့် ခလုတ်များ (အကောင့် အသစ် · Telegram) ကို
+    #    ဒီ field နဲ့ ဖွင့်/ပိတ်သည်。 မပါလျှင် **ပိုင်ရှင်ပါ မမြင်ရ**တော့ပါ
+    #    (၂၀၂၆-၀၉-၂၁: UI အသစ်က `a.owner` ကို မျှော်ပြီး API က မပို့ခဲ့)。
+    #    ⚠️ ဒါက **ပြသရန်သာ**。 တကယ့် ခွင့်ပြုချက်ကို server ဘက် `_need_owner()`
+    #    က စစ်သည် — UI ကို မယုံရ。
+    a["owner"] = _owner(authorization)
     return a
 
 
