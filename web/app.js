@@ -782,6 +782,7 @@ function done(j){
     }).join('');
   } else { $('verbox').hidden=true; }
   var ds=$('dlsrt'); if(ds) ds.href='/api/jobs/'+j.id+'/srt?t='+encodeURIComponent(TOKEN);
+  planLoad(j.id);
   loadMeta();
 }
 function txstat(){
@@ -2042,6 +2043,103 @@ $('qclear').onclick=function(){$('q').value='';
 var t=localStorage.getItem('ikki_theme'); if(t) document.documentElement.setAttribute('data-theme',t);
 orderProjectFlow(); lang(cur); paintStyles(); loadMeta(); loadJobs(); scene('s-ready');
 
+
+/* ══ AI အစီအစဉ် — ဖတ်ရုံ ══════════════════════════════════
+   ⚠️ Headtop ရဲ့ အခြေခံက 「AI က ဗီဒီယိုကို တိုက်ရိုက် မထုတ်ရ — ဖြစ်ရပ်
+      တစ်ခုချင်းကို အကြံပြုပြီး renderer က အကောင်အထည်ဖော်ရမည်」。
+      ဖြစ်ရပ်တွေကို **မပြနိုင်လျှင်** သုံးစွဲသူက ဘာဖြစ်သွားလဲ မသိဘဲ
+      ကျန်နေမည် ⇒ ဒီအမြင်က အဲဒီကတိရဲ့ ပထမပိုင်းပါ (ပြင်တာက နောက်အဆင့်)。
+   ⚠️ **headtop ပုံစံမှသာ** ရှိသည် — ကျန်ပုံစံတွေက worker က ဆုံးဖြတ်နေဆဲမို့
+      plan မရှိပါ。 404 ဆိုလျှင် ဘောက်စ်ကို ဖျောက်ထားသည် (အမှား မဟုတ်)。 */
+var PLAN_D=null, PLAN_TAB='all';
+var PLAYER={caption:['စာတန်း','Captions'], template:['ဂရပ်ဖစ်','Graphics'],
+            reframe:['punch-in','Punch-in'], asset:['B-roll','B-roll'],
+            sfx:['SFX','SFX'], grade:['အရောင်','Grade']};
+var PLKEY={captions:'caption', templateEvents:'template', cameraReframes:'reframe',
+           assetEvents:'asset', sfxEvents:'sfx', colorGrades:'grade'};
+
+function planEvents(p){
+  var out=[];
+  Object.keys(PLKEY).forEach(function(k){
+    (p[k]||[]).forEach(function(e){ out.push(Object.assign({_k:PLKEY[k]}, e)) });
+  });
+  out.sort(function(a,b){ return (a.startTime||0)-(b.startTime||0) });
+  return out;
+}
+function planTxt(e){
+  var pr=e.props||{};
+  if(Array.isArray(pr.lines)) return pr.lines.join(' / ');
+  var t=[pr.before,pr.hot,pr.after].filter(Boolean).join(' ');
+  if(t) return t;
+  for(var i=0;i<['q','text','head','title','label','role'].length;i++){
+    var k=['q','text','head','title','label','role'][i];
+    if(typeof pr[k]==='string' && pr[k]) return pr[k];
+  }
+  if(typeof pr.zoom==='number') return (cur==='my'?'ချဲ့ ':'zoom ')+pr.zoom.toFixed(3)+'×';
+  if(Array.isArray(pr.items)) return pr.items.join(' · ');
+  return e.style && e.style.kind ? String(e.style.kind) : '';
+}
+function planPaint(){
+  var box=$('planrows'), tb=$('plantabs'); if(!box||!PLAN_D) return;
+  var ev=planEvents(PLAN_D), my=(cur==='my');
+  var n={}; ev.forEach(function(e){ n[e._k]=(n[e._k]||0)+1 });
+  tb.innerHTML='<button class="chip pltab" data-pl="all"'+
+      (PLAN_TAB==='all'?' aria-pressed="true"':'')+'>'+(my?'အားလုံး':'All')+
+      '<small>'+ev.length+'</small></button>'+
+    Object.keys(PLAYER).filter(function(k){return n[k]}).map(function(k){
+      return '<button class="chip pltab" data-pl="'+k+'"'+
+        (PLAN_TAB===k?' aria-pressed="true"':'')+'>'+
+        (my?PLAYER[k][0]:PLAYER[k][1])+'<small>'+n[k]+'</small></button>';
+    }).join('');
+  var rows=ev.filter(function(e){ return PLAN_TAB==='all'||e._k===PLAN_TAB });
+  function mmss(x){ var m=Math.floor(x/60),q=('0'+Math.floor(x%60)).slice(-2);
+                    return m+':'+q+'.'+String(Math.round((x%1)*10)); }
+  box.innerHTML=rows.map(function(e){
+    var c=+e.confidence||0;
+    // ⚠️ ယုံကြည်မှု နိမ့်တာကို **မြင်သာစေရမည်** — ဖုံးထားလျှင် ဘယ်ဟာကို
+    //    အရင် စစ်ရမလဲ မသိပါ。
+    var pill = c>=0.8 ? 'p-ok' : (c>=0.6 ? 'p-ac' : 'p-dim');
+    return '<div class="row"><span class="tc mono">'+mmss(+e.startTime||0)+
+      '<br><i style="font-style:normal;color:var(--tx3)">'+
+        ((+e.endTime||0)-(+e.startTime||0)).toFixed(1)+'s</i></span>'+
+      '<div class="lname"><b class="my">'+esc(planTxt(e))+'</b>'+
+        '<span class="my">'+esc(e.reason||'')+'</span></div>'+
+      // ⚠️ template ID က **ဖြစ်ရပ်ကို ခွဲခြားပေးတဲ့ တစ်ခုတည်းသော အမှတ်** ⇒
+      //    ဖြတ်ပစ်လို့ မရပါ (၉၂px ကော်လံမှာ `prem4.big_question` က ၁၁၉px
+      //    လိုသည် — ၁၀ ခုထဲ ၆ ခု ပြတ်ခဲ့သည်)。 `.` မှာ ကြောင်းခွဲခွင့် ပေးသည်。
+      '<div class="lmeta hidesm mono plid">'+
+        esc(e.motionKitTemplateId||e._k).replace('.', '.<wbr>')+'</div>'+
+      '<div class="lacts"><span class="pill '+pill+'">'+c.toFixed(2)+'</span></div></div>';
+  }).join('') || '<div class="row"><div class="lname"><b>'+
+      (my?'ဒီအမျိုးအစားမှာ ဘာမှ မရှိပါ':'Nothing of this kind')+'</b></div></div>';
+  var w=(PLAN_D.qualityWarnings||[]);
+  $('plann').textContent = (my? ev.length+' ဖြစ်ရပ်' : ev.length+' events')
+    + (w.length ? ' · ' + (my? w.length+' သတိပေး' : w.length+' warnings') : '');
+}
+function planLoad(jid){
+  var box=$('planbox'); if(!box) return;
+  PLAN_D=null; box.hidden=true;
+  api('/jobs/'+jid+'/editplan').then(function(p){
+    PLAN_D=p; PLAN_TAB='all'; box.hidden=false; planPaint();
+    var a=$('planjson');
+    if(a){
+      // ⚠️ blob နဲ့ ပေးသည် — endpoint က header token လိုသဖြင့် <a href>
+      //    တိုက်ရိုက် ပေးလျှင် 401 ကျမည်。
+      try{
+        if(a.__u) URL.revokeObjectURL(a.__u);
+        a.__u=URL.createObjectURL(new Blob([JSON.stringify(p,null,1)],
+                                           {type:'application/json'}));
+        a.href=a.__u; a.download=jid+'_plan.json';
+      }catch(e){ a.hidden=true; }
+    }
+  }).catch(function(){ box.hidden=true; });   /* plan မရှိ = headtop မဟုတ် */
+}
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('.pltab');
+  if(!t) return;
+  PLAN_TAB=t.getAttribute('data-pl'); planPaint();
+});
+
 // ══ render server အခြေအနေ ════════════════════════════════
 function checkWorker(){
   api('/health').then(function(h){
@@ -2229,6 +2327,59 @@ function sopen(id){
   h+=row('lufs', cur==='my'?'အသံအဆင့်':'Loudness','',
       sel('lufs',SMETA.lufs.map(function(l){return [l.v, cur==='my'?l.my:l.en]}),
           (o.lufs!==undefined?o.lufs:st.lufs)), st.lufs);
+  /* ══ Headtop — plan လမ်းကြောင်းရဲ့ ထိန်းချုပ်ချက်များ ═══════════
+     ⚠️ ဒါတွေက `recipes.BOUNDS` မှာ **စစ်ပြီးသား** ဖြစ်ပါလျက် UI မှာ
+        မပါခဲ့သဖြင့် သုံးစွဲသူ ပြင်လို့ မရခဲ့ပါ (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
+     ⚠️ ရွေးစရာ စာရင်းကို **server ကပေးတဲ့ `choices` ကနေသာ** ယူသည် —
+        ဒီမှာ ပြန်ရေးလျှင် recipes နဲ့ ကွဲသွားမည်。
+     ⚠️ `plan` ပုံစံမှသာ ပြသည် — ကျန်ပုံစံတွေမှာ worker က ဆုံးဖြတ်နေဆဲမို့
+        ဒီခလုတ်တွေက ဘာမှ မလုပ်ပါ。 မသက်ရောက်တာကို ပြထားလျှင် လိမ်ရာ ကျသည်。 */
+  var CH=(SMETA&&SMETA.choices)||{};
+  function chrow(key,label,hint,names){
+    var opts=(CH[key]||[]).map(function(v){
+      return [v, (names&&names[v]) ? (cur==='my'?names[v][0]:names[v][1]) : String(v)] });
+    if(!opts.length) return '';
+    return row(key,label,hint,sel(key,opts,(o[key]!==undefined?o[key]:st[key])),
+               st[key]==null?'—':String(st[key]));
+  }
+  function ckrow(key,label,hint){
+    var v=(o[key]!==undefined?o[key]:st[key]);
+    return row(key,label,hint,
+      '<input type="checkbox" data-sk="'+key+'"'+(v?' checked':'')+'>',
+      st[key]?'on':'off');
+  }
+  if(st.plan){
+    h+='<div class="sef sef-h"><b>'+(cur==='my'?'Headtop · AI အစီအစဉ်':'Headtop · AI plan')+'</b></div>';
+    h+=chrow('energy', cur==='my'?'စွမ်းအင်':'Energy',
+        cur==='my'?'ဂရပ်ဖစ် ဘယ်လောက် မကြာခဏ ပြမလဲ':'How often a visual change lands',
+        {minimal:['နည်းနည်း','Minimal'],standard:['ပုံမှန်','Standard'],dynamic:['များများ','Dynamic']});
+    h+=chrow('motion', cur==='my'?'ရုပ် လှုပ်ရှားမှု':'Motion intensity',
+        cur==='my'?'punch-in · ရွေ့လျားမှု ပြင်းအား':'punch-in and movement strength',
+        {low:['နည်း','Low'],normal:['ပုံမှန်','Normal'],high:['ပြင်း','High']});
+    h+=chrow('broll_freq', cur==='my'?'B-roll မကြာခဏ':'B-roll frequency',
+        cur==='my'?'စာကြည့်တိုက်နဲ့ ကိုက်တဲ့အခါပဲ':'only where the library matches',
+        {low:['နည်း','Low'],normal:['ပုံမှန်','Normal'],high:['များ','High']});
+    h+=row('zoom_amt', cur==='my'?'punch-in ပမာဏ':'Punch-in amount',
+        cur==='my'?'၁.၀၈ ဆ ထက် မကျော်ရ — မျက်နှာ မပျက်စေရန်':'never beyond 1.08× so the face holds',
+        rng('zoom_amt',0,0.12,0.005,(o.zoom_amt!==undefined?o.zoom_amt:(st.zoom_amt||0)),
+            function(v){return (1+parseFloat(v)).toFixed(3)+'×'}),
+        (1+(st.zoom_amt||0)).toFixed(3)+'×');
+    h+=ckrow('sfx_on', cur==='my'?'SFX အသံ':'Sound effects',
+        cur==='my'?'ကိုယ်ပိုင် ကစ်ထဲကသာ — စကားအောက်မှာ':'from your own kit only, under the voice');
+    h+=ckrow('autocut', cur==='my'?'အလိုအလျောက် ဖြတ်':'Auto jump-cut',
+        cur==='my'?'တိတ်ဆိတ်မှု အထဲမှာပဲ — စကားထဲ ဘယ်တော့မှ မဖြတ်':'inside silence only, never in speech');
+    h+=row('silence_ms', cur==='my'?'တိတ်ဆိတ်မှု ဖြတ်မှတ်':'Silence threshold',
+        cur==='my'?'ဒီထက် ရှည်မှ ဖြတ်သည်':'cuts only gaps longer than this',
+        rng('silence_ms',150,1200,10,(o.silence_ms!==undefined?o.silence_ms:(st.silence_ms||400)),
+            function(v){return Math.round(v)+'ms'}),
+        (st.silence_ms||400)+'ms');
+    h+=ckrow('shot_grade', cur==='my'?'အပိုင်းလိုက် အရောင်':'Per-shot grade',
+        cur==='my'?'အပြင်/အတွင်း ခွဲပြီး သီးသန့် ချိန်သည်':'treats outdoor and indoor separately');
+    /* ⚠️ `review` ကို **ဒီမှာ မပြရ** — အဲဒါက job တစ်ခုချင်းရဲ့ `mode`
+       (API က ဆုံးဖြတ်သည်) ဖြစ်ပြီး ပုံစံရဲ့ ပုံသေ မဟုတ်ပါ。 ဒီမှာ ထားလျှင်
+       အမှန်တရား နှစ်နေရာ ဖြစ်ပြီး ဘယ်ဟာ အနိုင်ရလဲ မသိတော့ပါ (၂၀၂၆-၀၉-၂၁)。 */
+    h+='<div class="sef sef-h"><b>'+(cur==='my'?'ကျန် ဆက်တင်':'Other settings')+'</b></div>';
+  }
   h+=row('scrim', cur==='my'?'Scrim (အမှောင် အလွှာ)':'Scrim (dark layer)',
       cur==='my'?'စာတန်း/ဂရပ်ဖစ် ပေါ်ချိန်မှာသာ ဖတ်လို့ရစေတယ်':'Appears only behind captions and graphics',
       '<input type="checkbox" data-sk="scrim"'+(((o.scrim!==undefined?o.scrim:st.scrim))?' checked':'')+'>',
@@ -2250,7 +2401,7 @@ var ss2=$('sesave'); if(ss2) ss2.onclick=function(){
           : (i.type==='range' ? parseFloat(i.value) : i.value);
     if(k==='fps') v=parseInt(v,10);
     if(k==='lufs') v=parseFloat(v);
-    if(k==='gfx'||k==='broll') v=parseInt(v,10);
+    if(k==='gfx'||k==='broll'||k==='silence_ms') v=parseInt(v,10);
     if(k==='music'&&v==='none') v=null;
     o[k]=v;
   });
@@ -2280,8 +2431,13 @@ document.addEventListener('input',function(e){
   var i=e.target.closest&&e.target.closest('#sefields input[type=range]');
   if(!i) return;
   var k=i.getAttribute('data-sk'), n=document.querySelector('[data-num="'+k+'"]');
-  if(n) n.textContent = (k==='cap_pct'||k==='cap_base')
-    ? (parseFloat(i.value)*100).toFixed(1)+'%' : i.value;
+  // ⚠️ slider တိုင်းရဲ့ ပြပုံ **သီးသန့်** — ကိန်းအကြမ်း ပြလျှင် ၀.၀၄၅ ဆိုတာ
+  //    ဘာကို ဆိုလိုမှန်း မသိပါ (punch က ၁.၀၄၅× · တိတ်ဆိတ်မှုက ၄၀၀ms)。
+  if(!n) return;
+  if(k==='cap_pct'||k==='cap_base') n.textContent=(parseFloat(i.value)*100).toFixed(1)+'%';
+  else if(k==='zoom_amt')           n.textContent=(1+parseFloat(i.value)).toFixed(3)+'×';
+  else if(k==='silence_ms')         n.textContent=Math.round(i.value)+'ms';
+  else                              n.textContent=i.value;
 });
 document.addEventListener('click',function(e){
   var se=e.target.closest&&e.target.closest('[data-sedit]');

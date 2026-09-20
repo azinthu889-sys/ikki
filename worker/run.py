@@ -629,7 +629,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 f"ရနိုင် (ဝါကျ {ASR.STAT.get('timed','—')}) · "
                 f"bias fallback {REPORT['bias_pct']}%")
         else:
-            log("  ⚠️ ASR align · calib မရှိ — module ပုံသေ သုံးသည်")
+            log(f"  ⚠️ ASR align · calib မရှိ — "
+                + ("ဒီဖိုင်ကနေ bias တိုင်းယူသည် "
+                   f"{ASR.STAT.get('bias_s')}s (တွဲ {ASR.STAT.get('bias_pairs')})"
+                   if ASR.STAT.get('bias_src') == 'measured' else
+                   f"တွဲ {ASR.STAT.get('bias_pairs')} ခုသာ ရ၍ **အတည် မပြုရသေးသော** "
+                   f"ကိန်း {ASR.STAT.get('bias_s')}s ကို သုံးသည်")
+                + f" · snap {ASR.STAT.get('snapped','—')}/{ASR.STAT.get('reach','—')} ရနိုင်")
 
     # ── glossary ထွက်စာလုံး — **ဆိုးကျိုးကို မမြင်ရဘဲ မထားရ** (render report) ──
     try:
@@ -2321,8 +2327,24 @@ def write_report(jid, R):
     _bp = g('bias_pct')
     if _bp is not None:
         _as = g('asr_stat') or {}
-        A(f"ASR align bias fallback {_mk(_bp)}% · snap {_mk(_as.get('snapped'))}/"
-          f"{_mk(_as.get('timed'))} ဝါကျ   [ဂိတ် မဟုတ် — မှတ်တမ်းသာ]")
+        # ⚠️ **`timed` နဲ့ မတိုင်းရ** — `asr._place()` ရဲ့ မှတ်ချက်: ခေတ္တရပ်
+        #    မရှိသော ဝါကျကို snap မရတာ ချို့ယွင်းချက် မဟုတ်、⇒ **ရနိုင်သူ
+        #    (`reach`) နဲ့သာ** တိုင်းရမည်。 `timed` နဲ့ တိုင်းလျှင် ခေတ္တရပ်
+        #    မရှိသော footage မှာ 「1/26」ဟု ပေါ်ပြီး engine ပျက်နေသလို
+        #    ထင်ရသည် (တကယ်က ရနိုင်တာ ၁ ခုပဲ ရှိသည် · ၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。
+        _rch = _as.get('reach')
+        A(f"ASR align snap {_mk(_as.get('snapped'))}/{_mk(_rch)} ရနိုင် "
+          f"(ဝါကျ {_mk(_as.get('timed'))}) · bias fallback {_mk(_bp)}%"
+          f"   [ဂိတ် မဟုတ် — မှတ်တမ်းသာ]")
+        # ⚠️ bias က **ဘယ်ကလာလဲ ပြရမည်** — ချေးယူထားတာဆိုလျှင် အဲဒါကို
+        #    ဖုံးထားလို့ မရ (「Name the blocker」)。
+        _bs = _as.get('bias_src')
+        if _bs:
+            A("          bias " + _mk(_as.get('bias_s')) + "s · " +
+              ("ဒီဖိုင်ကနေ တိုင်းယူ (တွဲ " + _mk(_as.get('bias_pairs')) + ")"
+               if _bs == "measured" else
+               "⚠️ **အတည် မပြုရ** — တွဲ " + _mk(_as.get('bias_pairs')) +
+               " ခုသာ ရ၍ ချေးယူထားသော ကိန်းကို သုံးသည်"))
     A(f"CUT       silence {_mk(g('cuts'))} ခု · ဖယ် {_mk(g('removed'))}s · "
       f"ratio {_mk(g('removed_ratio'))}   [<={_mk(g('max_removed'))}]"
       + _tick(g('cut_ok')))

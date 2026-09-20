@@ -604,7 +604,15 @@ def styles(authorization: str = Header(None)):
     import recipes as RC
     over = {r["style"]: json.loads(r["data"] or "{}")
             for r in db.rows("SELECT * FROM style_over")}
+    # ⚠️ ရွေးစရာ စာရင်းကို **UI ထဲ ပြန်မရေးရ** — `BOUNDS` က တစ်ခုတည်းသော
+    #    အမှန်。 နှစ်နေရာ ရေးထားလျှင် တစ်ဖက် ပြောင်းပြီး တစ်ဖက် ကျန်ခဲ့မည်
+    #    (style ထည့်တိုင်း နှစ်နေရာ ထည့်ရတဲ့ ဒုက္ခ ကြုံပြီးသား)。
+    _ch = {k: v[1] for k, v in RC.BOUNDS.items()
+           if isinstance(v, tuple) and v and v[0] == "choice"}
+    _bl = sorted(k for k, v in RC.BOUNDS.items()
+                 if isinstance(v, tuple) and v and v[0] == "bool")
     return {"styles": RC.listing(), "over": over,
+            "choices": _ch, "bools": _bl,
             "cuts": [{"id": k, "my": v[0], "en": v[1]} for k, v in RC.CUT_LABEL.items()],
             "lufs": [{"v": k, "my": v[0], "en": v[1]} for k, v in RC.LUFS.items()],
             "music": RC.MUSIC, "captions": RC.CAPSTYLE, "latin": RC.LATIN}

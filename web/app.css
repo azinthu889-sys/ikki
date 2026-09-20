@@ -796,3 +796,15 @@ select.inp{ appearance:none; background-image:
   .project-upload .dropbig{min-height:126px}.brand-summary{gap:10px}.brand-swatches i{width:11px;height:24px}.brand-studio-hero{padding:20px 18px;border-radius:17px}
   .style-spotlight{grid-template-columns:1fr;gap:2px}.style-spotlight p{grid-column:1}.project-style .sgal{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* ⚠️ ဆက်တင် အုပ်စု ခေါင်းစဉ် — Headtop ရဲ့ plan ထိန်းချုပ်ချက်တွေက ကျန်တာနဲ့
+   ရောနေလျှင် ဘယ်ဟာက ဘာအတွက်လဲ မခွဲနိုင်ပါ (၂၀၂၆-၀၉-၂၁)。 */
+.sef.sef-h{border-top:1px solid var(--ln);margin-top:15px;padding-top:15px}
+.sef.sef-h b{font:600 11px/1.4 "IBM Plex Mono",monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--tx3)}
+.sef.sef-h .v{display:none}
+
+/* ⚠️ plan ရဲ့ template ID — ဖြတ်၍ မရ (ဖြစ်ရပ်ကို ခွဲခြားပေးသည်) */
+#planrows .plid{white-space:normal;word-break:break-word;font-size:11px;line-height:1.35;text-align:right}
+#planrows .row{align-items:flex-start}
+#planrows .tc{min-width:58px}

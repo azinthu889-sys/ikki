@@ -159,13 +159,16 @@ R = {
  "headtop": dict(
      label="Headtop", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
-     keep_pause=0.20, min_sil=0.32, silence_ms=400,
+     keep_pause=0.20, min_sil=0.32,
      captions="accent", cap_pct=0.050, cap_base=0.92, cap_max=0.93,
      cap_cover=0.85, cap_typo=0.0,
      mmf="MasterpieceUniRound", latin="Figtree-Black",
      accent="#FFE000", stroke="#0A0A0A", stroke_w=0.06,
      gfx=16, gfx_share=(0.17, 0.25), broll=6, broll_pct=0.18,
      music="calm", lufs=-14.0, sfx_per_min=1.5,
+     # ⚠️ `motion` · `broll_freq` ကို **အတိအလင်း ပေးရမည်** — None ဆိုလျှင်
+     #    UI မှာ 「မရွေးရသေး」ဖြစ်ပြီး သုံးစွဲသူက ဘာ သက်ရောက်နေလဲ မသိပါ。
+     motion="normal", broll_freq="normal",
      zoom_amt=0.045, natural=True, grade=True,
      sat=1.03, vign=0.0, cbal=False),
 
@@ -334,7 +337,12 @@ DEF = dict(cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
            autocut=True,            # တိတ်ဆိတ်မှု အလိုအလျောက် ဖြတ်
            review=True,             # render မလုပ်ခင် transcript ပြ
            shot_grade=False,        # အပိုင်းလိုက် grade (အပြင်/အတွင်း)
-           silence_ms=400,          # တိတ်ဆိတ်မှု ဖြတ်မှတ် (ms)
+           # ⚠️ ကိန်းသေ **မထားရ** — `min_sil` က ပုံစံတိုင်း သီးသန့် တိုင်းထားသည်
+           #    (cinematic-vlog ၁.၂၀ · ref-fast ၀.၂၂ · course မဖြတ်)。 ဒီမှာ
+           #    ၄၀၀ ဟု ထားလျှင် `_expand()` က အားလုံးကို ၀.၄၀ သို့ ပြားစေခဲ့သည်
+           #    (၂၀၂၆-၀၉-၂၁ ကိုယ်တိုင် ထည့်မိပြီး ဖမ်းမိသည်)。
+           #    ⇒ **ပြသရန်သာ** — `_expand()` က `min_sil` ကနေ တွက်ပေးသည်。
+           silence_ms=None,         # တိတ်ဆိတ်မှု ဖြတ်မှတ် (ms) — ဆင်းသက်ချက်
            broll_gap=3.0, sfx_per_min=None, cap_hold=4.0, broll_minscore=2.0,
            broll_tail=5.0, cap_gap=0.18, cap_fade=0.14, cap_wide=0.86,
            gfx_share=None,
@@ -388,6 +396,42 @@ def _expand(r):
     if sa: r.update({k: v for k, v in sa.items() if v is not None})
     pc = PACE.get(r.get("pace") or "")
     if pc: r.update(pc)
+
+    # ══ Headtop ထိန်းချုပ်ချက် → တကယ့် ကိန်းများ ════════════════
+    # ⚠️ ၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့ — `motion` · `broll_freq` · `sfx_on` ·
+    #    `autocut` · `silence_ms` တို့က `BOUNDS` မှာ စစ်ပြီး DB မှာ သိမ်းပေမယ့်
+    #    **worker က ဘယ်မှာမှ မဖတ်ခဲ့ပါ** ⇒ ခလုတ်တွေက ဘာမှ မလုပ်ခဲ့ပါ。
+    #    ⇒ ဒီမှာ ရှိပြီးသား ကိန်းတွေအဖြစ် ဖြန့်သည် — worker ကို မထိရပါ。
+    # ⚠️ **`_expand()` ထဲမှာ ဖြစ်ရမည်** — `apply()` က သုံးစွဲသူ ပြင်ချက်ကို
+    #    နောက်မှ ပေါင်းသဖြင့် အပေါ်က `slide_amt` အမှားမျိုး ထပ်ဖြစ်မည်。
+
+    # တိတ်ဆိတ်မှု ဖြတ်မှတ် — `min_sil` (စက္ကန့်) က **တစ်ခုတည်းသော အမှန်**、
+    # `silence_ms` က UI အတွက် ပြသချက်သာ ⇒ **တစ်လမ်းသွား**。
+    # ⚠️ နှစ်လမ်းသွား လုပ်လျှင် DEF ရဲ့ ကိန်းက ပုံစံတိုင်းရဲ့ တိုင်းချက်ကို
+    #    လွှမ်းမိမည် (အထက်က မှတ်ချက် ကြည့်)。 သုံးစွဲသူ ပြင်ချက်ကို
+    #    `apply()` က `min_sil` အဖြစ် **အရင် ပြောင်း**ပေးသည်。
+    r["silence_ms"] = (int(round(float(r["min_sil"]) * 1000))
+                       if r.get("min_sil") is not None else None)
+
+    # ဖြတ်တောက် ပိတ် — ရှိပြီးသား "မဖြတ်ပါ" လမ်းကြောင်းကိုပဲ သုံးသည်
+    if r.get("autocut") is False:
+        r["keep_pause"] = None
+
+    # SFX ပိတ် — `sfx` က engine ဘက် အမည်
+    if r.get("sfx_on") is False:
+        r["sfx"] = False
+
+    # B-roll မကြာခဏ — အရေအတွက်ကို အဆ လိုက်သည်
+    _bf = {"low": 0.5, "normal": 1.0, "high": 1.5}.get(r.get("broll_freq") or "")
+    if _bf is not None and r.get("broll"):
+        r["broll"] = max(0, int(round(float(r["broll"]) * _bf)))
+
+    # ရုပ် လှုပ်ရှားမှု — punch-in ပမာဏကို အဆ လိုက်သည်
+    _mo = {"low": 0.5, "normal": 1.0, "high": 1.5}.get(r.get("motion") or "")
+    if _mo is not None and r.get("zoom_amt"):
+        # ⚠️ ဘောင် (BOUNDS zoom_amt ≤ ၀.၁၂) ကျော်၍ မရ — punch ၁.၀၈ ဆ
+        #    ကန့်သတ်ချက်က မျက်နှာ မပျက်စေရန် တိုင်းထားသော ကိန်း。
+        r["zoom_amt"] = round(min(0.12, float(r["zoom_amt"]) * _mo), 4)
     return r
 
 
@@ -598,6 +642,11 @@ def apply(name, over):
     cn = o.pop("cut", None)
     if cn in CUTS:
         r["keep_pause"], r["min_sil"] = CUTS[cn]
+    # ⚠️ UI က ms နဲ့ ပို့သည် — engine က စက္ကန့်。 **ဒီမှာ ပြောင်းရမည်**
+    #    (`_expand()` က `min_sil` ကနေ တစ်လမ်းသွားသာ တွက်သဖြင့်)。
+    _sm = o.pop("silence_ms", None)
+    if _sm:
+        r["min_sil"] = round(float(_sm) / 1000.0, 3)
     r.update(o)
     _expand(r)                 # ⚠️ ပြင်ချက် ပေါင်းပြီးမှ ပြန်ဖြန့်ရမည်
     return r
@@ -620,5 +669,17 @@ def listing():
                         cap_cover=r.get("cap_cover"), cap_typo=r.get("cap_typo"),
                         cap_fill=r.get("cap_fill"), cap_stroke=r.get("cap_stroke"),
                         # ⚠️ ပေါင်းထားသော ပုံစံရဲ့ ပြင်းအား — UI မှာ select ပြရန်
-                        slide_amt=r.get("slide_amt"), pace=r.get("pace")))
+                        slide_amt=r.get("slide_amt"), pace=r.get("pace"),
+                        # ⚠️ Headtop ရဲ့ ထိန်းချုပ်ချက်များ — `BOUNDS` မှာ
+                        #    စစ်ပြီးသား ဖြစ်ပါလျက် **UI က မမြင်ရ**ခဲ့သဖြင့်
+                        #    သုံးစွဲသူ ပြင်လို့ မရခဲ့ပါ (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
+                        #    ⇒ ဒီမှာ မထုတ်ပေးလျှင် `sopen()` က ပြစရာ မရှိပါ。
+                        plan=bool(r.get("plan")),
+                        energy=r.get("energy"), motion=r.get("motion"),
+                        sfx_on=r.get("sfx_on"), autocut=r.get("autocut"),
+                        review=r.get("review"),
+                        broll_freq=r.get("broll_freq"),
+                        zoom_amt=r.get("zoom_amt"),
+                        silence_ms=r.get("silence_ms"),
+                        shot_grade=r.get("shot_grade")))
     return out

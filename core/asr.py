@@ -168,6 +168,67 @@ def _looks_json(line):
 BIAS = 0.43
 STAT = {}      # နောက်ဆုံး _place() ရဲ့ အကျဉ်းချုပ် — report အတွက်
 
+# ⚠️ တွဲချက် ဤထက် နည်းလျှင် bias ကို **ဖိုင်ကနေ တိုင်း၍ မရ** —
+#    ငယ်သော နမူနာနဲ့ တွက်လျှင် ဆူညံသံကို bias ဟု မှတ်မိမည်。
+MIN_PAIRS = 8
+# ⚠️ ASR bias က စက္ကန့်တစ်ဝက်ဝန်းကျင်သာ ဖြစ်သင့်သည် (zjl တိုင်းချက် ၀.၃၁ ·
+#    module ပုံသေ ၀.၄၃)。 ဒီထက် ကြီးလျှင် alias ဖြစ်နိုင်ခြေ ပိုများသည်。
+MAX_BIAS = 1.5      # ကိန်းအပြည့် ဘောင် — ဒီကျော်လျှင် alias ဟု ယူဆသည်
+
+
+def est_bias(raw, onsets, W=1.0, start=BIAS, iters=4, min_pairs=MIN_PAIRS):
+    """ဤဖိုင်ရဲ့ **ကိုယ်ပိုင် bias** ကို တိုင်းသည် — `(bias, တွဲမိ)` · မရလျှင် `(None, n)`
+
+    နည်းလမ်းက `_place()` ရဲ့ မှတ်ချက်ထဲက **တည်ငြိမ်အမှတ်** အတိုင်းပင် —
+    bias ထည့် → DP တွဲ → ကျန်လွဲချက် median ကို bias အသစ်အဖြစ် ထပ်သွင်း。
+
+    ⚠️ ဘာကြောင့် လိုသလဲ — `BIAS = 0.43` က **zjl ချန်နယ်** ကနေ တိုင်းယူထားတာ。
+       calib မရှိသော brand (ikki · zae) မှာ အဲဒီကိန်းကို အတိအကျ ယူသုံးနေသည် ⇒
+       `cut.calib()` ရဲ့ မှတ်ချက် တားမြစ်ထားတဲ့ အမှားမျိုးပင် ("ZJL ရဲ့ ကိန်းကို
+       ZAE ပေါ် သုံးလျှင် grade မှာ လုပ်မိသလို အမှား")。 ဖိုင်မှာ တွဲစရာ
+       လုံလောက်လျှင် **ကိုယ့်ဖိုင်ကနေ တိုင်းတာက ချေးယူတာထက် အမြဲ ကောင်းသည်**。
+    ⚠️ တွဲချက် မလုံလောက်လျှင် **မှန်းဆ မလုပ်ရ** — `None` ပြန်ပြီး ခေါ်သူက
+       ပေးထားသော ကိန်းကို ဆက်သုံးကာ report မှာ 「အတည် မပြုရ」ဟု ပြရမည်。
+    """
+    if not raw or not onsets:
+        return None, 0
+    b, n = float(start), 0
+    # ⚠️ အစ ကိန်းက အလွန် မှားနေလျှင် W အတွင်း တွဲစရာ မရှိတော့ဘဲ ရှာမတွေ့ဘဲ
+    #    ပြန်ထွက်သွားမည် — စမ်းသပ်ချက်: −၁.၂s ကနေ စလျှင် တွဲ ၀ ခု。
+    #    ⇒ **ဘောင် ကျယ်ကျယ်နဲ့ အကြမ်း တစ်ချက် ရှာပြီးမှ** ပုံမှန် ဘောင်နဲ့
+    #      ချောမွေ့စေသည်。 နောက်ဆုံး ကိန်းက ပုံမှန် ဘောင်ကနေပဲ ထွက်သည်。
+    _s0 = [(x, y) for x, y in raw]
+    _try = align(_s0 and [(x + b, y + b) for x, y in _s0], onsets, W=W, accept=W)
+    if sum(1 for j in _try if j is not None) < min_pairs:
+        for wide in (2.0 * W, 4.0 * W):
+            sent = [(x + b, y + b) for x, y in _s0]
+            r2 = align(sent, onsets, W=wide, accept=wide)
+            d2 = sorted(sent[i][0] - onsets[j] for i, j in enumerate(r2) if j is not None)
+            if len(d2) >= min_pairs:
+                b -= d2[len(d2) // 2]
+                break
+    for _ in range(max(1, iters)):
+        sent = [(s0 + b, e0 + b) for s0, e0 in raw]
+        res = align(sent, onsets, W=W, accept=W)
+        d = sorted(sent[i][0] - onsets[j] for i, j in enumerate(res) if j is not None)
+        n = len(d)
+        if n < min_pairs:
+            return None, n
+        med = d[n // 2]
+        if abs(med) < 0.005:
+            break
+        b -= med                      # ကျန်လွဲချက်ကို bias ထဲ ပြန်သွင်း
+    # ⚠️ **alias ကို ငြင်းရမည်** — တိတ်ဆိတ်မှုတွေက အချိန်မှန် ခြားနေလျှင်
+    #    DP က နောက်တစ်ခုကို တွဲမိပြီး bias ထဲ အဲဒီအကွာအဝေး တစ်ခုလုံး
+    #    ဝင်သွားနိုင်သည် (စမ်းသပ်: ၄.၀s ခြား → +၂.၅ ကနေ စလျှင် +၄.၃ ထွက်)。
+    #    ⇒ ဖြစ်နိုင်သော ဘောင် ကျော်လျှင် **မှန်းဆ မလုပ်ဘဲ** ငြင်းသည်。
+    # ⚠️ 「အစ ကနေ ဘယ်လောက် ရွှေ့လဲ」နဲ့ မတိုင်းရ — အစ ကိန်း ကိုယ်တိုင်
+    #    မှားနေတာ ဖြစ်နိုင်သည် (ချေးယူထားလို့)。 alias က **ကိန်းအပြည့်
+    #    ဘောင်ကျော်** တာနဲ့ ကွဲပြားသည် ⇒ ဘောင်တစ်ခုတည်းနဲ့ စစ်သည်。
+    if abs(b) > MAX_BIAS:
+        return None, n
+    return round(b, 3), n
+
 
 def align(sent, onsets, W=0.8, accept=BIAS):
     """[(start,end)] ↔ အသံ onset — monotone DP (အမှတ်အများဆုံး တိုးနေသော လမ်းကြောင်း)。
@@ -562,6 +623,20 @@ def _place(lines, meas, cfg=None):
         _pairs = [_span(l) for l in timed]
         _nw = sum(1 for _s, _e, ok in _pairs if ok)
         STAT["word_ts"] = _nw
+        # ⚠️ **ချေးယူထားသော bias ထက် ကိုယ့်ဖိုင်ကနေ တိုင်းတာက ကောင်းသည်** —
+        #    `bias` ပုံသေက zjl ကနေ လာသည်。 တွဲစရာ လုံလောက်လျှင် ဒီဖိုင်ရဲ့
+        #    ကိုယ်ပိုင်ကိန်းကို သုံးပြီး၊ မလုံလောက်လျှင် ပေးထားတာကို ဆက်သုံးကာ
+        #    **အတည် မပြုရသေးကြောင်း** report မှာ ပြသည် (STAT["bias_src"])。
+        _raw = [(s0, e0) for s0, e0, _ok in _pairs]
+        _eb, _en_pairs = est_bias(_raw, onsets, W=W, start=bias)
+        STAT["bias_pairs"] = _en_pairs
+        if _eb is not None:
+            STAT["bias_src"] = "measured"
+            STAT["bias_given"] = round(bias, 3)
+            bias = _eb
+        else:
+            STAT["bias_src"] = "unverified"
+        STAT["bias_s"] = round(bias, 3)
         sent = [(s0 + bias, e0 + bias) for s0, e0, _ok in _pairs]
         # ရနိုင်သူ = W အတွင်း onset ရှိသော ဝါကျ。 ဂိတ်ကို ဒီနဲ့ တိုင်းရမည် —
         # ခေတ္တရပ် မရှိသော ဝါကျကို snap မရတာ ချို့ယွင်းချက် မဟုတ်ပါ。
