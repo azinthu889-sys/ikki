@@ -77,13 +77,21 @@ def main():
     check("standard plan က schema အောင်သည်", ok, e[:3])
     check("စာတန်းက စကားတိုင်းမှာ ရှိသည်", len(p["captions"]) == len(SEGS))
 
-    tids = [x["motionKitTemplateId"] for x in p["templateEvents"]]
+    # ⚠️ `templateEvents` ထဲ **မိသားစု ၂ ခု** ရှိသည် —
+    #    ① အဓိပ္ပာယ်ဆိုင်ရာ ဂရပ်ဖစ် (ကတ် · ပုံကြမ်း) — ကြားကာလ/မထပ် စည်းမျဉ်း ရှိ
+    #    ② keyword pop — တိုင်းထားသော သီးသန့် စည်းချက် (`docs/HEADTALK_STYLE.md`)
+    #    ⇒ စည်းမျဉ်းတွေကို **ခွဲစစ်ရမည်**、ရောစစ်လျှင် အဓိပ္ပာယ် မရှိပါ。
+    def _pops(q): return [x for x in q["templateEvents"]
+                          if (x.get("style") or {}).get("kind") == "pop"]
+    def _gfx(q): return [x for x in q["templateEvents"]
+                         if (x.get("style") or {}).get("kind") != "pop"]
+    tids = [x["motionKitTemplateId"] for x in _gfx(p)]
     check("template ID အားလုံး တကယ်ရှိသည်",
           all(c in MF.ids() for c in tids), [c for c in tids if c not in MF.ids()])
     check("ဆက်တိုက် တူသော template မရှိ",
           all(a != b for a, b in zip(tids, tids[1:])), tids)
 
-    ts = [x["startTime"] for x in p["templateEvents"]]
+    ts = [x["startTime"] for x in _gfx(p)]
     gaps = [b - a for a, b in zip(ts, ts[1:])]
     check("ကြားကာလ ပစ်မှတ် ထိန်းသည်",
           all(g >= PL.ENERGY["standard"]["gap"] - 0.01 for g in gaps),
@@ -94,6 +102,31 @@ def main():
           all(x["props"]["zoom"] <= PS.MAX_PUNCH for x in pun))
     check("punch သတိပေးချက် မရှိ",
           not any(x["code"].startswith("punch") for x in w), w)
+
+    print("\n── ၃ခ · keyword pop (တိုင်းထားသော စတိုင်) ──")
+    pops = _pops(p)
+    check("pop ထွက်သည်", len(pops) >= 1, len(pops))
+    check("အားလုံး kinetic.word_pop",
+          all(x["motionKitTemplateId"] == "kinetic.word_pop" for x in pops))
+    ds = [x["endTime"] - x["startTime"] for x in pops]
+    check("ကြာချိန် ၂.၈–၅.၂s (တိုင်းထားသော p25–p75)",
+          all(2.79 <= d <= 5.21 for d in ds), [round(d, 1) for d in ds])
+    pt = sorted(x["startTime"] for x in pops)
+    check("ကြားကာလ ဘောင် ထိန်းသည်",
+          all(b - a >= 14.99 for a, b in zip(pt, pt[1:])),
+          [round(b - a, 1) for a, b in zip(pt, pt[1:])])
+    for x in pops:
+        st = x["style"]
+        check(f"{x['props']['text'][:12]} နေရာ ဘောင်ထဲ",
+              0.12 - 1e-6 <= st["cx"] <= 0.86 + 1e-6 and
+              0.20 - 1e-6 <= st["cy"] <= 0.81 + 1e-6, (st["cx"], st["cy"]))
+    check("အရွယ် ၁၀%H (၁၀၈px @1080)",
+          all(x["props"]["size"] == 109 for x in pops),
+          [x["props"]["size"] for x in pops])
+    check("အရောင် အဝါ", all(x["props"]["fill"] == PS.ACCENT for x in pops))
+    # ⚠️ minimal မှာ pop မပါရ — 「ဂရပ်ဖစ် နည်းနည်း」ဟု ရွေးထားသူကို မပေးရ
+    check("minimal မှာ pop မပါ",
+          not _pops(PL.build(SEGS, labs, DUR, dict(energy="minimal"), "v1")))
 
     print("\n── ၄ · စွမ်းအင် အဆင့် ၃ မျိုး ──")
     counts = {}
@@ -145,7 +178,7 @@ def main():
     q = PL.build(SEGS, bogus, DUR, dict(energy="standard"), "v1")
     ok3, e3, _ = PS.validate(q, MF, duration=DUR)
     check("မသိသော အညွှန်းနဲ့လည်း schema အောင်သည်", ok3, e3[:2])
-    check("မသိသော အညွှန်းက ဂရပ်ဖစ် မထုတ်ပါ", not q["templateEvents"])
+    check("မသိသော အညွှန်းက ဂရပ်ဖစ် မထုတ်ပါ", not _gfx(q), _gfx(q))
 
     print()
     if FAILED:

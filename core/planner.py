@@ -317,6 +317,61 @@ def _pick(family, labels_used, last_id):
     return opts[0] if opts[0] != last_id else None
 
 
+# ══ keyword pop ═══════════════════════════════════════════════
+# ⚠️ `docs/HEADTALK_STYLE.md` — reference မှာ pop လုပ်ထားတာတွေက
+#    `WHY?` · `2.DEVELOP` · `3.EXECUTE` · `Controlable` · `S.W.O.T Analysis`
+#    ⇒ **တို · အလေးနက် · အများစုက Latin/ဂဏန်း**。 ဝါကျတစ်ခုလုံး မဟုတ်ပါ。
+# ⚠️ မြန်မာစာလုံးကို pop မလုပ်ရ — ဗျည်းတွဲ/သရ က code point သီးသန့် ဖြစ်၍
+#    template တွေက တစ်လုံးချင်း လှုပ်လျှင် ပုံပျက်မည် (Zin ရဲ့ စည်းမျဉ်း:
+#    「never animate individual Unicode characters」)。 ⇒ Latin/ဂဏန်းသာ。
+# ⚠️ `N4` · `N5` · `JLPT2` ကဲ့သို့ **အက္ခရာ+ဂဏန်း** ကို လက်ခံရမည် —
+#    အဲဒါတွေက Zin ရဲ့ အကြောင်းအရာမှာ အရေးကြီးဆုံး ဝေါဟာရများ ဖြစ်သည်
+#    (`assets/calib/glossary.json` မှာလည်း ပါပြီးသား)。
+_LAT = re.compile(r"[A-Za-z][A-Za-z0-9.\-]{1,17}(?:\s+[A-Za-z][A-Za-z0-9.\-]{2,17})?")
+_NUM = re.compile(r"[0-9\u1040-\u1049]+(?:[.,][0-9\u1040-\u1049]+)?\s*%?")
+# ⚠️ အဓိပ္ပာယ် မရှိသော Latin — pop လုပ်လျှင် ရယ်စရာ ဖြစ်သည်
+_STOP = {"the", "and", "for", "you", "that", "this", "with", "from",
+         "are", "was", "have", "has", "but", "not", "can", "will"}
+
+
+def keyword(text):
+    """ဝါကျတစ်ခုကနေ pop လုပ်ထိုက်သော စကားလုံး — မရှိလျှင် `None`
+
+    ⚠️ **အရှည်ဆုံးကို မယူရ** — reference မှာ `2.DEVELOP` ကဲ့သို့ နံပါတ်တွဲ
+       ဒါမှမဟုတ် သီးသန့် နာမည် ဖြစ်သည်。 ⇒ ဂဏန်းပါလျှင် ဂဏန်း ဦးစားပေး。
+    """
+    t = " ".join((text or "").split())
+    if not t:
+        return None
+    for m in _NUM.finditer(t):
+        v = m.group(0).strip()
+        if len(v.strip("%")) >= 2:          # တစ်လုံးတည်း ဂဏန်း မယူ
+            return v
+    # ⚠️ **စကားလုံးအလိုက် ခွဲပြီးမှ** stop word ဖယ်ရမည် — အရင်က regex ရဲ့
+    #    ၂ လုံးတွဲကို အတုံးလိုက် စစ်ခဲ့သဖြင့် `the team` က `the` ကြောင့်
+    #    တစ်ခုလုံး ပျက်ပြီး `this is` က `is` ကို ရွေးမိခဲ့သည် (၂၀၂၆-၀၉-၂၁)。
+    words = [w.strip(".-") for w in re.findall(r"[A-Za-z][A-Za-z0-9.\-]*", t)]
+    ok = [w for w in words
+          if w.lower() not in _STOP
+          and (len(w) >= 3 or any(c.isdigit() for c in w))]
+    if not ok:
+        return None
+    best, bi = None, -1
+    for k, w in enumerate(ok):
+        if best is None or len(w) > len(best):
+            best, bi = w, k
+    # ⚠️ ဘေးချင်းကပ် စကားလုံး ၂ လုံးဆိုလျှင် တွဲသည် (`Language school`)
+    if 0 <= bi < len(ok) - 1:
+        a_i, b_i = words.index(ok[bi]), None
+        try:
+            b_i = words.index(ok[bi + 1])
+        except ValueError:
+            b_i = None
+        if b_i is not None and b_i == a_i + 1 and len(best) + len(ok[bi + 1]) <= 22:
+            best = best + " " + ok[bi + 1]
+    return best
+
+
 def build(segs, labels, dur, opts=None, video_id="src"):
     """အညွှန်း → plan (ကုဒ်က တည်ဆောက်သည်、AI မဟုတ်)"""
     o = dict(opts or {})
@@ -412,6 +467,64 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                 reason="အလေးထားချက်ကို ခံစားစေရန် အနည်းငယ် ချဲ့သည်",
                 confidence=0.6))
             used.append(t)
+
+    # ══ keyword pop — ပြောသူပေါ် တိုက်ရိုက် ══════════════════════
+    # ⚠️ `docs/HEADTALK_STYLE.md` (v4 KCN4 · ၄Hz + full-res blob တိုင်းချက်) —
+    #      စာလုံး အမြင့်  ၁၀.၁%H (၈.၁–၁၆.၃)
+    #      ကြာချိန်      median ၃.၅s (p25 ၂.၈ · p75 ၅.၂)
+    #      ကြားကာလ     median ၁၅.၀s (p25 ၅.၅)
+    # ⚠️ IKKI က ယခင်က 「ကျန်နေရာ ၅.၆%H သာ」ဟု ယူဆကာ ထပ်တင် လုံးဝ မလုပ်ခဲ့ပါ。
+    #    Reference က ပြောသူပေါ် တင်ပြီး **မျက်နှာကိုသာ ရှောင်**သည် ⇒ `place`。
+    try:
+        import place as _PC
+    except ImportError:
+        from core import place as _PC
+    pose_fr = o.get("pose")
+    band = _PC.caption_band(float(o.get("cap_base") or 0.92))
+    # ⚠️ `minimal` မှာ **လုံးဝ မထည့်ရ** — ကြားကာလ ကြီးကြီး ထားရုံနဲ့
+    #    မလုံလောက်ပါ (`last_pop` က −၉၉ ကနေ စသဖြင့် ပထမတစ်ခု ထွက်မည်)。
+    #    「ဂရပ်ဖစ် နည်းနည်း」ဟု ရွေးထားသူကို မပေးရ。
+    _lvl = o.get("energy") or "standard"
+    # ⚠️ **တိုင်းထားသော ကိန်း** — v4 ရဲ့ ဂရပ်ဖစ် ကြားကာလ median ၁၅.၀s
+    #    (p25 ၅.၅ · p75 ၃၆.၅)。 ကျွန်တော် ပထမ ၁၂s ဟု မှန်းခဲ့သည် —
+    #    အဲဒါဆိုလျှင် တစ်မိနစ် ၅ ခုအထိ ဖြစ်ပြီး reference ရဲ့ ၁.၇၆ ထက်
+    #    ၃ ဆ များမည်。 ⇒ median ကို သုံးသည်。 `dynamic` က p25 ဘက်。
+    pop_gap = {"standard": 15.0, "dynamic": 8.0}.get(_lvl, 15.0)
+    last_pop = -99.0
+    for i, s2 in enumerate(segs if _lvl != "minimal" else []):
+        a = float(s2.get("start") or 0.0)
+        b = float(s2.get("end") or a + 1.0)
+        if dur and dur > 0:
+            a = max(0.0, min(a, dur - 0.05)); b = min(b, dur)
+        if b <= a or (a - last_pop) < pop_gap:
+            continue
+        kw = keyword(s2.get("text") or "")
+        if not kw:
+            continue
+        # ⚠️ ကြာချိန် — တိုင်းထားသော p25–p75 ထဲ、ဝါကျထက် မကျော်ရ
+        hold = max(2.8, min(5.2, b - a))
+        end = min(dur if dur else a + hold, a + hold)
+        if end - a < 1.2:
+            continue
+        # အကျယ် — စာလုံးရေနဲ့ အချိုးကျ (တိုင်းချက်: ၁၁ လုံး ⇒ ၂၆.၇%W)
+        tw = max(0.10, min(0.42, 0.024 * len(kw) + 0.02))
+        spot = _PC.pick(pose_fr, a, end, tw, _PC.TEXT_H, avoid=[band])
+        if spot is None:
+            continue
+        n += 1
+        p["templateEvents"].append(dict(
+            id=f"pop{n:03d}", startTime=round(a, 2), endTime=round(end, 2),
+            layer="template", type="template",
+            motionKitTemplateId="kinetic.word_pop",
+            props=dict(text=kw, size=int(round(_PC.TEXT_H * 1080)),
+                       dur=round(end - a, 2), fill=PS.ACCENT),
+            # ⚠️ `style` က **renderer အတွက်** — template မှာ x မရှိသဖြင့်
+            #    compositor က ဒီကိန်းတွေနဲ့ ရွှေ့ပေးရမည်。
+            style=dict(kind="pop", cx=spot[0], cy=spot[1], w=round(tw, 3),
+                       h=_PC.TEXT_H),
+            reason=f"အဓိက စကားလုံး「{kw}」— ပြောသူပေါ် အနက်အနားသတ်နဲ့",
+            confidence=0.66))
+        last_pop = a
 
     return p
 

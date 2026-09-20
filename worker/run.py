@@ -504,6 +504,32 @@ def faceband(src, W, H, log=print, n=6):
     return (y0, y1)
 
 
+
+def _pop_ink(mov, work, idx):
+    """pop clip ရဲ့ **တကယ့် အလျားလိုက် နယ်နိမိတ်** `(x0, x1)` — မရလျှင် None
+
+    ⚠️ စာလုံးရေနဲ့ ခန့်မှန်းလျှင် မလုံလောက်ပါ — ဖောင့် · စာလုံးအရွယ် ·
+       မြန်မာ ဗျည်းတွဲ အားလုံး သက်ရောက်သည်。 ထွက်လာသော alpha ကနေ တိုင်းသည်。
+    ⚠️ **ငြိမ်သွားပြီးမှ** တိုင်းရမည် — ဝင်လာစ frame မှာ ချုံ့ထားသေးသဖြင့်
+       အကျယ် မမှန်ပါ (animation)。 ⇒ နောက်ပိုင်း frame ကို ယူသည်。
+    """
+    import numpy as _np
+    png = os.path.join(work, f"wink{idx:02d}.png")
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-sseof", "-0.6",
+                        "-i", mov, "-frames:v", "1", "-pix_fmt", "rgba", png],
+                       capture_output=True)
+    if r.returncode or not os.path.exists(png):
+        return None
+    try:
+        from PIL import Image
+        a = _np.asarray(Image.open(png).convert("RGBA"))
+        cols = _np.nonzero((a[..., 3] > 40).any(axis=0))[0]
+        return (int(cols.min()), int(cols.max())) if len(cols) else None
+    finally:
+        try: os.unlink(png)
+        except OSError: pass
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -1082,10 +1108,27 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             import planner as PLN
             import execute as EX
+            # ⚠️ keyword pop ကို **မျက်နှာ ရှောင်ပြီး** ချရန် pose လိုသည်。
+            #    review အဆင့်မှာ တိုင်းထားပေမယ့် **အတည်ပြုပြီး render**
+            #    လမ်းကြောင်းမှာ အဲဒီအဆင့် ကျော်သွားသဖြင့် မရှိပါ ⇒ ဒီမှာ တိုင်းသည်。
+            #    မရလျှင် plan က ဘောင်အလယ်ကို ရှောင်ရုံ ဆက်လုပ်သည် (မရပ်ပါ)。
+            _pose_fr = None
+            try:
+                # ⚠️ `PZ` က review အကိုင်းထဲမှာသာ import လုပ်ထားသည် —
+                #    ဒီအကိုင်းမှာ **မရှိပါ** (NameError)。 `_breathe` မှာ
+                #    ဖြစ်ခဲ့သော အမှားမျိုးပင် ⇒ ဒီမှာ ကိုယ်တိုင် ယူရမည်。
+                import pose as PZ2
+                if PZ2.available():
+                    _pose_fr = PZ2.measure(src, log=log)
+                    log(f"  pose · ဖရိန် {len(_pose_fr)} · "
+                        f"မျက်နှာ ပါ {sum(1 for x in _pose_fr if x.get('nf'))}")
+            except Exception as _pe:
+                log(f"  ⚠️ pose မရ ({type(_pe).__name__}) — ဘောင်အလယ် ရှောင်ရုံ")
             _PLAN, _pwarn = PLN.plan(
                 segs, float(m["dur"]),
                 dict(energy=rc.get("energy"), fps=rc["fps"],
-                     aspect=f'{TH["W"]}:{TH["H"]}'),
+                     aspect=f'{TH["W"]}:{TH["H"]}',
+                     pose=_pose_fr, cap_base=rc.get("cap_base") or 0.92),
                 video_id=job["id"], log=log)
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
@@ -1253,6 +1296,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    (recipe band 0.10–0.17 နဲ့ တိကျစွာ ကိုက်) · တစ်ခုချင်း ပျမ်းမျှ ၆.၂s。
     #    ⇒ အရေအတွက် တိုးတာ မဟုတ်、**မျက်နှာပြင် အပြည့်** ပြရမည်。
     slides = []
+    pmov = []          # keyword pop — (at, mov, dur, dx, စာသား)
     # ══ Headtop — ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်သည် ═══════
     # ⚠️ ထပ်တင်လို့ မရပါ。 ပြောသူက ဘောင်ရဲ့ ၆၄% (မျက်နှာဇုန် ၀–၆၉၆px) ယူပြီး
     #    စာတန်းက ၇၀% (၇၅၇px) ကနေ စသဖြင့် ကျန်နေရာက **၆၁px = ၅.၆% ·H** သာ。
@@ -1267,7 +1311,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             SL2.setsize(TH["W"], TH["H"])
             _bn = (brand or {}).get("name") or rc["label"]
             _nok = _nno = 0
-            for _i, _ev in enumerate(sorted(_PLAN["templateEvents"],
+            # ⚠️ **keyword pop ကို ဒီထဲ မထည့်ရ** — အဲဒါတွေက ထပ်တင် ဖြစ်ပြီး
+            #    ဘောင်အပြည့် ဖြတ်ပြောင်း မဟုတ်ပါ。 မခွဲလျှင် စကားလုံးတစ်လုံးအတွက်
+            #    ဗီဒီယိုတစ်ခုလုံး ဖုံးသွားမည် (၂၀၂၆-၀၉-၂၁ ထည့်စဉ် ဖမ်းမိ)。
+            _cut_ev = [x for x in _PLAN["templateEvents"]
+                       if (x.get("style") or {}).get("kind") != "pop"]
+            for _i, _ev in enumerate(sorted(_cut_ev,
                                             key=lambda x: x.get("startTime") or 0)):
                 _cid = _ev.get("motionKitTemplateId")
                 _a0 = omap(float(_ev.get("startTime") or 0), snap=True)
@@ -1298,6 +1347,70 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _nok += 1; slides.append((_mv, _a0, _b0, "statement"))
                 elif _pp:
                     _nno += 1; slides.append((_pp, _a0, _b0, "statement"))
+            # ══ keyword pop — ပြောသူပေါ် ထပ်တင် ═══════════════════
+            # ⚠️ `docs/HEADTALK_STYLE.md` — reference က စာလုံးကို ပြောသူပေါ်
+            #    တိုက်ရိုက် တင်ပြီး **မျက်နှာကိုသာ ရှောင်**သည် (၈–၁၆%H)。
+            # ⚠️ template မှာ `x` မရှိ ⇒ ဘောင်အပြည့် alpha ကို compositor က
+            #    **ဘေးတိုက် ရွှေ့**ပေးရသည် (`dx`)。
+            for _i, _ev in enumerate([x for x in _PLAN["templateEvents"]
+                                      if (x.get("style") or {}).get("kind") == "pop"]):
+                _st = _ev.get("style") or {}
+                _a0 = omap(float(_ev.get("startTime") or 0), snap=True)
+                if _a0 is None:
+                    continue
+                _d = max(1.2, min(5.2, float(_ev.get("endTime") or 0)
+                                  - float(_ev.get("startTime") or 0)))
+                _pr = dict(_ev.get("props") or {})
+                # ⚠️ **တိုင်းထားသော ပြောင်းလဲမှု ၂ ခု** (၂၀၂၆-၀၉-၂၁ · y=216/486/756
+                #    သုံးမျိုးနဲ့ စမ်းပြီး) —
+                #    ① `y` က စာလုံးရဲ့ **အပေါ်စွန်း** · ink အလယ် = y + ၁၀.၄%H
+                #       ⇒ လိုချင်သော အလယ်မှတ်ကနေ ပြန်နုတ်ရမည်
+                #    ② `size` က **em box** — size ၁၀၉ ⇒ ink ၈.၄%H သာ
+                #       ⇒ ၁.၂၀ ဆ တင်မှ တိုင်းထားသော ၁၀.၁%H ရသည်
+                #       (「em-vs-ink」ထောင်ချောက် — caption မှာလည်း ဖြစ်ဖူးသည်)
+                _cy = float(_st.get("cy") or 0.5)
+                _h = float(_st.get("h") or 0.101)
+                _pr["size"] = int(round(_h * 1.20 * TH["H"]))
+                # ⚠️ အပေါ်စွန်း↔အလယ် ကွာဟမှုက **size နဲ့ အတူ ကြီး**သည် —
+                #    တိုင်းချက် (@1080): size ၁၀၉ ⇒ ၀.၁၀၄ · size ၁၃၁ ⇒ ၀.၁၄၀
+                #    ⇒ မျဉ်းကြောင်း k = ၀.၀၀၁၆၃၆·size − ၀.၀၇၄၃၇
+                #    ကိန်းသေ တစ်ခုတည်း သုံးလျှင် အကြီးမှာ ၄.၅% လွဲသည်。
+                _k = 0.0016364 * _pr["size"] - 0.07437
+                _pr["y"] = max(0, int(round((_cy - _k) * TH["H"])))
+                try:
+                    _pv = _DR.slide_clip(
+                        "statement", str(_pr.get("text") or "")[:24], None, None,
+                        _bn, os.path.join(work_s, f"w{_i:02d}.mov"), _d,
+                        log=log, fps=rc["fps"],
+                        template=_ev.get("motionKitTemplateId"), props=_pr)
+                except Exception as _e:
+                    log(f"  ⊘ pop ဆောက်မရ: {type(_e).__name__}: {_e}"); _pv = None
+                if _pv:
+                    # ⚠️ **အကျယ်ကို မှန်းဆ၍ မရ** — plan က စာလုံးရေနဲ့ ခန့်မှန်းသည်
+                    #    (`0.024·len`)。 တကယ် render ပြီးမှ တိုင်းလျှင် 「Language
+                    #    school」က ဘယ်အစွန်းမှာ **ပြတ်**နေခဲ့သည် (၂၀၂၆-၀၉-၂၁
+                    #    j_ca015ef1a522 ၆.၈s)。 ⇒ ထွက်လာသော ပုံကနေ တိုင်းပြီး
+                    #    ဘောင်ထဲ ဝင်အောင် ပြန်ချိန်သည်。
+                    _dx = int(round((float(_st.get("cx") or 0.5) - 0.5) * TH["W"]))
+                    try:
+                        _ink = _pop_ink(_pv, work_s, _i)
+                        if _ink:
+                            _ix0, _ix1 = _ink
+                            _w = _ix1 - _ix0
+                            _want = float(_st.get("cx") or 0.5) * TH["W"]
+                            _dx = int(round(_want - (_ix0 + _ix1) / 2.0))
+                            _m = int(TH["W"] * 0.02)          # အနားကွက်
+                            _dx = max(_m - _ix0, min(TH["W"] - _m - _ix1, _dx))
+                            if _w > TH["W"] - 2 * _m:
+                                _dx = int(round((TH["W"] - _w) / 2.0 - _ix0))
+                    except Exception as _we:
+                        log(f"  ⚠️ pop အကျယ် မတိုင်းနိုင် ({type(_we).__name__})")
+                    pmov.append((round(_a0, 2), _pv, round(_d, 2), _dx,
+                                 str(_pr.get("text") or "")[:18]))
+            if pmov:
+                log(f"  keyword pop · {len(pmov)} ခု · "
+                    + " · ".join(f"「{t}」{a:.1f}s" for a, _m, _d, _x, t in pmov[:4]))
+
             log(f"  ဖြတ်ပြောင်း · motionkit {_nok} ခု"
                 + (f" · စာရွက် ပြန်ဆုတ် {_nno} ခု" if _nno else ""))
             # ⚠️ **ဖုံးအုပ်မှုကို ဘောင်ထဲ ချရမည်**。 ကတ် ၃ ခု × ၂.၅s =
@@ -1854,6 +1967,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
     for at, mov, d, _y0, _y1 in (gmov or [])[:12]:
         ins += ["-itsoffset",f"{at:.2f}","-i",mov]; n+=1
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass[v{n}]"); last=f"v{n}"
+    # ══ keyword pop — **ဘေးတိုက် ရွှေ့ပြီး** ထပ်တင် ═══════════════
+    # ⚠️ `kinetic.word_pop` မှာ `x` param မရှိ ⇒ ဘောင်အပြည့် alpha ကို
+    #    `overlay=dx:0` နဲ့ ရွှေ့သည်。 alpha ဖြစ်၍ ဘေးက ကွက်လပ် မမြင်ရပါ。
+    # ⚠️ စာတန်း **ပြီးမှ** ထပ်ရမည် — pop က အပေါ်ဆုံး အလွှာ ဖြစ်သင့်သည်
+    #    (reference မှာ pop က ပြောသူရော နောက်ခံရော ဖုံးသည်)。
+    for at, mov, d, dx, _t in (pmov or [])[:10]:
+        ins += ["-itsoffset", f"{at:.2f}", "-i", mov]; n += 1
+        fc.append(f"[{last}][{n}:v]overlay={dx}:0:eof_action=pass[v{n}]")
+        last = f"v{n}"
     # ── ⑧ ဘရန်း logo ────────────────────────────────────────
     # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် **ဖျောက်**ရသည် — ဂရပ်ဖစ်တွေက အပေါ်မှာ ချထားပြီး
     #    logo နဲ့ ထပ်သည်。 gmov ရဲ့ ကွက်လပ်တွေမှာသာ ပြသည်。
