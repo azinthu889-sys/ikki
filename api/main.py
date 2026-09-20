@@ -125,12 +125,44 @@ def account_del(a: str, authorization: str = Header(None)):
     return {"ok": True}
 
 # ══ ဖိုင်တင်ခြင်း — ပြတ်သွားလျှင် ဆက်တင်နိုင်ရမည် ═══════════
+
+# ── worker ရဲ့ စက်ထဲမှာ ရှိပြီးသား ဖိုင် အညွှန်း ──────────────
+# ⚠️ worker က **သုံးစွဲသူရဲ့ Mac ပေါ်မှာပဲ** မောင်းနေသည်。 ဖိုင်က အဲဒီစက်ထဲ
+#    ရှိပြီးသားဆို R2 ကို ၅၆၂ MB တင်ပြီး **ပြန်ဆွဲချ**နေတာ အလကား —
+#    တိုင်းချက် (၂၀၂၆-၀၉-၁၉): upload 4.1 MB/s ⇒ ၅၆၂ MB = ၁၃၇ စက္ကန့်。
+#    parallel တင်ကြည့်တော့ **ပိုနှေး** (3.2 MB/s) — link ကိုယ်တိုင် ပြည့်နေ၍。
+#    ⇒ တစ်ခုတည်းသော နည်းလမ်း = **byte မပို့ရအောင် လုပ်ခြင်း**。
+_WIDX = {}          # (name, size) → path
+_WIDX_AT = [0.0]
+
+@app.post("/api/w/index")
+async def w_index(req: Request, authorization: str = Header(None)):
+    auth(authorization, WTOKEN)
+    b = await req.json()
+    _WIDX.clear()
+    for f in (b.get("files") or [])[:20000]:
+        try: _WIDX[(str(f["name"]), int(f["size"]))] = str(f["path"])
+        except Exception: pass
+    _WIDX_AT[0] = time.time()
+    return {"ok": True, "n": len(_WIDX)}
+
+
 @app.post("/api/upload/init")
 async def up_init(req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     b = await req.json()
     uid = db.nid("u_")
     ext = os.path.splitext(b.get("name",""))[1][:8]
+    # ⚠️ worker ရဲ့ စက်ထဲ ဤဖိုင် ရှိပြီးသားဆို **တစ် byte မှ မတင်ရ**。
+    #    အညွှန်းက ၁ နာရီထက် ဟောင်းလျှင် မယုံ (ဖိုင် ရွှေ့/ဖျက်ထားနိုင်)。
+    _lp = _WIDX.get((b.get("name",""), int(b.get("size",0) or 0)))
+    if _lp and (time.time() - _WIDX_AT[0]) < 3600:
+        db.run("INSERT INTO uploads(id,name,size,received,path,done,created,acct,local)"
+               " VALUES(?,?,?,?,?,1,?,?,1)",
+               uid, b.get("name",""), int(b.get("size",0)), int(b.get("size",0)),
+               _lp, time.time(), aid(authorization))
+        return {"upload_id": uid, "received": int(b.get("size",0)),
+                "size": int(b.get("size",0)), "mode": "have", "chunk": 8*1024*1024}
     if ST.on():
         # ⚠️ R2 mode — browser က R2 ကို **တိုက်ရိုက်** တင်သည်。 VPS မဖြတ်ဘူး。
         #    ၄၁၉ MB ဖိုင်တစ်ခုက VPS ကို ၄ ခါ ဖြတ်ခဲ့ပြီး ဆွဲချရုံ ၈ မိနစ်
@@ -141,7 +173,7 @@ async def up_init(req: Request, authorization: str = Header(None)):
                " VALUES(?,?,?,0,'',0,?,?,?,?)",
                uid, b.get("name",""), int(b.get("size",0)), time.time(), key, mpu,
                aid(authorization))
-        return {"upload_id": uid, "received": 0, "chunk": 8*1024*1024, "mode": "r2"}
+        return {"upload_id": uid, "received": 0, "chunk": 32*1024*1024, "mode": "r2"}
     p = os.path.join(UP, uid + ext)
     open(p, "wb").close()
     db.run("INSERT INTO uploads(id,name,size,received,path,done,created,acct)"
@@ -187,6 +219,23 @@ def up_part(uid: str, n: int = 1, authorization: str = Header(None)):
     if not u or not u.get("mpu"): raise HTTPException(404, "no upload")
     if n < 1 or n > 10000: raise HTTPException(400, "part မှား")
     return {"url": ST.mpu_part_url(u["key"], u["mpu"], n)}
+
+@app.post("/api/upload/{uid}/parts")
+def up_parts(uid: str, frm: int = 1, n: int = 50, authorization: str = Header(None)):
+    """presigned URL **အစုလိုက်** — အပိုင်းတိုင်း သီးသန့် တောင်းစရာ မလို。
+
+    ⚠️ တိုင်းချက် (၂၀၂၆-၀၉-၁၉): presign အသွားအပြန် အလယ်တန်း **၂၀၀ ms**
+       (အများဆုံး ၆၇၆ ms)。 ၄.၅ GB ကို ၈ MB အပိုင်းနဲ့ ⇒ အပိုင်း ၅၆၂ ခု ×
+       ၂၀၀ ms = **၁၁၂ စက္ကန့်** — byte တစ်ခုမှ မပို့ဘဲ စောင့်နေရခြင်း。
+       ⇒ အစုလိုက် တောင်းလျှင် ၅၆၂ ကြိမ် → ၁၂ ကြိမ်。
+    """
+    auth(authorization, UTOKEN)
+    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    if not u or not u.get("mpu"): raise HTTPException(404, "no upload")
+    n = max(1, min(100, int(n)))
+    if frm < 1 or frm + n - 1 > 10000: raise HTTPException(400, "part မှား")
+    return {"from": frm,
+            "urls": [ST.mpu_part_url(u["key"], u["mpu"], frm + i) for i in range(n)]}
 
 @app.post("/api/upload/{uid}/complete")
 async def up_complete(uid: str, req: Request, authorization: str = Header(None)):
@@ -245,12 +294,26 @@ async def job_new(req: Request, authorization: str = Header(None)):
     #    podcast ကျ ၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。 မပေးလျှင် "" = မသိ ⇒ ပြန်စ **ပိတ်**。
     vfmt = (b.get("vfmt") or "").strip().lower()
     if vfmt not in ("camera", "podcast", "other", ""): vfmt = "other"
+    # ⚠️ dual-system — အသံ သီးသန့် ဖိုင် (recorder)。 schema မပြောင်းဘဲ `over` ထဲ ထားသည်。
+    #    ကင်မရာ အသံက −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည် (၂၀၂၆-၀၉-၁၉)。
+    over = {}
+    au = (b.get("audio_upload_id") or "").strip()
+    if au:
+        a = db.one("SELECT * FROM uploads WHERE id=?", au)
+        if not a: raise HTTPException(400, "အသံ upload မရှိ")
+        if not a["done"]: raise HTTPException(400, "အသံ upload မပြီးသေး")
+        over["_audio"] = au
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
-           "mode,vfmt,acct,created) VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?)",
-           jid, b.get("title") or u["name"], u["id"], b.get("brand_id","zjl"),
+           "mode,vfmt,over,acct,created) VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?)",
+           # ⚠️ ပုံသေ brand က **`"zjl"`** ဟု ရေးထားခဲ့သည် — IKKI ထုတ်ကုန်မှာ
+           #    ZJL ရဲ့ အရောင်နဲ့ ဖောင့် ပုံသေ ဖြစ်နေကာ style ရဲ့ theme ကိုပါ
+           #    ကျော်ပစ်သည် (`run.py`: `bid = job.brand_id or rc["theme"]`)。
+           #    ⇒ IKKI ကိုယ်ပိုင် theme ကို ပုံသေ ထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。
+           jid, b.get("title") or u["name"], u["id"], b.get("brand_id","ikki"),
            b.get("recipe","cinematic-vlog"), (b.get("font") or "")[:48], fmt, cap,
-           mode, vfmt, aid(authorization), time.time())
-    return {"job_id": jid, "mode": mode, "vfmt": vfmt}
+           mode, vfmt, json.dumps(over, ensure_ascii=False) if over else None,
+           aid(authorization), time.time())
+    return {"job_id": jid, "mode": mode, "vfmt": vfmt, "audio": bool(au)}
 
 @app.get("/api/jobs")
 def job_list(authorization: str = Header(None)):
@@ -339,7 +402,12 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     b = await req.json()
     par = mine(authorization, jid)
-    try: orig = json.loads(par.get("segs") or "[]")
+    # ⚠️ **`segs_all` (ASR အပြည့်) ကနေ ယူရမည်**。 `segs` က အရင် ချန်ခဲ့သော
+    #    ဝါကျများသာ ဖြစ်ပြီး — အဲဒါနဲ့ diff လုပ်လျှင် အရင် ဖျက်ထားတဲ့ ဝါကျတွေ
+    #    `drop` ထဲ မပါဘဲ **ပြန်ပါလာ**သည် (Zin ၂၀၂၆-၀၉-၂၀: ချန် ၁၁၂s ဖြစ်ပါလျက်
+    #    ၃၂၂s ထွက်ခဲ့)。 job အသစ်က မူရင်း upload ကနေ render လုပ်သဖြင့်
+    #    `drop` က **မူရင်း အပြည့်နှင့် နှိုင်း**ရမည်。
+    try: orig = json.loads(par.get("segs_all") or par.get("segs") or "[]")
     except Exception: orig = []
     if not orig: raise HTTPException(400, "မူရင်း စာသား မရှိ — ပြန်ထုတ်လို့ မရပါ")
     keep = b.get("segs")
@@ -390,11 +458,28 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     #    မမိသဖြင့် **စာရင်းထဲ ဘယ်တော့မှ မပေါ်**ခဲ့。 worker ကတော့ ယူပြီး
     #    render လုပ်ပြီးသား — သုံးစွဲသူက "ပြီးပြီ ပြောပေမယ့် ထွက်မလာဘူး" ဟု
     #    မြင်ရသည် (တကယ် ဖြစ်ခဲ့: j_ec2e57a93bc7)。
+    _nbrand = (b.get("brand_id") or "").strip() or par["brand_id"]
+    if _nbrand != par["brand_id"]:
+        # ⚠️ `theme` module က **motionkit ထဲမှာ ရှိပြီး API image ထဲ မပါ** —
+        #    `core/grade.py` နဲ့ တူညီသော ထောင်ချောက် (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
+        #    ⇒ import မရလျှင် house theme စာရင်းကို ကိန်းသေနဲ့ စစ်သည်。
+        HOUSE = {"ikki", "zjl", "zae"}
+        _ok = (_nbrand in HOUSE) or db.one("SELECT id FROM brands WHERE id=?", _nbrand)
+        if not _ok: _nbrand = par["brand_id"]
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
-           "segs,parent,over,acct,created) VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?)",
-           nid, (par["title"] or "") + " · ပြင်ပြီး", par["upload_id"], par["brand_id"],
+           "segs,segs_all,keep_n,plan,src_dur,parent,over,acct,created)"
+           " VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?,?,?,?,?)",
+           # ⚠️ brand ကို ပြင်ခွင့် ပေးသည် — မဟုတ်လျှင် အဟောင်း job ရဲ့ brand
+           #    (များသောအားဖြင့် `zjl`) က ထာဝရ ကပ်နေမည်。 မသိသော brand ကို
+           #    လက်မခံဘဲ မူရင်းကို ဆက်သုံးသည်。
+           nid, (par["title"] or "") + " · ပြင်ပြီး", par["upload_id"], _nbrand,
            b.get("recipe") or par["recipe"], fnt, par.get("fmt") or "", capz,
-           json.dumps(clean, ensure_ascii=False), jid,
+           json.dumps(clean, ensure_ascii=False),
+           json.dumps(orig, ensure_ascii=False),
+           json.dumps(sorted({int(k.get("i")) + 1 for k in keep
+                              if k.get("i") is not None
+                              and (k.get("text") or "").strip()})),
+           par.get("plan"), par.get("src_dur"), jid,
            json.dumps(dict(over, _drop=drop) if drop else over,
                       ensure_ascii=False) if (over or drop) else None,
            par.get("acct") or aid(authorization), time.time())
@@ -624,8 +709,10 @@ async def w_plan(jid: str, req: Request, authorization: str = Header(None)):
     _beat()
     b = await req.json()
     segs = b.get("segs") or []
+    # ⚠️ `segs_all` = ASR ရဲ့ **အပြည့်** — ဘယ်တော့မှ မပြောင်းရ (ပြန်ပြင်ရန်)
     db.run("UPDATE jobs SET status='review',stage=2,stage_name='စာတမ်း အတည်ပြုရန်',"
-           "segs=?,plan=?,src_dur=?,minutes=0 WHERE id=?",
+           "segs=?,segs_all=?,keep_n=NULL,plan=?,src_dur=?,minutes=0 WHERE id=?",
+           json.dumps(segs, ensure_ascii=False),
            json.dumps(segs, ensure_ascii=False),
            json.dumps(b.get("plan") or {}, ensure_ascii=False),
            float(b.get("src_dur") or 0), jid)
@@ -686,6 +773,14 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
         if k not in (cls[cid].get("options") or {}):
             raise HTTPException(400, f"အုပ်စု {cid} — take {k} ကို ရွေးလို့ မရပါ")
         cpick[cid] = k
+    # ⚠️ `clusters` ကို **လုံးဝ မပါလျှင်** = script editor မှ လာသည် ⇒ ပုံသေ
+    #    「ဘာမှ မဖျက်」。 အဲဒီ editor မှာ သုံးစွဲသူက ဝါကျ တစ်ခုချင်း ကိုယ်တိုင်
+    #    ဖျက်သည် — cluster က ထပ်ဖျက်လျှင် **သူ မတောင်းဘဲ ဖျက်ရာ** ကျသည်
+    #    (Zin: 「user အတည်ပြုမှ ဖျက်ပေး · script editor မှာပဲ အနီပြထား」)。
+    #    ⚠️ အရင်က 400 ပြန်ခဲ့ပြီး editor မှာ ရွေးစရာ ကိရိယာ မရှိသဖြင့်
+    #       **ထွက်လမ်း လုံးဝ မရှိ**ဘဲ ပိတ်မိခဲ့သည် (၂၀၂၆-၀၉-၁၉ Zin တွေ့)。
+    if "clusters" not in b:
+        cpick = {cid: None for cid in cls}
     und_c = [cid for cid in cls if cid not in cpick]
     if und_c:
         raise HTTPException(400, f"ပြန်စ အုပ်စု {len(und_c)} ခု မရွေးရသေး — take ရွေးပါ (သို့) «ဘာမှ မဖျက်»")
@@ -725,10 +820,22 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     except Exception: over = {}
     if drop: over["_drop"] = drop
     over.pop("_drop_exact", None)
+    # ⚠️ **ဝါကျ အတွင်း အပိုင်း ဖျက်ချက်** — `_drop_exact` အဖြစ်သာ ပို့ရမည်。
+    #    `_drop` ဆိုလျှင် worker က `CUT.guard` (အမြီး/ဦးခေါင်း) ဖြတ်ပြီး ဖြတ်မှတ်ကို
+    #    စက္ကန့်များစွာ ရွှေ့ပစ်မည် — ဝါကျကြား အတွက် ဆောက်ထားသဖြင့် (၂၀၂၆-၀၉-၁၈
+    #    F7 သင်ခန်းစာ)。 အပိုင်း နယ်နိမိတ်က တိတ်ဆိတ်မှု အလယ် ဖြစ်ပြီးသား ⇒ F2 = ၀。
+    for a, bb in (b.get("drop_spans") or []):
+        a, bb = float(a), float(bb)
+        if bb - a > 0.02: exact.append([a, bb])
     if exact: over["_drop_exact"] = exact
+    # ⚠️ `segs` က worker အတွက် (ချန်ထားသည်) · `segs_all` က **မထိရ** ·
+    #    `keep_n` = ချန်ခဲ့သော နံပါတ် ⇒ ပြန်ဖွင့်လျှင် အရင် ဖျက်ချက် ပြန်မြင်ရ。
+    _kn = sorted({int(k.get("i")) + 1 for k in keep
+                  if k.get("i") is not None and (k.get("text") or "").strip()})
     db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
-           "segs=?,over=?,approved=? WHERE id=?",
+           "segs=?,keep_n=?,over=?,approved=? WHERE id=?",
            json.dumps(clean, ensure_ascii=False),
+           json.dumps(_kn),
            json.dumps(over, ensure_ascii=False) if over else None,
            str(time.time()), jid)
     # ── ဆုံးဖြတ်ချက် တစ်ခုချင်း မှတ်တမ်း (ground truth) ──
@@ -762,15 +869,24 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
 
 
 @app.post("/api/w/claim")
-def w_claim(authorization: str = Header(None)):
+async def w_claim(req: Request, authorization: str = Header(None)):
     auth(authorization, WTOKEN)
     _beat()
+    try: wb = await req.json()
+    except Exception: wb = {}
     j = db.one("SELECT * FROM jobs WHERE status='queued' ORDER BY created LIMIT 1")
     if not j: return {"job": None}
-    db.run("UPDATE jobs SET status='running',claimed=? WHERE id=? AND status='queued'",
-           time.time(), j["id"])
+    # ⚠️ **worker အများကြီး အတွက် အရေးကြီး**。 အရင်က status ကိုပဲ ပြန်စစ်ခဲ့ပြီး
+    #    `db.run` က rowcount မပြန်သဖြင့် — worker A က UPDATE အောင်、B က မအောင်
+    #    ဖြစ်သော်လည်း **B ရဲ့ ပြန်စစ်ချက်မှာလည်း 'running' တွေ့**ကာ နှစ်ခုလုံး
+    #    job တစ်ခုတည်းကို ယူမိနိုင်သည် (၂၀၂၆-၀၉-၁၉ တွေ့)。
+    #    ⇒ ကိုယ်ပိုင် အမှတ် ရိုက်ထည့်ပြီး **ကိုယ့်အမှတ် ဟုတ်မှ** ယူသည်。
+    me = str((wb or {}).get("worker") or "") or f"w{int(time.time()*1000)%10**9}"
+    db.run("UPDATE jobs SET status='running',claimed=?,worker=? WHERE id=? AND status='queued'",
+           time.time(), me, j["id"])
     chk = db.one("SELECT * FROM jobs WHERE id=?", j["id"])
-    if chk["status"] != "running": return {"job": None}   # တခြား worker က ယူသွားပြီ
+    if chk["status"] != "running" or (chk.get("worker") or "") != me:
+        return {"job": None}   # တခြား worker က ယူသွားပြီ
     u = db.one("SELECT * FROM uploads WHERE id=?", j["upload_id"])
     b = db.one("SELECT * FROM brands WHERE id=?", j["brand_id"])
     if b: b["colors"] = json.loads(b["colors"])
@@ -786,6 +902,26 @@ def w_claim(authorization: str = Header(None)):
     except Exception: pass
     return {"job": chk, "upload": u, "brand": b, "stages": STAGES, "over": over}
 
+@app.get("/api/w/src2/{jid}")
+def w_src2(jid: str, authorization: str = Header(None)):
+    """dual-system အသံ ဖိုင် — မရှိလျှင် 404。"""
+    auth(authorization, WTOKEN)
+    j = db.one("SELECT * FROM jobs WHERE id=?", jid)
+    try: over = json.loads((j or {}).get("over") or "{}") or {}
+    except Exception: over = {}
+    uid = over.get("_audio")
+    if not uid: raise HTTPException(404, "no audio")
+    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    if not u: raise HTTPException(404, "no audio")
+    # ⚠️ worker ရဲ့ စက်ထဲက ဖိုင်ဆို **ဆွဲချစရာ မလို** — လမ်းကြောင်း ပဲ ပေးသည်
+    if u.get("local"):
+        return {"local": u["path"], "size": u["size"]}
+    if u.get("key") and ST.on():
+        return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
+    if not u["path"] or not os.path.exists(u["path"]): raise HTTPException(404, "no audio")
+    return FileResponse(u["path"])
+
+
 @app.get("/api/w/src/{jid}")
 def w_src(jid: str, authorization: str = Header(None), url: int = 0):
     """source ဖိုင် — local mode မှာ ဖိုင်၊ R2 mode မှာ presigned URL。
@@ -799,6 +935,13 @@ def w_src(jid: str, authorization: str = Header(None), url: int = 0):
     j = db.one("SELECT * FROM jobs WHERE id=?", jid)
     u = db.one("SELECT * FROM uploads WHERE id=?", j["upload_id"]) if j else None
     if not u: raise HTTPException(404, "no source")
+    # ⚠️ **worker ရဲ့ စက်ထဲက ဖိုင်** — လမ်းကြောင်း ပဲ ပေးရမည်。 ဤစစ်ချက်ကို
+    #    အရင်က `w_src2` (အသံ route) ထဲ ထည့်မိပြီး ဒီမှာ ကျန်ခဲ့သဖြင့် —
+    #    Mac လမ်းကြောင်းက VPS မှာ မရှိသည်အတွက် `os.path.exists` က False ဖြစ်ကာ
+    #    **404** ပြန်ခဲ့သည်。 upload ကျော်တဲ့ လမ်းကြောင်း သုံးတိုင်း job ကျခဲ့
+    #    (Zin ၂၀၂၆-၀၉-၂၀ · ၄ ကြိမ် · "ဘာလို့ တင်လို့ မရတာလဲ")。
+    if u.get("local"):
+        return {"local": u["path"], "size": u["size"]}
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
     if not u["path"] or not os.path.exists(u["path"]): raise HTTPException(404, "no source")
@@ -1343,6 +1486,37 @@ async def w_thumb(jid: str, file: UploadFile = File(...),
 
 
 
+@app.post("/api/w/{jid}/audio")
+async def w_audio(jid: str, file: UploadFile = File(...),
+                  authorization: str = Header(None)):
+    """worker က ထုတ်လိုက်သော **အသံ proxy** (m4a) — Script Editor မှာ နားထောင်ရန်。
+
+    ⚠️ ဖြတ်ချက် ဆုံးဖြတ်ဖို့ **နားထောင်ရမည်** — စာသား ဖတ်ရုံနဲ့ မလုံလောက်。
+       (Zin: 「စကားလုံး တစ်လုံးချင်း နားထောက်ပြီး တိုင်းမှ ဖြတ်ချက် မှန်မယ်」)
+    ⚠️ မူရင်း ဗီဒီယို (GB ချီ) ကို မပို့ရ — **၄၈ kbps mono m4a** သာ (၃ မိနစ် ≈ ၁ MB)。
+    """
+    auth(authorization, WTOKEN)
+    if not db.one("SELECT id FROM jobs WHERE id=?", jid):
+        raise HTTPException(404, "job မတွေ့")
+    raw = await file.read()
+    if not raw: raise HTTPException(400, "ဗလာ")
+    if len(raw) > 60 * 1024 * 1024: raise HTTPException(413, "၆၀ MB ထက် မကြီးရ")
+    d = os.path.join(DATA, "aud"); os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, f"{jid}.m4a"), "wb") as f:
+        f.write(raw)
+    return {"ok": True, "bytes": len(raw)}
+
+
+@app.get("/api/jobs/{jid}/audio")
+def job_audio(jid: str, authorization: str = Header(None), t: str = ""):
+    """Script Editor အတွက် အသံ proxy。 `?t=` နဲ့လည်း ရသည် (<audio> က header မပို့နိုင်၍)。"""
+    auth(authorization or (f"Bearer {t}" if t else None), UTOKEN)
+    mine(authorization, jid, t)
+    p = os.path.join(DATA, "aud", f"{jid}.m4a")
+    if not os.path.exists(p): raise HTTPException(404, "အသံ မရှိ")
+    return FileResponse(p, media_type="audio/mp4")
+
+
 @app.get("/api/jobs/{jid}/thumb")
 def job_thumb(jid: str, authorization: str = Header(None), t: str = ""):
     """ပြီးသွားသော ဗီဒီယိုရဲ့ ပုံငယ် — disk မှာ cache လုပ်သည်。
@@ -1583,4 +1757,261 @@ async def nocache_html(request, call_next):
         r.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return r
 
+@app.get("/api/script/{jid}")
+def script_get(jid: str, authorization: str = Header(None)):
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    # ⚠️ **အပြည့် စာတမ်းကို ပြရမည်** — `segs` က အရင် ချန်ခဲ့သော ဝါကျများသာ
+    #    ဖြစ်သဖြင့် ပြန်ဖွင့်တဲ့အခါ အရင် ဖျက်ထားတာတွေ မမြင်ရဘဲ ပြန်ပြင်လျှင်
+    #    ပြန်ပါလာခဲ့သည် (Zin ၂၀၂၆-၀၉-၂၀)。
+    try: segs = json.loads(j.get("segs_all") or j.get("segs") or "[]")
+    except Exception: segs = []
+    if not segs: raise HTTPException(400, "စာသား မရှိ — ASR မပြီးသေး")
+    try: plan = json.loads(j.get("plan") or "{}")
+    except Exception: plan = {}
+    sents, events = _script_of(segs, plan)
+    # ⚠️ အရင် ဖျက်ခဲ့တာတွေကို **အနီ ကြိုရွေးထား** ⇒ သုံးစွဲသူက ဘာ ဖျက်ခဲ့လဲ
+    #    မြင်ရပြီး ဆက်ပြင်လို့ ရသည် (ပြန်ပါလာမှာ မဟုတ်)。
+    try: _kn = set(json.loads(j.get("keep_n") or "null") or [])
+    except Exception: _kn = set()
+    if _kn:
+        for _s in sents:
+            if _s["n"] not in _kn:
+                _s["suggest"] = "delete"
+                _s["prev_cut"] = True
+    # ── ရေးထားသော script ရှိလျှင် ချိန်ညှိပြီး **အမှတ်အသား** ထည့် (ဖျက်ခြင်း မလုပ်) ──
+    smark = {}
+    try:
+        over = json.loads(j.get("over") or "{}") or {}
+    except Exception:
+        over = {}
+    stext = over.get("_script") or ""
+    if stext:
+        import script as _SC
+        for o in _SC.align(stext, segs):
+            if o["mark"]:
+                sents[o["n"]-1]["script_mark"] = o["mark"]
+                sents[o["n"]-1]["script_match"] = o["match"]
+                smark[o["mark"]] = smark.get(o["mark"], 0) + 1
+    ng = len({s["group_id"] for s in sents if s["group_id"]})
+    return {"job": jid, "title": j.get("title"), "src_dur": j.get("src_dur"),
+            # ⚠️ ထုတ်ပြီးသား job မှာ **ခန့်မှန်းချက် မပြရ** — segs က ချန်ထားပြီးသား
+            #    ဝါကျများသာ ဖြစ်ပြီး `src_dur` က မူရင်း အတိုင်း ကျန်နေသဖြင့်
+            #    တွက်ချက်ချက်က မှားသည် (Zin ၂၀၂၆-၀၉-၁၉: 「၆:၀၇ → ၆:၀၇ ဘာလို့လဲ」
+            #    — တကယ့် ရလဒ်က ၂:၂၀)。 ⇒ **တိုင်းထားသော ထွက်ရှည်** ကို ပေးသည်。
+            "out_dur": j.get("out_dur"),
+            # ⚠️ `status` — `review` ဖြစ်လျှင် Script Editor က **approve** လမ်းကြောင်း
+            #    သုံးရမည် (job တစ်ခုတည်း · render တစ်ခါပဲ)。 `done` ဆိုမှ reedit。
+            "status": j.get("status"),
+            "script": (dict(chars=len(stext), **smark) if stext else None),
+            "sentences": sents, "events": events,
+            "stat": {"n": len(sents), "groups": ng,
+                     "silence": len(events),
+                     "repeat": sum(1 for s in sents if s["cat"] == "repeat"),
+                     "section": sum(1 for s in sents if s["cat"] == "section"),
+                     "suggest_delete": sum(1 for s in sents if s["suggest"] == "delete")}}
+
+
+@app.post("/api/script/{jid}/render")
+async def script_render(jid: str, req: Request, authorization: str = Header(None)):
+    """Script Editor → ဗီဒီယို ထုတ်ခြင်း。  body: `{"keep": [ဝါကျ နံပါတ် …]}`
+
+    ⚠️ ဖြတ်နည်း · ဘောင်စစ်ခြင်း · quota · `_drop` တွက်ခြင်း — အားလုံး
+       **`job_reedit()` ကိုပဲ ပြန်သုံး**သည် (code ထပ်မရေး) ⇒ လမ်းကြောင်း ၂ ခု
+       ကွဲသွားပြီး ဖြတ်ချက် မတူဖြစ်စရာ မရှိ。
+    ⚠️ transcript စာသား **မပြင်ရ** (R7) — မူရင်း စာသားကိုပဲ ပြန်ပို့သည်;
+       `fix` မထည့်ပါ。
+    ⚠️ F2 = ၀ ကို **engine က ထိန်း**သည် (`CUT.subtract` က ဖြတ်မှတ်ကို
+       တိတ်ဆိတ်မှုဆီ ကပ်ပေးသည်) — ဤနေရာမှာ ဘာမှ မထိပါ。
+    """
+    auth(authorization, UTOKEN)
+    b = await req.json()
+    keep = b.get("keep")
+    if not isinstance(keep, list) or not keep:
+        raise HTTPException(400, "ချန်မည့် ဝါကျ မပါ")
+    j = mine(authorization, jid)
+    # ⚠️ editor က `segs_all` (အပြည့်) ကို ပြသဖြင့် နံပါတ်လည်း အဲဒီအတိုင်း
+    try: segs = json.loads(j.get("segs_all") or j.get("segs") or "[]")
+    except Exception: segs = []
+    if not segs: raise HTTPException(400, "စာသား မရှိ — ASR မပြီးသေး")
+    try: ks = sorted({int(n) for n in keep})
+    except Exception: raise HTTPException(400, "ဝါကျ နံပါတ် မှားနေသည်")
+    if not ks or ks[0] < 1 or ks[-1] > len(segs):
+        raise HTTPException(400, f"ဝါကျ နံပါတ် ဘောင်ပြင် ({len(segs)} ကြောင်းသာ ရှိသည်)")
+    over = dict(b.get("over") or {})
+    ds = [[float(a), float(bb)] for a, bb in (b.get("drop_spans") or [])
+          if float(bb) - float(a) > 0.02]
+    if ds: over["_drop_exact"] = (over.get("_drop_exact") or []) + ds
+    payload = dict(segs=[dict(i=n - 1, text=segs[n - 1].get("text") or "") for n in ks],
+                   over=over, font=b.get("font"), cap=b.get("cap"))
+
+    class _Shim:                       # `job_reedit` က `await req.json()` ခေါ်သည်
+        async def json(self): return payload
+
+    r = await job_reedit(jid, _Shim(), authorization)
+    r["kept_n"] = ks
+    r["dropped_n"] = [n for n in range(1, len(segs) + 1) if n not in set(ks)]
+    return r
+
+
+@app.post("/api/script/{jid}/source")
+async def script_source(jid: str, req: Request, authorization: str = Header(None)):
+    """ရေးထားသော script တင်ခြင်း — `{"text": "…"}` (txt/docx ကို UI က စာသား ပြောင်းပြီး ပို့)。
+
+    ⚠️ **ဖျက်ခြင်း မလုပ်ပါ** — Script Editor မှာ **အနီ ပြရုံ**、
+       သုံးစွဲသူ အတည်ပြုမှသာ ဖျက်သည် (Zin ၂၀၂၆-၀၉-၁၉)。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    b = await req.json()
+    t = (b.get("text") or "").strip()
+    # ⚠️ `.docx` က zip ⇒ browser မှာ ဖွင့်၍ မရ ⇒ base64 နဲ့ ပို့ပြီး **server မှာ** ဖတ်သည်
+    if t.startswith("__DOCX__"):
+        import base64, tempfile
+        import script as _SC
+        try:
+            raw = base64.b64decode(t[8:])
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
+                f.write(raw); tmp = f.name
+            t = _SC.read(tmp).strip()
+            os.unlink(tmp)
+        except Exception as e:
+            raise HTTPException(400, f".docx ဖတ်၍ မရပါ: {type(e).__name__}")
+    if len(t) > 400000: raise HTTPException(400, "script ရှည်လွန်းသည်")
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    if t: over["_script"] = t
+    else: over.pop("_script", None)
+    db.run("UPDATE jobs SET over=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    return {"ok": True, "chars": len(t)}
+
+
+# ⚠️ **Script Editor route များကို `app.mount("/")` ရှေ့မှာ ထားရမည်** —
+#    Starlette က route ကို **အစီအစဉ်အလိုက်** တိုက်သဖြင့် mount("/") နောက်မှာ
+#    ရှိသော route အားလုံး **မရောက်တော့ဘဲ 404** ဖြစ်သည် (၂၀၂၆-၀၉-၁၉ တကယ် ဖြစ်ခဲ့:
+#    `GET /api/script/{jid}` က ၄ ကြိမ်လုံး 404 — 「transcript မပေါ်ဘူး」)。
+# ⚠️ `script.html` ကို **cache မထားရ** — `?v=` မပါသဖြင့် browser က အဟောင်းကို
+#    ဆက်ကိုင်ထားပြီး ပြင်ချက်တွေ မရောက်ခဲ့ (၂၀၂၆-၀၉-၁၉: 「Edit နှိပ်လို့ မရ」 —
+#    တကယ်က ပြင်ပြီးသား ဖြစ်ပြီး browser မှာ အဟောင်း ကျန်နေခြင်း)。
+#    ⇒ mount ရှေ့မှာ သီးသန့် route ထား · no-store header တပ်。
+@app.get("/script.html")
+def script_page():
+    from fastapi.responses import FileResponse as _FR
+    return _FR(os.path.join(WEB, "script.html"), media_type="text/html",
+               headers={"Cache-Control": "no-store, must-revalidate", "Pragma": "no-cache"})
+
+
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+
+
+# ══ Script Editor (၂၀၂၆-၀၉-၁၇ Zin) ═══════════════════════════
+# ⚠️ **engine မထိ** — ဤအလွှာက job ရဲ့ `segs` + `plan` ကို ဖတ်ပြီး
+#    UI အတွက် ပုံစံ ပြောင်းရုံသာ。 ဖြတ်စက် · ASR · detector · render
+#    အားလုံး အလုပ်ဖြစ်နေပြီးဖြစ်၍ ဘာမှ မပြင်ရ。
+# ⚠️ R7 — `text` ကို **စာလုံး တစ်လုံးမှ မပြင်ရ · မဖြည့်ရ**。
+#
+# အမျိုးအစား —
+#   silence  🔵 အသံတိတ် (ဖြတ်ပြီးသား)        suggest=delete
+#   repeat   🟡 ဝါကျ ၁–၂ ခု ထပ်               suggest=delete
+#   section  🔴 အုပ်စုတစ်ခုမှာ ဖျက်စရာ ≥၃ ခု   suggest=**keep** (ကြိုမဖျက်ရ)
+#   noise    🟢 — **ယခု မဆောက်ရ**
+SECTION_MIN = 3        # ⚠️ ဤကိန်း ပြောင်းလိုလျှင် Zin ကို အရင် မေးရမည်
+
+
+def _script_of(segs, plan):
+    """(sentences, events) — UI အတွက် ပုံစံ。 plan မရှိလည်း အလုပ်ဖြစ်ရမည်。"""
+    sents = [dict(n=i + 1, start=round(float(s.get("start") or 0), 2),
+                  end=round(float(s.get("end") or 0), 2),
+                  text=s.get("text") or "", suggest="keep", cat=None, group_id=None)
+             for i, s in enumerate(segs or [])]
+    plan = plan or {}
+    # ⚠️ `parts` — ဝါကျ အတွင်း ဖြတ်လို့ရသော အပိုင်းများ (တိတ်ဆိတ်မှု အလယ်မှာ ခွဲ)。
+    #    ရှိမှ ပြရမည် — မရှိလျှင် ထိုဝါကျကို သပ်သပ် ခွဲ၍ မရ (ရိုးသားစွာ ပြောရန်)。
+    for k, pts in (plan.get("splits") or {}).items():
+        try: i = int(k)
+        except Exception: continue
+        if not (0 <= i < len(sents)) or not pts: continue
+        a, b = sents[i]["start"], sents[i]["end"]
+        cuts = [float(x) for x in pts if a < float(x) < b]
+        if not cuts: continue
+        edges = [a] + sorted(cuts) + [b]
+        parts = [[round(edges[j], 2), round(edges[j+1], 2)] for j in range(len(edges)-1)]
+        # ⚠️ စာသားကို အပိုင်းအလိုက် ခွဲပေးရန် ASR ရဲ့ `words` ကို သုံးသည် —
+        #    **ပြဖို့သာ**。 ဖြတ်မှတ်က တိတ်ဆိတ်မှု အလယ်မှာသာ (F2 = ၀ အာမခံ) ·
+        #    စကားလုံး အချိန်မှတ်ကို ဖြတ်ဖို့ **ဘယ်တော့မှ မသုံးရ** (၂၀၂၆-၀၉-၁၈ တိုင်းချက်)。
+        ws = (segs[i] or {}).get("words") or []
+        for k, (pa, pb) in enumerate(parts):
+            txt = " ".join((w.get("w") or "") for w in ws
+                           if pa <= (float(w.get("s", 0)) + float(w.get("e", 0)))/2.0 < pb)
+            parts[k] = dict(start=pa, end=pb, text=txt.strip())
+        sents[i]["parts"] = parts
+    # ── ဟန်ပျက် — 「ကင်မရာရှေ့ စကားပြောနေဟန် မဟုတ်」 ──
+    # ⚠️ **ကိုယ်တိုင် မဖျက်ရ** (Zin: 「user အတည်ပြုမှ ဖျက်ပေး · script editor မှာပဲ
+    #    အနီပြထား」) ⇒ `suggest="delete"` (ကြိုရွေးထား · **user ပြန်ဖြုတ်လို့ရ**)
+    #    + အကြောင်းရင်း。 render မလုပ်မချင်း ဘာမှ မဖျက်ရသေးပါ。
+    for k, why in (plan.get("pose") or {}).items():
+        try: i = int(k) - 1
+        except Exception: continue
+        if 0 <= i < len(sents):
+            sents[i]["suggest"] = "delete"
+            sents[i]["pose"] = why or "ဟန်ပျက်"
+
+    # ── ① တိတ်ဆိတ်မှု — **`plan["spans"]` (ချန်မည့် အပိုင်း) ကြားက ကွက်လပ်** ──
+    # ⚠️ `plan["cuts"]` က **ကိန်း** (အရေအတွက်) ဖြစ်သည် — စာရင်း **မဟုတ်**。
+    #    ၂၀၂၆-၀၉-၁၉: စာရင်း ထင်ပြီး loop ပတ်မိ၍ `TypeError: 'int' object is not
+    #    iterable` ⇒ 500 ⇒ 「transcript မပေါ်ဘူး」 ဖြစ်ခဲ့သည်。
+    events = []
+    spans = plan.get("spans") or []
+    if spans:
+        prev = None
+        for sp_ in spans:
+            try: a0, b0 = float(sp_[0]), float(sp_[1])
+            except Exception: continue
+            if prev is not None and a0 - prev > 0.02:
+                events.append(dict(type="silence", start=round(prev, 2), end=round(a0, 2),
+                                   dur=round(a0 - prev, 2)))
+            prev = b0
+        # ဖိုင် အစ ကွက်လပ်
+        try:
+            f0 = float(spans[0][0])
+            if f0 > 0.02:
+                events.insert(0, dict(type="silence", start=0.0, end=round(f0, 2),
+                                      dur=round(f0, 2)))
+        except Exception: pass
+    elif isinstance(plan.get("cuts"), list):        # ယခင် ပုံစံ (backward compatible)
+        for c in plan["cuts"]:
+            if not isinstance(c, dict): continue
+            if (c.get("kind") or "silence") != "silence": continue
+            a, b = float(c.get("at") or 0), float(c.get("to") or 0)
+            if b - a <= 0: continue
+            events.append(dict(type="silence", start=round(a, 2), end=round(b, 2),
+                               dur=round(b - a, 2)))
+    # ── ①b စကား မဟုတ်သော အသံ — ချောင်းဆိုး · ခေါက်သံ · အသက်ရှူ ──
+    for a, b, d in (plan.get("sounds") or []):
+        a, b = float(a), float(b)
+        if b - a <= 0: continue
+        events.append(dict(type="sound", start=round(a, 2), end=round(b, 2),
+                           dur=round(b - a, 2), db=d))
+    events.sort(key=lambda e: e["start"])
+    # ── ② ပြန်စ အုပ်စု — `plan.clusters` ──
+    for cl in (plan.get("clusters") or []):
+        takes = cl.get("takes") or []
+        idx = [int(t.get("i") or 0) for t in takes if t.get("i")]
+        idx = [i for i in idx if 1 <= i <= len(sents)]
+        if len(idx) < 2: continue
+        # ⚠️ ဘယ် take ချန်မလဲ — **ယာယီ** စည်းမျဉ်း: အရှည်ဆုံး (စာလုံး အများဆုံး)。
+        #    စက်က မဆုံးဖြတ်ရ ⇒ ဤသည် **အကြံပြုချက်** သာ · လူက ပြင်နိုင်သည်。
+        keep_n = max(idx, key=lambda i: len(sents[i - 1]["text"]))
+        drop = [i for i in idx if i != keep_n]
+        cat = "section" if len(drop) >= SECTION_MIN else "repeat"
+        for i in idx:
+            s = sents[i - 1]
+            s["group_id"] = cl.get("id")
+            s["cat"] = cat
+            if i == keep_n:
+                s["suggest"] = "keep"
+            else:
+                # 🔴 က **ကြိုမဖျက်ရ** — လူ ကြည့်ပြီးမှ
+                s["suggest"] = "keep" if cat == "section" else "delete"
+    return sents, events

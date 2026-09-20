@@ -27,17 +27,32 @@ R = {
     cap_pct=0.0426, cap_base=0.680, stroke=None, stroke_w=0.0,
     lufs=-15.0, cap_max=0.833, scrim=False, broll=4,
     broll_pct=0.45, cap_cover=0.30,
-    sat=1.02, vign=0.65, sfx_per_min=1.0),
+    # ⚠️ ဒါက **တမင် cinematic** ဖြစ်၍ natural မလုပ်ပါ (colorbalance/vignette ကျန်)。
+    #    ဒါပေမယ့် ZJL base levels က အရိပ်ကို ၁.၂၂% ချေမှုန်းသည် (p05 ၆) ⇒
+    #    levels/curve ကို သဘာဝ ကိန်းနဲ့ လဲပြီး **ချေမှုန်းမှု ၀** ထားသည်。
+    lv_imin=0.03, lv_imax=0.97, lv_omin=0.02, lv_omax=1.0,
+    curve="0/0 0.25/0.245 0.50/0.51 0.75/0.765 1/1",
+    # ⚠️ vignette ၀.၆၅ က ထောင့်သာ မဟုတ်、**frame တစ်ခုလုံးကို** မှောင်စေသည် —
+    #    အလယ်တန်း ၁၀၄ ⇒ ၇၂ (မူရင်း ၁၀၀)。 sweep တိုင်းချက်:
+    #    ၀.၂၀→၁၀၀ · ၀.၃၀→၉၅ · ၀.၄၅→၈၆ · ၀.၆၅→၇၂  ⇒ ၀.၂၀ က မူရင်းနဲ့ တိတိကျကျ။
+    sat=1.02, vign=0.20, sfx_per_min=1.0),
  "vlog": dict(label="Vlog", theme="zjl", fps=30,
     keep_pause=0.40, min_sil=0.75, captions="karaoke", gfx=6, music="upbeat",
     mmf="MasterpieceUniRound", latin="Figtree-Black",
     cap_pct=0.0481, cap_base=0.680, lufs=-14.5, cap_max=0.833, scrim=False,
     broll=5, broll_pct=0.30, cap_cover=0.85,
+    natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.05, vign=0.55, sfx_per_min=1.0),
  "podcast": dict(label="Podcast", theme="zjl", fps=30,
+    # ⚠️ **High-Retention Talking-Head** (Zin ၂၀၂၆-၀၉-၂၀ · ref `KCN4-2hyUBM`
+    #    နှင့် `01BnhfTaQoo` — creator တူ)。 တိုင်းချက်: စာသား ၄၆%၊ အောက်ပိုင်း
+    #    ၁၄% ⇒ **burned-in စာတန်း မသုံး**。 keyword pop နဲ့ ဘောင်အပြည့် ကတ်သာ。
+    #    accent #E5BC32 (frame ၃ ခုမှ တိုင်း — ZJL ရဲ့ #FFE000 နဲ့ RGB ၁၁၂ ကွာ)。
+    cap_typo=0.22, accent="#E5BC32", insert_per_min=2.5,
     keep_pause=0.26, min_sil=0.45, captions="karaoke", gfx=2, music=None,
     mmf="MasterpieceUniRound", latin="Figtree",
     cap_pct=0.0444, cap_base=0.680, lufs=-14.0, cap_max=0.833, scrim=False,
+    natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.03, vign=0.45, sfx_per_min=0.3),
  # ── Knowledge Sharing — Zin ပေးသော reference ၂ ခု (၉.၂ + ၁၀.၉ မိနစ်) မှ
  #    **တိုင်းယူထားသည်**。 1920×1080 · 30fps · bt709。
@@ -52,7 +67,108 @@ R = {
  #    အသံ: −14.9 LUFS · LRA ၂.၈–၃.၉ LU (compress ပြင်းထန်သော narration)
  #    grade: အမှောင် low-key · mean lum ၄၁–၅၀/၂၅၅ · black ၁–၂ (ချေထား) ·
  #           highlight ၁၃၂–၁၄၁ · နွေး R−B +၁၂…+၂၈ · ရောင်စဉ် ၂၈–၃၉%
+ # ══ reference ၃ ပုဒ်မှ တိုင်းပြီး ဆောက်ထားသော style ၃ ခု ══════════
+ #    တိုင်းချက် → `assets/calib/ref_hype_2026.json` (၂၀၂၆-၀၉-၂၀)。
+ # ⚠️ **ပုံစံ ၃ မျိုး ကွဲသည် — ပျမ်းမျှ မယူရ** ဟု တိုင်းချက်က ပြသည်。
+ # ⚠️ ၃ ပုဒ်လုံး တိတ်ဆိတ်မှု အလယ်တန်း ၀.၀၈–၀.၁၆s သာ ⇒ စာသားက
+ #    **စကားပြောနေတုန်း** ပေါ်သည် ⇒ `gfx_in_speech` မဖြစ်မနေ。
+ # ⚠️ SFX အသိပ်သည်းမှုကို ၃ ပုဒ်လုံးမှ **မတိုင်းနိုင်ပါ** (တိတ်ဆိတ်မှု
+ #    ကွက်လပ် မရှိ၍ detector ရှာစရာ မရှိ) ⇒ house တန်ဖိုး သုံးသည်。
+
+ # ① ref1 — talking head · အောက်တန်း စာတန်း အခြေခံ
+ #    စာသား ၃၅% (အောက် ၄၁% ⇒ caption ၀.၁၄ · ဂရပ်ဖစ် ၀.၂၁) ·
+ #    ဖြတ်ချက် ၈.၁/မိနစ် · shot အလယ် ၂.၈၃s
+ #    ⇒ ကတ် ၃၄ ခု/၅ မိနစ် (၆.၅/မိနစ်) — **ရနိုင်သည်**。
+ "ref-talk": dict(
+    # ⚠️ Fast Cut ကို ဤပုံစံထဲ ပေါင်းထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。
+    #    `pace="fast"` ရွေးလျှင် ဖြတ်ချက် ၂၈/မိနစ် ပုံစံ ရမည်。
+    pace="normal",
+    # ⚠️ **High-Retention Talking-Head** (Zin ၂၀၂၆-၀၉-၂၀ · ref `KCN4-2hyUBM`
+    #    နှင့် `01BnhfTaQoo` — creator တူ)。 တိုင်းချက်: စာသား ၄၆%၊ အောက်ပိုင်း
+    #    ၁၄% ⇒ **burned-in စာတန်း မသုံး**。 keyword pop နဲ့ ဘောင်အပြည့် ကတ်သာ。
+    #    accent #E5BC32 (frame ၃ ခုမှ တိုင်း — ZJL ရဲ့ #FFE000 နဲ့ RGB ၁၁၂ ကွာ)。
+    # ⚠️ accent ကို **IKKI brand** သို့ ပြောင်းထားသည် (Zin ၂၀၂၆-၀၉-၂၀:
+    #    「Ikki Brand Color themes ကိုသုံးပေးပါ」 → 「အရောင်အသစ် သတ်မှတ်ပါ」)。
+    #    ⚠️ အရင်က #FFE000 (app.css ရဲ့ --ac) သုံးခဲ့ရာ **ZJL နဲ့ တစ်ထပ်တည်း**
+    #    ဖြစ်နေသည် ⇒ IKKI ကိုယ်ပိုင် အအေးရောင် သတ်မှတ်ထားသည်。 တိုင်းချက်:
+    #    အမှောင်ပေါ် ၁၀.၆:၁ · ZAE နှင့် ΔE ၈၈ · ZJL နှင့် ΔE ၁၀၂ ·
+    #    အသားရောင်နှင့် ΔE ၆၅ (မျက်နှာပေါ် ရောမသွားပါ)。
+    cap_typo=0.22, accent="#22D3C5", insert_per_min=2.5, zoom_amt=0.055,
+     label="Talking Head Motion Edit", theme="ikki", fps=30,
+     keep_pause=0.20, min_sil=0.32,
+     # ⚠️ **reference ဖိုင်ကိုယ်တိုင် frame ၁၉၆ ခု တိုင်းထားသည်**
+     #    (KCN4-2hyUBM 1080p · ၂၀၂၆-၀၉-၂၀)。 အရင်က JSON calib ရဲ့
+     #    ပျမ်းမျှနဲ့ ချထားရာ Zin က 「၃/၁၀ · premium မဆန်」ဟု ပြောခဲ့သည်。
+     #    စာလုံး အမြင့် — reference အလယ်တန်း ၃.၆% ·H · p75 **၅.၇%**
+     #    (ငါတို့ ၂.၆% က reference ရဲ့ **p25** မှာ ကပ်နေသည် = အငယ်ဆုံး)。
+     #    စာတန်း ပေါ်ချိန် — reference **၇၂%** frame (ငါတို့ ၁၄%)。
+     #    နေရာ — အလယ် y **၇၂%** (ငါတို့ ၇၈%)。
+     captions="accent", cap_pct=0.050, cap_base=0.72, cap_max=0.87,
+     cap_cover=0.70,
+     gfx=16, gfx_share=(0.17, 0.25),
+     gfx_in_speech=True, gfx_min_sil=0.30,
+     broll=6, broll_pct=0.18, broll_max=3.0,
+     slides=False,
+     sfx_per_min=1.5,
+     music="calm", mmf="MasterpieceUniRound", latin="Figtree-Black",
+     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
+     lufs=-14.0, sat=1.06, vign=0.6, scrim=False,
+ ),
+
+ # ② ref2 — ဂရပ်ဖစ် ထူ · ဘောင်အပြည့် ကတ်
+ #    စာသား ၈၂% · အလယ် ၇၇% · ဧရိယာ အများဆုံး ၇၉.၆% ⇒ **full-frame slide**
+ #    ⚠️ ကတ်နဲ့ဆို ၂၁၅ ခု လိုမည် — **မရနိုင်**。 ⇒ slide က အဓိက ထမ်းသည်
+ #      (slide တစ်ခု ၁၇s အထိ ဆန့်၍ share မြင့်နိုင်)。
+ "ref-slides": dict(
+     label="Slide Heavy", theme="zjl", fps=30,
+     keep_pause=0.22, min_sil=0.35,
+     captions="accent", cap_pct=0.024, cap_base=0.78, cap_max=0.87,
+     cap_cover=0.08,
+     gfx=14, gfx_share=(0.30, 0.42),
+     gfx_in_speech=True, gfx_min_sil=0.30,
+     # ⚠️ ၁၇.၀ က reference ရဲ့ **တိုင်းချက်** — ဒါပေမယ့် QC ရဲ့ `CARD_MAX`
+     #    ၁၀.၅ ကို မကျော်ရ (worker က `min()` နဲ့ ချုပ်ထားသည်) ⇒ တကယ် သုံးတာ
+     #    **၁၀.၅**。 ဂိတ်ကိုယ်တိုင် တင်ချင်လျှင် `core/qc.py` မှာ Zin
+     #    အတည်ပြုမှ ပြင်ရမည် ("ဂိတ် မလျှော့ရ")。 slide ကို ပိုများအောင်
+     #    ထုတ်ပြီး `gfx_share` ဘောင် အလယ် ၀.၃၆ ကို ရနေသဖြင့် ယခု မလိုပါ。
+     card_max_s=17.0,
+     broll=4, broll_pct=0.14, broll_max=3.0,
+     slides=True,
+     sfx_per_min=0.9,
+     music="calm", mmf="MasterpieceUniRound", latin="Figtree-Black",
+     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
+     lufs=-14.0, sat=1.05, vign=0.6, scrim=False,
+ ),
+
+ # ③ ref3 — အလွန်မြန် ဖြတ်ချက် · အပေါ်ပိုင်း သုံးမှု မြင့်
+ #    ဖြတ်ချက် **၂၇.၉/မိနစ်** (ref1/ref2 ရဲ့ ၃.၅ ဆ) · shot အလယ် ၁.၂၇s ·
+ #    ၆၄% က ၂s အောက် · စာသား ၄၆% (အပေါ် ၃၄% · အောက် ၁၄% သာ)
+ #    ⚠️ ကတ်နဲ့ဆို ၁၆၃ ခု လိုမည် — **မရနိုင်**。 ⇒ ဤ style ရဲ့ လက္ခဏာက
+ #      **ဖြတ်ချက် တင်းမှု** ဖြစ်သည် ⇒ `keep_pause`/`min_sil` ကို တင်းထားသည်。
+ "ref-fast": dict(
+     label="Fast Cut", theme="zjl", fps=30,
+     keep_pause=0.12, min_sil=0.22,
+     captions="accent", cap_pct=0.026, cap_base=0.78, cap_max=0.87,
+     cap_cover=0.12,
+     gfx=20, gfx_share=(0.20, 0.30),
+     gfx_in_speech=True, gfx_min_sil=0.22,
+     broll=8, broll_pct=0.20, broll_max=2.5,
+     slides=False,
+     sfx_per_min=1.2,
+     music="calm", mmf="MasterpieceUniRound", latin="Figtree-Black",
+     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
+     lufs=-14.0, sat=1.10, vign=0.6, scrim=False,
+ ),
+
  "knowledge": dict(
+    # ⚠️ Slide Heavy ကို ဤပုံစံထဲ ပေါင်းထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。
+    #    `slide_amt="heavy"` ရွေးလျှင် ဘောင်အပြည့် ကတ် အဓိက ပုံစံ ရမည်。
+    slide_amt="light",
+    # ⚠️ **High-Retention Talking-Head** (Zin ၂၀၂၆-၀၉-၂၀ · ref `KCN4-2hyUBM`
+    #    နှင့် `01BnhfTaQoo` — creator တူ)。 တိုင်းချက်: စာသား ၄၆%၊ အောက်ပိုင်း
+    #    ၁၄% ⇒ **burned-in စာတန်း မသုံး**。 keyword pop နဲ့ ဘောင်အပြည့် ကတ်သာ。
+    #    accent #E5BC32 (frame ၃ ခုမှ တိုင်း — ZJL ရဲ့ #FFE000 နဲ့ RGB ၁၁၂ ကွာ)。
+    cap_typo=0.22, accent="#E5BC32", insert_per_min=2.5,
     # ⚠️ REF-A 14.0% · REF-B 13.4% (တိုင်းထားသည်) — skill P1
     gfx_share=(0.10, 0.17), label="Knowledge Sharing", theme="zjl", fps=30,
     keep_pause=0.26, min_sil=0.45, captions="accent", gfx=10, music="calm",
@@ -71,6 +187,7 @@ R = {
     #    slide ၁၂ ခု · ၇၄.၅s = ၁၃.၄% (တိုင်းထားသည်)。 lower-third အသေးလေးနဲ့
     #    ၂.၅% ပဲ ရပြီး "မမိုက်ဘူး" ဖြစ်ခဲ့သည် — အရေအတွက် မဟုတ်、**အရွယ်** က အရေးကြီး。
     slides=True,
+    natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.05, vign=0.60, sfx_per_min=0.9),
  # ── Short Video = **ZAE style** ──
  #    reference ဗီဒီယို ၂ ခု (58s · 86s) မှ **တိုင်းယူထားသော** ကိန်းများ:
@@ -85,7 +202,8 @@ R = {
  #      သီချင်း    သူ့ကိုယ်ပိုင် bed · **ducking မလုပ်**
  #      LUFS       −18.8 (တိုင်းထားသည်)
  "short-video": dict(label="Short Video · ZAE", theme="zae", fps=30,
-    keep_pause=0.18, min_sil=0.34, captions="zae", gfx=5, music="zae",
+    # ⚠️ reference မှာ ဂရပ်ဖစ် ကတ်ကြီး **မရှိသလောက်** — စာတန်းနဲ့ B-roll ချည်းပဲ。
+    keep_pause=0.18, min_sil=0.34, captions="zae", gfx=2, music="zae",
     mmf="MyanmarHeadOne", latin="Figtree-Black",
     # ⚠️ Zin ရွေးချယ်ချက် (၂၀၂၆-၀၉-၁၃) — နမူနာ ၄ မျိုး (77/93/115/136px)
     #    ကို မြင်ပြီး **136px = 0.095** ကို ရွေးသည်。 N5 project ရဲ့ 0.0535
@@ -95,16 +213,37 @@ R = {
     #    ပုံမှန်。 အားလုံး typography လုပ်လျှင် ဖတ်ရ ပင်ပန်းပြီး
     #    အလေးထားချက် ပျောက်သည်。
     cap_typo=0.30,
-    cap_pct=0.100, cap_base=0.865, stroke="#1E3B5A", stroke_w=0.16,
+    # ⚠️⚠️ **၂၀၂၆-၀၉-၂၀ — Zin ရဲ့ ၂၀၂၆-၀၉-၁၃ ရွေးချယ်ချက်ကို ပြန်ပြင်ထားသည်**。
+    #    အထက်က မှတ်ချက်အတိုင်း သူက ၀.၀၉၅ ကို မျက်စိနဲ့ ရွေးပြီး ၀.၀၅၃၅ ကို
+    #    「သေးလွန်းတယ်」 ဟု ပယ်ခဲ့သည်。 ဒါပေမယ့် ၂၀၂၆-၀၉-၂၀ မှာ သူကိုယ်တိုင်
+    #    reference (`1.mp4`) ပေးပြီး 「ဒီပုံစံအတိုင်း အတိအကျ」 ဟု ပြောသည်。
+    #    တိုင်းချက် — reference ရဲ့ စာတန်း မှင်အမြင့် ဘောင်၏ **၇.၄၅%**
+    #    (2880px ဘောင်မှာ 214px · တစ်ကြောင်းတည်း frame ၁၉၄ ခု အလယ်တန်း)。
+    #    မှင်/em အချိုး ၁.၇၂–၁.၉၉ (cttext နဲ့ တိုင်းထား) ⇒ **em ၀.၀၄၃**。
+    #    ယခင် ၀.၁၀၀ က မှင် ၁၉.၁% ⇒ reference ထက် **၂.၆ ဆ ကြီး**ခဲ့သည်。
+    #    ⇒ မကြိုက်လျှင် ဤတစ်ကြောင်းကို `cap_pct=0.100` ပြန်ထားရုံ。
+    # ⚠️ `stroke="brand"` — ကိန်းသေ မဟုတ်တော့ဘဲ **brand ရဲ့ အရောင်** ကို
+    #    ယူသည် (Zin: 「အခြား brand က logo နဲ့ color ရွေးလိုက်တာနဲ့ အဲဒီ
+    #    theme အတိုင်း」)。 reference ရဲ့ အနားသတ်က navy #1A3856 —
+    #    ZAE ရဲ့ #1E3B5A နဲ့ နီးပါး တူသဖြင့် ZAE မှာ အပြောင်းအလဲ မရှိသလောက်。
+    cap_pct=0.043, cap_base=0.877, stroke="brand", stroke_w=0.16,
+    # ⚠️ reference မှာ စာတန်းက frame ရဲ့ **၉၃%** မှာ ပါသည် (292 ခုမှ 273)。
+    cap_cover=0.93,
     # ⚠️ −18.8 က N5 reference ကနေ တိုင်းယူထားတာ — ဒါပေမယ့် **reference
     #    ကိုယ်တိုင်က တိုးလွန်း**သည် (skill `ikki-presentation` §8: REF-B
     #    −22.58 ကို "၈ dB အောက်" ဟု ဆိုထားသည်)。 platform တွေက ~−14 ကို
     #    normalise လုပ်သဖြင့် feed ထဲမှာ တခြားဟာတွေထက် တိုးနေမည်。
     #    ⇒ **ဖွဲ့စည်းပုံကို လိုက် · mastering ကို ပြင်**。 လိုလျှင် style editor
     #      ကနေ −17.7 ပြန်ရွေးလို့ ရသည်。
-    lufs=-14.5, cap_max=0.870, cap_wide=0.63, sfx=False, scrim=True, broll=10, broll_pct=0.51, broll_max=4.5,
+    # ⚠️ reference တိုင်းချက် — B-roll **၃၃%** (studio မဟုတ်သော frame)。
+    #    ယခင် ၀.၅၁ က များလွန်းသည်。
+    lufs=-14.5, cap_max=0.870, cap_wide=0.63, sfx=False, scrim=True, broll=10, broll_pct=0.33, broll_max=4.5,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=0.9,
-    lv_imin=0.10, lv_imax=1.0, lv_omin=0.0, curve="none"),
+    # ⚠️ imin ၀.၁၀ က **အရိပ်ကို ချေမှုန်း**သည် — tokutei (ZAE source အစစ်) မှာ
+    #    မူရင်း ၀.၀၄% ⇒ ၁.၂၆% · p05 ၅၂ ⇒ ၂၉ (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
+    #    sweep: .10→၁.၂၆% · .06→၀.၃၀% · .04→၀.၁၉% · **.03→၀.၁၃%**。
+    #    အလယ်တန်း ၂၄၇ မပြောင်း — contrast က အဖြူနံရံကနေ ရနေပြီးသား。
+    lv_imin=0.03, lv_imax=1.0, lv_omin=0.02, curve="none"),
     # ⚠️ B-roll ၆၂% — N5 ONLINE reference ကနေ **တိုင်းယူထားသည်**
     #    (frame ၆၀ ကနေ: အဖြူနံရံ ပြောသူ ၃၈% · ရုပ်ကြမ်း ၆၂%)。
     #    ၃၀% ပုံသေ ထားတုန်းက ရုပ်ကြမ်း ၅.၅% ပဲ ထွက်ခဲ့ပြီး reference နှင့်
@@ -115,28 +254,51 @@ R = {
     mmf="NotoSansMyanmar", latin="Manrope",
     cap_pct=0.0481, cap_base=0.680, cap_cover=0.45, lufs=-13.5, broll=0,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=1.2,
-    lv_imin=0.10, lv_imax=1.0, lv_omin=0.0, curve="none"),
+    # ⚠️ imin ၀.၁၀ က **အရိပ်ကို ချေမှုန်း**သည် — tokutei (ZAE source အစစ်) မှာ
+    #    မူရင်း ၀.၀၄% ⇒ ၁.၂၆% · p05 ၅၂ ⇒ ၂၉ (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
+    #    sweep: .10→၁.၂၆% · .06→၀.၃၀% · .04→၀.၁၉% · **.03→၀.၁၃%**。
+    #    အလယ်တန်း ၂၄၇ မပြောင်း — contrast က အဖြူနံရံကနေ ရနေပြီးသား。
+    lv_imin=0.03, lv_imax=1.0, lv_omin=0.02, curve="none"),
  "brand-review": dict(label="Brand Review", theme="zjl", fps=30,
     keep_pause=0.40, min_sil=0.75, captions="plain", gfx=9, music="calm",
     mmf="Padauk", latin="Manrope",
     cap_pct=0.0481, cap_base=0.680, cap_cover=0.80, lufs=-14.5, broll=0,
+    natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.00, vign=0.50, cbal=False, sfx_per_min=0.8),
  "short-biz": dict(label="Short Video", theme="zae", fps=30,
     keep_pause=0.20, min_sil=0.38, captions="big", gfx=6, music="corporate",
     mmf="NotoSansMyanmar-Bold", latin="ArchivoBlack",
     cap_pct=0.0333, cap_base=0.620, lufs=-13.5, broll=0,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=1.1,
-    lv_imin=0.10, lv_imax=1.0, lv_omin=0.0, curve="none"),
+    # ⚠️ imin ၀.၁၀ က **အရိပ်ကို ချေမှုန်း**သည် — tokutei (ZAE source အစစ်) မှာ
+    #    မူရင်း ၀.၀၄% ⇒ ၁.၂၆% · p05 ၅၂ ⇒ ၂၉ (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
+    #    sweep: .10→၁.၂၆% · .06→၀.၃၀% · .04→၀.၁၉% · **.03→၀.၁၃%**。
+    #    အလယ်တန်း ၂၄၇ မပြောင်း — contrast က အဖြူနံရံကနေ ရနေပြီးသား。
+    lv_imin=0.03, lv_imax=1.0, lv_omin=0.02, curve="none"),
  # ⚠️ Course — ဖြတ်တောက် **လုံးဝ မလုပ်ရ**
  "course": dict(label="Course", theme="zjl", fps=30,
     keep_pause=None, min_sil=None, captions="plain", gfx=10, music=None,
     mmf="PadaukBook-Bold", latin="Figtree",
     cap_pct=0.0426, cap_base=0.880, lufs=-14.5, broll=0,
+    natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.02, vign=0.25, sfx_per_min=0.5),
 }
 DEF = dict(cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
            cap_cover=None, cap_accent=None, broll_pct=0.30, broll_max=3.2,
            sfx=True, cap_typo=0.0, sat=None, vign=None, cbal=True, grade=True,
+           # ⚠️ ဖြတ်ဆက်ကို ဖုံးရန် punch-in (၁.၀ = ပိတ်)。 `spans.PUNCH` က ပုံသေ。
+           #    Course က ဖြတ်တောက် မလုပ်သဖြင့် အလိုအလျောက် သက်ရောက်မှု မရှိ。
+           punch=None,
+           # ⚠️ theme ရဲ့ GOLD ကို လွှမ်းရန် (High-Retention style) — မရှိလျှင် theme အတိုင်း
+           accent=None, slide_src=None,
+           # ⚠️ explainer insert နှုန်း (/မိနစ်) — reference ၂.၅
+           insert_per_min=None,
+           # ပေါင်းထားသော ပုံစံ ရွေးချက်
+           slide_amt=None, pace=None,
+           # ⚠️ ရုပ်ကို တဖြည်းဖြည်း ချုံ့/ချဲ့ခြင်း — ၀ = မလုပ်。
+           #    အတိမ်အနက်ကို reference ကနေ **မတိုင်းရသေးပါ**、ဘောင်အတွင်း
+           #    (≤၁.၂၅×) ဒီဇိုင်း ရွေးချယ်မှု ဖြစ်သည်。
+           zoom_amt=0.0,
            broll_gap=3.0, sfx_per_min=None, cap_hold=4.0, broll_minscore=2.0,
            broll_tail=5.0, cap_gap=0.18, cap_fade=0.14, cap_wide=0.86,
            gfx_share=None,
@@ -144,8 +306,72 @@ DEF = dict(cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
            cap_fill=None, cap_stroke=None,
            lufs=-14.0, cap_max=None, scrim=False, broll=0)
 
+# ⚠️ **ပေါင်းထားသော ပုံစံများ** (၂၀၂၆-၀၉-၂၀ · Zin)。
+#    `ref-slides` → Knowledge Sharing ရဲ့ slide "ထူထူ"
+#    `ref-fast`   → Talking Head Motion Edit ရဲ့ pace "မြန်"
+#    ⚠️ အဟောင်း ၂ ခုကို **R ထဲ ချန်ထားရမည်** — ရှိပြီးသား job တွေရဲ့
+#       `recipe` ကော်လံမှာ အဲဒီနာမည် ရေးထားပြီး၊ ဖျက်လျှင် `get()` က
+#       `cinematic-vlog` သို့ ပြန်ဆုတ်ကာ **ပုံစံ တိတ်တဆိတ် ပြောင်း**မည်。
+#       ⇒ `_hidden` နဲ့ UI ကနေသာ ဖယ်သည်。
+HIDDEN = {"ref-slides", "ref-fast"}
+
+# slide ပမာဏ — Knowledge Sharing
+# ⚠️ `card_max_s` ကို **ဖယ်ထားသည်**。 ဂိတ်ဆီ မရောက်ဘဲ (run.py:1609 က `pass`)
+#    renderer ကလည်း `min(…, QC.CARD_MAX)` နဲ့ ၁၀.၅s ချထားသဖြင့် ဘာမှ မလုပ်ပါ。
+# ⚠️ ကတ် အရှည် ၁၀.၅s ကန့်သတ်ဖြစ်၍ **ဖုံးအုပ်မှုက အရေအတွက်နဲ့ပဲ ရသည်**:
+#    `gfx × 10.5 ÷ dur ≥ 0.30` လိုသည်。 ၁၄ ခုဆိုလျှင် ၅၅၅s မှာ ၀.၂၆၅ ပဲ ရကာ
+#    QC ကျသည် (တကယ် ဖြစ်ခဲ့သည်)。 ၉၀၀s အထိ မီစေရန် ၃၀ ထားသည်
+#    (၃၀ × ၁၀.၅ ÷ ၉၀၀ = ၀.၃၅)。 ⇒ ဂိတ် မလျှော့ဘဲ ယန္တရား ချဲ့ထားသည်。
+SLIDE_AMT = {
+    "light": dict(gfx_share=(0.10, 0.17), gfx=10),
+    "heavy": dict(gfx_share=(0.30, 0.42), gfx=30),
+}
+# ဖြတ်ချက် အမြန်နှုန်း — Talking Head Motion Edit
+# ⚠️ `sfx_per_min` ကို **ဂိတ်ရဲ့ အမြင့်ဆုံး (၁.၅)** အထိ တင်ထားသည်。
+#    reference (KCN4-2hyUBM) မှာ မြင်ကွင်းပြောင်းချိန်နဲ့ တိုက်ဆိုင်သော
+#    အသံ ၉၂ ခု = **၇/မိနစ်** ရှိသည် — ငါတို့ ဂိတ်က ၁.၅ ⇒ ၅ ဆ နည်းသည်。
+#    ⚠️ **ဂိတ်ကို မထိပါ** (「ဂိတ် မလျှော့ရ」) — ဂိတ်ကိုယ်တိုင် တင်ဖို့က
+#    Zin ရဲ့ အတည်ပြုချက် လိုသည် (`core/qc.py` ရဲ့ sfx_density)。
+PACE = {
+    "normal": dict(keep_pause=0.20, min_sil=0.32, gfx=16, gfx_share=(0.17, 0.25),
+                   broll=6, sfx_per_min=1.5),
+    "fast":   dict(keep_pause=0.12, min_sil=0.22, gfx=20, gfx_share=(0.20, 0.30),
+                   broll=8, sfx_per_min=1.5),
+}
+
+
+def _expand(r):
+    """`slide_amt` / `pace` ရွေးချက်ကို ကိန်းများအဖြစ် ဖြန့်သည်。
+
+    ⚠️ **`apply()` အဆုံးမှာပါ ပြန်ခေါ်ရမည်**。 `get()` ထဲမှာပဲ ဖြန့်လျှင်
+       `apply()` က သုံးစွဲသူ ပြင်ချက်ကို **နောက်မှ** ပေါင်းသဖြင့်
+       `slide_amt="heavy"` ရွေးလည်း ကိန်းတွေ မပြောင်းပါ (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
+       `natural` မှာလည်း ဒီအမှားမျိုး ဖြစ်ခဲ့ဖူးသည် — အလွှာ အစဉ် အရေးကြီးသည်。
+    """
+    sa = SLIDE_AMT.get(r.get("slide_amt") or "")
+    if sa: r.update({k: v for k, v in sa.items() if v is not None})
+    pc = PACE.get(r.get("pace") or "")
+    if pc: r.update(pc)
+    return r
+
+
 def get(name):
-    r = dict(DEF); r.update(R.get(name, R["cinematic-vlog"])); return r
+    r = dict(DEF); r.update(R.get(name, R["cinematic-vlog"]))
+    # ⚠️ `natural=True` ကို **ဒီမှာ** ဖြန့်ရသည် — `grade.chain()` ထဲမှာ ဖြန့်လျှင်
+    #    သုံးစွဲသူရဲ့ sat/vign/lv_* ပြင်ချက်က `apply()` မှာ ပေါင်းပြီးသား ဖြစ်၍
+    #    natural က ပြန်ဖျက်ပစ်မည် (slider သေမည်)。 recipe အလွှာမှာ ဖြန့်လျှင်
+    #    သုံးစွဲသူ ပြင်ချက်က အပေါ်ကနေ ပြန်လွှမ်းနိုင်သည်。
+    if name == "ref-slides": r["slide_amt"] = r.get("slide_amt") or "heavy"
+    if name == "ref-fast":   r["pace"] = r.get("pace") or "fast"
+    _expand(r)
+    if r.get("natural"):
+        # ⚠️ import ပုံစံ **နှစ်မျိုး** ရှိသည် — worker က `core/` ကို sys.path
+        #    ထဲ ထည့်ပြီး `import recipes` (flat) လုပ်၊ API (Docker) က
+        #    `from core import recipes` (package) လုပ်သည်。 တစ်မျိုးတည်း
+        #    ရေးလျှင် တစ်ဖက်မှာ ကျသည် — ၂၀၂၆-၀၉-၂၀ မှာ worker က
+        #    `ModuleNotFoundError: No module named 'core'` နဲ့ ရပ်သွားခဲ့သည်。
+        r.update(NATURAL)
+    return r
 
 
 # ══ သုံးစွဲသူ ပြင်ချက် (override) ═══════════════════════════
@@ -181,6 +407,9 @@ LUFS = {
 # ⚠️ စာတန်း အရွယ်ကို **အမည်နဲ့** ရွေးရသည် — "0.095" ဆိုတာ သုံးစွဲသူအတွက်
 #    အဓိပ္ပာယ် မရှိ。 ကိန်းတွေက တိုင်းထားသော ဘောင်အတွင်း。
 CAPSIZE = {
+ # ⚠️ `xs` ကို ၂၀၂၆-၀၉-၂၀ မှာ ထပ်ထည့်သည် — Zin ပေးသော ZAE reference
+ #    (`1.mp4`) ရဲ့ စာတန်းကို တိုင်းတော့ **em ၀.၀၄၃** ထွက်သည်。
+ "xs": (0.0430, "အသေးဆုံး", "Tiny"),
  "s":  (0.0535, "သေး",      "Small"),
  "m":  (0.0650, "အလတ်",     "Medium"),
  "l":  (0.0800, "ကြီး",     "Large"),
@@ -193,10 +422,22 @@ LATIN = ["Figtree", "Figtree-Bold", "Figtree-Black", "Manrope", "ArchivoBlack",
          "Outfit-Bold", "Outfit-Black"]
 CAPSTYLE = ["zae", "big", "plain", "light", "karaoke", "accent"]
 
+# ⚠️ **`NATURAL` ကို ဒီဖိုင်ထဲမှာပဲ သတ်မှတ်ရမည်**。 `core/grade.py` ထဲ ထားပြီး
+#    `get()` က import လုပ်ခဲ့ရာ **server မှာ `/api/styles` တစ်ခုလုံး ပျက်**ခဲ့သည်
+#    (၂၀၂၆-၀၉-၂၀)。 Docker image ထဲ `core/` ရဲ့ ၆ ဖိုင်သာ ပါပြီး `grade.py`
+#    မပါသဖြင့် flat ရော package ရော import မရ — `except ImportError` ရဲ့
+#    ထဲက import ကလည်း ImportError ပြန်ထွက်သွားသည်。 ⇒ ဘောင်တွက် ကိန်းများကို
+#    **API ဘက်ရောက်သော ဖိုင်ထဲ**မှာ ထားရမည်、render module ထဲ မထားရ。
+NATURAL = dict(
+    lv_imin=0.03, lv_imax=0.97, lv_omin=0.02, lv_omax=1.0,
+    curve="0/0 0.25/0.245 0.50/0.51 0.75/0.765 1/1",
+    cbal=False, sat=1.0, vign=0.0,
+)
+
 # field → (အမျိုးအစား, အနိမ့်, အမြင့်)
 BOUNDS = dict(
  fps      = ("choice", [24, 30]),
- gfx      = ("int",   0, 14),
+ gfx      = ("int",   0, 30),
  broll    = ("int",   0, 20),
  # ⚠️ ရုပ်ကြမ်း ဘယ်လောက် စားမလဲ — ZAE က ၀.၆၂ (တိုင်းထားသည်)
  broll_pct= ("float", 0.0, 0.85),
@@ -246,6 +487,9 @@ BOUNDS = dict(
  sfx      = ("bool",),
  cap_typo = ("float", 0.0, 0.6),
  cut      = ("choice", list(CUTS)),
+ slide_amt= ("choice", list(SLIDE_AMT)),
+ pace     = ("choice", list(PACE)),
+ zoom_amt = ("float", 0.0, 0.12),
 )
 
 def cut_name(r):
@@ -311,12 +555,14 @@ def apply(name, over):
     if cn in CUTS:
         r["keep_pause"], r["min_sil"] = CUTS[cn]
     r.update(o)
+    _expand(r)                 # ⚠️ ပြင်ချက် ပေါင်းပြီးမှ ပြန်ဖြန့်ရမည်
     return r
 
 def listing():
     """UI အတွက် — ပုံစံတိုင်းရဲ့ တိုင်းထားသော ပုံသေ"""
     out = []
     for k, v in R.items():
+        if k in HIDDEN: continue      # ပေါင်းထားပြီး — UI မှာ မပြ
         r = get(k)
         out.append(dict(id=k, label=r["label"], theme=r["theme"], fps=r["fps"],
                         cut=cut_name(r), captions=r["captions"], gfx=r["gfx"],
@@ -328,5 +574,7 @@ def listing():
                         lufs=r["lufs"], scrim=bool(r.get("scrim")), mmf=r["mmf"],
                         latin=r.get("latin") or "Figtree-Black",
                         cap_cover=r.get("cap_cover"), cap_typo=r.get("cap_typo"),
-                        cap_fill=r.get("cap_fill"), cap_stroke=r.get("cap_stroke")))
+                        cap_fill=r.get("cap_fill"), cap_stroke=r.get("cap_stroke"),
+                        # ⚠️ ပေါင်းထားသော ပုံစံရဲ့ ပြင်းအား — UI မှာ select ပြရန်
+                        slide_amt=r.get("slide_amt"), pace=r.get("pace")))
     return out

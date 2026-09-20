@@ -86,8 +86,22 @@ def init():
     bcols = [r[1] for r in c.execute("PRAGMA table_info(brands)")]
     if "logo" not in bcols:
         c.execute("ALTER TABLE brands ADD COLUMN logo TEXT")
+    # ⚠️ worker အများကြီး သုံးလျှင် **ဘယ် worker ယူသွားလဲ မှတ်ရမည်** —
+    #    မမှတ်လျှင် claim က race ဖြစ်ပြီး worker ၂ ခု job တစ်ခုတည်းကို
+    #    ယူမိနိုင်သည် (`db.run` က rowcount ကို ပစ်ပယ်၍ · ၂၀၂၆-၀၉-၁၉ တွေ့)。
+    jcols2 = [r[1] for r in c.execute("PRAGMA table_info(jobs)")]
+    if "worker" not in jcols2:
+        c.execute("ALTER TABLE jobs ADD COLUMN worker TEXT")
+    # ⚠️ **မူရင်း စာတမ်းကို ဖျက်မပစ်ရ**。 `approve` က `segs` ကို ချန်ထားသော
+    #    ဝါကျများနှင့် အစားထိုးခဲ့သဖြင့် — ပြန်ပြင်တဲ့အခါ အရင် ဖျက်ထားတဲ့
+    #    ဝါကျတွေ **ပြန်ပါလာ**ပြီး ဗီဒီယိုက ကြောင်တောင်တောင် ဖြစ်ခဲ့သည်
+    #    (Zin ၂၀၂၆-၀၉-၂၀ · j_dd56e503c95c: ချန် ၁၁၂s ဖြစ်ပါလျက် ၃၂၂s ထွက်)。
+    #    ⇒ `segs_all` = ASR ရဲ့ **အပြည့်** · `keep_n` = ချန်ခဲ့သော နံပါတ်များ。
+    for _c, _d in (("segs_all", "TEXT"), ("keep_n", "TEXT")):
+        if _c not in jcols2: c.execute(f"ALTER TABLE jobs ADD COLUMN {_c} {_d}")
     ucols = [r[1] for r in c.execute("PRAGMA table_info(uploads)")]
-    for extra, ddl in (("key","TEXT"), ("mpu","TEXT")):
+    for extra, ddl in (("key","TEXT"), ("mpu","TEXT"),
+                       ("local","INTEGER DEFAULT 0")):
         if extra not in ucols:
             c.execute(f"ALTER TABLE uploads ADD COLUMN {extra} {ddl}")
     # ⚠️ notify ဆက်တင် — Telegram chat id

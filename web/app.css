@@ -614,3 +614,132 @@ img.thumb[src]{background:var(--bg2)}
 #rts .iact[aria-pressed="true"].rtok{background:var(--no-dim);color:var(--no)}
 #rts .iact[aria-pressed="true"].rtno{background:var(--ac-dim);color:var(--ac)}
 .row.rtcut .tc::after{content:" ↺" / "";color:var(--no);font-weight:700}
+
+/* ══ premium polish (၂၀၂၆-၀၉-၁၉ · Zin: 「ပုံတုန်းနေတယ် · premium ဆန်ဆန်」) ══
+   ⚠️ အပေါ်က ဒီဇိုင်းကို **ပြန်မဆောက်ပါ** — ဖြည့်စွက်ရုံသာ (ဖိုင်ရဲ့ စည်းမျဉ်း)。
+   ⚠️ အဓိက ပြောင်းချက် ၄ ခု — ① အလင်းအမှောင် အလွှာ (flat → depth)
+   ② နှိပ်လိုက်တာ ခံစားရအောင် (press state) ③ focus ring (keyboard)
+   ④ အနားသတ် ပျော့ (border → shadow)。 */
+:root{
+  --sh1:0 1px 2px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.18);
+  --sh2:0 2px 4px rgba(0,0,0,.30), 0 10px 26px rgba(0,0,0,.26);
+  --shac:0 2px 10px rgba(255,224,0,.22), 0 8px 26px rgba(255,224,0,.14);
+  --ez2:cubic-bezier(.22,.9,.28,1);
+}
+:root[data-theme="light"], :root:not([data-theme="dark"]){
+  --sh1:0 1px 2px rgba(16,16,14,.06), 0 2px 8px rgba(16,16,14,.05);
+  --sh2:0 2px 6px rgba(16,16,14,.07), 0 12px 30px rgba(16,16,14,.09);
+  --shac:0 2px 10px rgba(180,150,0,.20), 0 8px 24px rgba(180,150,0,.12);
+}
+
+/* ── ခလုတ် — အလွှာ ရှိအောင် ── */
+.btn{
+  padding:11px 22px; font-weight:600; letter-spacing:-.005em;
+  box-shadow:var(--sh1);
+  transition:transform .16s var(--ez2), box-shadow .22s var(--ez2),
+             background .22s var(--ez2), color .22s var(--ez2);
+}
+.btn:hover{ transform:translateY(-1px); box-shadow:var(--sh2) }
+.btn:active{ transform:translateY(0) scale(.985); box-shadow:var(--sh1); transition-duration:.08s }
+.btn:focus-visible{ outline:none; box-shadow:var(--sh1), 0 0 0 3px var(--ac-dim), 0 0 0 4.5px var(--ac) }
+/* အဓိက ခလုတ် — accent */
+.btn.go, .btn.primary, #start, #revgo{
+  background:var(--ac); color:var(--ac-ink); box-shadow:var(--shac);
+}
+.btn.go:hover, .btn.primary:hover, #start:hover, #revgo:hover{
+  background:var(--ac); filter:brightness(1.05); box-shadow:var(--shac), var(--sh2);
+}
+.btn[disabled]{ opacity:.45; pointer-events:none; box-shadow:none }
+
+/* ── chip — ရွေးထားတာ ပေါ်လွင်အောင် ── */
+.chip{ padding:9px 18px; box-shadow:0 1px 1px rgba(0,0,0,.05);
+  transition:transform .16s var(--ez2), box-shadow .22s var(--ez2),
+             background .22s var(--ez2), color .22s var(--ez2) }
+.chip:hover{ transform:translateY(-1px) }
+.chip:active{ transform:translateY(0) scale(.98); transition-duration:.08s }
+.chip[aria-pressed="true"]{ box-shadow:var(--shac) }
+.chip:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ac-dim), 0 0 0 4.5px var(--ac) }
+
+/* ── input · select — အမြင့် တူညီအောင် · focus ရှင်း ── */
+.inp, select.inp, input.inp, textarea.inp{
+  background:var(--sur); border:1px solid var(--line); border-radius:12px;
+  color:var(--tx); font:inherit; font-size:14px; padding:12px 14px;
+  transition:border-color .2s var(--ez2), box-shadow .2s var(--ez2);
+}
+.inp:hover{ border-color:var(--line2) }
+.inp:focus{ outline:none; border-color:var(--ac); box-shadow:0 0 0 3px var(--ac-dim) }
+select.inp{ appearance:none; background-image:
+  linear-gradient(45deg,transparent 50%,currentColor 50%),
+  linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 19px) 51%, calc(100% - 13px) 51%;
+  background-size:6px 6px, 6px 6px; background-repeat:no-repeat; padding-right:40px }
+
+/* ── အတန်း · ကတ် — အနားသတ် ပျော့ · အရိပ်နဲ့ ခွဲ ── */
+.lrow{ border-radius:14px; box-shadow:var(--sh1);
+  transition:transform .18s var(--ez2), box-shadow .24s var(--ez2) }
+.lrow:hover{ transform:translateY(-1px); box-shadow:var(--sh2) }
+.card{ border-radius:16px; box-shadow:var(--sh1) }
+.hcard, .dropbig{ box-shadow:var(--sh2) }
+.hcard:hover, .dropbig:hover{ box-shadow:var(--sh2), 0 18px 44px rgba(0,0,0,.20) }
+
+/* ── ခေါင်းစဉ် — အဆင့်အတန်း ရှင်းအောင် ── */
+.sech{ margin:34px 0 12px }
+.sech h3{ font-size:13px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tx3) }
+.lede{ color:var(--tx2) }
+
+/* ── details (အဆင့်မြင့်) — ကတ် ပုံစံ ── */
+#adv{ background:var(--sur); border:0 !important; box-shadow:var(--sh1);
+  border-radius:16px !important; transition:box-shadow .24s var(--ez2) }
+#adv[open]{ box-shadow:var(--sh2) }
+#adv summary::-webkit-details-marker{ display:none }
+#adv summary::after{ content:"▾"; float:right; color:var(--tx3);
+  transition:transform .24s var(--ez2) }
+#adv[open] summary::after{ transform:rotate(180deg) }
+
+/* ── ရွေ့လျားမှု လျှော့ချလိုသူ ── */
+@media (prefers-reduced-motion:reduce){
+  .btn,.chip,.lrow,.hcard,.dropbig{ transition:none !important }
+  .btn:hover,.chip:hover,.lrow:hover{ transform:none !important }
+}
+
+/* ══ ပုံစံ ရွေးချယ်စနစ် — နမူနာ animation ကတ်များ ═══════════════
+   ⚠️ Zin ၂၀၂၆-၀၉-၂၀: 「dropdown ပုံစံကြီးက မမိုက်ဘူး · နမူနာ ဗီဒီယို
+      animation လေးတွေ ပါပြထားတဲ့ ပုံစံ ပိုကြိုက်」 ⇒ dropdown ဖြုတ်ပြီး ကတ်。
+   ⚠️ နမူနာ ဖိုင်က **၂၀၄ KB** သာ (၄၂၀px · ၃s · crf30 · အသံ မပါ) —
+      `preload="none"` နဲ့ poster သာ အရင် ဆွဲသည် ⇒ စာမျက်နှာ မနှေးပါ。
+   ⚠️ token အသစ် မတီထွင်ပါ — --ac · --r · --sh1/2 · --ez2 သာ。 */
+.sgal{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.sgal-h{grid-column:1/-1;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);margin:6px 0 -4px}
+.scard{position:relative;display:block;text-align:left;padding:0;overflow:hidden;
+  border-radius:var(--r);border:1px solid var(--line);background:var(--up);
+  color:var(--tx);cursor:pointer;font-family:inherit;
+  transition:border-color .16s var(--ez2),transform .18s var(--ez2),
+             box-shadow .22s var(--ez2)}
+.scard:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:var(--sh2)}
+.scard:focus-visible{outline:none;border-color:var(--ac);box-shadow:var(--shac)}
+.scard[aria-pressed="true"]{border-color:var(--ac);box-shadow:var(--shac)}
+.scard .thumb{display:block;width:100%;position:relative;aspect-ratio:4/3;background:var(--sur);overflow:hidden}
+.scard .thumb video,.scard .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.scard .thumb video{opacity:0;transition:opacity .25s var(--ez2)}
+.scard.play .thumb video{opacity:1}
+.scard .meta{display:block;width:100%;padding:10px 12px 12px;box-sizing:border-box}
+.scard .meta b{display:block;font-weight:650;font-size:14px;letter-spacing:-.005em;line-height:1.3}
+.scard .meta s{display:block;text-decoration:none;font-size:11.5px;color:var(--tx2);
+  margin-top:3px;line-height:1.45}
+.scard .tick{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;
+  background:var(--ac);color:var(--ac-ink);display:grid;place-items:center;
+  font-size:12px;font-weight:700;opacity:0;transform:scale(.7);
+  transition:opacity .16s var(--ez2),transform .2s var(--ez2)}
+.scard[aria-pressed="true"] .tick{opacity:1;transform:none}
+@media(max-width:600px){.sgal{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .scard .meta b{font-size:13px}}
+
+/* ⚠️ brand chip ရဲ့ 「ပုံသေ」 အမှတ်အသား — style ကနေ အလိုလို ရွေးပေးတဲ့ ဟာ。
+   ⚠️ နာမည်ရှည် အစား ဒီအမှတ်အသား သာ လိုသည် (job ၃၉ ခု တိုင်းချက်: သုံးစွဲသူ
+      brand ကို တစ်ခါမှ ကိုယ်တိုင် မရွေးဖူး)。 */
+.chip .dflt{display:inline-block;font-style:normal;font-size:9.5px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;margin-left:7px;
+  border-radius:99px;background:var(--ac-dim);color:var(--ac-text);vertical-align:2px}
+.chip[aria-pressed="true"] .dflt{background:rgba(0,0,0,.14);color:var(--ac-ink)}

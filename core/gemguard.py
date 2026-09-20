@@ -175,9 +175,17 @@ _lock = threading.Lock()
 _last = [0.0]
 
 
-def throttle():
+def throttle(gap=None):
+    """ခေါ်ဆိုမှု နှစ်ခုကြား အနည်းဆုံး ကြာချိန်。
+
+    ⚠️ `gap` ကို ခေါ်သူက **သီးသန့် ပေးနိုင်**သည် — ASR က chunk အများကြီး
+       ခေါ်ရသဖြင့် ၅s က ရှည်လွန်းသည် (၂၀၂၆-၀၉-၁၉ တိုင်းချက်: ခေါ်ဆိုမှု ၁၂ ခု
+       တစ်ပြိုင်နက် · gap ၀ → ၁၂/၁၂ အောင် · 429 မရှိ)。 အခြား ခေါ်ဆိုမှုများ
+       (slide · broll · retake) ကို မထိခိုက်စေရန် global ကို မပြောင်းပါ。
+    """
+    g = _MIN_GAP if gap is None else float(gap)
     with _lock:
-        wait = _MIN_GAP - (_time.monotonic() - _last[0])
+        wait = g - (_time.monotonic() - _last[0])
         if wait > 0:
             _time.sleep(wait)
         _last[0] = _time.monotonic()

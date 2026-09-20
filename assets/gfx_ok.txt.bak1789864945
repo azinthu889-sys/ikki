@@ -6,16 +6,11 @@
 # ⚠️ စာရင်း (list) argument ယူသော template များ၏ **ပုံစံ**ကို
 #    `assets/gfx_args.json` ထဲ မှတ်ထားသည် — `tools/gfx_args.py` က
 #    ပုံစံ ၅ မျိုးကို တကယ် render ပြီး ရွေးထားခြင်း (မှန်းဆ မဟုတ်)。
-# ⚠️ ၂၀၂၆-၀၉-၂၀: အလွတ် ကတ် 14 ခု ဖယ်ထားသည် — **peak frame ကို render ပြီး
-#    မျက်စိနဲ့ တစ်ခုချင်း ကြည့်ပြီးမှ** ဖယ်သည်。 အလိုအလျောက် တိုင်းချက်
-#    (gradient အချိုး · scanline အပြောင်းအလဲ) နှစ်မျိုးစလုံး ကောင်း/ဆိုးကို
-#    မခွဲနိုင်ခဲ့ — `kin4.push_up` က စာသားပါလျက် ၀ ရပြီး `charts.ranking` က
-#    အစက်တစ်ခုတည်းနဲ့ ၀.၀၄၈ ရသည် (ကိန်း ထပ်နေသည်)。 ⇒ ကိန်းတစ်ခုတည်းကို
-#    မယုံရ、`assets/gfx_qual.json` ကို **ညွှန်းချက်အဖြစ်သာ** သုံးရမည်。
 callouts.arc_call
 callouts.arrow_call
 callouts.box_call
 callouts.bracket_call
+callouts.bubble_call
 callouts.crosshair
 callouts.curve_call
 callouts.dash_call
@@ -28,6 +23,7 @@ callouts.scan_box
 callouts.side_note
 callouts.spot_call
 callouts.stack_call
+callouts.tag_call
 callouts.underline_call
 capt.fade_pair
 capt.line_by_line
@@ -37,6 +33,7 @@ capt.soft_in
 capt.two_col
 charts.area_chart
 charts.battery
+charts.bubble_chart
 charts.column_chart
 charts.kpi_tiles
 charts.line_chart
@@ -44,13 +41,16 @@ charts.matrix4
 charts.org_chart
 charts.pct_grid
 charts.pie
+charts.ranking
 charts.sparkline
 charts.speedo
 charts.stacked_bar
 charts.thermometer
+charts.waterfall
 cine.font_card
 cine.title_stack
 dash.avatar_row
+dash.bar_chart
 dash.donut
 dash.funnel
 dash.kpi_card
@@ -74,6 +74,7 @@ infogfx.counter
 infogfx.funnel
 infogfx.gauge
 infogfx.grid
+infogfx.pyramid
 infogfx.quote
 infogfx.radial
 infogfx.ring
@@ -130,6 +131,7 @@ kinetic2.subtitle_2line
 kinetic2.type_cursor
 kinetic2.vert_roll
 kinetic2.wipe_out
+kinetic3.burst_scale
 kinetic3.color_block
 kinetic3.flip_line
 kinetic3.kicker_big_tail
@@ -145,6 +147,8 @@ odo.label_num
 odo.odometer
 odo.percent_ring
 prem.chapter
+prem.cta_outro
+prem.glass_stat
 prem.hero_line
 prem.list_reveal
 prem.lower_third
@@ -190,17 +194,21 @@ titles.chapter
 titles.corner_card
 titles.end_card
 titles.kicker_title
+titles.label_pill
 titles.list_title
 titles.logo_sting
 titles.lower_third
 titles.name_plate
 titles.quote_title
 titles.section
+titles.side_bar
 titles.split_title
 titles.stat_title
+titles.ticker
 titles.title_card
 titles.topic_bar
 titles2.agenda
+titles2.alert_strip
 titles2.big_number
 titles2.breaking
 titles2.callout
@@ -282,9 +290,3 @@ typo.word_cascade
 typo2.arc_labels
 typo2.ghost_word
 typo2.title_lift
-
-# ⚠️ ၂၀၂၆-၀၉-၂၀ — `insert.*` က High-Retention explainer insert。
-#    Zin ရဲ့ reference (KCN4-2hyUBM) ကို တိုင်းပြီး ကိုယ်ပိုင် ဆွဲထားသည်。
-#    အချိုး ၄ မျိုး × template ၂ ခု — အကြောင်းအရာ အနားထိမှု ၀.၀၀% (စစ်ပြီး)。
-insert.insert_label
-insert.insert_flow

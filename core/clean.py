@@ -363,19 +363,22 @@ def _drop_intervals(segs, sp, drop_idx, edge, dur=None):
                 del_end = max((e for s_, e in sp if e <= keep_on), default=None)
         head = prev_end is None and del_on is None      # ဖိုင်အစကနေ ဖျက်မည်
         tail = nk is None and dur is not None            # ဖိုင်အဆုံးအထိ ဖျက်မည်
+        # ⚠️ ငြင်းလျှင် **ဘယ်ဖျက်ချက်ကြောင့်လဲ အတိအကျ** ပြန်ပြောရမည် (Zin ၂၀၂၆-၀၉-၁၈) —
+        #   "ဗီဒီယို လုံးဝ မထွက်" ဆိုသော တိတ်ဆိတ် ကျရှုံးမှုကို လက်မခံပါ。
+        wh = f"ဝါကျ {[k + 1 for k in run]}"
         if (prev_end is None or del_on is None) and not head:
-            return None, "ရှေ့/နောက် စကား နယ်နိမိတ် မရ"
+            return None, f"{wh} — ရှေ့ စကား နယ်နိမိတ် မရ"
         if (keep_on is None or del_end is None) and not tail:
-            return None, "ရှေ့/နောက် စကား နယ်နိမိတ် မရ"
+            return None, f"{wh} — နောက် စကား နယ်နိမိတ် မရ"
         pt = lambda end_, start_, side: ((end_ + start_) / 2.0 if start_ - end_ < 2 * edge
                                          else (end_ + edge if side == "a" else start_ - edge))
         a = 0.0 if head else pt(prev_end, del_on, "a")
         b = float(dur) if tail else pt(del_end, keep_on, "b")
-        if b <= a: return None, "နယ်နိမိတ် ပြောင်းပြန်"
+        if b <= a: return None, f"{wh} — နယ်နိမိတ် ပြောင်းပြန်"
         hit = [k + 1 for k in range(n) if k not in drop and a < segs[k]["start"] < b]
-        if hit: return None, f"ထားမည့် ဝါကျ {hit} ကို ထိ"
+        if hit: return None, f"{wh} — ထားမည့် ဝါကျ {hit} ကို ထိ"
         if M.in_speech(a, sp) or M.in_speech(b, sp):
-            return None, "F2 ဖြတ်မှတ် စကားပေါ် ကျ"
+            return None, f"{wh} — F2 ဖြတ်မှတ် စကားပေါ် ကျ"
         out.append([round(a, 3), round(b, 3)])
     return out, None
 

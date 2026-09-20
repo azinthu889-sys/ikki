@@ -170,7 +170,14 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     def _sp(txt, sz, outp, h=None):
         d = dict(text=txt, font=font, fallback=fallback, size=sz, w=W, h=h or band_h,
                  fill=fill, unit="cluster", align="center",
-                 shadow=dict(dx=0, dy=int(sz*0.05), blur=int(sz*0.11), alpha=0.55),
+                 # ⚠️ အရိပ်က **ဖတ်ရလွယ်မှုအတွက်** — အလှအတွက် မဟုတ်。
+                 #    ၂၀၂၆-၀၉-၂၀ တိုင်းချက်: အလင်းများသော B-roll ပေါ်မှာ
+                 #    စာလုံး/နောက်ခံ ကွာခြားမှု **၃.၄၀:၁** သာ ရှိပြီး ဖတ်ရလွယ်သော
+                 #    စံ (၄.၅:၁) အောက် ကျနေသည် (stroke မပါသော style များ)。
+                 #    ⇒ alpha ၀.၅၅→၀.၇၂ · blur ၀.၁၁→၀.၁၄ (ဒီဇိုင်း မပြောင်း၊
+                 #    အောက်ခံ မှောင်ပေးရုံ)。 stroke ရှိသော style မှာ သက်ရောက်မှု နည်း。
+                 shadow=dict(dx=0, dy=max(1, int(sz*0.055)), blur=max(2, int(sz*0.14)),
+                             alpha=0.72),
                  frames=[{"out":outp, "words":[]}])
         if stroke and stroke_w:
             d["stroke"] = stroke; d["strokeWidth"] = max(2, int(sz*stroke_w))

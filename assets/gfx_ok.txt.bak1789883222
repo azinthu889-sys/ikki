@@ -282,9 +282,3 @@ typo.word_cascade
 typo2.arc_labels
 typo2.ghost_word
 typo2.title_lift
-
-# ⚠️ ၂၀၂၆-၀၉-၂၀ — `insert.*` က High-Retention explainer insert。
-#    Zin ရဲ့ reference (KCN4-2hyUBM) ကို တိုင်းပြီး ကိုယ်ပိုင် ဆွဲထားသည်。
-#    အချိုး ၄ မျိုး × template ၂ ခု — အကြောင်းအရာ အနားထိမှု ၀.၀၀% (စစ်ပြီး)。
-insert.insert_label
-insert.insert_flow

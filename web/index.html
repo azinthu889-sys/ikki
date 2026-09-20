@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0A0A">
-<link rel="stylesheet" href="/app.css?v=1789487380">
+<link rel="stylesheet" href="/app.css?v=1789837035">
 </head>
 <body>
 
@@ -72,13 +72,13 @@
             <div><h4 data-my="ဗီဒီယို တင်ရန်" data-en="Upload video">ဗီဒီယို တင်ရန်</h4>
               <p data-my="MP4 · MOV · 4K · 8 GB အထိ" data-en="MP4 · MOV · 4K · up to 8 GB">MP4 · MOV · 4K · 8 GB အထိ</p></div>
           </button>
-          <div class="hcard"><div class="bgim im1"></div><div class="grain"></div><div class="grd"></div><div class="in">
+          <div class="hcard" data-pick="cinematic-vlog" role="button" tabindex="0"><div class="bgim im1"></div><div class="grain"></div><div class="grd"></div><div class="in">
             <span class="kick" data-my="အသုံးများဆုံး" data-en="Most used">အသုံးများဆုံး</span>
             <h4>Cinematic Vlog</h4><p>Pyidaungsu · 24fps</p></div></div>
-          <div class="hcard"><div class="bgim im4"></div><div class="grain"></div><div class="grd"></div><div class="in">
+          <div class="hcard" data-pick="short-video" role="button" tabindex="0"><div class="bgim im4"></div><div class="grain"></div><div class="grd"></div><div class="in">
             <span class="kick" data-my="အမြန်ဆုံး" data-en="Fastest">အမြန်ဆုံး</span>
             <h4>Short Video</h4><p>9:16 · ၉ မိနစ်</p></div></div>
-          <div class="hcard"><div class="bgim im3"></div><div class="grain"></div><div class="grd"></div><div class="in">
+          <div class="hcard" data-pick="course" role="button" tabindex="0"><div class="bgim im3"></div><div class="grain"></div><div class="grd"></div><div class="in">
             <span class="kick" data-my="ကျောင်းအတွက်" data-en="For teaching">ကျောင်းအတွက်</span>
             <h4>Course</h4><p data-my="အနားယူချိန် ချန်ထားတယ်" data-en="Keeps the pauses">အနားယူချိန် ချန်ထားတယ်</p></div></div>
         </div>
@@ -87,7 +87,7 @@
         <!-- ⚠️ ဗီဒီယို ပုံစံ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်ကြောင်း
              တိုင်းထားသည် (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。
              မရွေးလျှင် ပြန်စ ရှာဖွေမှု **ပိတ်** — တိတ်ဆိတ်မှု ဖြတ်တာက ပုံမှန်အတိုင်း。 -->
-        <div class="sech"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
+<div class="sech"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
         <div class="chips" id="vfmtbox" style="margin-bottom:8px">
           <button class="chip vfmt" data-vfmt="camera" aria-pressed="false"
             data-my="ကင်မရာကို ပြောတာ" data-en="Talking to camera">ကင်မရာကို ပြောတာ</button>
@@ -100,15 +100,33 @@
           data-my="«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။"
           data-en="For “talking to camera” we look for retakes and show them (nothing is cut — you choose).">«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။</p>
 
-        <div class="sech"><h3 data-my="ပုံစံ ရွေးပါ" data-en="Choose a style">ပုံစံ ရွေးပါ</h3></div>
-        <div class="chips" style="margin-bottom:8px">
-          <button class="chip cat" data-cat="creator" aria-pressed="true">Creator</button>
-          <button class="chip cat" data-cat="biz">Business</button>
-          <button class="chip cat" data-cat="edu">Education</button>
+                <!-- ⚠️ dual-system — ကင်မရာ mic က −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည်
+             (၂၀၂၆-၀၉-၁၉ တိုင်းချက်)。 recorder အသံ တင်လျှင် အလိုအလျောက် ချိန်ညှိပြီး
+             ပေါင်းသည် — **ဂိတ် မအောင်လျှင် မပေါင်းဘဲ ပြောပြသည်**。 -->
+        <div id="audiobox" style="border:1px dashed var(--ln);border-radius:12px;
+             padding:12px;margin:0 0 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:190px">
+            <b style="font-size:13.5px" data-my="အသံ သီးသန့် ရိုက်ထားလား? (dual-system)"
+               data-en="Recorded audio separately?">အသံ သီးသန့် ရိုက်ထားလား? (dual-system)</b>
+            <p class="lede" style="font-size:12px;margin:4px 0 0" id="audnote"
+               data-my="recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်"
+               data-en="Upload the recorder file — we align and merge it">recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်</p>
+          </div>
+          <label class="btn" style="cursor:pointer" data-my="အသံ ဖိုင် ရွေး" data-en="Choose audio">အသံ ဖိုင် ရွေး
+            <input type="file" id="audfile" accept="audio/*,.m4a,.wav,.mp3" hidden></label>
+          <button class="more" id="audclr" hidden data-my="ဖယ်" data-en="Clear">ဖယ်</button>
         </div>
-        <div class="list styles" data-cat="creator" id="styles"></div>
+        <div class="sech"><h3 data-my="ပုံစံ ရွေးပါ" data-en="Choose a style">ပုံစံ ရွေးပါ</h3></div>
+        <!-- ⚠️ category tab ဖယ်ပြီး — dropdown ထဲ optgroup နဲ့ ပါပြီးသား -->
+        <div id="styles"></div>
 
-        <div class="sech"><h3 data-my="ဘရန်း" data-en="Brand">ဘရန်း</h3>
+                <!-- ⚠️ ရှုပ်ထွေးမှု လျှော့ချရန် — မလိုအပ်တာ အားလုံး ဤအထဲ (Zin ၂၀၂၆-၀၉-၁၉)。
+             ပုံမှန် သုံးစွဲသူက ဖွင့်စရာ မလို — ပုံစံ တစ်ခုတည်း ရွေးပြီး စတင်လို့ ရသည်။ -->
+        <details id="adv" style="margin-top:8px;border:1px solid var(--ln);border-radius:14px;padding:0 14px">
+          <summary style="cursor:pointer;padding:14px 0;font-weight:600;font-size:14px;list-style:none"
+            ><span data-my="အဆင့်မြင့် ချိန်ညှိချက်" data-en="Advanced">အဆင့်မြင့် ချိန်ညှိချက်</span><span id="advsum" style="font-weight:400;color:#78716C;margin-left:8px;font-size:13px"></span></summary>
+          <div style="padding-bottom:10px">
+<div class="sech"><h3 data-my="ဘရန်း" data-en="Brand">ဘရန်း</h3>
           <button class="more" id="gostyle" data-my="ဘရန်း ပြင်မယ် →" data-en="Edit brands →">ဘရန်း ပြင်မယ် →</button></div>
         <p class="lede" style="margin:0 0 12px;font-size:13px"
           data-my="အရောင်နှင့် ဖောင့်ကို ဘရန်းက ဆုံးဖြတ်တယ်။ အရွယ်က သီးသန့်။"
@@ -142,6 +160,9 @@
         </div>
         <p id="fontwhy" class="lede" style="margin:0 0 12px;font-size:13px;color:var(--ac)" hidden></p>
         <div class="list" id="fontpick"></div>
+          </div>
+        </details>
+
       </div>
 
       <!-- တင်နေဆဲ -->
@@ -210,6 +231,11 @@
               data-my="ဗီဒီယို မဖြတ်ရသေးပါ — ဘယ်အပိုင်း ကျန်မလဲ သင် ဆုံးဖြတ်ပါ"
               data-en="Nothing has been cut yet — you decide what stays">ဗီဒီယို မဖြတ်ရသေးပါ — ဘယ်အပိုင်း ကျန်မလဲ သင် ဆုံးဖြတ်ပါ</p>
             <p id="revsum" style="font-size:12.5px;color:var(--tx2);margin:0 0 12px"></p>
+            <!-- ⚠️ Script Editor — ဤစာမျက်နှာထက် အသစ် (🔵 တိတ် · 🟢 အသံ · ⋯ ဝါကျအတွင်း ခွဲ ·
+                 script ကို **အနီ ပြရုံ · မဖျက်**)。 Zin ၂၀၂၆-၀၉-၁၉ -->
+            <a id="tosed" class="btn" style="display:inline-block;text-decoration:none;margin-bottom:12px"
+               data-my="📝 Script Editor မှာ ဖွင့် (အသစ်)" data-en="📝 Open in Script Editor (new)"
+               href="#">📝 Script Editor မှာ ဖွင့် (အသစ်)</a>
             <details style="margin-bottom:12px">
               <summary style="font-size:13px;cursor:pointer;color:var(--tx2)"
                 data-my="Script ရှိပါသလား? ဒီမှာ ထည့်ပါ" data-en="Have a script? Paste it here">Script ရှိပါသလား? ဒီမှာ ထည့်ပါ</summary>
@@ -482,6 +508,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1789567168"></script>
+<script src="/app.js?v=1789891588"></script>
 </body>
 </html>

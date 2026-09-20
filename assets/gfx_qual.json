@@ -1,0 +1,30 @@
+[
+ {
+  "id": "insert.insert_label",
+  "category": "explainer",
+  "ok": 1,
+  "n": 60,
+  "peak": 0.005,
+  "w": 1080,
+  "h": 1440,
+  "alpha": 1.0,
+  "detail": 0.005,
+  "clip": 0.0,
+  "vn": 2,
+  "vedge": 0.3169
+ },
+ {
+  "id": "insert.insert_flow",
+  "category": "explainer",
+  "ok": 1,
+  "n": 60,
+  "peak": 0.00899,
+  "w": 1080,
+  "h": 1440,
+  "alpha": 1.0,
+  "detail": 0.00899,
+  "clip": 0.0,
+  "vn": 1,
+  "vedge": 0.2171
+ }
+]

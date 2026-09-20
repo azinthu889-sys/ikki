@@ -113,7 +113,59 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
     return spans, cuts, st
 
 
-def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN):
+def guard(drops, sp, tail=0.0, lead=0.0):
+    """ဖျက်မည့် အပိုင်းများကို **လူ့ ဖြတ်မှတ် အလေ့အထ** အတိုင်း ချုံ့ပေးသည်。
+
+    tail = ချန်မည့် စကား run အဆုံးပြီး ဤအချိန်အထိ ထပ်ချန် (အဆုံးသတ် အမြီး မပြတ်စေရန်)
+    lead = နောက် စကား run အစ မတိုင်မီ ဤအချိန်မှ ပြန်စ (ဦးခေါင်း pre-roll)
+
+    ⚠️ Zin ၏ YouTube အပြီးသတ်ကို တိုင်း၍ ရသော ကိန်းများ (calib `edit`)。
+       tail ဦးစားပေး — ကွက်လပ် မဆံ့လျှင် lead ကို လျှော့သည်
+       (「အဆုံးသတ် ပြတ်တာက ပိုဆိုး」 — Zin ၂၀၂၆-၀၉-၁၈)。
+    ⚠️ စကား run **ထဲ ဘယ်တော့မှ မဝင်ရ** — ဖျက်ရမည့် စကား ပြန်ပေါ်လာမည်。
+    """
+    if not drops or (tail <= 0 and lead <= 0): return [list(x) for x in drops]
+    out = []
+    for a, b in drops:
+        a, b = float(a), float(b)
+        pe = max((y for x, y in sp if y <= a + 1e-9), default=None)
+        do = min((x for x, y in sp if x >= (pe if pe is not None else a)), default=None)
+        de = max((y for x, y in sp if y <= b + 1e-9), default=None)
+        ko = min((x for x, y in sp if x >= b - 1e-9), default=None)
+        a2 = a if pe is None else min(pe + tail, (do - 0.02) if do is not None else b)
+        b2 = b if ko is None else max((de + 0.02) if de is not None else a, ko - lead)
+        if b2 <= a2 + 0.05:                       # ကွက်လပ် မဆံ့ ⇒ tail ဦးစားပေး
+            b2 = min(b, a2 + 0.05)
+            if b2 <= a2: a2, b2 = a, b
+        if b2 - a2 > 0.05: out.append([max(a2, 0.0), b2])
+    return out
+
+
+def quiet_at(t, db, hop, win=0.35):
+    """`t` ရဲ့ ±win အတွင်း **စွမ်းအင် အနိမ့်ဆုံး** အချိန် — မရလျှင် `t`。
+
+    ⚠️ ဤစပီကာလို **ဆက်တိုက် ပြောသူ**များမှာ တကယ့် တိတ်ဆိတ်မှု မရှိသလောက်
+       ဖြစ်သည် (၇၇.၇s မှာ ၃.၆s ပဲ)。 ဝါကျ နယ်နိမိတ် ၂၂ ခုထဲ ၁၈ ခု (၈၁%) က
+       စကား run ရဲ့ **အလယ်** မှာ ကျပြီး တချို့က အနားကနေ ၂–၆s ဝေးသည်
+       (၂၀၂၆-၀၉-၂၀ တိုင်းထားသည်)。 ⇒ တိတ်ဆိတ်မှုကိုပဲ ရှာနေလျှင် ဘယ်တော့မှ
+       မတွေ့ဘဲ ASR ရဲ့ ကြမ်းသော အချိန်မှတ်အတိုင်း ဖြတ်မိပြီး —
+         · ဖျက်လိုက်သော ဝါကျရဲ့ အသံ **ကျန်နေ**သည်
+         · ဖြတ်ဆက်က **ကြမ်း**သည် (Zin: 「အဆုံးသတ်လေးတွေသိပ်မလှဘူး」)
+       တိုင်းချက် — အနိမ့်ဆုံးမှတ်ဆီ ရွှေ့လျှင် ဖြတ်မှတ်ရဲ့ စွမ်းအင်
+       **အလယ်တန်း ၂၄.၃ dB ကျ**သည် (p25 ၁၆.၃ · p75 ၂၈.၇) · ရွှေ့ရတာ ၀.၂၀s。
+    """
+    if db is None or not hop: return t
+    n = len(db)
+    i = int(round(t / hop))
+    if i <= 0 or i >= n: return t
+    lo = max(0, int((t - win) / hop)); hi = min(n, int((t + win) / hop) + 1)
+    if hi - lo < 2: return t
+    j = lo + min(range(hi - lo), key=lambda k: db[lo + k])
+    return j * hop
+
+
+def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN,
+             db=None, hop=None):
     """သုံးစွဲသူ ဖျက်ထားသော အချိန်အပိုင်းများကို `spans` ကနေ **တကယ် နုတ်**သည်。
 
     ⚠️ transcript ကနေ စာကြောင်း ဖျက်လိုက်တာက အရင်က **စာတန်းကိုပဲ** ဖယ်ခဲ့ပြီး
@@ -129,9 +181,14 @@ def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN):
     for a, b in (sil or []):
         edges.append(a); edges.append(b)
     def snapto(t, lo, hi):
-        if not edges: return t
-        c = min(edges, key=lambda e: abs(e - t))
-        return c if (abs(c - t) <= snap and lo <= c <= hi) else t
+        # ① တကယ့် တိတ်ဆိတ်မှု အနားသတ် ရှိလျှင် အဲဒါ အကောင်းဆုံး
+        if edges:
+            c = min(edges, key=lambda e: abs(e - t))
+            if abs(c - t) <= snap and lo <= c <= hi: return c
+        # ② မရှိလျှင် **စွမ်းအင် အနိမ့်ဆုံးမှတ်** — ASR ရဲ့ ကြမ်းသော
+        #    အချိန်မှတ်အတိုင်း ဖြတ်တာထက် အလယ်တန်း ၂၄ dB တိတ်သည်。
+        q = quiet_at(t, db, hop, snap)
+        return q if lo <= q <= hi else t
     cuts = []
     for a, b in sorted(drop):
         a2 = snapto(float(a), float(a) - snap, float(b))

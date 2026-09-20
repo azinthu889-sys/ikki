@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "_note": "IKKI dev server — Dockerfile ရဲ့ CMD အတိုင်း (uvicorn main:app)。 ⚠️ `cwd` မသုံးရ (project root အတွင်း relative သာ ခွင့်ပြု) ⇒ `--app-dir` ကို **absolute** ထားသည်; `main.py` က WEB/core ကို `__file__` ကနေ တွက်၍ cwd မလို。 ⚠️ IKKI_DB/IKKI_DATA ကို /tmp/ikki_dev ဆီ လွှဲရမည် — မလွှဲလျှင် container path `/data` ကို ရေးဖို့ ကြိုးစားပြီး 'Read-only file system' ကျသည်。 ⚠️ ဤသည် ထုတ်လုပ်မှု VPS မဟုတ် — DB ဗလာ · worker မချိတ်。 ⚠️ port ကို **ကိန်းသေ မထားရ** — 8080 ကို အခြား chat ရဲ့ server က ကိုင်ထားတတ်သည်。 OAuth callback · webhook မရှိ၊ web က `/api` ဆိုသော relative လမ်းကြောင်းသာ သုံးသဖြင့် ဘယ် port မဆို ရသည် ⇒ `autoPort` ဖွင့်ပြီး `$PORT` ကို ယူသည်。 ⚠️ uvicorn က `PORT` ကို ကိုယ်တိုင် မဖတ်ပါ ⇒ `sh -c` ဖြင့် ထည့်ပေးရသည် (runtimeArgs က shell မဟုတ်၍ `$PORT` မဖြန့်ပါ)。",
+  "configurations": [
+    {
+      "name": "ikki-api",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c",
+        "exec /Users/zinthuaung/.ikki/venv/bin/uvicorn main:app --app-dir /Users/zinthuaung/ikki/api --host 127.0.0.1 --port \"${PORT:-8080}\""],
+      "env": {
+        "IKKI_DB": "/tmp/ikki_dev/ikki.db",
+        "IKKI_DATA": "/tmp/ikki_dev",
+        "IKKI_USER_TOKEN": "dev-user",
+        "IKKI_WORKER_TOKEN": "dev-worker"
+      },
+      "autoPort": true,
+      "port": 8080
+    }
+  ]
+}

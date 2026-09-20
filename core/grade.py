@@ -20,9 +20,35 @@ LEVELS = dict(imin=0.145, imax=0.72, omin=0.075, omax=1.0)
 CURVE  = "0/0 0.16/0.10 0.40/0.40 0.68/0.80 1/1"
 CBAL   = dict(rm=0.0, gm=0.035, bm=-0.03, rh=0.01, gh=0.03, bh=-0.045)
 
+# ── သဘာဝ mode (၂၀၂၆-၀၉-၂၀ · Zin: "သဘာ၀အကျဆုံး · အလင်းအမှောင်မှန်ပါစေ") ──
+# C0088 ရဲ့ frame ၁၂ ခုကို chain တစ်ခုချင်း ဖြတ်ပြီး တိုင်းရွေးထားသည် —
+#   မူရင်း   : ဖြူဖြတ် ၀.၀၀% · မည်းဖြတ် ၀.၀၀% · p05 ၃၅ · အလယ် ၁၀၀ · p95 ၁၄၂ · G−B +၁.၆
+#   ယခင် ZJL : ဖြူဖြတ် ၀.၀၀% · မည်းဖြတ် **၁.၂၂%** · p05 **၆** · အလယ် ၉၂ · p95 ၁၉၁ · G−B **+၁၅.၅**
+#   သဘာဝ     : ဖြူဖြတ် ၀.၀၀% · မည်းဖြတ် ၀.၀၀% · p05 ၃၁ · အလယ် ၁၀၂ · p95 ၁၄၈ · G−B **+၁.၈**
+# ⇒ အရိပ်ထဲ အချက်အလက် မပျောက်、အရောင် မလှည့်、contrast ပါးပါးသာ တင်သည်。
+#
+# ⚠️ `eq=saturation` က **မူရင်းမှာ ရှိပြီးသား အရောင်စောင်းကို ချဲ့ပေးသည်** —
+#    ၁.၀၂ တင်ရုံနဲ့ G−B က +၁.၈ ကနေ **+၆.၃** တက်သွားသည် (တိုင်းပြီး)。
+#    ⇒ သဘာဝ mode မှာ sat = ၁.၀ · eq ကို လုံးဝ မထည့်。
+# ⚠️ `recipes.py` ကနေ ယူသည် — အဲဒီဖိုင်က API image ထဲ ပါပြီး ဒီဖိုင် မပါ。
+#    ဒီမှာ သတ်မှတ်လျှင် `/api/styles` ပျက်သည် (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
+try: from recipes import NATURAL
+except ImportError: from core.recipes import NATURAL
+
 def chain(rc):
     """recipe အလိုက် ffmpeg filter chain — မလိုလျှင် None"""
     if not rc.get("grade", True): return None
+    # သဘာဝ mode — recipe က သီးသန့် မသတ်မှတ်ထားသော ကိန်းတိုင်းကို ဖြည့်ပေးသည်
+    # ⚠️ **အပြည့် override** ဖြစ်ရမည် — "မရှိမှ ဖြည့်" လုပ်လျှင် `cbal`/`sat` က
+    #    DEF ကနေ တန်ဖိုး ရပြီးသား ဖြစ်၍ ဘယ်တော့မှ မဝင်、colorbalance နဲ့
+    #    sat ၁.၀၅ ကျန်နေမည် (တိုင်းစစ်၍ တွေ့)。 look ကွဲချင်သော recipe က
+    #    `natural=False` ထားပြီး ကိုယ့်ကိန်း ကိုယ် ထားရမည်。
+    # `recipes.get()` က ဖြန့်ပြီးသား ဖြစ်သင့်သည် — ဒီမှာက raw dict နဲ့
+    # တိုက်ရိုက် ခေါ်လျှင် အတွက်သာ (မရှိမှ ဖြည့်၊ ရှိတာ မထိ)。
+    if rc.get("natural"):
+        rc = dict(rc)
+        for k, v in NATURAL.items():
+            if rc.get(k) is None: rc[k] = v
     sat  = rc.get("sat")
     vign = rc.get("vign")
     if sat is None and vign is None: return None
@@ -87,7 +113,9 @@ def chain(rc):
     if g:
         g = max(0.85, min(1.30, float(g)))
         parts.append(f"eq=gamma={g:.3f}:saturation={sat}")
-    else:
+    elif abs(sat - 1.0) > 1e-6:
+        # sat ၁.၀ ဆိုလျှင် eq ကို လုံးဝ မထည့် — YUV အသွားအပြန်က
+        # G−B ကို +၁.၆ ⇒ +၁.၂ ချသည် (တိုင်းပြီး)。 filter မထည့်တာက တိကျသည်。
         parts.append(f"eq=saturation={sat}")
     if vign > 0: parts.append(f"vignette=a={vign}")
     return ",".join(parts)

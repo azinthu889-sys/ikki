@@ -14,13 +14,17 @@
    transition က ဖန်သားပြင်တစ်ခုလုံး ဖုံးသည် (A-roll ပျောက်မည်) ·
    mockup က ပြင်ပ ဓာတ်ပုံ လိုသည် · motion က နောက်ခံ element。
 """
-import os, sys
+import os, sys, json
 
 MK = os.environ.get("IKKI_MOTIONKIT",
       "/Applications/my file/My bussiness/ZAE NEW　OPERATION/N8N Work Flow/n8n All Workflow/motionkit")
 
 # overlay အဖြစ် သုံးလို့ရသော အမျိုးအစား
-USE = ("title", "infographic", "callout", "typography", "text", "chart")
+# ⚠️ **အမျိုးအစား အသစ် ထည့်လျှင် ဒီမှာပါ ထည့်ရမည်**。 ၂၀၂၆-၀၉-၂၀:
+#    `insert` module ကို catalog မှာ မှတ်ပုံတင်ပြီးသော်လည်း `explainer` က
+#    ဒီစာရင်းထဲ မပါ၍ `usable()` က ဖယ်ပစ်ကာ IKKI ဆီ **လုံးဝ မရောက်**ခဲ့。
+USE = ("title", "infographic", "callout", "typography", "text", "chart",
+       "explainer")
 
 _CAT = None
 LAST_ERR = [None]      # catalog() ကျခဲ့လျှင် အကြောင်းရင်း — report အတွက်
@@ -51,8 +55,39 @@ def catalog():
 def usable(categories=USE):
     return [e for e in catalog() if e.get("category") in categories]
 
+
+# ── စာရင်း (list) argument ─────────────────────────────────
+# ⚠️ template ၁၀၂ ခု (charts · infogfx · maps · dash · capt …) က ပထမ param
+#    အဖြစ် **စာရင်း** ယူသည် — `rows` · `lines` · `items` · `words` · `vals`。
+#    `fill()` က မဆောက်တတ်၍ 「fill ဗလာ」 သို့မဟုတ် 「too many values to
+#    unpack」 ဖြင့် ကျခဲ့သည် (၂၀၂၆-၀၉-၁၉ တိုင်းချက်)。
+# ⚠️ ပုံစံက template တစ်ခုချင်း မတူ ⇒ **မှန်းဆ၍ မရ**。 `tools/gfx_args.py` က
+#    တစ်ခုချင်း တကယ် render ပြီး အလုပ်ဖြစ်တဲ့ ပုံစံကို `assets/gfx_args.json`
+#    ထဲ မှတ်ထားသည် — ဤမှာ အဲဒါကို ဖတ်ရုံသာ。
+SHAPES = {
+    "pair":  [("ဂျပန်မှာ အလုပ်", 62), ("ပညာသင်", 41), ("ဗီဇာ", 27)],
+    "text":  ["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
+    "num":   [62, 41, 27],
+    "dict":  [{"label": "ဂျပန်မှာ အလုပ်", "value": 62},
+              {"label": "ပညာသင်", "value": 41},
+              {"label": "ဗီဇာ", "value": 27}],
+    "trip":  [("ဂျပန်မှာ အလုပ်", "ZAE", 62), ("ပညာသင်", "ZAE", 41),
+              ("ဗီဇာ", "ZAE", 27)],
+}
+_ARGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          "assets", "gfx_args.json")
+_SHAPE_OF = None
+
+def shape_of(tid):
+    """template id → စာရင်း ပုံစံ နာမည် (မသိလျှင် None)"""
+    global _SHAPE_OF
+    if _SHAPE_OF is None:
+        try: _SHAPE_OF = json.load(open(_ARGS_PATH, encoding="utf-8"))
+        except Exception: _SHAPE_OF = {}
+    return _SHAPE_OF.get(tid)
+
 # ── argument ဖြည့်ခြင်း ──────────────────────────────────────
-def fill(entry, text, sub="", pct=None):
+def fill(entry, text, sub="", pct=None, shape=None):
     """template တစ်ခုအတွက် positional argument tuple。
 
     ⚠️ **စာသား param ကိုသာ ဖြည့်ရမည်**。 size · fill · y · x · maxtrack
@@ -84,6 +119,13 @@ def fill(entry, text, sub="", pct=None):
         #    ⇒ ဖြည့်လို့မရတဲ့ param တွေ့သည်နှင့် **ရပ်**ရမည်。
         if nm == "dur" or p.get("auto"):
             break
+        # ⚠️ **စာရင်း param** — ပုံစံကို `assets/gfx_args.json` မှ ယူသည်
+        if ty == "list" or (ty == "text" and nm in LISTY):
+            sh = shape or shape_of(entry.get("id"))
+            if not sh:
+                if ty == "list": break          # ပုံစံ မသိ ⇒ မဖြည့်ရ
+                args.append([texts[0], sub or "—", "—"]); continue
+            args.append(list(SHAPES.get(sh) or SHAPES["text"])); continue
         if ty == "text":
             if nm in LISTY:
                 args.append([texts[0], sub or "—", "—"])

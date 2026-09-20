@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""template တစ်ခုချင်းရဲ့ **အရည်အသွေး** ကို တိုင်းသည် (peak frame)。
+
+⚠️ ယခင် ဂိတ်က `alpha` ဖုံးအုပ်မှုပဲ တိုင်း၍ **အရောင်တုံးကြီး ချည်းပဲ ပါသော**
+   template များ အောင်သွားခဲ့သည် (၂၀၂၆-၀၉-၂၀ · Zin: 「quality 0」)。
+⚠️ Vision OCR တစ်ခုတည်းနဲ့လည်း မရ — မြန်မာစာ မဖတ်နိုင်。
+⇒ **နှစ်ခုပေါင်း**: gradient သိပ်သည်းမှု (ဘာသာစကား မဆိုင်) + Vision ရဲ့
+   အနား အကွာအဝေး (ဖြတ်ခံထားမှု)。
+"""
+import os, sys, json, subprocess, tempfile
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(HERE, "core"))
+TIMEOUT = int(os.environ.get("GFX_TIMEOUT", "90"))
+
+CHILD = r'''
+import os, sys, json
+sys.path.insert(0, os.path.join(%(HERE)r, "core"))
+import gfxcat as G, dress as DR
+from PIL import Image
+eid, outp = sys.argv[1], sys.argv[2]
+e=[x for x in G.catalog() if x["id"]==eid]
+if not e: print(json.dumps({"ok":0,"why":"id မတွေ့"})); raise SystemExit
+e=e[0]
+args=G.fill(e,"ဂျပန်မှာ အလုပ်","ZAE",62)
+if not args: print(json.dumps({"ok":0,"why":"fill ဗလာ"})); raise SystemExit
+if DR._wants_tag(e["fn"]): args=("g0",)+tuple(args)
+el=G.call(e,args,2.0)
+if not isinstance(el,dict): print(json.dumps({"ok":0,"why":"dict မဟုတ်"})); raise SystemExit
+fr=el.get("anim") or el.get("frames") or []
+if len(fr)<2: print(json.dumps({"ok":0,"why":"ဖရိမ်း %%d"%%len(fr)})); raise SystemExit
+rp=lambda q: q if os.path.isabs(q) else os.path.join(G.MK,q)
+# ⚠️ **alpha အမြင့်ဆုံး frame ကို မယူရ** — ၂၀၂၆-၀၉-၂၀: fade ဝင်နေဆဲ
+#    template (`capt.soft_in`) က alpha ၁၂၈/၂၅၅ သာ ရောက်ပြီး စာသား ဖျော့ဖျော့ကို
+#    တိုင်းမိသည်、နောက်ခံ အမည်း template (`glitch.block_reveal`) က alpha ၁၀၀%%
+#    ဖြစ်ပြီး RGB အကုန် ၀ — အကြောင်းအရာ လုံးဝ မရှိဘဲ အမြင့်ဆုံး ဖြစ်သည်。
+#    ⇒ **အသေးစိတ် (gradient) အများဆုံး** frame ကို ယူရသည် — စာသား
+#    အထင်ရှားဆုံး ဖြစ်ချိန်。 frame တိုင်း မတိုင်းဘဲ ၃ ခုခြား ယူသည် (မြန်စေရန်)。
+import numpy as np
+def _detail(im):
+    a=np.asarray(im,dtype=np.int16); al=a[...,3]
+    f=al[...,None]/255.0
+    comp=a[...,:3]*f+np.array([24,26,32])[None,None,:]*(1-f)
+    g=comp.mean(axis=2)
+    gx=np.abs(np.diff(g,axis=1)); gy=np.abs(np.diff(g,axis=0))
+    gr=np.zeros_like(g)
+    gr[:,:-1]=np.maximum(gr[:,:-1],gx); gr[:-1,:]=np.maximum(gr[:-1,:],gy)
+    op=al>16
+    if op.sum()==0: return 0.0
+    return float(((gr>28)&op).sum())/float(op.sum())
+best=None
+for k,it in enumerate(fr):
+    if k %% 3 and k != len(fr)-1: continue
+    q=rp(it[0] if isinstance(it,(list,tuple)) else it)
+    if not os.path.exists(q): continue
+    im=Image.open(q).convert("RGBA")
+    d=_detail(im)
+    if best is None or d>best[0]: best=(d,im)
+if best is None: print(json.dumps({"ok":0,"why":"ဖိုင် မရှိ"})); raise SystemExit
+best[1].save(outp)
+print(json.dumps({"ok":1,"n":len(fr),"peak":round(best[0],5)}))
+''' % {"HERE": HERE}
+
+
+def main():
+    import gfxcat as G
+    only = os.environ.get("GFX_ONLY")
+    ents = G.usable()
+    if only: ents = [e for e in ents if e["id"] in set(only.split(","))]
+    tmp = tempfile.mkdtemp(prefix="gfxq_")
+    print(f"တိုင်းမည် {len(ents)} ခု", flush=True)
+    out = []
+    for i, e in enumerate(ents, 1):
+        png = os.path.join(tmp, e["id"].replace(".", "_") + ".png")
+        r = {"id": e["id"], "category": e.get("category", "")}
+        try:
+            p = subprocess.run([sys.executable, "-c", CHILD, e["id"], png],
+                               capture_output=True, text=True, timeout=TIMEOUT)
+            o = (p.stdout or "").strip().splitlines()
+            j = json.loads(o[-1]) if o else {"ok": 0, "why": "ထွက်ချက် ဗလာ"}
+            r.update(j)
+            if not j.get("ok") and not j.get("why"):
+                r["why"] = (p.stderr or "")[-100:]
+        except subprocess.TimeoutExpired:
+            r.update({"ok": 0, "why": f"{TIMEOUT}s ကျော်"})
+        except Exception as ex:
+            r.update({"ok": 0, "why": f"{type(ex).__name__}: {ex}"})
+        if r.get("ok") and os.path.exists(png):
+            try:
+                import gfxink
+                r.update(gfxink.stats(png))
+            except Exception as ex:
+                r["why"] = f"ink: {ex}"
+            try:
+                v = subprocess.run([os.path.join(HERE, "tools", "gfxtext"), png],
+                                   capture_output=True, text=True, timeout=60)
+                vj = json.loads((v.stdout or "{}").strip().splitlines()[-1])
+                r["vn"] = vj.get("n", 0); r["vedge"] = vj.get("edge", -1)
+            except Exception:
+                r["vn"] = -1; r["vedge"] = -1
+            os.remove(png)
+        out.append(r)
+        print(f"  [{i:3d}/{len(ents)}] {e['id']:32s} "
+              f"detail={r.get('detail','—')} clip={r.get('clip','—')} "
+              f"vn={r.get('vn','—')} vedge={r.get('vedge','—')} {r.get('why','')[:40]}",
+              flush=True)
+    json.dump(out, open(os.path.join(HERE, "assets", "gfx_qual.json"), "w"),
+              ensure_ascii=False, indent=1)
+    print(f"\nပြီး — assets/gfx_qual.json", flush=True)
+
+
+if __name__ == "__main__":
+    main()

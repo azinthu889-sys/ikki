@@ -11,18 +11,60 @@ import os, subprocess
 
 FADE = 0.02   # ⚠️ select/concat ချည်းသုံးလျှင် ဆက်တိုင်း "ကလစ်" ဆိုသည်
 
-def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M"):
+# ⚠️ **ဖြတ်ချက်ကို framing နဲ့ ဖုံးရသည်**。 ၂၀၂၆-၀၉-၂၀: ၈ စက္ကန့် ဖြုတ်ပြီး
+#    တစ်နေရာတည်းက shot ကို ဆက်လိုက်သဖြင့် ပြောသူက **ခုန်သွားတာ မြင်ရ**ပြီး
+#    「cut ဖြတ်တာရော ... quality 0」 ဟု Zin ပြောခဲ့သည်。 ပရော် editor တွေက
+#    ဖြတ်ဆက်တိုင်း framing ပြောင်းပြီး ခုန်မှုကို **တမင် ဖြတ်ချက်** အဖြစ်
+#    ဖတ်စေသည်。 ⇒ ဖြတ်ဆက်တိုင်း wide ↔ punch-in အလှည့်ကျ。
+# ⚠️ **၁.၂၅× ထက် မကျော်ရ** — proxy က 2560 ဖြစ်၍ ကျော်လျှင် အရည်အသွေး ကျသည်
+#    (BRIEF_ref2_ref3 §၂)。 ယခု ၁.၁၀ — ခုန်မှု ဖုံးလောက်ပြီး သိသာမနေ。
+# ⚠️ ပြောသူရဲ့ ခေါင်း မပြတ်စေရန် **အလယ်ထက် အနည်းငယ် အပေါ်** ကို ချိန်သည်。
+PUNCH = 1.10
+PUNCH_Y = 0.42        # ဖြတ်ယူရာ အကွက်ရဲ့ အလယ် (၀.၅ = အလယ်ကွက်တိ)
+
+
+def _dim(src):
+    """ဗီဒီယိုရဲ့ အကျယ်×အမြင့် — punch-in အတွက် **အတိအကျ** လိုသည်。"""
+    r = subprocess.run(["ffprobe","-v","error","-select_streams","v:0",
+                        "-show_entries","stream=width,height","-of","csv=p=0:s=x",src],
+                       capture_output=True, text=True)
+    try:
+        w, h = (r.stdout or "").strip().split("\n")[0].split("x")[:2]
+        return int(w), int(h)
+    except Exception:
+        return 0, 0
+
+
+def _punch(z, w, h, y=PUNCH_Y):
+    """z ဆ punch-in အတွက် ffmpeg filter — မလိုလျှင် None
+
+    ⚠️ **scale ကို `iw*z` နဲ့ မရေးရ** — crop ပြီးနောက် ပိုင်းစား အကြွင်းကြောင့်
+       ၁၉၂၀ က ၁၉၁၉ ဖြစ်သွားသည် (တကယ် တိုင်း၍ တွေ့)。 span တစ်ခုချင်း အရွယ်
+       မတူလျှင် concat က ပျက်မည် ⇒ မူရင်း အရွယ်ကို **ကိန်းသေနဲ့** ပေးရသည်。
+    """
+    if not z or abs(z - 1.0) < 1e-3 or w <= 0 or h <= 0: return None
+    z = max(1.0, min(1.25, float(z)))
+    cw, ch = int(w / z) // 2 * 2, int(h / z) // 2 * 2
+    return (f"crop={cw}:{ch}:{(w - cw) // 2}:{int((h - ch) * y)},scale={w}:{h}")
+
+
+def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
+          fade=FADE, zooms=None):
     os.makedirs(work, exist_ok=True)
     parts=[]
+    _w, _h = _dim(src) if zooms else (0, 0)
     for i,(a,b) in enumerate(spans):
         d=b-a
         if d <= 0.05: continue
         p=os.path.join(work, f"s{i:04d}.mp4")
-        subprocess.run(["ffmpeg","-v","error","-y",
+        vf = _punch((zooms or {}).get(i), _w, _h)
+        cmd = ["ffmpeg","-v","error","-y",
             "-ss",f"{a:.3f}","-i",src,"-t",f"{d:.3f}",
-            "-af",f"afade=t=in:st=0:d={FADE},afade=t=out:st={max(0,d-FADE):.3f}:d={FADE}",
-            "-r",str(fps),"-c:v",vcodec,"-b:v",vb,"-c:a","aac","-b:a","192k",
-            "-avoid_negative_ts","make_zero",p], check=True)
+            "-af",f"afade=t=in:st=0:d={fade:.4f},afade=t=out:st={max(0,d-fade):.3f}:d={fade:.4f}"]
+        if vf: cmd += ["-vf", vf]
+        cmd += ["-r",str(fps),"-c:v",vcodec,"-b:v",vb,"-c:a","aac","-b:a","192k",
+                "-avoid_negative_ts","make_zero",p]
+        subprocess.run(cmd, check=True)
         parts.append(p)
     if not parts: raise RuntimeError("span မရှိ")
     lst=os.path.join(work,"parts.txt")
@@ -73,4 +115,63 @@ def loudness(inp, out, lufs=-14.0, tp=-1.0, lra=11.0):
     subprocess.run(["ffmpeg","-v","error","-y","-i",inp,"-af",af,
         "-c:v","copy","-c:a","aac","-b:a","192k",
         "-movflags","+faststart",out], check=True)
+
+    # ⚠️ **ရလဒ်ကို တိုင်းပြီး မကိုက်မချင်း ပြန်ချိန်ရမည်**。
+    #    ၂၀၂၆-၀၉-၂၀: true peak −0.1 dBTP ထွက်ခဲ့သည် (ဂိတ် ≤ −1.0)。
+    #    ⚠️ ပထမ ပြင်ချက်မှာ **dB ချရုံ** ချခဲ့ရာ TP ပြေပေမယ့် LUFS −15.5 → −16.7
+    #    ဖြစ်ပြီး **LUFS ဂိတ် ပြန်လွဲ**ခဲ့သည်。 ⇒ ချရုံ မဟုတ်ဘဲ **limiter ထဲ
+    #    gain တင်သွင်း**ရမည် — limiter က TP ကို ထိန်းပြီး loudness တက်သည်
+    #    (mastering ရဲ့ အခြေခံ)。 ဂိတ် နှစ်ခုလုံး ကိုက်မချင်း ၃ ကြိမ် ချိန်သည်。
+    #    ⚠️ ဂိတ်ကို **မလျှော့ပါ** — ဂိတ်ထဲ ဝင်အောင် mastering ကို လုပ်ခိုင်းသည်。
+    # ⚠️ ceiling ကို **ကြိမ်တိုင်း −2.0 ကနေ ပြန်မစရ** — အရင်က အဲဒီလို ရေးမိပြီး
+    #    −2.9 → −2.5 → −2.6 ဟု **တုန်ခါ**နေခဲ့သည် (စမ်းစဉ် ဖမ်းမိ · ၂၀၂၆-၀၉-၂၀)。
+    #    ⇒ state အဖြစ် ချန်ပြီး **အဆင့်လိုက် ချသွား**ရမည်。
+    gain = 0.0
+    ceil_db = -2.0
+    for _it in range(4):
+        got_tp, got_i = _tp(out), _lufs(out)
+        if got_tp is None or got_i is None:
+            print("  ⚠️ mastering ကိန်း မတိုင်းနိုင် — ဆက်သွားသည်", flush=True); break
+        d_tp = got_tp - tp                  # >0 = ပြင်းလွန်း
+        d_i  = lufs - got_i                  # >0 = တိတ်လွန်း
+        if d_tp <= 0.0 and abs(d_i) <= 0.4:
+            print(f"  mastering · I {got_i:+.1f} LUFS · TP {got_tp:+.2f} dBTP "
+                  f"[≤ {tp}] ✓{' · ချိန် '+str(_it)+' ကြိမ်' if _it else ''}", flush=True)
+            break
+        # limiter ခေါင်း — TP ကျော်လျှင် ချ · loudness က gain နဲ့ ပြန်တင်
+        if d_tp > 0: ceil_db -= (d_tp + 0.25)     # ပြင်းလျှင် ခေါင်း ချ (တစ်လမ်းသာ)
+        gain += d_i
+        gain = max(-6.0, min(6.0, gain))
+        lim = 10 ** (ceil_db / 20.0)
+        tmp = out + ".fix.mp4"
+        subprocess.run(["ffmpeg","-v","error","-y","-i",out,
+            "-af", f"volume={gain:+.2f}dB,"
+                   f"alimiter=limit={lim:.4f}:level=disabled:attack=5:release=50",
+            "-c:v","copy","-c:a","aac","-b:a","192k",
+            "-movflags","+faststart",tmp], check=True)
+        os.replace(tmp, out)
+        print(f"  🔧 ချိန် {_it+1} — I {got_i:+.1f}→ပစ်မှတ် {lufs} · TP {got_tp:+.2f} "
+              f"· gain {gain:+.2f} dB · ceiling {ceil_db:.2f} dBFS", flush=True)
     return out
+
+
+def _lufs(path):
+    """ဖိုင်ရဲ့ integrated loudness (LUFS) — မတိုင်းနိုင်လျှင် None。"""
+    import re as _re
+    r = subprocess.run(["ffmpeg","-v","info","-i",path,"-af","ebur128=peak=true",
+                        "-f","null","-"], capture_output=True, text=True)
+    m = _re.findall(r"I:\s*([-\d.]+)\s*LUFS", r.stderr)
+    try: return float(m[-1])
+    except Exception: return None
+
+
+def _tp(path):
+    """ဖိုင်ရဲ့ true peak (dBTP) — မတိုင်းနိုင်လျှင် None。"""
+    import re as _re
+    r = subprocess.run(["ffmpeg","-v","info","-i",path,"-af","ebur128=peak=true",
+                        "-f","null","-"], capture_output=True, text=True)
+    m = _re.findall(r"True peak:\s*\n?\s*Peak:\s*([-\d.]+)", r.stderr)
+    if not m:
+        m = _re.findall(r"Peak:\s*([-\d.]+)\s*dBFS", r.stderr)
+    try: return float(m[-1])
+    except Exception: return None

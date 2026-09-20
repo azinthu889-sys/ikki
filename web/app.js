@@ -20,22 +20,75 @@ var STYLES={creator:[
    "Talk first · repeats removed","Pyidaungsu","30fps"],
   ["knowledge","Knowledge Sharing","infographic များများ",
    "Heavy on infographics","MyanmarSansPro","30fps"],
-  ["short-video","Short Video · ZAE","3:4 · စာတန်းကြီး + navy အနားသတ် · ZAE ပုံစံ အတိအကျ",
-   "3:4 · big captions, navy outline · matched to ZAE","Pyidaungsu Bold","3:4"]],
+  /* ⚠️ style ထည့်တိုင်း **နှစ်နေရာ** ထည့်ရမည်: `core/recipes.py` + ဒီစာရင်း。
+     ⚠️ အောက်က ၃ ခုက **reference ၃ ပုဒ် တိုင်းပြီး** ဆောက်ထားသည်
+        (`assets/calib/ref_hype_2026.json`) — ပုံစံ ၃ မျိုး ကွဲသဖြင့်
+        ပျမ်းမျှ မယူဘဲ သီးသန့် ခွဲထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。 */
+  /* ⚠️ "Fast Cut" ကို ဤပုံစံထဲ **ပေါင်းထားသည်** (Zin ၂၀၂၆-၀၉-၂၀) —
+        ကွာတာက ဖြတ်နှုန်းတစ်ခုတည်း ဖြစ်၍ ပုံစံ သီးသန့် မလို。
+        ပုံစံ ဆက်တင်ထဲက 「အရှိန်」 ကနေ မြန်/ပုံမှန် ရွေးပါ。 */
+  ["ref-talk","Talking Head Motion Edit","စာသား ၃၅% · အောက်တန်း အခြေခံ · အရှိန် ရွေးလို့ရ",
+   "Text 35% · lower-third led · pace selectable","MasterpieceUniRound","ref 1+3"],
+  /* ⚠️ "· ZAE" ကို ဖယ်ထားသည် — brand စာရင်းမှာ **ZAE ဟု နာမည်ပေးထားသော
+     သီးသန့် brand** ရှိပြီး (id b_94ad…) ဤ style ရဲ့ theme `zae` နှင့် မတူ。
+     နာမည် တူနေသဖြင့် ဘယ်ဟာ ရွေးမှန်း မသိရခဲ့သည်。 */
+  ["short-video","Short Video","3:4 · စာတန်းကြီး + navy အနားသတ်",
+   "3:4 · big captions, navy outline","Pyidaungsu Bold","3:4"]],
  biz:[["promotional","Promotional","logo sting · CTA · ဈေးနှုန်း",
    "Logo sting · CTA · pricing","Noto Sans Myanmar","30–90s"],
   ["brand-review","Brand Review","နှိုင်းယှဉ်တန်း · ကြယ် အဆင့်",
    "Comparison rows · star ratings","Padauk Book","16:9"],
-  ["short-biz","Short Video","CTA · ဆက်သွယ်ရန်",
+  /* ⚠️ အရင်က label "Short Video" ဖြစ်ပြီး Creator ရဲ့ "Short Video · ZAE" နဲ့
+     **တိုက်နေ**ခဲ့သည် — dropdown မှာ အတူတူ ၂ ခု ပေါ်ကာ ဘယ်ဟာလဲ မသိရ
+     (Zin ၂၀၂၆-၀၉-၂၀)。 ⇒ စီးပွားရေး ဟာကို ခွဲ နာမည် ပေးသည်。 */
+  ["short-biz","Business Short","CTA · ဆက်သွယ်ရန် ကတ်",
    "CTA · contact card","Archivo Black","9:16"]],
  edu:[["course","Course","အခန်းလိုက် · အနားယူချိန် ချန်",
    "Chaptered · keeps the pauses","Padauk Book Bold","16:9"]]};
 
+/* ⚠️ Zin ၂၀၂၆-၀၉-၂၀ (က): 「style ရွေးလိုက်တာနဲ့ brand + size အလိုလို ကိုက်」
+   ⇒ ရွေးချယ်မှု ၃ ခု → ၁ ခု。 style တိုင်းမှာ `theme` ရှိပြီးသား ဖြစ်၍
+   အဲဒါကို brand အဖြစ် သုံးသည် (built-in brand id = theme id)。
+   size ကို **မသတ်မှတ်ပါ** — `state.fmt` ဗလာဆိုလျှင် brand ရဲ့ native
+   (`FM.NATIVE`: zjl→16:9 · zae→3:4) အလိုလို သုံးသည်。
+   ⚠️ သုံးစွဲသူ ကိုယ်တိုင် ရွေးလိုက်လျှင် **အဲဒါကို အနိုင်ပေးရမည်** — မဟုတ်လျှင်
+   style ပြောင်းတိုင်း သူ့ ရွေးချယ်မှု ပျက်မည်。 ⇒ `ovr` အလံ。 */
+var STHEME={'cinematic-vlog':'zjl','vlog':'zjl','podcast':'zjl',
+  /* ⚠️ `ref-slides` · `ref-fast` က ပေါင်းပြီးသား — စာရင်းမှာ မပြတော့。
+     ဒါပေမယ့် **အဟောင်း job တွေရဲ့ recipe အမည်** အဖြစ် ကျန်နိုင်သဖြင့်
+     theme map မှာတော့ ထားရမည် — မရှိလျှင် ပုံစံ ပြန်ဖွင့်တဲ့အခါ ပျက်မည်。 */
+  'ref-talk':'ikki','ref-slides':'zjl','ref-fast':'zjl',
+  'knowledge':'zjl','brand-review':'zjl','course':'zjl',
+  'short-video':'zae','promotional':'zae','short-biz':'zae'};
+/* ⚠️ style အချို့မှာ brand ရဲ့ native အရွယ်နဲ့ **မတူ**。 `short-biz` က
+   CTA/ဆက်သွယ်ရန် ကတ် အတွက် 9:16 (TikTok/Reels) ဖြစ်ပြီး zae ရဲ့ native
+   က 3:4 — ဒါကြောင့် သီးသန့် သတ်မှတ်ပေးရသည်。 */
+var SSIZE={'short-biz':'9:16'};
+function styleDefaults(){
+  var want=STHEME[state.style];
+  if(!want) return false;
+  var hit=false;
+  if(!state.ovrBrand && state.brand!==want){ state.brand=want; hit=true; }
+  var ws=SSIZE[state.style]||'';
+  if(!state.ovrFmt && state.fmt!==ws){ state.fmt=ws; hit=true; }  // ws ဗလာ ⇒ brand native
+  return hit;
+}
 var NATIVE={};
 var BRANDS=[];
 var FONTS=[];
 var FMTS=[];
-var state={style:'short-video', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', job:null, poll:null, up:null};
+/* ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ် တန်း edit လုပ်လို့ရအောင်」
+   ⇒ ရွေးချယ်မှုကို **မှတ်ထား**သည် — နောက်ဗီဒီယိုမှာ အစကနေ ပြန်ရွေးစရာ မလို。 */
+var SKEY='ikki_prefs';
+var state={style:'short-video', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', job:null, poll:null, up:null,
+  ovrBrand:false, ovrFmt:false};
+try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
+  ['style','brand','font','fmt','cap','vfmt'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+}catch(e){}
+function savePrefs(){
+  try{ localStorage.setItem(SKEY, JSON.stringify({style:state.style,brand:state.brand,
+    font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt})) }catch(e){}
+}
 
 /* ── API ── */
 function askToken(){
@@ -91,19 +144,108 @@ function go(id){
 var scenes=['s-ready','s-up','s-work','s-done','s-err','s-quota'];
 function scene(id){scenes.forEach(function(s){var e=$(s); if(e) e.hidden=s!==id})}
 
-/* ── ပုံစံ စာရင်း ── */
+function nice(t){
+  t=String(t||'').replace(/\.(mp4|mov|m4v|mkv|webm|avi)$/i,'');
+  return t.length>44 ? t.slice(0,41)+'…' : t;
+}
+
+/* ── ပုံစံ စာရင်း — **dropdown တစ်ခုတည်း** (Zin ၂၀၂၆-၀၉-၁၉: 「dropdown လေးနဲ့ ရွေးလို့ရတာက ပိုရှင်း」)
+      ⚠️ category tab (Creator/Business/Education) **ဖျောက်ပြီး** — အားလုံး တစ်နေရာ、
+         optgroup နဲ့ ခွဲပြသည် ⇒ နှိပ်ရမယ့် အကြိမ် ၂ → ၁。 */
+var CATN={creator:['Creator','Creator'],biz:['Business','Business'],edu:['Education','Education']};
+function markPick(){
+  document.querySelectorAll('[data-pick]').forEach(function(c){
+    var on=c.getAttribute('data-pick')===state.style;
+    c.style.outline = on ? '2.5px solid var(--ac)' : '';
+    c.style.outlineOffset = on ? '2px' : '';
+  });
+}
+/* ⚠️ style က brand/size ကို အလိုလို ရွေးပေးသဖြင့် **ဘာ သုံးမလဲ မြင်ရရမည်** —
+   မမြင်ရလျှင် "အလိုလို" က ဖုံးကွယ်မှု ဖြစ်သည် (Zin ၂၀၂၆-၀၉-၂၀)。 */
+/* ⚠️ `esc` က အရင်က function **၂ ခု အတွင်းမှာပဲ** `var esc` ဟု ကြေညာထားခဲ့
+   (line ~1064 · ~1128) ⇒ အခြား scope မှာ **မရှိ**。 picker ကုဒ်မှာ သုံးမိ၍
+   `esc is not defined` နဲ့ ပျက်မည် ဖြစ်ခဲ့သည် (deploy မလုပ်ခင် စမ်းစဉ် ဖမ်းမိ ·
+   ၂၀၂၆-၀၉-၂၀)。 ⇒ module အဆင့် helper。 အတွင်းက local တွေကို မထိပါ。 */
+function esc(x){ return String(x==null?'':x)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;'); }
+function paintAdv(){
+  var el=$('advsum'); if(!el) return;
+  var bn=(BRANDS.find?BRANDS.find(function(b){return b.id===state.brand}):null);
+  var nat=NATIVE[state.brand]||'16:9';
+  var sz=state.fmt||nat;
+  el.textContent='— '+((bn&&bn.name)||state.brand)+' · '+sz
+    + (state.ovrBrand||state.ovrFmt ? ' (ကိုယ်တိုင် ရွေးထား)' : '');
+}
 function paintStyles(){
-  var cat=document.querySelector('.cat[aria-pressed="true"]');
-  cat=cat?cat.getAttribute('data-cat'):'creator';
-  $('styles').innerHTML=STYLES[cat].map(function(s){
-    return '<div class="lrow'+(s[0]===state.style?' sel':'')+'" data-style="'+s[0]+'">'+
-      '<div class="thumb im1"></div><div class="lname"><b>'+s[1]+'</b><span'+
-        (cur==='my'?' class="my"':'')+'>'+(cur==='my'?s[2]:s[3])+'</span></div>'+
-      '<div class="lmeta hidesm">'+s[4]+'</div><div class="ldur hidesm">'+s[5]+'</div>'+
-      '<div class="wave hidesm"></div><div class="lacts">'+
-      (s[0]===state.style?'<span class="pill p-ac">'+(cur==='my'?'ရွေးထား':'Selected')+'</span>':'')+
-      '</div></div>';
-  }).join('');
+  var el=$('styles'); if(!el) return;
+  /* ⚠️ Zin ၂၀၂၆-၀၉-၂၀: 「dropdown ပုံစံကြီးက မမိုက်ဘူး — နမူနာ ဗီဒီယို
+     animation လေးတွေ ပါပြထားတဲ့ ပုံစံ ပိုကြိုက်」 ⇒ dropdown ဖြုတ်ပြီး ကတ်。
+     ⚠️ နမူနာက **ဂရပ်ဖစ် ပုံစံ**ကို ပြသည် — ဖြတ်ချက်/စာတန်း အပြည့် မဟုတ်。
+     ⚠️ `preload="none"` — poster သာ အရင် ဆွဲ ⇒ စာမျက်နှာ မနှေး。 */
+  var cur_=state.style, pick=null;
+  Object.keys(STYLES).forEach(function(c){
+    STYLES[c].forEach(function(t){ if(t[0]===cur_) pick=t });
+  });
+  if(!pick){ pick=STYLES[Object.keys(STYLES)[0]][0]; cur_=state.style=pick[0]; }
+  function dsc(t){ return cur==='my'?t[2]:t[3]; }
+
+  var h='<div class="sgal">';
+  Object.keys(STYLES).forEach(function(c){
+    h+='<div class="sgal-h">'+esc(CATN[c][0])+'</div>';
+    STYLES[c].forEach(function(t){
+      var id=t[0];
+      h+='<button type="button" class="scard" data-sv="'+esc(id)+'"'
+       + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
+       + '<span class="thumb">'
+       +   '<img src="prev/'+esc(id)+'.jpg" alt="" loading="lazy" decoding="async">'
+       +   '<video src="prev/'+esc(id)+'.mp4" muted loop playsinline preload="none"'
+       +   ' disablepictureinpicture></video>'
+       +   '<span class="tick" aria-hidden="true">✓</span>'
+       + '</span>'
+       + '<span class="meta"><b>'+esc(t[1])+'</b><s>'+esc(dsc(t))+'</s></span>'
+       + '</button>';
+    });
+  });
+  h+='</div>';
+  h+='<p class="lede" style="font-size:12.5px;margin:10px 0 0">'
+   + esc(pick[4])+' · '+esc(pick[5])+'</p>';
+  el.innerHTML=h;
+  paintAdv();
+
+  var cards=[].slice.call(el.querySelectorAll('.scard'));
+  function play(card,on){
+    var v=card.querySelector('video'); if(!v) return;
+    card.classList.toggle('play', on);
+    if(on){ var q=v.play(); q&&q.catch&&q.catch(function(){}); }
+    else { try{ v.pause(); v.currentTime=0 }catch(e){} }
+  }
+  cards.forEach(function(card){
+    card.onmouseenter=function(){ play(card,true) };
+    card.onmouseleave=function(){ play(card,false) };
+    card.onfocus=function(){ play(card,true) };
+    card.onblur=function(){ play(card,false) };
+    card.onclick=function(){
+      var v=card.getAttribute('data-sv');
+      if(v===state.style) return;
+      state.style=v;
+      if(styleDefaults()) loadMeta();
+      paintStyles();
+    };
+  });
+  /* ⚠️ ဖုန်းမှာ hover မရှိ ⇒ မြင်ကွင်းထဲ ရောက်တာနဲ့ ဖွင့်ပေးသည်。
+     ⚠️ တစ်ချိန်တည်း အားလုံး ဖွင့်လျှင် ဖုန်း နှေးမည် — **တစ်ခုတည်း**သာ。 */
+  if(window.matchMedia&&window.matchMedia('(hover:none)').matches&&window.IntersectionObserver){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting&&e.intersectionRatio>0.6){
+          cards.forEach(function(c){ play(c, c===e.target) });
+        }
+      });
+    },{threshold:[0,0.6,1]});
+    cards.forEach(function(c){ io.observe(c) });
+  }
+  markPick();
 }
 
 /* ── brand ── */
@@ -112,9 +254,14 @@ function loadMeta(){
     BRANDS=d.brands;
     // ⚠️ chip မှာ အရွယ် မပြတော့ဘူး — အရွယ်က သီးသန့် ရွေးတာ ဖြစ်သဖြင့်
     //    ဒီမှာ ပြလျှင် "ဘရန်းက အရွယ် သတ်မှတ်တယ်" ဟု အထင်မှားသည်。
+    /* ⚠️ Zin ၂၀၂၆-၀၉-၂၀: 「brand နာမည်တွေ ဖြုတ်ပေးပါ · Default တစ်ခုစီ ထားပေး」
+       တိုင်းချက်: job ၃၉ ခုလုံး `zjl`(၂၄) / `zae`(၁၅) ကိုပဲ သုံးပြီး —
+       သုံးစွဲသူ brand ကို **တစ်ခါမှ ကိုယ်တိုင် မရွေးဖူး** (style ကနေ အလိုလို)。
+       ⇒ နာမည်ရှည် မလို · ဘယ်ဟာက ပုံသေလဲ **အမှတ်အသား** သာ လိုသည်。 */
+    var _dflt=(typeof STHEME!=='undefined')?STHEME[state.style]:null;
     $('brandpick').innerHTML=d.brands.map(function(b){
       return '<button class="chip bp" data-b="'+b.id+'"'+(b.id===state.brand?' aria-pressed="true"':'')+'>'+
-        b.name+'<small>'+(b.colors||[]).slice(0,4).map(function(c){
+        b.name+(b.id===_dflt?'<em class="dflt">'+(cur==='my'?'ပုံသေ':'default')+'</em>':'')+'<small>'+(b.colors||[]).slice(0,4).map(function(c){
           return '<i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px;background:'+c+'"></i>'
         }).join('')+'</small></button>';
     }).join('');
@@ -235,6 +382,10 @@ function upload(f){
     .then(function(d){ id=d.upload_id; state.up=id; CH=d.chunk||CH;
       // ⚠️ R2 mode — browser က R2 ကို တိုက်ရိုက် တင်သည်。 VPS မဖြတ်သဖြင့်
       //    Cloudflare ရဲ့ အနီးဆုံး edge ကို သွားပြီး အများကြီး မြန်သည်。
+      // ⚠️ ဖိုင်က worker ရဲ့ စက်ထဲ ရှိပြီးသားဆို **တစ် byte မှ မတင်ရ**
+      if(d.mode==='have'){ sent=f.size; bar();
+        $('upname').textContent=f.name+' — စက်ထဲ ရှိပြီးသား · တင်စရာ မလို ⚡';
+        return {upload_id:id}; }
       if(d.mode==='r2') return r2up();
       function next(){
         if(dead) return Promise.reject(new Error('cancelled'));
@@ -257,38 +408,78 @@ function upload(f){
     });
 
   function r2up(){
-    var parts=[], n=0;
-    function one(){
+    // ⚠️ အရင်က အပိုင်း **တစ်ခုပြီးမှ တစ်ခု** တင်ပြီး အပိုင်းတိုင်းအတွက်
+    //    presigned URL ကို သီးသန့် သွားတောင်းခဲ့သည်。 တိုင်းချက် (၂၀၂၆-၀၉-၁၉):
+    //      · presign အသွားအပြန် အလယ်တန်း ၂၀၀ ms (အများဆုံး ၆၇၆)
+    //        ⇒ ၄.၅ GB (၈ MB အပိုင်း ၅၆၂ ခု) = **၁၁၂ စက္ကန့် စောင့်ရုံ**
+    //      · Zin ရဲ့ လိုင်းမှာ parallel က **ပိုနှေး** (4.1 → 3.2 MB/s) —
+    //        လိုင်း ကိုယ်တိုင် ပြည့်နေ၍。 ဒါပေမယ့် လိုင်း မြန်သော customer
+    //        မှာ parallel က အများကြီး ကူသည် ⇒ **ပုံသေ မထားရ · တိုင်းပြီး ချိန်ရ**。
+    var parts=[], next=1, inflight=0, urls={}, uNext=1, err=null, doneB=0;
+    var CONC=1, best=0, bestC=1, probe=0, tMark=performance.now(), bMark=0;
+    var NP=Math.ceil(f.size/CH);
+
+    function grab(){           // presigned URL များ **အစုလိုက်** ကြိုတောင်း
+      if(uNext>NP) return Promise.resolve();
+      var k=Math.min(50, NP-uNext+1), from=uNext; uNext+=k;
+      return api('/upload/'+id+'/parts?frm='+from+'&n='+k,{method:'POST'})
+        .then(function(d){ (d.urls||[]).forEach(function(u,i){ urls[d.from+i]=u }) });
+    }
+
+    function tune(bytes){      // ⚠️ concurrency ကို **တိုင်းပြီး** ချိန်သည်
+      doneB+=bytes;
+      var el=(performance.now()-tMark)/1000;
+      if(el<4) return;
+      var mbps=(doneB-bMark)/1048576/el;
+      if(mbps>best*1.08){ best=mbps; bestC=CONC; if(CONC<6) CONC++; }
+      else if(CONC>bestC){ CONC=bestC; }
+      else if(probe++%4===3 && CONC<6){ CONC++; }
+      tMark=performance.now(); bMark=doneB;
+    }
+
+    function put(pn){
+      var from=(pn-1)*CH, to=Math.min(f.size, from+CH), size=to-from;
+      var tries=0;
+      function go(){
+        var u=urls[pn];
+        if(!u) return grab().then(go);
+        return fetch(u,{method:'PUT',body:f.slice(from,to)}).then(function(r){
+          if(!r.ok) throw new Error('r2 '+r.status);
+          var et=r.headers.get('ETag');
+          // ⚠️ ETag မရလျှင် complete ကျမည် — bucket CORS ရဲ့ ExposeHeaders
+          if(!et) throw new Error('ETag မရ — bucket CORS ကို စစ်ပါ');
+          parts.push({n:pn, etag:et}); sent+=size; bar(); tune(size);
+        }).catch(function(e){
+          if(dead || String(e.message).indexOf('ETag')===0) throw e;
+          if(++tries>4) throw e;
+          delete urls[pn];      // URL သက်တမ်း ကုန်နိုင် — ပြန်တောင်း
+          return new Promise(function(res){setTimeout(res,1500*tries)}).then(go);
+        });
+      }
+      return go();
+    }
+
+    function pump(){
+      if(err) return Promise.reject(err);
       if(dead) return Promise.reject(new Error('cancelled'));
-      if(sent>=f.size){
+      if(next>NP && inflight===0){
+        // ⚠️ complete က အပိုင်း နံပါတ် **အစဉ်လိုက်** လိုသည် — အပြိုင် တင်၍ ရောနေ
+        parts.sort(function(x,y){return x.n-y.n});
         return api('/upload/'+id+'/complete',{method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({parts:parts})})
           .then(function(){ return {upload_id:id} });
       }
-      n+=1;
-      var from=sent, to=Math.min(f.size,sent+CH), pn=n;
-      return api('/upload/'+id+'/part?n='+pn,{method:'POST'})
-        .then(function(d2){
-          return fetch(d2.url,{method:'PUT',body:f.slice(from,to)});
-        })
-        .then(function(r){
-          if(!r.ok) throw new Error('r2 '+r.status);
-          // ⚠️ ETag ကို ဖတ်လို့ ရမရ က bucket ရဲ့ CORS ExposeHeaders ပေါ်
-          //    မှီသည်。 မရလျှင် complete က ကျဘမ်း ဖြစ်မည် — ဒါကြောင့်
-          //    ဒီမှာ တိတ်တဆိတ် မဖြတ်ဘဲ အမှား ပြသည်。
-          var et=r.headers.get('ETag');
-          if(!et) throw new Error('ETag မရ — bucket CORS ကို စစ်ပါ');
-          parts.push({n:pn, etag:et});
-          sent=to; bar(); return one();
-        })
-        .catch(function(e){
-          if(dead||String(e.message).indexOf('ETag')===0) throw e;
-          n-=1;   // part နံပါတ် ပြန်သုံးရမည်
-          return new Promise(function(res){setTimeout(res,2500)}).then(one);
-        });
+      var jobs=[];
+      while(inflight<CONC && next<=NP){
+        var pn=next++; inflight++;
+        jobs.push(put(pn).then(function(){inflight--},
+                               function(e){inflight--; err=err||e}));
+      }
+      if(!jobs.length) jobs.push(new Promise(function(r){setTimeout(r,60)}));
+      return Promise.race(jobs).then(pump);
     }
-    bar(); return one();
+    bar(); return grab().then(pump);
   }
 }
 
@@ -301,12 +492,34 @@ function start(f){
     return;
   }
   upload(f).then(function(d){
+    // ⚠️ အသံ ရှိလျှင် **ဗီဒီယို ပြီးမှ** တင်သည် — တစ်ပြိုင်တည်း တင်လျှင်
+    //    လိုင်း မျှပြီး နှစ်ခုလုံး နှေးသည်。
+    if(!AUD) return {upload_id:d.upload_id, audio:null};
+    return upload(AUD).then(function(a){ return {upload_id:d.upload_id, audio:a.upload_id} });
+  }).then(function(d){
     return api('/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({upload_id:d.upload_id,recipe:state.style,brand_id:state.brand,fmt:state.fmt,cap:state.cap,
+      body:JSON.stringify({upload_id:d.upload_id,audio_upload_id:d.audio||'',
+                           recipe:state.style,brand_id:state.brand,fmt:state.fmt,cap:state.cap,
                            font:state.font,title:f.name,vfmt:state.vfmt})});
-  }).then(function(j){ watch(j.job_id) })
+  }).then(function(j){ savePrefs(); watch(j.job_id) })
     .catch(function(e){ if(String(e.message)!=='cancelled'&&String(e.message)!=='quota') fail(e.message) });
 }
+
+/* ── dual-system အသံ ── */
+var AUD=null;
+document.addEventListener('DOMContentLoaded',function(){
+  var f=$('audfile'); if(!f) return;
+  f.onchange=function(){
+    AUD=this.files[0]||null;
+    var n=$('audnote'), c=$('audclr');
+    if(AUD){ n.textContent=(cur==='my'?'ရွေးထား: ':'Selected: ')+AUD.name+
+      ' ('+(AUD.size/1e6).toFixed(1)+' MB)'; if(c) c.hidden=false; }
+  };
+  var c=$('audclr');
+  if(c) c.onclick=function(){ AUD=null; f.value=''; c.hidden=true;
+    $('audnote').textContent=(cur==='my'?'recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်'
+                                       :'Upload the recorder file — we align and merge it'); };
+});
 
 /* ── job စောင့်ကြည့်ခြင်း ── */
 function paintSteps(){
@@ -366,6 +579,12 @@ function dock(j){
   $('dkbar').style.width=Math.round((j.stage||0)/7*100)+'%';
 }
 function done(j){
+  // ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「ဗီဒီယို upload ပြီးတာနဲ့ Script Editor အော်တို ပေါ်မှ」
+  //    ⇒ `review` (ASR ပြီး · ဗီဒီယို မထုတ်ရသေး) ရောက်တာနဲ့ **တန်း ခေါ်သွားသည်**。
+  //    `?old=1` ထည့်လျှင် ယခင် စာမျက်နှာ ဆက်ကြည့်လို့ ရသည် (လုံးဝ မပိတ်ရ)。
+  if(j && j.status==='review' && !/[?&]old=1/.test(location.search)){
+    location.href='/script.html?job='+encodeURIComponent(j.id); return;
+  }
   scene('s-done'); $('dock').hidden=true;
   var cut=Math.max(0,(j.src_dur||0)-(j.out_dur||0));
   function mmss(s){s=Math.round(s);return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
@@ -402,7 +621,17 @@ function done(j){
   // ⚠️ ညွှန်ပြချက်တွေကို **ပြရမည်** — Zin ရဲ့ spec: ဖြတ်စာရင်း ပြပြီး
   //    သူ အတည်ပြုမှ ဖြတ်ရမယ်။ မပြလျှင် ကတိ ပျက်သည်。
   var K={restart:['ပြန်စ','restart'],repeat:['ထပ်နေတာ','repeat'],
-         cough:['ချောင်းဆိုး','cough'],filler:['ဖြည့်စကား','filler']};
+         cough:['ချောင်းဆိုး','cough'],filler:['ဖြည့်စကား','filler'],
+         // ⚠️ ဖျက်ခိုင်းထားတာ ၁၀၀% မဖျက်ဖြစ်ခဲ့ — **အမြဲ ပြရမည်**
+         drop_left:['⚠️ မဖျက်နိုင်','⚠️ not cut'],
+         // ⚠️ ဒီမှာ မထည့်လျှင် raw အမည် (`flash_shot`) အတိုင်း ပေါ်သည် —
+         //    Zin က 「ဘာအတွက်လဲ」 မေးခဲ့သည် (၂၀၂၆-၀၉-၂၀)。 kind အသစ်
+         //    ထည့်တိုင်း **ဒီစာရင်းထဲ ပါရမည်**。
+         flash_shot:['⚠️ ဖျပ်ခနဲ မြင်ကွင်း','⚠️ flash shot'],
+         // ⚠️ `clean.plan()` က `retake` ကိုပါ ထုတ်သည် — စက်က အုပ်စု ဖွဲ့ရုံသာ၊
+         //    ဘယ်ဟာ ကောင်းလဲကို **လူက ရွေးရမည်** (တိုင်းထားသော precision
+         //    ၈၈.၉% က ၉၀% ဂိတ် မမီ)。
+         retake:['ပြန်ရိုက်ထားတာ — ရွေးပါ','retake — you pick']};
   var fl=j.flag_list||[];
   if(fl.length){
     $('flagbox').hidden=false;
@@ -460,6 +689,7 @@ function done(j){
     if(_h3) _h3.textContent = _rev
       ? (cur==='my' ? 'ဘယ်အပိုင်း ကျန်မလဲ ရွေးပါ' : 'Choose what stays')
       : (cur==='my' ? 'စာသား ပြင်ရန်' : 'Edit the transcript');
+    var _ts=$('tosed'); if(_ts){ _ts.hidden=!_rev; _ts.href='/script.html?job='+j.id; }
     if(_rev){
       var pl=j.plan; if(typeof pl==='string'){ try{pl=JSON.parse(pl)}catch(e){pl=null} }
       state.plan = pl || null;
@@ -558,7 +788,9 @@ function paintJobs(){
         ((j.id.charCodeAt(3)%5)+1)+'\';this.removeAttribute(\'src\')">'
       : '<div class="thumb im'+((j.id.charCodeAt(3)%5)+1)+'"></div>';
     return '<div class="lrow">'+th+
-      '<div class="lname"><b class="my">'+(j.title||j.id)+'</b><span>'+(j.brand_id||'')+'</span></div>'+
+      // ⚠️ ခေါင်းစဉ်က R2 key (pYoIvgBmehsq…) ဖြစ်တတ်၍ **ဖတ်လို့ မရ** ⇒
+      //    extension ဖြုတ် · ရှည်လျှင် ဖြတ် (**ပြဖို့သာ** — DB မထိ)。
+      '<div class="lname"><b class="my">'+nice(j.title||j.id)+'</b><span>'+(j.brand_id||'')+'</span></div>'+
       '<div class="lmeta hidesm">'+(j.recipe||'')+'</div>'+
       '<div class="ldur hidesm mono">'+(j.out_dur?Math.round(j.out_dur)+'s':'—')+'</div>'+
       '<div class="wave hidesm"></div><div class="lacts">'+
@@ -567,6 +799,18 @@ function paintJobs(){
       (j.gone? '<span class="pill p-no">'+(cur==='my'?'ဖိုင် ပျောက်':'file gone')+'</span>' : '')+
       (j.status==='done' && !j.gone?'<button class="iact" data-play="'+j.id+'" aria-label="Play">▶</button>'+
         '<a class="iact" href="/api/jobs/'+j.id+'/file?t='+encodeURIComponent(TOKEN)+'" aria-label="Download">↓</a>':'')+
+      // ⚠️ Script Editor — စာသား ရှိပြီးသား job တိုင်းမှာ ပြရမည်。 ဖိုင် ပျောက်နေလည်း
+      //    စာသား တည်းဖြတ်လို့ ရသည် (ထွက်ဖိုင် မလို · segs ကိုသာ သုံး)。
+      //    token က `ikki_token` အတူတူမို့ ပြန် login စရာ မလို。
+      // ⚠️ `review` = **သင် လုပ်ရန် ကျန်နေတာ** ⇒ icon သေးသေး မဟုတ်ဘဲ
+      //    ခလုတ် ရှင်းရှင်း ပြရမည် (၂၀၂၆-၀၉-၁၉ — icon ချည်း ဖြစ်နေ၍ ဘာလုပ်ရမှန်း မသိ)。
+      (j.status==='review'
+        ? '<a class="btn" style="text-decoration:none;padding:7px 14px;font-size:12.5px" '+
+          'href="/script.html?job='+j.id+'">'+(cur==='my'?'✂️ ဖြတ်ရန်':'✂️ Edit')+'</a>' : '')+
+      (j.status==='done'
+        ? '<a class="iact" href="/script.html?job='+j.id+'" aria-label="'+
+          (cur==='my'?'စာသား တည်းဖြတ်':'Script editor')+'" title="'+
+          (cur==='my'?'စာသား တည်းဖြတ်':'Script editor')+'">📝</a>' : '')+
       // ⚠️ ဖျက်ခလုပ် — ပြီးသွားတာ/ပျက်သွားတာမှာသာ。 လုပ်နေဆဲကို ဖျက်လျှင်
       //    worker က ဆက်ရေးနေပြီး ဖိုင် ကျန်နေမည် ⇒ အရင် ရပ်ခိုင်းရသည်。
       (['done','failed','cancelled'].indexOf(j.status)>-1
@@ -609,10 +853,15 @@ document.addEventListener('click',function(e){
   var op=e.target.closest&&e.target.closest('[data-open]');
   if(op){ go('v-new'); watch(op.getAttribute('data-open')); return }
   var n=e.target.closest&&e.target.closest('[data-go]'); if(n) go(n.getAttribute('data-go'));
-  var c=e.target.closest&&e.target.closest('.cat');
-  if(c){[].forEach.call(document.querySelectorAll('.cat'),function(o){o.setAttribute('aria-pressed',o===c?'true':'false')}); paintStyles()}
+  // ⚠️ category chip ဖယ်ပြီး (dropdown ထဲ optgroup နဲ့ ပါပြီးသား) — handler မလိုတော့
+  // ⚠️ hero ကတ် ၃ ခုက ယခင်က **နှိပ်လို့ရပုံ ပေါ်နေပြီး ဘာမှ မဖြစ်**ခဲ့ (၂၀၂၆-၀၉-၁၉ တိုင်းစစ်ပြီး)
+  //    ⇒ recipe ရွေးပေးပြီး dropdown ကိုပါ ညှိသည် (နှစ်နေရာ မကွဲစေရန်)。
+  var hp=e.target.closest&&e.target.closest('[data-pick]');
+  if(hp){ state.style=hp.getAttribute('data-pick'); styleDefaults(); paintStyles(); markPick();
+    var el=document.getElementById('styles'); if(el&&el.scrollIntoView)
+      el.scrollIntoView({behavior:'smooth',block:'center'}); return }
   var s=e.target.closest&&e.target.closest('[data-style]');
-  if(s){state.style=s.getAttribute('data-style'); paintStyles()}
+  if(s){state.style=s.getAttribute('data-style'); styleDefaults(); paintStyles()}
   var dl=e.target.closest&&e.target.closest('[data-del]');
   if(dl){
     var row=dl.closest('.row');
@@ -678,7 +927,7 @@ document.addEventListener('click',function(e){
   var ff=e.target.closest&&e.target.closest('[data-font]');
   if(ff){ state.font=ff.getAttribute('data-font'); loadMeta(); }
   var b=e.target.closest&&e.target.closest('.bp');
-  if(b){state.brand=b.getAttribute('data-b');
+  if(b){state.brand=b.getAttribute('data-b'); state.ovrBrand=true;
     [].forEach.call(document.querySelectorAll('.bp'),function(o){o.setAttribute('aria-pressed',o===b?'true':'false')});
     // ⚠️ brand ပြောင်းလျှင် ပုံသေ အရွယ်လည်း ပြောင်းသည် — ပြန်ဆွဲရမည်
     loadMeta();}
@@ -686,7 +935,7 @@ document.addEventListener('click',function(e){
   if(cp){state.cap=cp.getAttribute('data-cap');
     [].forEach.call(document.querySelectorAll('.cp'),function(o){o.setAttribute('aria-pressed',o===cp?'true':'false')})}
   var fm=e.target.closest&&e.target.closest('.fmt');
-  if(fm){state.fmt=fm.getAttribute('data-fmt');
+  if(fm){state.fmt=fm.getAttribute('data-fmt'); state.ovrFmt=true;
     [].forEach.call(document.querySelectorAll('.fmt'),function(o){o.setAttribute('aria-pressed',o===fm?'true':'false')})}
   var fd=e.target.closest&&e.target.closest('.stf');
   if(fd){[].forEach.call(document.querySelectorAll('.stf'),function(o){o.setAttribute('aria-pressed',o===fd?'true':'false')}); paintJobs()}
@@ -713,7 +962,7 @@ $('drop').onclick=function(){$('file').click()};
 $('file').onchange=function(){ if(this.files[0]) start(this.files[0]) };
 $('again').onclick=function(){scene('s-ready'); loadJobs()};
 var fr=$('fontreset'); if(fr) fr.onclick=function(){state.font=''; loadMeta()};
-var fmr=$('fmtreset'); if(fmr) fmr.onclick=function(){state.fmt=''; loadMeta()};
+var fmr=$('fmtreset'); if(fmr) fmr.onclick=function(){state.fmt=''; state.ovrFmt=false; loadMeta()};
 var cpr=$('capreset'); if(cpr) cpr.onclick=function(){state.cap=''; loadMeta()};
 // ⚠️ "ရွေးတာ" နှင့် "ပြင်တာ" ကို ခွဲထားသည် — Create မှာ ရွေးရုံ၊
 //    ပြင်ချင်လျှင် Style & brand စာမျက်နှာ သွားရမည်。
@@ -1792,7 +2041,8 @@ var bs=$('besave'); if(bs) bs.onclick=function(){
 };
 var bd=$('bedel'); if(bd) bd.onclick=function(){
   if(!editing||!editing.id) return;
-  if(!confirm(cur==='my'?('"'+editing.name+'" ကို ဖျက်မလား?'):('Delete "'+editing.name+'"?'))) return;
+  // ⚠️ `confirm()` မမှီခို (တိတ်တဆိတ် false ပြန်သည်) — နှစ်ဆင့် နှိပ်ခိုင်းသည်
+  if(!confirmTwo(bd, cur==='my'?'တကယ် ဖျက်မှာလား? နောက်တစ်ခါ နှိပ်ပါ':'Delete? Click again')) return;
   api('/brands/'+editing.id,{method:'DELETE'}).then(function(){
     if(state.brand===editing.id) state.brand='zae';
     bclose(); loadMeta();
@@ -1866,6 +2116,18 @@ function sopen(id){
       cur==='my'?'ဒီပုံစံအတွက်သာ — တခြားပုံစံကို မထိဘူး':'For this style only — others untouched',
       sel('mmf',(FONTS.length?FONTS:[{id:st.mmf,name:st.mmf}]).map(function(f){return [f.id,f.name]}),
           o.mmf||st.mmf), st.mmf);
+  /* ⚠️ ပေါင်းထားသော ပုံစံ ၂ ခုရဲ့ ပြင်းအား — ဒါမရှိလျှင် ပေါင်းလိုက်တာက
+        ပုံစံ ၂ ခု **ပျောက်သွား**ရုံပဲ ဖြစ်မည်。 */
+  if(st.slide_amt)
+    h+=row('slide_amt', cur==='my'?'ကတ် ပမာဏ':'Slide amount',
+      cur==='my'?'ထူထူ = ဘောင်အပြည့် ကတ် အဓိက (အရင် Slide Heavy)':'Heavy = full-frame slide led',
+      sel('slide_amt',[['light',cur==='my'?'ပါးပါး':'Light'],
+                       ['heavy',cur==='my'?'ထူထူ':'Heavy']], o.slide_amt||st.slide_amt), st.slide_amt);
+  if(st.pace)
+    h+=row('pace', cur==='my'?'အရှိန်':'Pace',
+      cur==='my'?'မြန် = ဖြတ်ချက် ပိုများ (အရင် Fast Cut) — စကားထဲ မဖြတ်ပါ':'Fast = more cuts (was Fast Cut) — never inside speech',
+      sel('pace',[['normal',cur==='my'?'ပုံမှန်':'Normal'],
+                  ['fast',cur==='my'?'မြန်':'Fast']], o.pace||st.pace), st.pace);
   h+=row('latin', cur==='my'?'Latin ဖောင့်':'Latin type','',
       sel('latin',(SMETA.latin||[st.latin]).map(function(f){return [f,f]}), o.latin||st.latin), st.latin);
   h+=row('cut', cur==='my'?'ဖြတ်မှု':'Cutting',
@@ -1890,7 +2152,7 @@ function sopen(id){
       st.stroke||'—');
   h+=row('gfx', cur==='my'?'ဂရပ်ဖစ်':'Graphics',
       cur==='my'?'အများဆုံး — စကားနဲ့ ကိုက်တဲ့အခါပဲ တင်တယ်':'Max — only placed where the speech matches',
-      rng('gfx',0,14,1,(o.gfx!==undefined?o.gfx:st.gfx),String), st.gfx);
+      rng('gfx',0,30,1,(o.gfx!==undefined?o.gfx:st.gfx),String), st.gfx);
   h+=row('broll','B-roll',
       cur==='my'?'အများဆုံး — စာကြည့်တိုက်နဲ့ ကိုက်တဲ့အခါပဲ':'Max — only where the library matches',
       rng('broll',0,10,1,(o.broll!==undefined?o.broll:st.broll),String), st.broll);
@@ -1960,4 +2222,21 @@ document.addEventListener('click',function(e){
   if(se) sopen(se.getAttribute('data-sedit'));
 });
 
+})();
+
+/* ── နောက် ဗီဒီယို — `#new` နဲ့ ရောက်လာလျှင် တန်း ဖိုင် ရွေးခိုင်းသည် ──
+   ⚠️ browser က user နှိပ်မှသာ file picker ဖွင့်ခွင့်ပေး၍ **တန်း မဖွင့်နိုင်**、
+      ⇒ upload ကွက်ကို ချုံ့ပြပြီး အလင်းပေးသည် (သတိထားမိစေရန်)。 */
+(function(){
+  function go(){
+    if(location.hash!=='#new') return;
+    var b=document.querySelector('[data-go="v-new"]'); if(b) b.click();
+    var d=document.getElementById('drop');
+    if(d){ d.scrollIntoView({behavior:'smooth',block:'center'});
+      d.style.transition='box-shadow .3s'; d.style.boxShadow='0 0 0 4px var(--ac)';
+      setTimeout(function(){ d.style.boxShadow='' },1800); }
+    history.replaceState(null,'',location.pathname);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go);
+  else go();
 })();

@@ -7,11 +7,43 @@
 ⚠️ scratch ကို **Mac ထဲမှာသာ** ထားရမည် — ပြင်ပ ExFAT disk မှာ PNG သေးသေး
    ရေးတာ ၂၀ ဆ နှေးသည် (တိုင်းပြီး: ၅၀၀ ဖိုင် · ပြင်ပ 1.47s vs Mac ထဲ 0.07s)。
 """
-import json, math, os, shutil, subprocess, sys, time, traceback, urllib.request, urllib.error
+import json, math, os, re, shutil, subprocess, sys, time, traceback, urllib.request, urllib.error
 
 API    = os.environ.get("IKKI_API", "http://127.0.0.1:8080")
 TOKEN  = os.environ.get("IKKI_WORKER_TOKEN", "dev-worker")
 SCRATCH= os.path.expanduser("~/.ikki/scratch")
+# ⚠️ render လုပ်နေစဉ် ရှိနေမည့် အမှတ်ဖိုင် — `deploy.sh` က ဒါကို စစ်သည်。
+BUSY   = os.path.expanduser("~/.ikki/busy")
+# ⚠️ motionkit ကတ်တစ်ခုရဲ့ **အတိုဆုံး သဘာဝ အရှည်** (တိုင်းထားသည်:
+#    median ၂.၄s · min ၁.၈s · max ၃.၀s — j_e45a95bd33ea ရဲ့ report)。
+#    ကတ် ဘယ်နှစ်ခုအထိ ထုတ်လို့ ရမလဲ တွက်ရာမှာ သုံးသည်。
+CARD_NAT_MIN = 1.8
+LAST_FIT = []          # `_fit_gfx` ရဲ့ မှတ်ချက် — report အတွက်
+# ── ဖိုင်ကြီးများကို သီးသန့် disk မှာ ထားနိုင်သည် ──────────────
+# ⚠️ **ဖိုင်ကြီး သာ** ပြင်ပ disk မှာ ထားရမည် (မူရင်း · proxy)。 PNG ထောင်ချီ
+#    ရေးတဲ့ `_w/` ကို ပြင်ပ မှာ **ဘယ်တော့မှ မထားရ** — တိုင်းချက် ၂၀၂၆-၀၉-၁၉:
+#      Mac ထဲ SSD   ဖိုင်ကြီး 1206 MB/s · ဖိုင်သေး 11654 ဖိုင်/s
+#      ပြင်ပ ExFAT   ဖိုင်ကြီး   31 MB/s · ဖိုင်သေး   176 ဖိုင်/s
+#    ⇒ ဖိုင်ကြီးက ၃၉ ဆ · ဖိုင်သေးက **၆၆ ဆ** နှေးသည်。 R2 ဆွဲချမှုက ၇ MB/s
+#      ဖြစ်၍ ၃၁ MB/s က မူရင်း/proxy အတွက် လုံလောက်သည်。
+# ⚠️ drive မရှိလျှင် **တိတ်တဆိတ် မကျရ** — Mac ထဲကို ပြန်သုံးသည်。
+def _bigdir():
+    d = os.environ.get("IKKI_BIG")
+    if not d: return SCRATCH
+    try:
+        os.makedirs(d, exist_ok=True)
+        t = os.path.join(d, ".w")
+        with open(t, "wb") as f: f.write(b"1")
+        os.remove(t)
+        return d
+    except Exception as e:
+        print(f"  ⚠️ IKKI_BIG သုံးမရ ({e}) — Mac ထဲ scratch ကို သုံးသည်", flush=True)
+        return SCRATCH
+BIG = _bigdir()
+# ⚠️ worker တစ်ခုချင်း **ကွဲပြားသော အမှတ်** ရှိရမည် — job တစ်ခုတည်းကို
+#    worker ၂ ခု ယူမိခြင်း မဖြစ်စေရန် (၂၀၂၆-၀၉-၁၉)。
+import socket as _sock
+WORKER_ID = os.environ.get("IKKI_WORKER_ID") or f"{_sock.gethostname()}:{os.getpid()}"
 MK     = os.environ.get("IKKI_MOTIONKIT",
          "/Applications/my file/My bussiness/ZAE NEW　OPERATION/N8N Work Flow/n8n All Workflow/motionkit")
 POLL   = int(os.environ.get("IKKI_POLL", "6"))
@@ -19,14 +51,333 @@ os.makedirs(SCRATCH, exist_ok=True)
 sys.path.insert(0, MK)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "core"))
 
+# ⚠️ **ယာယီ အမှားကြောင့် render တစ်ခုလုံး မဆုံးရှုံးရ**。
+#    ၂၀၂၆-၀၉-၂၀: deploy က API container ကို ပြန်ဆောက်နေစဉ် Caddy က
+#    **404** ပြန်သည် (502 မဟုတ်)。 j_bd28f6df827f က stage 1–6 အောင်ပြီး
+#    stage 7 ပို့ချိန် အဲဒီ ၂–၃ စက္ကန့် အတွင်း တိုက်မိပြီး ၂၀ မိနစ်စာ
+#    အလုပ် ပျက်သွားသည် — retry မရှိလို့。
+#    ⇒ ယာယီ ဖြစ်နိုင်သော အမှား (404/5xx/timeout) ကို နောက်ဆုတ်ပြီး ပြန်ကြိုးစားသည်。
+#    ⚠️ `/claim` ကို **ပြန်မကြိုးစားရ** — အဖြေ ပျောက်ရုံနဲ့ ပြန်ခေါ်လျှင်
+#       job နှစ်ခု ယူမိနိုင်သည်。 ၄၀၀/၄၀၁/၄၀၉/၄၁၀/၄၂၂ က တကယ့် အမှား ⇒ ချက်ချင်း ထုတ်。
+RETRY_CODES = (404, 408, 429, 500, 502, 503, 504)
+RETRY_WAIT  = (2, 5, 12, 25, 45)
+
+# ⚠️ slide အရှည် ချိန်ညှိချက် — **သီးသန့် function** အဖြစ် ထားသည်
+#    (စမ်းသပ်လို့ ရစေရန်)。 ၂၀၂၆-၀၉-၂၀ မှာ render ထဲ တိုက်ရိုက် ရေးထားပြီး
+#    အမှားကို ဗီဒီယို တစ်ပုဒ်လုံး ထုတ်ပြီးမှသာ တွေ့ရသည်。
+SLIDE_GAP = 2.0     # slide နှစ်ခုကြား အနည်းဆုံး ကွာဟချက်
+SLIDE_MIN = 1.0     # `card_len` ဂိတ်ရဲ့ အနိမ့်ဆုံး
+
+# ⚠️ **မြင်ကွင်း အပိုင်းအစ ကျန်နေခြင်း** — ၂၀၂၆-၀၉-၂၀ တွေ့ရှိချက်。
+#    Zin က ဝါကျ ၄ ကြောင်း ဖျက်လိုက်ရာ တခြားနေရာမှာ ရိုက်ထားသော ၇.၃s အပိုင်းရဲ့
+#    **၀.၄၁s သာ ကျန်ခဲ့**ပြီး ထွက်ဗီဒီယိုမှာ ၀.၃၃s ဖျပ်ခနဲ ပေါ်ပျောက် ဖြစ်သည် —
+#    ဖြတ်ချက် ချို့ယွင်းချက် ဟု မြင်ရသည် (「cut ဖြတ်တာရော quality 0」)。
+#    ⚠️ **ကိုယ်တိုင် မဖျက်ရ** — Zin ရဲ့ စည်းမျဉ်း: 「user အတည်ပြုမှ ဖျက်ပေး」。
+#       ⇒ တွေ့လျှင် သတိပေးရုံသာ。
+SHOT_MIN = 0.60          # ဒီထက် တိုသော မြင်ကွင်းက ဖျပ်ခနဲ ဖြစ်သည်
+SHOT_SCENE = 0.22        # မြင်ကွင်း ပြောင်းမှု အနိမ့်ဆုံး
+
+
+def _flash_shots(path, log=None, smin=SHOT_MIN, thr=SHOT_SCENE):
+    """ဖြတ်ပြီး ဗီဒီယိုထဲက **တိုလွန်းသော မြင်ကွင်း** များ ပြန်ပေးသည် [(sec, dur)]"""
+    try:
+        r = subprocess.run(
+            ["ffmpeg", "-v", "error", "-i", path, "-vf",
+             "select='gt(scene,%.2f)',metadata=print:file=-" % thr, "-an", "-f", "null", "-"],
+            capture_output=True, text=True, timeout=300)
+        ts = [float(m) for m in re.findall(r"pts_time:([0-9.]+)", r.stdout or "")]
+    except Exception as e:
+        if log: log("  \u26a0\ufe0f \u1019\u103c\u1004\u103a\u1000\u103d\u1004\u103a\u1038 \u1019\u1010\u102d\u102f\u1004\u103a\u1038\u1014\u102d\u102f\u1004\u103a: %s: %s" % (type(e).__name__, e))
+        return []
+    if not ts: return []
+    try: dur = float(probe(path)["dur"])
+    except Exception: dur = ts[-1]
+    edges = [0.0] + ts + [dur]
+    out = []
+    for i in range(len(edges) - 1):
+        d = edges[i+1] - edges[i]
+        # ပထမနဲ့ နောက်ဆုံး အပိုင်းကို မရေရ — ဖွင့်/ပိတ် ဖြစ်တတ်သည်
+        if 0 < i < len(edges) - 2 and d < smin:
+            out.append((round(edges[i], 2), round(d, 2)))
+    return out
+
+
+# ⚠️ ရုပ်ကို **အသက်ဝင်စေရန်** တဖြည်းဖြည်း ချုံ့/ချဲ့ခြင်း (Zin ၂၀၂၆-၀၉-၂၀:
+#    「smooth zoom in zoomout」)。 reference (KCN4-2hyUBM) မှာ မြင်ကွင်း
+#    **၃၀.၂/မိနစ်** ပြောင်းပြီး ငါတို့မှာ **၀** ဖြစ်ခဲ့သည် — `_zooms` က
+#    **ဖြတ်ချက် နေရာမှာသာ** ပြောင်းသဖြင့် ဖြတ်စရာ မရှိလျှင် ဘာမှ မလှုပ်ပါ。
+# ⚠️ ကာလ ၂ ခုကို ပေါင်းထားသည် (မတူညီသော period) — တစ်ခုတည်းဆိုလျှင်
+#    စက်ဆန်ပြီး ပုံသေ ခံစားရသည်。
+# ⚠️ **၁.၂၅× ထက် မကျော်ရ** (proxy 2560) — ဒီကိန်းက အများဆုံး ၁.၀၅၅。
+# ⚠️ **အသံကို လုံးဝ မထိရ** (`-c:a copy`) — F2 အာမခံချက် မပျက်စေရန်。
+ZOOM_P1, ZOOM_P2 = 17.0, 6.5      # စက္ကန့် — အချင်းချင်း ကိန်းပြည့် မဆ
+def _breathe(cutv, out, fps, amt, w, h, log=None):
+    """`cutv` ကို ချောမွေ့စွာ zoom ဝင်/ထွက် လုပ်ပြီး `out` သို့ ရေးသည်。
+
+    ⚠️ အရွယ်ကို **argument နဲ့ ပေးရမည်**。 `TH` က `render()` ရဲ့ **local**
+       ဖြစ်ပြီး module global မဟုတ်သဖြင့် ဒီထဲကနေ သုံးလျှင် `NameError`
+       ဖြစ်သည် — ၂၀၂၆-၀၉-၂၀ မှာ zoom တစ်ခါမှ မလုပ်ဖြစ်ခဲ့ပြီး
+       try/except ထဲ ပျောက်နေခဲ့သည်。
+    """
+    a1 = float(amt) * 0.64
+    a2 = float(amt) * 0.36
+    z = (f"1+{a1:.4f}*(0.5-0.5*cos(2*PI*on/({fps}*{ZOOM_P1})))"
+         f"+{a2:.4f}*(0.5-0.5*cos(2*PI*on/({fps}*{ZOOM_P2})))")
+    vf = (f"zoompan=z='min(1.25,{z})':d=1:"
+          f"x='iw/2-(iw/zoom/2)':y='ih*0.42-(ih/zoom*0.42)':s={w}x{h}:fps={fps}")
+    ff(["ffmpeg","-v","error","-y","-i",cutv,"-vf",vf,
+        "-r",str(fps),"-c:v","libx264","-preset","veryfast","-crf","18",
+        "-pix_fmt","yuv420p","-c:a","copy",out])
+    if log: log(f"  ရုပ် အသက်ဝင်စေရန် zoom {1.0:.2f}–{1+a1+a2:.3f}× "
+                f"(ကာလ {ZOOM_P1:.0f}s + {ZOOM_P2:.1f}s)")
+    return out
+
+
+def _fit_gfx(keep, share, dur, log=None):
+    """ဂရပ်ဖစ် ကတ်များကို `share` ဘောင်ရဲ့ **အလယ်** ဆီ ချိန်သည်。
+
+    `keep` — `track()` ပြန်ပေးသော `[(at, mov, d, y0, y1)]`
+    ပြန်ပေးသည် — `(keep, [မှတ်ချက်])`
+
+    ⚠️ `hold` က ကတ်ကို **ရှည်အောင်ပဲ လုပ်နိုင်သည်**、တိုအောင် မလုပ်နိုင်ပါ
+       (`dress.track`: `if hold > gdur`)。 template ရဲ့ သဘာဝ အရှည်က
+       ၁.၈–၃.၀s ဖြစ်၍ ဗီဒီယို တိုလျှင် ပစ်မှတ်ထက် ကျော်သွားသည် —
+       ၂၀၂၆-၀၉-၂၀: ၇၈s ဗီဒီယိုမှာ ကတ် ၉ ခု × ၂.၄s = **၀.၂၇၈** ဖြစ်ကာ
+       ဘောင် ၀.၁၇–၀.၂၅ ကို ကျော်ပြီး QC ကျသည် (j_e45a95bd33ea)。
+    ⚠️ ကတ်ကို ဖြတ်၍ တိုမလုပ်ရ — animation နဲ့ house fade ပျက်မည်。
+       ⇒ **အရေအတွက် လျှော့ရသည်**、ကျန်တာကို အညီအမျှ ခြားထားသည်。
+    ⚠️ ဘောင် အနားကို မချိန်ရ、**အလယ်** ကို ချိန်ရမည် — render drift နဲ့
+       အနားမှာ ကျတတ်သည် (slide မှာ တကယ် ဖြစ်ခဲ့ဖူး)。
+    """
+    why = []
+    if not keep or not share or dur <= 0: return keep, why
+    lo, hi = float(share[0]) * dur, float(share[1]) * dur
+    mid = (lo + hi) / 2.0
+    tot = sum(float(k[2]) for k in keep)
+    if tot <= hi:
+        return keep, why
+    # အလယ်နဲ့ အနီးဆုံး ဖြစ်စေမည့် အရေအတွက်ကို ရှာသည် (အရှည် မတူညီသဖြင့်
+    # ပျမ်းမျှနဲ့ မတွက်ဘဲ တစ်ခုချင်း ဖယ်ကြည့်သည်)。
+    cur = sorted(keep, key=lambda x: x[0])
+    best = (abs(tot - mid), list(cur))
+    while len(cur) > 1:
+        # အညီအမျှ ခြားနေစေရန် — **အကြာဆုံးကို မဖယ်ဘဲ** အနီးကပ်ဆုံး
+        # အတွဲထဲက နောက်ကျသူကို ဖယ်သည်。
+        gaps = [(cur[i + 1][0] - cur[i][0], i + 1) for i in range(len(cur) - 1)]
+        _, j = min(gaps)
+        cur = cur[:j] + cur[j + 1:]
+        t2 = sum(float(k[2]) for k in cur)
+        if abs(t2 - mid) < best[0]: best = (abs(t2 - mid), list(cur))
+        if t2 <= mid: break
+    out = best[1]
+    t2 = sum(float(k[2]) for k in out)
+    if len(out) != len(keep):
+        m = (f"ဂရပ်ဖစ် {len(keep)} → {len(out)} ခု "
+             f"(share {tot/dur:.3f} → {t2/dur:.3f} · ပစ်မှတ် "
+             f"{share[0]:.2f}–{share[1]:.2f})")
+        why.append(m)
+        if log: log("  " + m)
+    return out, why
+
+
+def _fit_slides(slides, lo, hi, cmax, dur=0.0, log=None):
+    """slide များကို `[lo, hi]` ဘောင်ရဲ့ **အလယ်** ဆီ ချိန်သည်。
+
+    slides — `[(path, at, end, layout)]` · `at` က ဖြတ်ပြီး timeline ပေါ်。
+    ပြန်ပေးသည် — `(slides, [မှတ်ချက်])`
+
+    ⚠️ ဖုံးအုပ်မှု မပြည့်တာက **အရှည်** ပြဿနာ မဟုတ်、**နေရာ** ပြဿနာ ဖြစ်တတ်သည်。
+       ၂၀၂၆-၀၉-၂၀: Gemini က ၆၂s ဗီဒီယိုရဲ့ ပထမ ၁၅s ထဲမှာ slide ၃ ခုလုံး
+       ပေးလိုက်သဖြင့် ဘယ်လောက် ဆွဲဆွဲ ၀.၂၆၅ သာ ရပြီး QC ကျခဲ့သည်
+       (j_bd28f6df827f)。
+    ⚠️ ဘောင်ရဲ့ **အလယ်** ကို ချိန်ရသည် — အနားကို ချိန်လျှင် render drift နဲ့
+       ကျသည် (j_dd56e503c95c က ၀.၀၉၉/၀.၁၀)。
+    ⚠️ ဖယ်တာက **နောက်ဆုံး နည်းလမ်း** — ရွှေ့လိုက်ရင် ရတတ်သည်。
+
+    ယန္တရား — နေရာ **ကိုယ်စားလှယ် ၃ မျိုး** တွက်ပြီး ဖုံးအုပ်မှု အလယ်နဲ့
+    အနီးဆုံးကို ရွေးသည် (မူရင်း · ရှေ့သို့ ဖြန့် · နောက်ပြန် ဖြန့်)。
+    ခွဲခြမ်းချက် အထပ်ထပ် ရေးလျှင် တစ်ခု ပြင်တိုင်း တစ်ခု ပျက်သည် —
+    ကိုယ်စားလှယ် နှိုင်းယှဉ်ချက်က တစ်ခုတည်းသော ဆုံးဖြတ်ချက် ဖြစ်သည်。
+    """
+    why = []
+    if not slides: return slides, why
+    sl0 = sorted(slides, key=lambda x: x[1])
+    n   = len(sl0)
+    mid = (lo + hi) / 2.0
+    per = min(cmax, max(SLIDE_MIN, mid / n))
+    hard = SLIDE_MIN + SLIDE_GAP          # မဖြစ်မနေ ကွာရမည့် အနည်းဆုံး
+    want = per + SLIDE_GAP                # ပြည့်ပြည့် ရှည်ဖို့ လိုသော ကွာဟချက်
+    top  = dur if dur > 0 else 1e9
+
+    def _spread(step, back):
+        """anchor များကို `step` ကွာအောင် — လိုအပ်မှသာ ရွှေ့သည်"""
+        if back:
+            t, out = top - per, []
+            for it in reversed(sl0):
+                v = min(it[1], t); out.append((it[0], v, it[2], it[3])); t = v - step
+            out.reverse()
+            return [(p, max(0.0, x), e, l) for p, x, e, l in out]
+        t, out = -1e9, []
+        for it in sl0:
+            v = max(it[1], t + step); out.append((it[0], v, it[2], it[3])); t = v
+        return out
+
+    def _lay(anch):
+        """anchor များ → slide များ (ထပ်ခြင်း · ဖိုင်ကျော်ခြင်း မရှိ)"""
+        out, prev = [], -1e9
+        for i, (p, at, _e, l) in enumerate(anch):
+            st = max(0.0, at, prev + SLIDE_GAP)
+            cap = min(top, (anch[i+1][1] - SLIDE_GAP) if i + 1 < len(anch) else top)
+            en = min(st + per, st + cmax, cap)
+            if en - st < SLIDE_MIN: continue
+            out.append((p, st, en, l)); prev = en
+        # ကျန်နေသေးလျှင် — ကန့်သတ်ချက် ခွင့်ပြုသလောက် ထပ်ဆန့် (နောက်ကနေ ရှေ့သို့)
+        for _ in range(3):
+            cur = sum(y - x for _p, x, y, _l in out)
+            if cur >= lo - 1e-9 or not out: break
+            need, grew = mid - cur, False
+            for i in range(len(out) - 1, -1, -1):
+                if need <= 1e-9: break
+                p, x, y, l = out[i]
+                cap = min(top, (out[i+1][1] - SLIDE_GAP) if i + 1 < len(out) else top)
+                ny = min(x + cmax, cap, y + need)
+                if ny > y + 1e-6:
+                    need -= ny - y; out[i] = (p, x, ny, l); grew = True
+            if not grew: break
+        # ကျော်နေလျှင် — အချိုးကျ ချုံ့
+        cur = sum(y - x for _p, x, y, _l in out)
+        if cur > hi and out:
+            k = mid / cur
+            out = [(p, x, x + max(SLIDE_MIN, (y - x) * k), l) for p, x, y, l in out]
+        return out
+
+    cands = [("မူရင်း", _lay(sl0))]
+    if n > 1:
+        cands.append(("ရှေ့သို့ ဖြန့်",   _lay(_spread(want, False))))
+        cands.append(("နောက်ပြန် ဖြန့်", _lay(_spread(want, True))))
+        cands.append(("ရှေ့သို့ (အနည်းဆုံး)", _lay(_spread(hard, False))))
+        # ⚠️ **နောက်ဆုံး နည်းလမ်း** — ဗီဒီယို တစ်ခုလုံးမှာ ညီညာ ဖြန့်。
+        #    slide က ကိုယ့်ဝါကျနဲ့ အများဆုံး ကွာသွားမည် ဖြစ်၍ `_score` က
+        #    အခြားနည်း ဘောင်ထဲ **မဝင်မှသာ** ဒါကို ရွေးသည်。
+        #    (anchor ၂ ခု အစမှာ စုပြီး ၁ ခု အဆုံးမှာ — ကျပန်း ၃၀၀၀ မှ ၁၂ ကြိမ်)
+        _ev = (top - per) / float(n - 1)
+        if _ev >= hard:
+            cands.append(("ညီညာ ဖြန့်",
+                          _lay([(p, i * _ev, e, l)
+                                for i, (p, _a, e, l) in enumerate(sl0)])))
+
+    def _score(out):
+        """ဘောင်ထဲ ဝင်တာ ဦးစားပေး ⇒ အလယ်နဲ့ နီးတာ ⇒ ရွှေ့တာ နည်းတာ"""
+        tot = sum(y - x for _p, x, y, _l in out)
+        inb = 0 if (lo - 1e-9 <= tot <= hi + 1e-9) else 1
+        return (inb, abs(tot - mid), -len(out))
+
+    name, best = min(cands, key=lambda c: _score(c[1]))
+    moved = sum(1 for (p, x, _y, _l) in best
+                for (p2, a2, _e2, _l2) in sl0 if p2 == p and abs(x - a2) > 0.01)
+    if name != "မူရင်း":
+        why.append(f"slide နေရာ {name} — နေရာ စုနေ၍ ({moved}/{n} ရွှေ့)")
+    if len(best) < n:
+        why.append(f"slide ဖယ် {n - len(best)} ခု — နေရာ မလောက်၍")
+    if best:
+        why.append(f"slide {len(best)} ခု · အရှည် "
+                   f"{min(y-x for _p,x,y,_l in best):.1f}–{max(y-x for _p,x,y,_l in best):.1f}s "
+                   f"→ ဖုံးအုပ်မှု {sum(y-x for _p,x,y,_l in best)/max(dur,1e-9):.3f}")
+    return best, why
+
+
+# ⚠️ **overlay တိုင်းမှာ fade ပါရမည်**。 ၂၀၂၆-၀၉-၂၀: B-roll နဲ့ slide ကို
+#    `enable='between(...)'` သီးသန့်နဲ့ တင်ထားသဖြင့် **ချက်ချင်း ပေါ်၊ ချက်ချင်း
+#    ပျောက်** ဖြစ်ကာ ၆၂s ဗီဒီယိုမှာ ရုတ်တရက် ပြောင်းမှု ၁၆ ခု (၁၅.၅/မိနစ်)
+#    ဖြစ်ခဲ့သည် — ဖြတ်ချက်က ၄ ခုပဲ ရှိသည်。 Zin: 「quality 0 · ပရီမီယံ ဆန်အောင်」。
+#    တန်ဖိုးများက house စံ (`motionkit/fade.py`) — panel/card ၀.၂၂ ဝင် ၀.၁၈ ထွက် ·
+#    အနည်းဆုံး ၀.၀၈ (ဘယ်တော့မှ မပေါက်ကွဲရ) · layer ကြာချိန်ရဲ့ ၄၅% ထက် မပိုရ。
+FADE_IN, FADE_OUT, FADE_MIN, FADE_CAP = 0.22, 0.18, 0.08, 0.45
+
+
+# ⚠️ **ဘောင်အပြည့် slide ကို မငြိမ်စေရ**。 ၂၀၂၆-၀၉-၂၀ တိုင်းချက်: ထွက်ဗီဒီယိုရဲ့
+#    frame **၃၃% က လုံးဝ မလှုပ်** — slide တစ်ခု ၁၀.၅s ငြိမ်နေလို့。 Zin:
+#    「Annimation Motion Effect တွေလဲ ပါမလားဘူး」。 ဖြေရှင်းချက် — အနည်းငယ်
+#    ချဲ့ပြီး **တဖြည်းဖြည်း ရွှေ့** (Ken Burns)。
+# ⚠️ `zoompan` ကို **မသုံးရ** — `-loop 1` နဲ့ တွဲလျှင် `on` က input frame
+#    တိုင်း ပြန်စ၍ **ဘာမှ မလှုပ်**ပါ (ပထမ↔နောက်ဆုံး frame ကွာဟ ၀.၀၀ —
+#    တကယ် တိုင်း၍ တွေ့)。 `crop` ရဲ့ `w`/`h` ကလည်း frame တိုင်း မတွက်နိုင် —
+#    `x`/`y` သာ ရသည် ⇒ **အရင် ချဲ့ပြီး crop ကို ရွှေ့**ရသည်。
+# ⚠️ **တဖြည်းဖြည်း ရွှေ့တာ (drift) က မလုံလောက်**。 ၂.၅% ကို ၁၀.၅s ခွဲလျှင်
+#    frame တစ်ခုလျှင် **၀.၀၈px** သာ ရွှေ့ပြီး မျက်စိနဲ့ မမြင်ရ (တိုင်းချက်:
+#    မလှုပ်သော frame ၁၀၀% → ၉၀% သာ)。 မြင်ရလောက်အောင် မြန်စေလျှင်
+#    slide ရဲ့ အနားလွတ် (၁၁၈px) ကုန်သည်。
+# ⇒ **ဝင်လာချိန်မှာ အောက်ကနေ တက်လာစေ**သည် — ဖတ်နေချိန် ငြိမ်နေတာက
+#    ပုံမှန်、ဝင်လာချိန်မှာသာ လှုပ်ရှားမှု လိုသည် (ပရော် presentation ပုံစံ)。
+RISE_PX = 44          # ဘယ်လောက် အောက်ကနေ တက်မလဲ
+RISE_S  = 0.38        # ဘယ်လောက်ကြာ တက်မလဲ
+
+
+def _rise(a, px=RISE_PX, d=RISE_S):
+    """overlay ရဲ့ y — ဝင်လာချိန် `px` အောက်ကနေ `d` စက္ကန့်နဲ့ တက်လာသည်。"""
+    if not px or px <= 0: return None
+    return (f"'if(lt(t-{a:.2f},{d:.2f}),"
+            f"{px}*(1-(t-{a:.2f})/{d:.2f}),0)'")
+
+
+def _cap_stroke(rc, TH):
+    """စာတန်း အနားသတ် အရောင် — `"brand"` ဆိုလျှင် brand theme ကနေ ယူသည်。
+
+    ⚠️ brand ရဲ့ အနက်ရောင်ကို ရှေ့ဆုံး ဦးစားပေးသည် (NAVY → DEEP → INK)。
+       မတွေ့လျှင် `None` — အနားသတ် မထည့်ဘဲ ဆက်သွားသည် (job မကျစေရန်)。
+    """
+    v = rc.get("cap_stroke") or rc.get("stroke")
+    if not v: return None
+    if str(v).strip().lower() != "brand": return v
+    for k in ("NAVY", "DEEP", "INK", "BLACK"):
+        c = (TH or {}).get(k)
+        if isinstance(c, str) and c.startswith("#") and len(c) == 7:
+            return c
+    return None
+
+
+def _fade(src, dst, a, b):
+    """overlay input ကို fade တပ်ပြီး ပြန်ပေးသည် — `-itsoffset` သုံးထားသဖြင့်
+    input ရဲ့ အချိန်မှတ်က main timeline နဲ့ တူသည် ⇒ `st` ကို တိုက်ရိုက် ပေးရသည်。"""
+    d = max(0.1, float(b) - float(a))
+    fi = max(FADE_MIN, min(FADE_IN,  d * FADE_CAP))
+    fo = max(FADE_MIN, min(FADE_OUT, d * FADE_CAP))
+    if fi + fo > d: fi = fo = d / 2.0
+    # ⚠️ fade-out ကို `enable` ပိတ်ချိန် **မတိုင်ခင် ပြီးအောင်** ထားရမည်。
+    #    အတိအကျ `b` မှာ ဆုံးအောင် ထားလျှင် gate က alpha ၀ မရောက်ခင်
+    #    ဖြတ်လိုက်ပြီး ၂၅၃ → ၁၅၁ → ၀ ဟု **ခုန်ချ**သည် (တကယ် တိုင်း၍ တွေ့)。
+    TAIL = 0.10
+    st_out = max(a + fi, b - fo - TAIL)
+    return (f"[{src}]format=yuva420p,"
+            f"fade=t=in:st={a:.2f}:d={fi:.2f}:alpha=1,"
+            f"fade=t=out:st={st_out:.2f}:d={fo:.2f}:alpha=1[{dst}]")
+
+
 def req(path, data=None, method=None, raw=False):
     url = API + path
     body = None if data is None else json.dumps(data).encode()
-    r = urllib.request.Request(url, data=body, method=method or ("POST" if body else "GET"))
-    r.add_header("Authorization", "Bearer " + TOKEN)
-    if body: r.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(r, timeout=120) as f:
-        return f.read() if raw else json.loads(f.read() or b"{}")
+    once = "/claim" in path
+    last = None
+    for i in range(1 if once else len(RETRY_WAIT) + 1):
+        r = urllib.request.Request(url, data=body,
+                                   method=method or ("POST" if body else "GET"))
+        r.add_header("Authorization", "Bearer " + TOKEN)
+        if body: r.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(r, timeout=120) as f:
+                return f.read() if raw else json.loads(f.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            if e.code not in RETRY_CODES: raise
+            last = e
+        except (urllib.error.URLError, OSError) as e:
+            last = e
+        if once or i >= len(RETRY_WAIT): break
+        w = RETRY_WAIT[i]
+        print(f"  ⚠️ API ယာယီ မရ ({type(last).__name__}: {last}) — "
+              f"{w}s နောက် ပြန်ကြိုးစားမည် ({i+1}/{len(RETRY_WAIT)}) · {path}",
+              flush=True)
+        time.sleep(w)
+    raise last
 
 class ReviewStop(Exception):
     """ASR + ဖြတ်မှတ် တွက်ပြီးလျှင် **ရပ်**ပြီး သုံးစွဲသူကို ပြရန်。
@@ -127,6 +478,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ⇒ **snap မလုပ်ရ** (snap လျှင် စကား အစွန်းအထိ ရွှေ့ပြီး F2 အာမခံချက် ပျက်)。
     user_drop_exact = over.pop("_drop_exact", None) or []
     rc = RC.apply(job.get("recipe"), over)
+    # ⚠️ template ရွေးချယ်မှုကို **job အလိုက် ကွဲပြားစေရန်** seed ပေးသည် —
+    #    မပေးလျှင် ဗီဒီယိုတိုင်း တူညီသော template ၁၀ ခုပဲ ထွက်သည်
+    #    (pool ၂၈၄ ခု ရှိပါလျက် · ၂၀၂၆-၀၉-၁၉ Zin တွေ့)。
+    rc["_seed"] = job.get("id") or ""
     if over:
         log("  ပုံစံ ပြင်ချက် " + " · ".join(f"{k}={v}" for k, v in sorted(over.items())))
     import fonts as FN
@@ -161,7 +516,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
     if heavy and max(m["w"], m["h"]) > LONG:
         sc = LONG/float(max(m["w"], m["h"]))
         pw = int(m["w"]*sc)//2*2; ph = int(m["h"]*sc)//2*2
-        px = os.path.join(work, "proxy.mp4"); t_px = time.time()
+        # ⚠️ proxy ကို **work/ ထဲ မထားရ** — retry မှာ ပြန်သုံးလို့ရအောင်
+        #    scratch ရဲ့ အပြင်မှာ ထားသည် (`handle()` က ရှာသည်)。
+        px = os.path.join(BIG, job["id"] + "_px.mp4"); t_px = time.time()
         subprocess.run(["ffmpeg","-v","error","-y","-i",src,
             "-vf",f"scale={pw}:{ph}","-r",str(rc["fps"]),
             "-c:v","h264_videotoolbox","-b:v","16M",
@@ -180,6 +537,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ⇒ စံ = `measure.speech()` · ASR · cut · dress သုံးခုလုံး ဤတစ်ခုကို မျှသုံး。
     import measure as _M
     MEAS = _M.speech(wav)
+    # ⚠️ **စွမ်းအင် မြေပုံ** — ဖြတ်မှတ်ကို တိတ်ဆိတ်မှု မရှိရာမှာ အနိမ့်ဆုံးမှတ်ဆီ
+    #    ဆွဲသွင်းရန် (`CUT.quiet_at`)。 `speech()` က ထဲမှာ `analyse()` ခေါ်ပြီးသား
+    #    ဖြစ်သော်လည်း ပြန်မပေး၍ ဒီမှာ တစ်ခါ ထပ်ခေါ်ရသည် (~၁s)。
+    try:
+        _db, _vc, _du = _M.analyse(wav)
+        _DBTRACK = (_db, (_du / len(_db)) if len(_db) else 0.0)
+    except Exception as _e:
+        _DBTRACK = (None, 0.0); log(f"  ⚠️ စွမ်းအင် မြေပုံ မရ: {type(_e).__name__}: {_e}")
     log(f"  တိတ်ဆိတ်မှု မြေပုံ · စကား {len(MEAS[0])} · တိတ် {len(MEAS[1])} · "
         f"{MEAS[2]:.1f}s · cls={MEAS[4]}")
     # ⚠️ စာသား ပေးလာလျှင် **ASR ပြန်မလုပ်ရ** — ဒါက "ပြန်ထုတ်တာ မြန်တယ်"
@@ -233,12 +598,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
 
     # ── ③ ဖြတ်တောက် — တိုင်းထားသော တိတ်ဆိတ်မှုထဲမှာသာ ─────────
     stage(3, "cut")
+    # ⚠️ `_bid` ကို branch နှစ်ခုလုံးအတွက် **ဒီမှာတင်** သတ်မှတ်ရမည် —
+    #    အောက်မှာ (fade) ပြန်သုံးသဖြင့် (၂၀၂၆-၀၉-၁၈)。
+    _bid = (job.get("brand_id") or rc["theme"])
     if rc["keep_pause"] is None:
         spans=[(0.0, m["dur"])]; cuts=[]; st={"cuts":0,"in_speech":0,"removed":0.0}
         log("  ⚠️ ဤ recipe က ဖြတ်တောက် မလုပ် (အနားယူချိန် ချန်ထားသည်)")
     else:
-        # ⚠️ calib ကို **ချန်နယ်အလိုက်** ရွေးရသဖြင့် ဒီမှာတင် brand လိုသည်
-        _bid = (job.get("brand_id") or rc["theme"])
         spans, cuts, st = CUT.plan(wav, meas=MEAS, keep_pause=rc["keep_pause"],
                                    min_sil=rc["min_sil"], brand=_bid)
         log(f"  ဖြတ် {st['cuts']} · ဖြုတ် {st['removed']:.1f}s "
@@ -251,13 +617,52 @@ def render(job, brand, src, out, stage, log=print, over=None):
             + (f"[ချိန်ညှိပြီး · {st.get('calib_src')}]" if st.get("calibrated")
                else "[**မချိန်ညှိရသေး** — recipe ကိန်း]"))
         # ── သုံးစွဲသူ ဖျက်ထားသော အပိုင်းများကို **တကယ် ဖြတ်** ──
+        _ed = (CUT.calib(_bid) or {}).get("edit") or {}
         if user_drop:
             _sp2, _sil2, _d2, _e2, _c2 = M2.speech(wav)
-            spans, _rm = CUT.subtract(spans, user_drop, _sil2)
+            # ⚠️ လူ့ ဖြတ်မှတ် အလေ့အထ (calib `edit`) — အမြီး/ဦးခေါင်း ချန်ပေးသည်。
+            #    မထည့်လျှင် အဆုံးသတ် အမြီး ပြတ်ပြီး 「သဘာဝ မကျ」 ဖြစ်သည်
+            #    (Zin နားထောင်ပြီး ၂၀၂၆-၀၉-၁၈)。 calib မရှိလျှင် ယခင်အတိုင်း。
+            if _ed:
+                _n0 = len(user_drop)
+                user_drop = CUT.guard(user_drop, _sp2, float(_ed.get("tail_s", 0.0)),
+                                      float(_ed.get("lead_in_s", 0.0)))
+                log(f"  ဖြတ်မှတ် ချုံ့ချက် — အမြီး +{_ed.get('tail_s')}s · "
+                    f"ဦးခေါင်း −{_ed.get('lead_in_s')}s · {_n0} → {len(user_drop)} ခု")
+            _req = [[float(a), float(b)] for a, b in user_drop]   # guard မတိုင်မီ တောင်းချက်
+            # ⚠️ စွမ်းအင် မြေပုံ ပေးရမည် — တိတ်ဆိတ်မှု မရှိရာမှာ
+            #    အနိမ့်ဆုံးမှတ်ဆီ ဆွဲသွင်းနိုင်ရန် (`quiet_at`)。
+            spans, _rm = CUT.subtract(spans, user_drop, _sil2,
+                                      db=_DBTRACK[0], hop=_DBTRACK[1])
             log(f"  သုံးစွဲသူ ဖျက်ချက် {len(user_drop)} ခု · ဖြုတ် {_rm:.1f}s"
                 f" → ကျန် {sum(b-a for a,b in spans):.1f}s")
             st["user_removed"] = _rm
             st["user_cuts"] = len(user_drop)
+            # ⚠️ **ဖျက်ခိုင်းတာ ၁၀၀% ဖျက်ဖြစ်မဖြစ် အမြဲ တိုင်းရမည်** (Zin ၂၀၂၆-၀၉-၁၉) —
+            #    တိတ်တဆိတ် ကျော်သွားတာ ဘယ်တော့မှ လက်မခံပါ。 Habit [103] ကို ၁၀၀%
+            #    မဖျက်ဘဲ ကျန်ခဲ့ပြီး ဘယ်သူမှ မသိခဲ့ (နားထောင်မှ တွေ့)。
+            _left = []
+            for _k, (_a, _b) in enumerate(_req):
+                _rem = sum(max(0.0, min(_b, _y) - max(_a, _x)) for _x, _y in spans)
+                if _rem > 0.02 and (_b - _a) > 0:
+                    _left.append([_k, round(_rem, 2), round(100.0*_rem/(_b-_a), 1)])
+            st["drop_left"] = _left
+            if _left:
+                # ⚠️ `flag_list` ထဲ ထည့်မှ UI မှာ ပေါ်မည် — log တင် ထားလျှင်
+                #    သုံးစွဲသူ ဘယ်တော့မှ မမြင်ရ (တိတ်တဆိတ် ကျော်သွားခြင်း ဖြစ်မည်)。
+                _fl = st.get("flag_list") or []
+                for _k, _s2, _p2 in _left:
+                    _fl.append(dict(kind="drop_left", at=round(_req[_k][0], 2),
+                                    text=f"ဖျက်ခိုင်းထားတာ {_p2}% ကျန်နေသည် "
+                                         f"({_s2:.2f}s) — အသံ ဆက်နေ၍ သပ်သပ် မဖြတ်နိုင်ပါ",
+                                    score=f"{_p2}%"))
+                st["flag_list"] = _fl
+                st["flags"] = len(_fl)
+                log(f"  ⚠️ **၁၀၀% မဖျက်နိုင်တာ {len(_left)}/{len(_req)} ခု** — "
+                    + " · ".join(f"#{k+1} {p}% ကျန်" for k, _s, p in _left[:8])
+                    + (" …" if len(_left) > 8 else ""))
+            else:
+                log(f"  ✓ ဖျက်ချက် {len(_req)} ခုလုံး ၁၀၀% ဖျက်ပြီး")
         if user_drop_exact:
             spans, _rm2 = CUT.subtract(spans, user_drop_exact, None, snap=0.0)
             log(f"  ပြန်စ (သုံးစွဲသူ လက်ခံ) {len(user_drop_exact)} ခု · ဖြုတ် {_rm2:.1f}s"
@@ -346,7 +751,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             try:
                 _rt0 = time.time()
                 # ⚠️ ဆုံးဖြတ်ချက် မှတ်တမ်းမှာ job ကို ဖော်ပြရန် (~/.ikki/retake_ask.jsonl)
-                CL.CTX.update(job=jid, video=job.get("title") or "", brand=job.get("brand_id"))
+                # ⚠️ `jid` က ဤ function မှာ မရှိ — `job["id"]` သာ ရှိသည်。
+                #    ၂၀၂၆-၀၉-၁၉: NameError ကြောင့် **ပြန်စ ရှာဖွေမှု တစ်ခါမှ မအလုပ်လုပ်ခဲ့**
+                #    (log: 「ပြန်စ ရှာမရ — NameError: name 'jid' is not defined」)。
+                CL.CTX.update(job=job.get("id"), video=job.get("title") or "",
+                              brand=job.get("brand_id"))
                 _cl, _cst = CL.retake_clusters(segs, MEAS, _rcal, log=log)
                 log(f"  ပြန်စ အုပ်စု {len(_cl)} ခု · take {_cst.get('takes')} · "
                     f"ရွေးစရာ ပိတ် {_cst.get('blocked')} · Gemini {_cst.get('asked')} ကြိမ် · "
@@ -355,8 +764,55 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  ⚠️ ပြန်စ ရှာမရ — review ဆက်သွား: {type(_e).__name__}: {_e}")
         log(f"  ⏸  စာတမ်း အတည်ပြုရန် ရပ်သည် — စာကြောင်း {len(segs)} · "
             f"အကြံပြု ဖြတ်ချက် {st.get('cuts',0)} ({m['dur']-_kept:.0f}s ဖြုတ်)")
+        # ⚠️ **စကား မဟုတ်သော အသံ** (ချောင်းဆိုး · ခေါက်သံ …) — သုံးစွဲသူကို
+        #    「အကုန် ပြ」 ရန် (Zin ၂၀၂၆-၀၉-၁၉)。 ကျဘမ်းလျှင် review မပျက်စေရ。
+        try:
+            _snd = M2.sounds(wav, sp=MEAS[0])
+            log(f"  အသံ ဖြစ်ရပ် (စကား မဟုတ်) {len(_snd)} ခု")
+        except Exception as _e:
+            _snd = []; log(f"  ⚠️ အသံ ဖြစ်ရပ် မတိုင်းနိုင်: {type(_e).__name__}: {_e}")
+        # ⚠️ ဝါကျ **အတွင်း** ဖြတ်လို့ရသော နေရာ — ထပ်နေတဲ့ စကားစုကို ဝါကျ တစ်ခုလုံး
+        #    မဖျက်ဘဲ ခွဲဖျက်နိုင်ရန် (Zin ၂၀၂၆-၀၉-၁၉: 「အကုန်ဖျက်မှ ရမလို ဖြစ်နေတယ်」)。
+        try:
+            _spl = M2.splits(segs, MEAS[1])
+            log(f"  ဝါကျအတွင်း ဖြတ်မှတ် — ဝါကျ {len(_spl)}/{len(segs)} ခုမှာ ရှိ")
+        except Exception as _e:
+            _spl = {}; log(f"  ⚠️ ဝါကျအတွင်း ဖြတ်မှတ် မတိုင်းနိုင်: {type(_e).__name__}: {_e}")
+        # ⚠️ **ဟန်ပျက်** — 「ကင်မရာရှေ့ စကားပြောနေဟန် မဟုတ်တော့တဲ့ အပိုင်း」。
+        #    Zin ၂၀၂၆-၀၉-၁၉: 「မင်းကိုယ်တိုင် သိရမယ်။ ဖြတ်ရမည့် စာရင်းထဲ ထည့်ပြီး
+        #    user ကို သတိပေးရမယ်」 ⇒ **အသံနဲ့ မရ · ရုပ်ပုံကနေသာ** တိုင်းရသည်。
+        #    ⚠️ ကိုယ်တိုင် **မဖျက်ရ** — အနီ မှတ်ပြီး user အတည်ပြုမှသာ ဖျက်သည်。
+        _pose = {}
+        try:
+            import pose as PZ
+            if PZ.available():
+                _pf = PZ.measure(src, log=log)
+                _psp = PZ.spans(_pf, log=log)
+                _pose = PZ.mark(
+                    [dict(n=i+1, start=g["start"], end=g["end"]) for i, g in enumerate(segs)],
+                    _psp)
+                if _pose:
+                    log(f"  ⚠️ ဟန်ပျက် ဝါကျ {len(_pose)} ကြောင်း — အနီ မှတ်ပြီး "
+                        f"user ကို သတိပေးမည် (ကိုယ်တိုင် မဖျက်ပါ)")
+            else:
+                log("  ⚠️ ဟန်ပျက် မတိုင်းနိုင် — tools/posecheck မရှိ")
+        except Exception as _e:
+            _pose = {}; log(f"  ⚠️ ဟန်ပျက် မတိုင်းနိုင်: {type(_e).__name__}: {_e}")
+        # ⚠️ **အသံ proxy** — Script Editor မှာ နားထောင်ရန် (၄၈ kbps mono m4a)。
+        #    ဖြတ်ချက် ဆုံးဖြတ်ဖို့ စာသား ဖတ်ရုံနဲ့ မလုံလောက် — နားထောင်ရမည်。
+        #    မရလည်း review **မပျက်စေရ**。
+        try:
+            _ap = os.path.join(work, "aud.m4a")
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", wav,
+                            "-ac", "1", "-c:a", "aac", "-b:a", "48k", _ap], check=True)
+            post_audio(job["id"], _ap, log=log)
+        except Exception as _e:
+            log(f"  ⚠️ အသံ proxy မရ: {type(_e).__name__}: {_e}")
         raise ReviewStop(segs, dict(
             src_dur=round(float(m["dur"]), 2),
+            sounds=[[a, b, d] for a, b, d in _snd],
+            splits={str(k): v for k, v in _spl.items()},
+            pose={str(k): v for k, v in (_pose or {}).items()},
             kept=round(_kept, 2),
             cuts=int(st.get("cuts", 0)),
             removed=round(float(m["dur"]) - _kept, 2),
@@ -432,6 +888,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
                       mmf=base["MMF"], latin=base["LATIN"], jp=base["JP"])
         use_fmt = fmt or native
         TH = FM.theme(bd, use_fmt)
+        # ⚠️ `accent` — recipe က theme ရဲ့ GOLD ကို လွှမ်းနိုင်သည်。
+        #    ၂၀၂၆-၀၉-၂၀: High-Retention reference (`KCN4-2hyUBM`) ရဲ့ accent က
+        #    **#E5BC32** (နွေးထွေးသော ရွှေရောင်) ဖြစ်ပြီး ZJL ရဲ့ #FFE000
+        #    (တောက်သော အဝါ) နဲ့ RGB ၁၁၂ ကွာသည် ⇒ override လိုသည်。
+        _ac = (rc.get("accent") or "").strip()
+        if _ac.startswith("#") and len(_ac) == 7:
+            TH = dict(TH); TH["GOLD"] = _ac
+            log(f"  accent · recipe က {_ac} (theme GOLD လွှမ်း)")
         theme.THEMES["_ikki"] = TH; theme.use("_ikki")
         f = FM.get(use_fmt, bid)
         log(f"  brand {bid} + format {use_fmt} → {TH['W']}×{TH['H']}"
@@ -478,6 +942,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
         if cov and caps and 0 < cov < 1:
             want = max(3, int(round(len(caps) * cov)))
             keep = set(TP.emphasis(caps, want, log=log))
+            # ⚠️ `emphasis()` က **「အလေးထားထိုက်သည်」ဟု ထင်တာပဲ** ပြန်ပေးသည် —
+            #    ၁၈ တောင်းလည်း ၉ ပဲ ပြန်ပေးတတ်သည် (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
+            #    ဖုံးအုပ်မှု မြင့်လျှင် အဲဒါက **မလုံလောက်** — 「ဘယ်ကြောင်းက
+            #    အရေးကြီးလဲ」မဟုတ်ဘဲ 「ဘယ်လောက် ပေါ်နေစေမလဲ」ဖြစ်သဖြင့်
+            #    ကျန်ကြောင်းတွေကို **အညီအမျှ ဖြည့်**ရမည်。
+            if keep and len(keep) < want:
+                rest = [i for i in range(len(caps)) if i not in keep]
+                need = min(want - len(keep), len(rest))
+                if need > 0:
+                    step = len(rest) / float(need)
+                    keep |= {rest[int(k * step)] for k in range(need)}
+                    log(f"  စာတန်း · အလေးထား {want - need} + ဖြည့် {need} = {len(keep)} ကြောင်း")
             if keep:
                 caps = [c for i, c in enumerate(caps) if i in keep]
                 log(f"  စာတန်း · {len(caps)} ကြောင်း ({cov*100:.0f}% ရည်မှန်း)")
@@ -562,6 +1038,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     log(f"  ဂရပ်ဖစ် {_wg} → {_need} ခု (share {_shb[0]:.2f} "
                         f"ရောက်ရန် · ဖြတ်ပြီး {_od0:.0f}s)")
                     _wg = _need
+                # ⚠️ **အပေါ်ဘောင်လည်း လိုသည်**。 `hold` က ကတ်ကို တိုအောင်
+                #    မလုပ်နိုင်သဖြင့် (`dress.track`: `if hold > gdur`) ဗီဒီယို
+                #    တိုလျှင် ကတ် များများနဲ့ share ကျော်သွားသည်。 `_fit_gfx` က
+                #    နောက်မှ ဖယ်ပေးပေမယ့် **ဖယ်မယ့်ကတ်ကိုပါ ထုတ်ပြီးသား**
+                #    ဖြစ်နေမည် (တစ်ခု ~၂ မိနစ်)。 ⇒ မထုတ်ခင်ကတည်းက ကန့်သတ်。
+                #    ၁.၈s က template ရဲ့ **တိုင်းထားသော အတိုဆုံး** သဘာဝအရှည်
+                #    (median ၂.၄ · min ၁.၈ · max ၃.၀ — j_e45a95bd33ea)。
+                _cap = int(float(_shb[1]) * _od0 / CARD_NAT_MIN) + 1
+                if _cap < _wg:
+                    log(f"  ဂရပ်ဖစ် {_wg} → {_cap} ခု (share {_shb[1]:.2f} "
+                        f"မကျော်ရန် · ဖြတ်ပြီး {_od0:.0f}s)")
+                    _wg = max(1, _cap)
             # ⚠️ **ပိုတောင်းရမည်** — Gemini က တောင်းသလောက် အမြဲ မပြန်ပေး
             tops = TP.ask(segs, want=int(_wg * 1.6) + 3 if _wg else 0, log=log)
             _gfxn = len(tops)              # Gemini ပြန်ပေးတဲ့ ခေါင်းစဉ် အရေအတွက်
@@ -590,6 +1078,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 used.add(nm)
                 gfx.append(dict(at=t["at"], kind=nm,
                                 args=TP.targs(nm, t["text"], bname)))
+            # ⚠️ **explainer insert ကို ဒီမှာပါ ထည့်ရမည်** — `DR.pick()` က
+            #    ပြန်ဆုတ်လမ်းသာ ဖြစ်၍ ဒီအဓိကလမ်းမှာ မထည့်လျှင် insert
+            #    တစ်ခုမှ မဝင်ပါ (၂၀၂၆-၀၉-၂၀ ref-talk render မှာ တကယ် ဖြစ်)。
+            if rc.get("insert_per_min") and gfx:
+                _b4 = sum(1 for g in gfx if g.get("kind") in DR.INSERT_KINDS)
+                gfx = DR.apply_inserts(gfx, rc, float(m["dur"]), log=log)
+                _af = sum(1 for g in gfx if g.get("kind") in DR.INSERT_KINDS)
+                log(f"  explainer insert {_af} ခု / ဂရပ်ဖစ် {len(gfx)} "
+                    f"({_af/(float(m['dur'])/60.0):.1f}/မိနစ် · ပစ်မှတ် {rc['insert_per_min']})")
         except Exception as e:
             log(f"  ⚠️ ခေါင်းစဉ် မရ: {e}")
     # ⚠️ typography စာကြောင်းများကို ဂရပ်ဖစ် track ထဲ ထည့်သည် — သီးသန့်
@@ -642,6 +1139,17 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                 rc["label"], log,
                                 avoid=_avoid_band(src, TH, log),
                                 capy=cap_top, hold=_hold)
+            # ⚠️ ထုတ်ပြီးမှ **တကယ့် အရှည်နဲ့ ပြန်တိုင်း**ရမည် — `hold` က
+            #    တိုအောင် မလုပ်နိုင်သဖြင့် ပစ်မှတ်ထက် ကျော်နိုင်သည်。
+            #    ဖယ်တာက ကတ်ဖိုင်ကို ပြန်မထုတ်ရ ⇒ အချိန် မကုန်ပါ。
+            if _sh and gmov:
+                # ⚠️ နာမည်ကို `_wg` **မသုံးရ** — အဲဒါက အပေါ်မှာ 「ဂရပ်ဖစ်
+                #    ဘယ်နှစ်ခု လိုချင်လဲ」ကိန်း ဖြစ်ပြီး report က အဲဒါကို
+                #    ပြသည်。 ထပ်သုံးမိ၍ report ရဲ့ 「ပစ်မှတ်」နေရာမှာ
+                #    စာရင်းတစ်ခု ပေါ်ခဲ့သည် (၂၀၂၆-၀၉-၂၀ Zin ရဲ့ render)。
+                gmov, _wgfit = _fit_gfx(gmov, _sh, _od, log=log)
+                ng = len(gmov)
+                LAST_FIT[:] = _wgfit
             # ⚠️ စာတန်းနဲ့ ဒေါင်လိုက် ထပ်တာကို **စစ်စရာ မလိုတော့** —
             #    ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်းကို `hide` ဖြင့် ဖျောက်ပြီးသား。
             #    စစ်နေလျှင် စာတန်း တစ်ပုဒ်လုံး ရှိသဖြင့် ဂရပ်ဖစ် အားလုံးနီးပါး
@@ -669,7 +1177,33 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # reference: ပျမ်းမျှ ၆.၂s ⇒ လိုအပ်သော အရေအတွက်
             # ⚠️ **၁၀ မိနစ်လျှင် ၁၁.၆ ခု** — reference ၂ ခု (၂၃ slide) တိုင်းချက်。
             #    အရင်က ၁၈ ခု ထုတ်ခဲ့ပြီး slideshow ဖြစ်နေသည် ဟု Zin ဆိုသည်。
-            _wantn = max(3, int(round(1.16 * _od2 / 60.0)))
+            # ⚠️ အောက်ဆုံး ၃ ခု ဟု **အတင်း မထားရ** — ၆၅s ဗီဒီယိုမှာ slide ၃ ခုက
+            #    ၄၄.၇% ယူသွားပြီး QC `gfx_share` (band ၀.၁၀–၀.၁၇) ကျခဲ့သည်
+            #    (j_62a25d9d5f43 · ၂၀၂၆-၀၉-၁၉)。 band ခွင့်ပြုတဲ့ အရေအတွက်ကို
+            #    အမြင့်ဆုံး ယူသည် — slide တစ်ခု ပျမ်းမျှ ၆.၂s ဟု reference。
+            # ⚠️ **အောက်ဘောင် ရောက်နိုင်လောက်အောင် တောင်းရမည်**。 slide တစ်ခုရဲ့
+            #    အများဆုံး အရှည် `card_max` ဖြစ်၍ အောက်ဘောင်ကို ရဖို့
+            #    အနည်းဆုံး `floor_s / card_max` ခု လိုသည် — မတောင်းလျှင်
+            #    ဘယ်လောက် ဆန့်ဆန့် ဘောင် မရောက်ဘဲ QC `gfx_share` ကျမည်
+            #    (၆၀၀s ဗီဒီယိုမှာ slide ၃ ခု = ၃၁s · အောက်ဘောင် ၆၀s လို)。
+            # ⚠️ **ဂိတ်ထက် လျှော့လို့ ရသည်、တင်လို့ မရ**。 ၂၀၂၆-၀၉-၂၀:
+            #    ref-slides က recipe မှာ ၁၇.၀ ထားပြီး render က အဲဒါ သုံး၊
+            #    QC က `CARD_MAX` ၁၀.၅ သုံးသဖြင့် ၁၅.၈s slide ထုတ်ကာ
+            #    `card_len` ကျခဲ့သည် (j_bd28f6df827f)。 ⇒ `min()` ဖြင့်
+            #    ချည်နှောင်ထားသည် — ဂိတ်ကို ဘယ်တော့မှ မကျော်နိုင်တော့。
+            #    ဂိတ်ကိုယ်တိုင် တင်ချင်လျှင် `core/qc.py` ရဲ့ CARD_MAX ကို
+            #    **Zin အတည်ပြုမှ** ပြင်ရမည် ("ဂိတ် မလျှော့ရ")。
+            _cmax0 = min(float(rc.get("card_max_s") or QC.CARD_MAX),
+                         float(QC.CARD_MAX))
+            # ⚠️ **အောက်ဘောင်ကို မချိန်ရ — အလယ်ကို ချိန်ရ**。 အောက်ဘောင်နဲ့
+            #    တွက်လျှင် ၁၄၀s မှာ slide ၄ × ၁၀.၅ = ၀.၃၀၀ တိတိ ဖြစ်ပြီး
+            #    render drift နည်းနည်းနဲ့ ကျသွားသည် (j_dd56e503c95c က ၀.၀၉၉/၀.၁၀)。
+            #    အလယ်နဲ့ တွက်လျှင် ၅ × ၁၀.၀၈ = ၀.၃၆၀ — နှစ်ဖက်စလုံး လွတ်သည်。
+            #    ⚠️ ဤနေရာက `_mid` က **အချိုး** (ဥပမာ ၀.၃၆) — စက္ကန့် မဟုတ်。
+            #       `_od2` နဲ့ မမြှောက်ဘဲ သုံးလျှင် အမြဲ ၁ ထွက်သည်。
+            _min_n = max(1, int(-(-(_mid * _od2) // _cmax0)))   # ceil(အလယ်s ÷ card_max)
+            _cap_n = max(1, int((float(_shb2[1]) * _od2) // 6.2))
+            _wantn = max(_min_n, min(_cap_n, int(round(1.16 * _od2 / 60.0)) or 1))
             specs = TP.slides(segs, want=_wantn, log=log)
             _gslides = len(specs)          # Gemini ပြန်ပေးတဲ့ အရေအတွက်
             # မူရင်း → ဖြတ်ပြီး timeline
@@ -714,6 +1248,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 if sp["at"] + h > _od2 - 1.0: break
                 sp = dict(sp); sp["_hold"] = h
                 keep.append(sp); lastend = sp["at"] + h
+            # ⚠️ slide ကို **ထွက်ဘောင်ရဲ့ အရွယ်နဲ့** ထုတ်ရမည် — မလုပ်လျှင်
+            #    ၁၉၂၀×၁၀၈၀ slide က ၁၀၈၀×၁၄၄၀ ဘောင်ပေါ် ညာပြတ် ဘဝင်ကျန်
+            #    ဖြစ်သည် (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်ခဲ့)。
+            _slspec = {}
+            SL2.setsize(TH["W"], TH["H"])
+            log(f"  slide ဘောင် {TH['W']}×{TH['H']}")
             work_s = os.path.join(work, "sl"); os.makedirs(work_s, exist_ok=True)
             acc = (brand or {}).get("colors") or []
             accent = acc[2] if len(acc) > 2 else "#FFC400"
@@ -732,26 +1272,60 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 pp = os.path.join(work_s, f"s{i:02d}.png")
                 im.convert("RGB").save(pp)
                 slides.append((pp, sp["at"], sp["at"] + sp["_hold"], sp["layout"]))
+                # ⚠️ နောက်ဆုံး ကြာချိန်က `_fit_slides` ပြီးမှ သိရသဖြင့်
+                #    motionkit clip ကို **အဲဒီနောက်မှ** ထုတ်သည် (spec သိမ်းထား)
+                _slspec[pp] = sp
             # ⚠️ **band အောက် ကျလျှင် ဆွဲတင်ရမည်**。 Gemini က slide နည်းနည်းပဲ
             #    ပြန်ပေးလျှင် ဖုံးအုပ်မှု ၀.၀၉၇ ဖြစ်ပြီး ၀.၁၀ ဘောင် လွဲသည်
             #    (တကယ် ဖြစ်ခဲ့)。 reference မှာ ၁၇.၀s slide ရှိသဖြင့် အဲဒီအထိ
             #    ဆန့်လို့ ရသည် — ရှည်ဆုံးကနေ စပြီး တိုးသည်。
+            # ⚠️ **ဘောင် အလယ်ကို ချိန်ရမည် — အနားကို မချိန်ရ**。
+            #    အရင်က အောက်ဘောင်ကို တင်၊ အထက်ဘောင်ကို ချုံ့ ဟု သီးသန့် ၂ ခု
+            #    လုပ်ခဲ့ရာ ဖုံးအုပ်မှု ၀.၁၀၁ (ဂိတ် ၀.၁၀) ဆိုတဲ့ အနားကပ် တန်ဖိုး
+            #    ဖြစ်သွားပြီး — QC က **ထွက်ဖိုင်ရဲ့ ကြာချိန်**နဲ့ ပြန်တွက်သဖြင့်
+            #    drift အနည်းငယ်နဲ့ ၀.၀၉၉ ကျကာ FAIL ဖြစ်ခဲ့သည် (j_dd56e503c95c)。
+            #    ⇒ ပစ်မှတ်ကို **အလယ်** ထားပြီး တစ်ခါတည်း ချိန်သည်。
             if slides:
-                _need = float(_shb2[0]) * 1.06 * _od2
-                _cur = sum(b - a for _p, a, b, _l in slides)
-                if _cur < _need and slides:
-                    _k = min(1.6, _need / max(_cur, 0.1))
-                    _new = []
-                    for _p, a, b, _l in slides:
-                        nb = a + min(17.0, (b - a) * _k)
-                        _new.append((_p, a, nb, _l))
-                    # ထပ်သွားလျှင် ပြန်ဖြတ်
-                    _fix = []
-                    for i, (_p, a, b, _l) in enumerate(_new):
-                        if i + 1 < len(_new): b = min(b, _new[i+1][1] - 2.0)
-                        if b - a >= 1.0: _fix.append((_p, a, b, _l))
-                    slides = _fix
-                    log(f"  slide အရှည် ×{_k:.2f} ဆွဲတင် → band ၀.{int(_shb2[0]*100):02d} ရောက်ရန်")
+                _cmax = min(float(rc.get("card_max_s") or QC.CARD_MAX),
+                            float(QC.CARD_MAX))   # ဂိတ်ထက် မကျော်ရ
+                _lo   = float(_shb2[0]) * _od2
+                _hi   = float(_shb2[1]) * _od2
+                slides, _why = _fit_slides(slides, _lo, _hi, _cmax, dur=_od2, log=log)
+                for _m in _why: log("  " + _m)
+                # ── slide ကို **motionkit template** နဲ့ ပြန်ထုတ် ──
+                # ⚠️ Zin ၂၀၂၆-၀၉-၂၀: IKKI ကိုယ်ပိုင် ဖြူဖြူ slide မသုံးတော့。
+                #    မရလျှင် PNG အတိုင်း ချန်သည် (job မကျစေရန်)。
+                _bn = (brand or {}).get("name") or "IKKI"
+                # ⚠️ **ပုံသေက စာရွက်ပုံစံ (အလင်း) slide** — ၂၀၂၆-၀၉-၂၀ Zin ရဲ့
+                #    reference (`01BnhfTaQoo`) ကို တိုင်းတော့ ဘောင်အပြည့် ကတ်က
+                #    **တောက်ပမှု ၂၃၆/၂၅၅** (စာရွက် · အစက်ကွက် · မှောင်သော စာ)。
+                #    motionkit ရဲ့ `prem.*` က အနက် gradient ဖြစ်၍ ကွဲသည်。
+                #    ⇒ `slide_src="mk"` ရွေးမှသာ အနက်ကတ် သုံးသည်。
+                _use_mk = str(rc.get("slide_src") or "paper").lower() == "mk"
+                _mk_ok, _mk_no = 0, 0
+                _sl2 = []
+                for _p, _a, _b, _l in slides:
+                    _sp = _slspec.get(_p)
+                    _mv = None
+                    if _use_mk and _sp is not None:
+                        _mv = DR.slide_clip(_l, _sp.get("head") or "", _sp.get("items"),
+                                            _sp.get("num"), _bn,
+                                            os.path.join(work_s, os.path.basename(_p)[:-4] + ".mov"),
+                                            _b - _a, log=log, fps=rc["fps"])
+                    if _mv: _mk_ok += 1; _sl2.append((_mv, _a, _b, _l))
+                    else:   _mk_no += 1; _sl2.append((_p, _a, _b, _l))
+                slides = _sl2
+                log("  slide · " + (f"motionkit {_mk_ok} ခု"
+                    + (f" · စာရွက် ပြန်ဆုတ် {_mk_no} ခု" if _mk_no else "")
+                    if _use_mk else f"စာရွက်ပုံစံ {_mk_no} ခု (reference အတိုင်း)"))
+            # ⚠️ ဘောင် မရောက်နိုင်လျှင် **အကြောင်းရင်း ကျယ်ကျယ် ပြောရမည်** —
+            #    QC က နောက်မှ ကျမည် ဖြစ်ပြီး ဘာကြောင့်လဲ မသိရလျှင် ရှာရ ခက်သည်。
+            if slides:
+                _c2 = sum(b - a for _p, a, b, _l in slides)
+                if _c2 < float(_shb2[0]) * _od2:
+                    log(f"  ⚠️ slide ဖုံးအုပ်မှု {_c2/_od2:.3f} < ဂိတ် {_shb2[0]:.2f} — "
+                        f"slide {len(slides)} ခုသာ ရ (တောင်း {_wantn} · "
+                        f"အနည်းဆုံး လို {_min_n})。 QC `gfx_share` ကျနိုင်သည်。")
             if slides:
                 _ln = [b - a for _p, a, b, _l in slides]
                 cov = sum(_ln) / _od2
@@ -775,7 +1349,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    rc.get("cap_fill") or TH["WHITE"], rc["mmf"],
                    f'{TH["LATIN"]},{TH["JP"]}', TH["BOT"],
                    IG.ct, IG.MW, fps=rc["fps"],
-                   stroke=rc.get("cap_stroke") or rc.get("stroke"),
+                   # ⚠️ `"brand"` ဆိုလျှင် **brand ရဲ့ အရောင်** ကို ယူသည် —
+                   #    ကိန်းသေ ရေးထားလျှင် logo ပြောင်းလည်း ZAE navy ပဲ
+                   #    ထွက်နေသည် (Zin ၂၀၂၆-၀၉-၂၀)。 brand က logo ကနေ
+                   #    အရောင် ထုတ်ပြီး `bd["colors"]` ⇒ `TH` ထဲ ဝင်ပြီးသား。
+                   stroke=_cap_stroke(rc, TH),
                    stroke_w=rc.get("stroke_w") or 0.0,
                    hold=float(rc.get("cap_hold") or 4.0),
                    gap_pct=float(rc.get("cap_gap") or 0.18),
@@ -922,7 +1500,65 @@ def render(job, brand, src, out, stage, log=print, over=None):
 
     stage(6, "sound")
     cutv = os.path.join(work, "cut.mp4")
-    SP.spans(src, spans, cutv, os.path.join(work,"sp"), fps=rc["fps"])
+    # ⚠️ fade — calib `edit.fade_s` (Zin ၏ ဖြတ်ဆက် dip အကျယ် ၁၄၅ms · အလယ်တန်ဖိုး)。
+    #    နှစ်ဖက် ခွဲသုံးသဖြင့် /2。 calib မရှိလျှင် spans.py ရဲ့ default (20ms)。
+    _fd = float(((CUT.calib(_bid) or {}).get("edit") or {}).get("fade_s", 0.0))
+    # ⚠️ **ဖြတ်ဆက်ကို framing နဲ့ ဖုံးသည်** (၂၀၂၆-၀၉-၂၀ · Zin: 「cut ဖြတ်တာရော …
+    #    quality 0」)。 ကွက်လပ် ကြီးကြီး ဖြုတ်ပြီး တစ်နေရာတည်းက shot ဆက်လျှင်
+    #    ပြောသူ ခုန်သွားသည် — ဖြတ်ဆက်တိုင်း wide ↔ punch-in အလှည့်ကျ ပြောင်းလျှင်
+    #    **တမင် ဖြတ်ချက်** အဖြစ် ဖတ်ရသည်。
+    # ⚠️ ကွက်လပ် သေးသေး (<၀.၄s) မှာ မပြောင်းရ — မျက်စိက မမြင်သော ဆက်မှာ
+    #    framing ပြောင်းလျှင် ပိုဆိုးသည်。 span တိုတို (<၀.၈s) မှာလည်း မလုပ်ရ
+    #    (မှိတ်တုတ်မှိတ်တုတ် ဖြစ်မည်)。
+    _pz = float(rc.get("punch") if rc.get("punch") is not None else SP.PUNCH)
+    _zooms, _cur, _nz = {}, 1.0, 0
+    if _pz and _pz > 1.0:
+        for _i, (_a, _b) in enumerate(spans):
+            if _i > 0 and _a - spans[_i-1][1] >= 0.40:
+                _cur = _pz if _cur == 1.0 else 1.0
+            if _cur > 1.0 and (_b - _a) >= 0.80:
+                _zooms[_i] = _cur; _nz += 1
+        if _nz: log(f"  ဖြတ်ဆက် ဖုံး — span {_nz}/{len(spans)} ကို {_pz:.2f}× punch-in")
+    SP.spans(src, spans, cutv, os.path.join(work,"sp"), fps=rc["fps"], zooms=_zooms,
+             **({"fade": _fd/2.0} if _fd > 0 else {}))
+    # ⚠️ ဖြတ်ချက် မရှိသော ဗီဒီယိုမှာ `_zooms` က ဘာမှ မလုပ်နိုင် ⇒ ရုပ်က
+    #    လုံးဝ မလှုပ်ဘဲ ဖြစ်သည်。 ⇒ ဆက်တိုက် ချောမွေ့သော zoom ထည့်သည်。
+    _za = float(rc.get("zoom_amt") or 0.0)
+    # ⚠️ **အမြဲ မှတ်တမ်းတင်ရမည်** — ၂၀၂၆-၀၉-၂၀ မှာ zoom က တိတ်တဆိတ်
+    #    မလုပ်ဘဲ ဖြစ်ကာ အောင်/ရှုံး log မရှိ၍ အကြောင်းရင်း မသိခဲ့ရ。
+    log(f"  zoom_amt = {_za:.3f} ({'ဖွင့်' if _za > 0.001 else 'ပိတ်'})")
+    if _za > 0.001:
+        _bz = os.path.join(work, "cutz.mp4")
+        try:
+            _breathe(cutv, _bz, rc["fps"], _za, TH["W"], TH["H"], log=log)
+            os.replace(_bz, cutv)
+        except Exception as _e:
+            log(f"  ⚠️ zoom မရ ({type(_e).__name__}: {_e}) — မလုပ်ဘဲ ဆက်သွားသည်")
+    # ⚠️ ဖြတ်ပြီးမှ **ဖျပ်ခနဲ မြင်ကွင်း** ကျန်မကျန် စစ်သည် — သုံးစွဲသူရဲ့
+    #    ဝါကျ ဖျက်ချက်က တခြားနေရာက ရိုက်ထားသော အပိုင်းရဲ့ အစွန်းလေး
+    #    ချန်ထားခဲ့လျှင် ၀.၃s လောက် ဖျပ်ခနဲ ပေါ်ပျောက် ဖြစ်သည်。
+    #    **ကိုယ်တိုင် မဖျက်ပါ** — သတိပေးရုံသာ (Zin: 「user အတည်ပြုမှ ဖျက်ပေး」)。
+    try:
+        _fl_sh = _flash_shots(cutv, log=log)
+        if _fl_sh:
+            _lst = st.get("flag_list") or []
+            for _at, _d in _fl_sh[:8]:
+                # ⚠️ key က **`text`** ဖြစ်ရမည် — UI က `f.text` ကို ဖတ်သည်。
+                #    `why` လို့ ရေးမိ၍ Zin ရဲ့ မျက်နှာပြင်မှာ အကြောင်းအရာ
+                #    **ဗလာ** ပေါ်ခဲ့သည် (၂၀၂၆-၀၉-၂၀ သူ့ screenshot)。
+                _lst.append({"at": _at, "kind": "flash_shot",
+                             "text": f"မြင်ကွင်း {_d:.2f}s သာ ရှိသည် — ဖျပ်ခနဲ "
+                                     f"ပေါ်ပြီး ပျောက်သွားမည်။ ဖျက်ထားသော ဝါကျရဲ့ "
+                                     f"အစွန်းလေး ကျန်နေခြင်း ဖြစ်တတ်သည် — "
+                                     f"အောက်က စာကြောင်း ကပ်လျက်ကိုပါ ဖျက်ပါ "
+                                     f"သို့မဟုတ် ဖျက်ထားတာကို ပြန်ထားပါ။",
+                             "score": f"{_d:.2f}s"})
+            st["flag_list"] = _lst; st["flags"] = len(_lst)
+            log(f"  ⚠️ ဖျပ်ခနဲ မြင်ကွင်း {len(_fl_sh)} ခု — "
+                + " · ".join(f"{a:.1f}s ({d:.2f}s)" for a, d in _fl_sh[:5]))
+            log("     (မဖျက်ပါ — script editor မှာ ပြပါမည်၊ သင် ဆုံးဖြတ်ပါ)")
+    except Exception as _e:
+        log(f"  ⚠️ မြင်ကွင်း စစ်၍ မရ: {type(_e).__name__}: {_e}")
     # ⚠️ grade ကို **ရုပ်ပေါ်မှာသာ** ချရသည် — overlay တင်ပြီးမှ ချလျှင်
     #    စာတန်း အဖြူက မွဲပြီး stroke ပျက်သည်。 ⇒ ဒီနေရာ (overlay မတင်ခင်)。
     # ⚠️ **အသားအရောင် ချိန်ညှိချက်** (၂၀၂၆-၀၉-၁၇ Zin: "မျက်နှာ အရမ်း မဲနေတယ်")。
@@ -971,12 +1607,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
     pngs = []
     # ⚠️ slide ကို **အရင်ဆုံး** ထည့်ရမည် — အောက်ဆုံးအလွှာ ဖြစ်စေရန် မဟုတ်ဘဲ
     #    ဗီဒီယိုပေါ် တိုက်ရိုက် ဖုံးရန်。 ပြီးမှ တခြား ဂရပ်ဖစ် အပေါ်က တက်သည်。
+    # နောက်ဆုံး အချက် = slide ဟုတ်မဟုတ် (ဟုတ်လျှင် တဖြည်းဖြည်း ရွှေ့သည်)
     for _sp, _a, _b, _lay in (slides or []):
-        pngs.append((_sp, 0, 0, _a, _b))
+        pngs.append((_sp, 0, 0, _a, _b, True))
     if el:
         ov = el["anim"][-1]
-        pngs = [(ov[0], ov[1], ov[2], 0.6, 0.6+el["dur"])]
-        for p,x,y,d in el["statics"]: pngs.append((p,x,y,0.6+d,0.6+el["dur"]))
+        pngs = [(ov[0], ov[1], ov[2], 0.6, 0.6+el["dur"], False)]
+        for p,x,y,d in el["statics"]:
+            pngs.append((p,x,y,0.6+d,0.6+el["dur"], False))
     ins=[]; fc=[f"[0:v]scale={TH['W']}:{TH['H']}:force_original_aspect_ratio=increase,"
                f"crop={TH['W']}:{TH['H']},format=yuv420p[v0]"]
     last="v0"; n=0
@@ -986,7 +1624,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ထားလျှင် စာတန်းကို ဖုံးသည်。 ဒါကြောင့် ဒီနေရာမှာ အရင် ထည့်သည်。
     for at, bp, bd, _t in (bmov or [])[:10]:
         ins += ["-itsoffset", f"{at:.2f}", "-i", bp]; n += 1
-        fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass:"
+        fc.append(_fade(f"{n}:v", f"bf{n}", at, at + bd))
+        fc.append(f"[{last}][bf{n}]overlay=0:0:eof_action=pass:"
                   f"enable='between(t,{at:.2f},{at+bd:.2f})'[v{n}]")
         last = f"v{n}"
     if rc.get("scrim") and gmov:
@@ -1054,12 +1693,30 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    decode + scale လုပ်နေသည်。 ပုံသေးလေးဆိုလျှင် သိပ်မကုန်ပေမယ့်
     #    full-frame slide ၁၇ ခု ဖြစ်သွားတာနဲ့ render က **၉ မိနစ် → ၈၄ မိနစ်**
     #    ဖြစ်သွားခဲ့သည် (တိုင်းထားသည်)。 B-roll က ဒီနည်းအတိုင်း လုပ်ပြီးသား。
-    for p,x,y,a,b in pngs:
+    _nd = 0
+    for p,x,y,a,b,_mv in pngs:
         d = max(0.1, float(b) - float(a))
-        ins += ["-loop","1","-t",f"{d:.2f}","-itsoffset",f"{a:.2f}","-i",p]; n+=1
-        fc.append(f"[{last}][{n}:v]overlay={x}:{y}:eof_action=pass:"
+        # ⚠️ motionkit slide က **ဗီဒီယို** (alpha .mov) — `-loop 1 -t` မသုံးရ
+        _ismov = str(p).lower().endswith((".mov", ".mp4"))
+        if _ismov: ins += ["-itsoffset", f"{a:.2f}", "-i", p]
+        else:      ins += ["-loop","1","-t",f"{d:.2f}","-itsoffset",f"{a:.2f}","-i",p]
+        n+=1
+        if _ismov:
+            # clip မှာ ကိုယ်ပိုင် fade (house) ပါပြီးသား ⇒ ထပ်မထည့်ရ
+            fc.append(f"[{n}:v]format=yuva420p[sf{n}]")
+            # ⚠️ clip က သဘာဝ ၃.၆s ပဲ ရှိပြီး ဝင်းဒိုးက ၁၀.၅s ⇒ နောက်ဆုံး
+            #    frame ကို **ရပ်ထားရမည်** (`repeat`)。 `pass` သုံးလျှင်
+            #    clip ကုန်တာနဲ့ slide ပျောက်သွားမည်。
+        else:
+            fc.append(_fade(f"{n}:v", f"sf{n}", a, b))
+        _yy = f"{y}"
+        _rv = _rise(a) if (_mv and not _ismov and d > RISE_S * 2) else None
+        if _rv: _yy = _rv; _nd += 1
+        fc.append(f"[{last}][sf{n}]overlay={x}:{_yy}:"
+                  f"eof_action={'repeat' if _ismov else 'pass'}:"
                   f"enable='between(t,{a:.2f},{b:.2f})'[v{n}]")
         last=f"v{n}"
+    if _nd: log(f"  slide {_nd} ခု အောက်ကနေ တက်လာ ({RISE_PX}px · {RISE_S}s)")
     mc = probe(cutv)
     raw = os.path.join(work, "raw.mp4")
     # ⚠️ -t ကို **output** မှာ ထားရမည် — -loop 1 က PNG ကို အဆုံးမရှိ ထုတ်သည်。
@@ -1313,6 +1970,23 @@ def post_thumb(jid, out, log=print):
         log(f"  ⚠️ ပုံငယ် မရ: {e}")
 
 
+def post_audio(jid, path, log=print):
+    """အသံ proxy ကို API ကို တင်သည် (Script Editor မှာ နားထောင်ရန်)。"""
+    try:
+        raw = open(path, "rb").read()
+        bnd = "----ikki" + os.urandom(8).hex()
+        body = (f"--{bnd}\r\nContent-Disposition: form-data; name=\"file\"; "
+                f"filename=\"a.m4a\"\r\nContent-Type: audio/mp4\r\n\r\n").encode() \
+               + raw + f"\r\n--{bnd}--\r\n".encode()
+        r = urllib.request.Request(API + f"/api/w/{jid}/audio", data=body, method="POST")
+        r.add_header("Authorization", "Bearer " + TOKEN)
+        r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
+        with urllib.request.urlopen(r, timeout=180) as f: f.read()
+        log(f"  အသံ proxy တင်ပြီး · {len(raw)/1e6:.1f} MB")
+    except Exception as e:
+        log(f"  ⚠️ အသံ proxy မတင်နိုင်: {e}")
+
+
 def post_result(jid, out, meta):
     # ⚠️ R2 mode — ဖိုင်ကို R2 ကို **တိုက်ရိုက်** တင်ပြီး API ကို metadata ပဲ ပို့သည်。
     #    VPS ကို မဖြတ်သဖြင့် ၇၃ MB/မိနစ် output က VPS လိုင်းကို မစားဘူး。
@@ -1334,16 +2008,28 @@ def post_result(jid, out, meta):
     r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
     with urllib.request.urlopen(r, timeout=1800) as f: return json.loads(f.read())
 
-def fetch_src(jid, dest, on_progress=None):
-    """source ကို chunk အလိုက် disk ပေါ် တိုက်ရိုက် ရေးသည် · ၁၀% တိုင်း အစီရင်ခံသည်。"""
-    r = urllib.request.Request(API + f"/api/w/src/{jid}")
+def fetch_src(jid, dest, on_progress=None, path="src"):
+    """source ကို chunk အလိုက် disk ပေါ် တိုက်ရိုက် ရေးသည် · ၁၀% တိုင်း အစီရင်ခံသည်。
+
+    `path="src2"` ⇒ dual-system အသံ ဖိုင် (မရှိလျှင် 404 ⇒ ခေါ်သူက ကိုင်ရမည်)。
+    """
+    r = urllib.request.Request(API + f"/api/w/{path}/{jid}")
     r.add_header("Authorization", "Bearer " + TOKEN)
     # ⚠️ R2 mode — API က JSON {url:…} ပြန်ပေးသည်。 အဲဒီ URL ကို
     #    **Authorization header မပါဘဲ** ဆွဲရမည် (presigned ဖြစ်သဖြင့်)。
     with urllib.request.urlopen(r, timeout=60) as f0:
         ct = (f0.headers.get("Content-Type") or "")
         if "json" in ct:
-            u = json.loads(f0.read()).get("url")
+            _j = json.loads(f0.read())
+            # ⚠️ ဖိုင်က **ဤစက်ထဲမှာပဲ** ရှိပြီးသားဆို ဆွဲချစရာ မလို —
+            #    R2 ကို တင်ပြီး ပြန်ဆွဲချတာ အလကား (၂၀၂၆-၀၉-၁၉)。
+            _lp = _j.get("local")
+            if _lp:
+                if not os.path.exists(_lp):
+                    raise RuntimeError(f"စက်ထဲက ဖိုင် ပျောက်နေသည်: {_lp}")
+                print(f"  ✓ စက်ထဲက ဖိုင် တိုက်ရိုက် သုံးသည် — ဆွဲချစရာ မလို", flush=True)
+                return _lp
+            u = _j.get("url")
             if u: r = urllib.request.Request(u)
     t0 = time.time(); got = 0; nxt = 10
     with urllib.request.urlopen(r, timeout=180) as f:
@@ -1533,6 +2219,11 @@ def sweep_scratch(keep=None, failed=False):
     n = 0
     try: names = os.listdir(SCRATCH)
     except OSError: return 0
+    # ⚠️ ဖိုင်ကြီးတွေက **တခြား disk** မှာ ရှိနိုင်သည် — အဲဒါလည်း ရှင်းရမည်
+    _extra = []
+    if BIG != SCRATCH:
+        try: _extra = [(BIG, nm) for nm in os.listdir(BIG) if nm.startswith("j_")]
+        except OSError: pass
     # ⚠️ **ကျမှုရဲ့ သက်သေကို မဖျက်ရ**。 အရင်က job ပြီးတိုင်း `_w` ဖျက်သဖြင့်
     #    "ဘာလို့ card နည်းလဲ" ကို ပြန်စစ်လို့ မရတော့ခဲ့ — gx/ · sl/ · b*.mp4
     #    ဖိုင် အရေအတွက်ကို ပြန်ရေလို့ မရ。
@@ -1542,12 +2233,12 @@ def sweep_scratch(keep=None, failed=False):
                    key=lambda x: os.path.getmtime(os.path.join(SCRATCH, x)),
                    reverse=True)
     recent = set(wdirs[:KEEP_LAST])
-    for nm in names:
+    for _d, nm in [(SCRATCH, x) for x in names] + _extra:
         if not nm.startswith("j_"): continue
         if keep and nm.startswith(keep): continue
         if nm.endswith("_w") and (KEEP_WORK or failed or nm in recent):
             continue
-        p = os.path.join(SCRATCH, nm)
+        p = os.path.join(_d, nm)
         try:
             if os.path.isdir(p): _sh.rmtree(p)
             else: os.unlink(p)
@@ -1624,21 +2315,85 @@ def handle(d):
     #    ffmpeg က ENOSPC နဲ့ ကျပြီး အကြောင်းရင်းက log ထဲ နက်နက်မှ ပေါ်သည် —
     #    သုံးစွဲသူက "render မရဘူး" ပဲ မြင်ရသည်。 ⇒ ဒီမှာ ရှင်းရှင်း ပြောသည်。
     sweep_scratch(keep=jid)
-    need = max(3.0, (job.get("src_dur") or 600) / 600.0 * 2.5)
-    have = free_gb()
-    if have < need:
-        raise RuntimeError(
-            f"disk နေရာ မလုံလောက်ပါ — ကျန် {have:.1f} GB၊ ဒီဗီဒီယိုအတွက် "
-            f"~{need:.1f} GB လိုသည်။ စက်ထဲက ဖိုင်တွေ ရှင်းပြီးမှ ပြန်လုပ်ပါ။")
-    src = os.path.join(SCRATCH, jid + "_src.mp4")
+    # ⚠️ ဂိတ်ကို **ကြာချိန်နဲ့ တွက်၍ မရ**。 4K ၄.၅ GB ဖိုင်က 1080p ဖိုင်နဲ့
+    #    ကြာချိန် တူပေမယ့် နေရာ ၄ ဆ လိုသည်。 ကြာချိန်နဲ့ တွက်ခဲ့သဖြင့်
+    #    ၃.၀ GB လိုတယ် ဟု ဆုံးဖြတ်ပြီး စလိုက်ရာ ၉၀% မှာ ENOSPC နဲ့ ကျခဲ့သည်
+    #    (j_dd56e503c95c · ၂၀၂၆-၀၉-၁၉)。 ⇒ **မူရင်း ဖိုင် အရွယ်**ကနေ တွက်။
+    _sz = float((d.get("upload") or {}).get("size") or 0) / (1024**3)
+    _pxr = os.path.join(BIG, jid + "_px.mp4")
+    _have_px = os.path.exists(_pxr) and os.path.getsize(_pxr) > 1 << 20
+    # မူရင်း + proxy + ကြားဖြတ် ဖိုင်များ。 proxy ရှိပြီးသားဆို မူရင်း မလို。
+    # ⚠️ **disk ၂ ခုကို သီးသန့် စစ်ရမည်** — ဖိုင်ကြီးက BIG မှာ · PNG တွေက
+    #    Mac ထဲ scratch မှာ。 တစ်ခုတည်း စစ်လျှင် ကျန်တစ်ခု ပြည့်ပြီး ကျမည်。
+    _need_big = 0.0 if _have_px else (_sz * 1.25)          # မူရင်း + proxy
+    _need_w   = max(2.0, (job.get("src_dur") or 600)/600.0*2.5)   # ကြားဖြတ် ဖိုင်
+    _hb, _hw = free_gb(BIG), free_gb(SCRATCH)
+    _same = os.stat(BIG).st_dev == os.stat(SCRATCH).st_dev
+    if _same:
+        if _hw < _need_big + _need_w:
+            raise RuntimeError(
+                f"disk နေရာ မလုံလောက်ပါ — ကျန် {_hw:.1f} GB၊ ဒီဗီဒီယိုအတွက် "
+                f"~{_need_big + _need_w:.1f} GB လိုသည် (မူရင်း {_sz:.1f} GB)။ "
+                f"စက်ထဲက ဖိုင်တွေ ရှင်းပါ — သို့မဟုတ် ဖိုင်ကြီးများကို "
+                f"ပြင်ပ disk မှာ ထားရန် `IKKI_BIG` သတ်မှတ်ပါ။")
+    else:
+        if _hb < _need_big:
+            raise RuntimeError(
+                f"ဖိုင်ကြီး disk ({BIG}) နေရာ မလုံလောက်ပါ — ကျန် {_hb:.1f} GB၊ "
+                f"~{_need_big:.1f} GB လိုသည် (မူရင်း {_sz:.1f} GB)။")
+        if _hw < _need_w:
+            raise RuntimeError(
+                f"Mac disk နေရာ မလုံလောက်ပါ — ကျန် {_hw:.1f} GB၊ "
+                f"~{_need_w:.1f} GB လိုသည်။ စက်ထဲက ဖိုင်တွေ ရှင်းပါ။")
+        print(f"  💾 ဖိုင်ကြီး → {BIG} (ကျန် {_hb:.0f} GB) · "
+              f"ကြားဖြတ် → Mac ထဲ (ကျန် {_hw:.1f} GB)", flush=True)
+    src = os.path.join(BIG, jid + "_src.mp4")
     # ⚠️ ဖိုင်ကြီးကို memory ထဲ တစ်ခါတည်း မယူရ၊ တိုးတက်မှုကိုလည်း **ပြရမည်**。
     #    ၄၁၉ MB ဖိုင်တစ်ခုက ၀.၆၆ MB/s နှုန်းနှင့် ၁၀ မိနစ် ကြာခဲ့ပြီး UI မှာ
     #    ဘာမှ မပြသဖြင့် "ရပ်နေတယ်" ဟု ထင်ခဲ့ရသည်。
-    fetch_src(jid, src, lambda pc, mb, sp:
-              req(f"/api/w/{jid}/stage",
-                  {"stage":0,"name":f"ဆွဲချ {pc}% ({mb:.0f} MB · {sp:.1f} MB/s)",
-                   "minutes":(time.time()-t0)/60}))
-    print(f"  ဆွဲချ {os.path.getsize(src)/1e6:.0f} MB · {time.time()-t0:.1f}s", flush=True)
+    # ⚠️ **retry မှာ proxy ရှိပြီးသားဆို ပြန်သုံးရမည်**。 အရင်က retry တိုင်း
+    #    ၄.၅ GB ကို အစကနေ ပြန်ဆွဲချ (၆၃၀s) ပြီး proxy ကို ပြန်လုပ် (၃၀၆s)
+    #    နေခဲ့သည် — နှစ်ခုလုံး လုပ်ပြီးသား ဖြစ်ပါလျက် (၂၀၂၆-၀၉-၁၉)。
+    if _have_px:
+        src = _pxr
+        print(f"  ♻️  proxy ရှိပြီးသား — ဆွဲချ/ချုံ့ ကျော်သွားသည် "
+              f"({os.path.getsize(_pxr)/1e6:.0f} MB)", flush=True)
+    else:
+        # ⚠️ `fetch_src` ရဲ့ **ပြန်ပေးချက်ကို ယူရမည်** — ဖိုင်က ဤစက်ထဲ ရှိပြီးသားဆို
+        #    ဆွဲချစရာ မလိုဘဲ **အဲဒီ လမ်းကြောင်း**ကို ပြန်ပေးသည်。 မယူလျှင်
+        #    ရေးမထားသော destination ကို ဆက်သုံးပြီး
+        #    「No such file or directory: …_src.mp4」 ဖြစ်သည် (၂၀၂၆-၀၉-၂၀)。
+        src = fetch_src(jid, src, lambda pc, mb, sp:
+                  req(f"/api/w/{jid}/stage",
+                      {"stage":0,"name":f"ဆွဲချ {pc}% ({mb:.0f} MB · {sp:.1f} MB/s)",
+                       "minutes":(time.time()-t0)/60})) or src
+        print(f"  ဆွဲချ {os.path.getsize(src)/1e6:.0f} MB · {time.time()-t0:.1f}s", flush=True)
+    # ── dual-system — recorder အသံ ရှိလျှင် ချိန်ညှိပြီး ပေါင်း ────────────
+    # ⚠️ ကင်မရာ mic က −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည်。
+    #    offset ကို **တိုင်းရမည်** — ဂိတ် မအောင်လျှင် **မပေါင်းဘဲ ဆက်သွား**
+    #    (မှားညှိလျှင် အသံနဲ့ ပုံ လွဲပြီး ဗီဒီယို တစ်ခုလုံး ပျက်သည်)。
+    try:
+        a2 = os.path.join(SCRATCH, jid + "_aud")
+        fetch_src(jid, a2, path="src2")
+    except Exception:
+        a2 = None
+    if a2 and os.path.exists(a2) and os.path.getsize(a2) > 4096:
+        try:
+            import dual as DU   # core က line 20 မှာ path ထဲ ရှိပြီးသား
+            off, ok, inf = DU.offset(src, a2, log=lambda m: print(m, flush=True))
+            if ok:
+                mx = os.path.join(SCRATCH, jid + "_mux.mp4")
+                DU.mux(src, a2, mx, off, log=lambda m: print(m, flush=True))
+                os.remove(src); src = mx
+                print(f"  ✓ recorder အသံ သုံးသည် (offset {off:+.2f}s)", flush=True)
+            else:
+                print(f"  ⚠️ **အသံ မပေါင်းပါ** — {inf.get('why','ဂိတ် မအောင်')} "
+                      f"⇒ ကင်မရာ အသံ ဆက်သုံးသည်", flush=True)
+        except Exception as e:
+            print(f"  ⚠️ အသံ ပေါင်း၍ မရ: {type(e).__name__}: {e}", flush=True)
+        finally:
+            try: os.remove(a2)
+            except Exception: pass
     out = os.path.join(SCRATCH, jid + ".mp4")
     def stage(n, name):
         req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})
@@ -1685,7 +2440,20 @@ def handle(d):
         # ⚠️ **ကျဘမ်းဖြစ်လည်း ရှင်းရမည်**。 အရင်က အောင်မြင်မှသာ src/out ဖျက်ပြီး
         #    `_w` ကို ဘယ်တော့မှ မဖျက်ခဲ့ ⇒ scratch မှာ ၃.၈ GB ပုံနေပြီး disk
         #    ပြည့်သွားကာ render က span s0077 မှာ ကျဘမ်း ဖြစ်ခဲ့သည် (တကယ်)。
-        sweep_scratch(keep=None, failed=_failed)
+        # ⚠️ ကျခဲ့လျှင် **proxy ကို ချန်ရမည်** — retry မှာ ၄.၅ GB ပြန်ဆွဲချ/
+        #    ၃၀၆s ပြန်ချုံ့ စရာ မလိုတော့ (၂၀၂၆-၀၉-၁၉)。 မူရင်းကတော့ ကြီးလွန်း၍
+        #    **ဖျက်**သည် — proxy ရှိရင် မလိုတော့。
+        if _failed:
+            try:
+                _s0 = os.path.join(BIG, jid + "_src.mp4")
+                if os.path.exists(_s0) and os.path.exists(
+                        os.path.join(BIG, jid + "_px.mp4")):
+                    os.remove(_s0)
+                    print("  🧹 မူရင်း ဖျက် — proxy ချန်ထားသည် (retry မြန်ရန်)", flush=True)
+            except OSError: pass
+            sweep_scratch(keep=jid, failed=True)
+        else:
+            sweep_scratch(keep=None, failed=_failed)
     print(f"✅ ပြီး · {time.time()-t0:.1f}s\n", flush=True)
 
 def pull_broll():
@@ -1733,6 +2501,63 @@ def pull_broll():
             except OSError: pass
 
 
+
+# ── စက်ထဲက ဗီဒီယို အညွှန်း ─────────────────────────────────
+# ⚠️ worker က သုံးစွဲသူရဲ့ Mac ပေါ်မှာပဲ မောင်းသည်。 ဖိုင်က ဤစက်ထဲ ရှိပြီးသားဆို
+#    R2 ကို တင်ပြီး ပြန်ဆွဲချစရာ မလို ⇒ upload ၁၃၇ စက္ကန့် → ၀ (၅၆၂ MB · တိုင်းပြီး)。
+#    အညွှန်းက (နာမည်, အရွယ်) ကိုသာ ပေးသည် — ဖိုင် အကြောင်းအရာ မပို့ပါ。
+IDX_ROOTS = [x for x in (os.environ.get("IKKI_MEDIA_ROOTS") or "").split(":") if x] or [
+    os.path.expanduser("~/Movies"), os.path.expanduser("~/Desktop"),
+    os.path.expanduser("~/Downloads"), "/Volumes"]
+IDX_EXT = (".mp4", ".mov", ".m4v", ".mkv", ".avi", ".mts", ".m2ts")
+IDX_EVERY = 600.0
+IDX_MAX = 20000
+_IDX_AT = [0.0]
+
+def push_index(force=False):
+    """စက်ထဲက ဗီဒီယို ဖိုင် စာရင်းကို API သို့ ပို့သည် (နာမည် + အရွယ် + လမ်းကြောင်း)"""
+    if not force and time.time() - _IDX_AT[0] < IDX_EVERY: return
+    _IDX_AT[0] = time.time()
+    out = []
+    per, errs = {}, []
+    t_all = time.time()
+    for root in IDX_ROOTS:
+        if not os.path.isdir(root): continue
+        n0, t0 = len(out), time.time()
+        # ⚠️ `os.walk` က ခွင့်မရသော ဖိုဒါကို **တိတ်တဆိတ် ကျော်**သည် — launchd
+        #    အောက်မှာ ~/Downloads · /Volumes တွေ ဖတ်ခွင့် မရှိလျှင် ဘာမှ မပေါ်ဘဲ
+        #    「ဖိုင် ၁ ခုပဲ တွေ့」 ဖြစ်သည် (၂၀၂၆-၀၉-၁၉ တကယ် ဖြစ်ခဲ့)。 ⇒ onerror
+        for dp, dns, fns in os.walk(root, onerror=lambda e: errs.append(str(e)[:80])):
+            # ⚠️ အချိန် ကန့်သတ် — /Volumes က ဖိုင် ၉၀၀၀ ကျော် ရှိပြီး scan ကြာသည်
+            if time.time() - t_all > 90: break
+            # ⚠️ စနစ်/cache ဖိုဒါများကို ကျော် — မကျော်လျှင် scan က မိနစ်နှင့်ချီ ကြာသည်
+            dns[:] = [d for d in dns if not d.startswith(".")
+                      and d not in ("Library", "node_modules", "Photos Library.photoslibrary")]
+            for fn in fns:
+                if not fn.lower().endswith(IDX_EXT): continue
+                q = os.path.join(dp, fn)
+                try: sz = os.path.getsize(q)
+                except OSError: continue
+                if sz < 1 << 20: continue          # ၁ MB အောက် — ဗီဒီယို မဟုတ်
+                out.append({"name": fn, "size": sz, "path": q})
+                if len(out) >= IDX_MAX: break
+            if len(out) >= IDX_MAX: break
+        if len(out) >= IDX_MAX: break
+        per[root] = len(out) - n0
+    try:
+        d = req("/api/w/index", {"files": out})
+        print(f"  📇 စက်ထဲက ဗီဒီယို {d.get('n', len(out))} ဖိုင် အညွှန်း ပို့ပြီး "
+              f"— ဒီထဲက ဖိုင်ဆို upload ကျော်မည်", flush=True)
+        print("        " + " · ".join(f"{os.path.basename(k) or k}={v}"
+                                      for k, v in per.items()), flush=True)
+        if errs:
+            print(f"        ⚠️ ဖတ်ခွင့် မရသော ဖိုဒါ {len(errs)} ခု — "
+                  f"System Settings ▸ Privacy ▸ Full Disk Access မှာ "
+                  f"worker ကို ခွင့်ပြုရန်。 ဥပမာ: {errs[0]}", flush=True)
+    except Exception as e:
+        print(f"  ⚠️ အညွှန်း မပို့နိုင်: {type(e).__name__}: {e}", flush=True)
+
+
 def main(once=False):
     print(f"worker → {API}  ·  {POLL}s တစ်ကြိမ်", flush=True)
     # ⚠️ **သေနေသော job ကို အရင် ပြန်တန်းစီ**ရမည်。 render လုပ်နေရင်း worker
@@ -1750,21 +2575,38 @@ def main(once=False):
     # ⚠️ ရပ်သွားခဲ့သော run တွေရဲ့ scratch ကျန်နေတတ်သည် — စချင်းရှင်းသည်
     sweep_scratch(keep=None)
     print(f"  disk ကျန် {free_gb():.1f} GB", flush=True)
+    push_index(force=True)
     _bt = 0.0
     while True:
+        push_index()
         try:
             # ⚠️ ရုပ်ကြမ်း တင်လာတာကို **၃၀ စက္ကန့်တစ်ခါ** စစ်သည် — job poll
             #    တိုင်း စစ်လျှင် API ကို အလကား ခေါ်များသည်。
             if time.time() - _bt > 30:
                 _bt = time.time(); pull_broll()
-            d = req("/api/w/claim", {})
+            # ⚠️ ကိုယ်ပိုင် အမှတ် ပါမှ worker အများကြီး ဘေးကင်း (claim race)
+            d = req("/api/w/claim", {"worker": WORKER_ID})
             if d.get("job"):
                 jid = d["job"]["id"]
+                # ⚠️ **render လုပ်နေကြောင်း အမှတ် ချန်ရမည်**。 `deploy.sh` က
+                #    အရင်က `pgrep -f scratch` နဲ့ စစ်ခဲ့ရာ ဂရပ်ဖစ် ၂ ခုကြားက
+                #    ffmpeg မရှိသော ခဏလေးမှာ 「ပြီးပြီ」ထင်ပြီး worker ကို
+                #    ပြန်စလိုက်သဖြင့် render တစ်ခုလုံး သေခဲ့သည် (၂၀၂၆-၀၉-၂၀
+                #    j_e45a95bd33ea · ဒုတိယအကြိမ်)。 ⇒ ffmpeg ကို မစစ်ဘဲ
+                #    **ဒီဖိုင်ကို စစ်ရမည်** — pid ပါသဖြင့် worker သေသွားလျှင်
+                #    ဟောင်းနေသော အမှတ်ကို ခွဲခြားနိုင်သည်。
+                try:
+                    with open(BUSY, "w") as _bf:
+                        _bf.write(f"{os.getpid()} {jid}\n")
+                except OSError: pass
                 try: handle(d)
                 except Exception as e:
                     tb = traceback.format_exc(); print(f"❌ {e}\n{tb}", flush=True)
                     try: req(f"/api/w/{jid}/fail", {"err": str(e)[:800]})
                     except Exception: pass
+                finally:
+                    try: os.remove(BUSY)
+                    except OSError: pass
                 if once: return
             elif once: print("  job မရှိ"); return
         except urllib.error.URLError as e:

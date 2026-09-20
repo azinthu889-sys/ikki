@@ -17,7 +17,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gemguard as G
 import measure as M
 
-MODEL = os.environ.get("IKKI_GEMINI_MODEL", "gemini-3.1-flash-lite")
+# ⚠️ `flash-lite` ကို **မသုံးရ** — ၂၀၂၆-၀၉-၁၉ တိုင်းချက် (j_8fc361134d92 ပထမ ၄၂s):
+#    ဗီဇာ→「ပီဇာ」 · skill→「scale」 · Class 1→「class ဝမ်း」 · သော့ချက်→「သောချက်」 ·
+#    ကုန်ကျစရိတ်→「ကုန်ကျ စိတ်」 · 特定技能→「တစ်ခုတည်း」(၅ နေရာ) · JSON ပုံစံပါ ပျက်ခဲ့。
+#    `flash` က ဤအားလုံးကို မှန်အောင် ထုတ်သည်。
+MODEL = os.environ.get("IKKI_GEMINI_MODEL", "gemini-flash-latest")
 CHUNK = 24.0      # ⚠️ ၂၄s က တိုင်းထားသော အကောင်းဆုံး — ~၅s ကြာသည်
 # ⚠️ space ညွှန်ကြားချက်ကို **ဤ prompt ထဲမှာပဲ** ထည့်ရသည် — Gemini က
 #    မြန်မာစကားလုံးကို အလွန်ခွဲသည် ("ကျွန်တော် တို့")。 သီးသန့် mmspace pass
@@ -127,8 +131,16 @@ def gloss_audit(segs):
                 watch={w: one(w) for w in g.get("watch", [])},
                 cjk=[m.group(0) for m in _CJK.finditer(text)])
 
-def _prompt():
-    return PROMPT + (_gloss_block() if USE_GLOSS[0] else "")
+# ⚠️ **တိတ်ဆိတ်သော chunk မှာ glossary မထည့်ရ**。 ၂၀၂၆-၀၉-၁၆ တိုင်းချက်:
+#    `self value` ကို ဗီဒီယို ၄ ခု · ၁၆ ကြိမ် ထုတ်ခဲ့ပြီး **အားလုံး တိတ်ဆိတ်မှု
+#    ၉၀%+ chunk များတွင်** — model က ဘာမှ မကြားရလျှင် စာရင်းထဲက စကားလုံးကို
+#    ထုတ်ချင်တတ်သည်。 ⇒ စကား အချိုး ဤဂိတ် အောက်လျှင် glossary ဖြုတ်သည်。
+GLOSS_MIN_SPEECH = 0.25
+# ⚠️ **global မထားရ** — chunk များကို အပြိုင် ခေါ်သဖြင့် တစ်ခုက တစ်ခုရဲ့
+#    တန်ဖိုးကို ဖျက်မိမည် (၂၀၂၆-၀၉-၁၉ အပြိုင် ပြောင်းစဉ်)。 ⇒ parameter。
+def _prompt(gloss_ok=True):
+    if not USE_GLOSS[0] or not gloss_ok: return PROMPT
+    return PROMPT + _gloss_block()
 
 # ⚠️ **Gemini ရဲ့ အချိန်ကို သံသယဖြင့် လက်ခံရသည်**。 `_place()` ရဲ့ မှတ်ချက်
 #    (ဤဖိုင် အောက်ပိုင်း) မှာ "Gemini ရဲ့ ကိုယ်ပိုင် အချိန် ~၀.၄s စော" ဟု
@@ -272,17 +284,24 @@ SCHEMA = {"type":"ARRAY","items":{"type":"OBJECT","properties":{
     "required":["start","end","text","words"]}}
 SCHEMA_OK = [True]        # model က မထောက်ပံ့လျှင် ပိတ်ပြီး ဆက်သွားသည်
 
-def _call(b64, mime="audio/ogg", tries=4, schema=None):
-    url = G.endpoint(MODEL)
+# ⚠️ တိုင်းချက် (၂၀၂၆-၀၉-၁၉ · စကား ၁၀၀.၇s): gap 5.0/အပြိုင် ၁ = ၄၁–၆၈s ·
+#    gap 0.3/အပြိုင် ၆ = ၁၁–၂၁s。 စာလုံး ၁၉၂၉→၁၉၇၉ · ဖုံးအုပ်မှု တူ ⇒ **မပျောက်**。
+ASR_GAP = float(os.environ.get("IKKI_ASR_GAP", "0.3"))
+FALLBACK = os.environ.get("IKKI_GEMINI_MODEL_FALLBACK", "gemini-flash-lite-latest")
+_FELL = [False]
+
+def _call(b64, mime="audio/ogg", tries=4, schema=None, model=None, gloss_ok=True):
+    url = G.endpoint(model or MODEL)
     use = SCHEMA_OK[0] if schema is None else schema
-    body = {"contents":[{"parts":[{"text":_prompt()},
+    body = {"contents":[{"parts":[{"text":_prompt(gloss_ok)},
             {"inline_data":{"mime_type":mime,"data":b64}}]}],
             "generationConfig":{"temperature":0.0}}
     if use:
         body["generationConfig"]["responseMimeType"] = "application/json"
         body["generationConfig"]["responseSchema"] = SCHEMA
     for i in range(tries):
-        G.throttle()
+        # ⚠️ ASR သီးသန့် gap — chunk ၁၆ ခုမှာ ၅s စီ စောင့်လျှင် **၈၀s** ကုန်သည်
+        G.throttle(ASR_GAP)
         r = urllib.request.Request(url, data=json.dumps(body).encode(),
             headers={"Content-Type":"application/json"}, method="POST")
         try:
@@ -298,10 +317,20 @@ def _call(b64, mime="audio/ogg", tries=4, schema=None):
                                           or "responseMimeType" in raw):
                 G.log_fail("asr", i + 1, tries, e.code, "schema မထောက်ပံ့ — JSON prompt သို့ ပြောင်း: " + raw)
                 SCHEMA_OK[0] = False
-                return _call(b64, mime, tries, schema=False)
+                return _call(b64, mime, tries, schema=False, model=model, gloss_ok=gloss_ok)
             # ⚠️ rate-limit 429 နှင့် credit ကုန်သော 429 က မတူ — နှစ်ခုလုံး "quota" ဟု ပြော。
             #    "quota" စာလုံးနဲ့ တိုက်လျှင် သာမန် rate limit မှာ ရပ်သွားသည်。
             if G.fatal(e.code, raw):
+                # ⚠️ quota ကုန်လျှင် **တိတ်တဆိတ် ဗလာ မပြန်ရ** — ၂၀၂၆-၀၉ မှာ chunk
+                #    တိုင်း ဗလာ ဖြစ်ပြီး error မပြဘဲ ASR အားလုံး ပျောက်ခဲ့သည်。
+                #    ⇒ **ပိုသေးသော model ဆီ ကျဆင်း**ပြီး log မှာ ကျယ်ကျယ် ပြောသည်。
+                if MODEL != FALLBACK and not _FELL[0]:
+                    _FELL[0] = True
+                    G.log_fail("asr", i + 1, tries, e.code,
+                               f"{MODEL} ရပ်သွား — {FALLBACK} သို့ ကျဆင်းသည်", final=False)
+                    print(f"  ⚠️ ASR model {MODEL} ရပ်သွားပြီ (quota?) — "
+                          f"{FALLBACK} နဲ့ ဆက်သွားသည်။ စာလုံးပေါင်း ညံ့နိုင်သည်။", flush=True)
+                    return _call(b64, mime, tries, schema, model=FALLBACK, gloss_ok=gloss_ok)
                 G.log_fail("asr", i + 1, tries, e.code, raw, final=True)
                 raise RuntimeError(f"Gemini ရပ်သွားပြီ: {raw[:200]}")
             G.log_fail("asr", i + 1, tries, e.code, raw)
@@ -347,6 +376,16 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
     tries_json = int((align_cfg or {}).get("json_tries", 3) or 3)
     work=tempfile.mkdtemp(prefix="ikki_asr_")
     try:
+        # ⚠️ **chunk များကို အပြိုင် ခေါ်သည်** — ၂၀၂၆-၀၉-၁၉ တိုင်းချက်:
+        #    ၆ မိနစ် ဗီဒီယိုမှာ chunk ၁၆ ခု × ~၈.၅s = ~၁၄၀s ကို **တစ်ခုပြီးမှ
+        #    တစ်ခု** ခေါ်နေခဲ့သည်。 network စောင့်ချိန်သာ ဖြစ်၍ အပြိုင် ခေါ်လျှင်
+        #    တိုက်ရိုက် ချုံ့လို့ရသည်。
+        # ⚠️ သို့သော် **အစုလိုက်** လုပ်ရမည် — quota ကုန်လျှင် ချက်ချင်း ရပ်စေမည့်
+        #    「chunk ၄ ခု ဆက်တိုက် အလွတ်」 ကာကွယ်ချက်ကို မပျက်စေရန်。
+        #    အားလုံး တစ်ပြိုင်နက် ခေါ်လျှင် အဲဒါ အလုပ် မဖြစ်တော့。
+        PAR = int(os.environ.get("IKKI_ASR_PAR", "6"))
+        from concurrent.futures import ThreadPoolExecutor
+        _cuts = []
         for i in range(len(marks)-1):
             a,b = marks[i], marks[i+1]
             if b-a < 0.6: continue
@@ -354,19 +393,42 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
             subprocess.run(["ffmpeg","-v","error","-y","-ss",f"{a:.2f}","-i",wav,
                 "-t",f"{b-a:.2f}","-ac","1","-ar","16000","-c:a","libopus","-b:a","24k",p],
                 check=True)
-            # ⚠️ **JSON ပျက်လျှင် ပြန်ခေါ်ရမည်** — ကျဘမ်းက ကျပန်းဖြစ်၍
-            #    (run ၃ ခုမှာ ၀ · ၂ · ၁ chunk ကျခဲ့ပြီး ကျတဲ့ chunk မတူ)。
-            #    ပြန်မခေါ်လျှင် chunk တစ်ခုလုံး (၂၀–၃၀s စကား) ပျောက်သည်。
-            t0=time.time(); txt=""; tm=None
+            _cuts.append((i, a, b, p))
+
+        def _fetch(job):
+            i, a, b, p = job
+            _spk = sum(min(b, e2) - max(a, s2) for s2, e2 in sp if e2 > a and s2 < b)
+            _ok = ((_spk / (b - a)) if b > a else 1.0) >= GLOSS_MIN_SPEECH
+            t0 = time.time(); txt = ""; tm = None
             for _k in range(max(1, tries_json)):
-                txt = _call(_b64(p))
+                txt = _call(_b64(p), gloss_ok=_ok)
                 if not txt.strip(): break
                 tm = _parse_timed(txt, a, b)
                 if tm: break
                 if _k + 1 < max(1, tries_json):
                     log(f"  ↻ ASR chunk {i+1} — JSON ပျက် ({len(txt)} လုံး) · "
                         f"ပြန်ခေါ်သည် {_k+2}/{tries_json}")
-            log(f"  ASR {i+1}/{len(marks)-1} · {b-a:.0f}s → {len(txt)} လုံး · {time.time()-t0:.1f}s")
+            return (i, a, b, txt, tm, time.time() - t0)
+
+        _res = []
+        with ThreadPoolExecutor(max_workers=max(1, PAR)) as _ex:
+            for _k0 in range(0, len(_cuts), max(1, PAR)):
+                _res.extend(list(_ex.map(_fetch, _cuts[_k0:_k0+max(1, PAR)])))
+                # ⚠️ အစု တစ်ခု ပြီးတိုင်း ရပ်သင့်မရပ်သင့် စစ်သည်
+                _e = sum(1 for r in _res if not r[3].strip())
+                if len(_res) >= 4 and _e == len(_res):
+                    break
+        log(f"  ASR · chunk {len(_cuts)} ခု · အပြိုင် {PAR}")
+        _RES = {r[0]: r for r in _res}
+
+        for (i, a, b, p) in _cuts:
+            # ⚠️ **JSON ပျက်လျှင် ပြန်ခေါ်ရမည်** — ကျဘမ်းက ကျပန်းဖြစ်၍
+            #    (run ၃ ခုမှာ ၀ · ၂ · ၁ chunk ကျခဲ့ပြီး ကျတဲ့ chunk မတူ)。
+            #    ပြန်မခေါ်လျှင် chunk တစ်ခုလုံး (၂၀–၃၀s စကား) ပျောက်သည်。
+            _r = _RES.get(i)
+            if _r is None: continue
+            _i2, _a2, _b2, txt, tm, _el = _r
+            log(f"  ASR {i+1}/{len(marks)-1} · {b-a:.0f}s → {len(txt)} လုံး · {_el:.1f}s")
             n_try += 1
             if not txt.strip(): n_empty += 1
             # ⚠️ **တိတ်တဆိတ် ဆက်မသွားရ**。 Gemini ရဲ့ နေ့စဥ် quota ကုန်သွားချိန်

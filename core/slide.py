@@ -28,7 +28,23 @@ MK = os.environ.get(
     "/Applications/my file/My bussiness/ZAE NEW　OPERATION/N8N Work Flow/n8n All Workflow/motionkit")
 CTBIN = os.path.join(MK, "cttext")
 
+# ⚠️ **ထွက်ဘောင်ရဲ့ အရွယ်ကို လိုက်ရမည်**。 ၂၀၂၆-၀၉-၂၀: ဤနေရာမှာ
+#    ၁၉၂၀×၁၀၈၀ သေချာ ရေးထားပြီး ထွက်ဗီဒီယိုက ၁၀၈၀×၁၄၄၀ (3:4) ဖြစ်သဖြင့်
+#    slide ရဲ့ **ညာဘက် ၄၄% ပြတ်**ကာ ခေါင်းစဉ်နဲ့ bullet တွေ စာလုံးအလယ်မှာ
+#    ဖြတ်ခံရပြီး、အောက်မှာလည်း ၃၆၀px ချောင်းကြီး ကျန်ခဲ့သည် (j_bd28f6df827f —
+#    Zin: 「quality 0」)。 ⇒ render မလုပ်ခင် `setsize()` ခေါ်ရမည်。
 W, H = 1920, 1080
+
+
+def setsize(w, h):
+    """slide ဘောင်ကို ထွက်ဗီဒီယိုရဲ့ အရွယ်နဲ့ ကိုက်အောင် ချိန်သည်。
+
+    module ထဲ အရာအားလုံးက `W`/`H` ရဲ့ **အချိုး**နဲ့ ဆွဲထားသဖြင့်
+    ဒါတစ်ခု ပြောင်းရုံနှင့် အလျားလိုက် · ဒေါင်လိုက် နှစ်မျိုးလုံး ရသည်。
+    """
+    global W, H
+    W, H = int(w), int(h)
+    return W, H
 PAPER  = (255, 255, 255)
 INK    = (18, 20, 24)
 MUTE   = (122, 128, 138)
@@ -228,9 +244,16 @@ def bullets(head, items, accent="#FFC400", mmf="Pyidaungsu-Bold",
     hpx, hl = _fit(head, mmf, maxw, int(H * 0.066), int(H * 0.040), 2)
     items = [str(i).strip() for i in (items or []) if str(i).strip()][:3]
     ipx = int(H * 0.040)
+    # ⚠️ **ဂဏန်းရဲ့ အကျယ်အစစ်နဲ့ တွက်ရမည်** — `W` ရဲ့ ၆% ဟု သတ်မှတ်ထားရာ
+    #    ၁၉၂၀ မှာ ၁၁၅px ရပြီး ၁၀၈၀ (ဒေါင်လိုက်) မှာ ၆၅px သာ ရ၍ ဂဏန်းနဲ့
+    #    စာသား **ကပ်သွား**သည် (「၀၁COE」 — ၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်ခဲ့)。
+    _nbs = [_text_png(_mmnum(k + 1), int(ipx * 0.86), mmf,
+                      accent if isinstance(accent, tuple) else _hex2rgb(accent))
+            for k in range(len(items))]
+    _ind = (max([b.shape[1] for b in _nbs] or [0]) + int(W * 0.028)) if _nbs else 0
     rows = []
     for it in items:
-        _p, ls = _fit(it, mmr, maxw - int(W * 0.060), ipx, int(H * 0.028), 2)
+        _p, ls = _fit(it, mmr, maxw - _ind, ipx, int(H * 0.028), 2)
         rows.append((_p, [_text_png(l, _p, mmr, INK) for l in ls]))
     hb = [_text_png(l, hpx, mmf, INK) for l in hl]
     hgap = int(hpx * 0.28); igap = int(ipx * 0.34); rgap = int(ipx * 1.15)
@@ -245,11 +268,10 @@ def bullets(head, items, accent="#FFC400", mmf="Pyidaungsu-Bold",
                          y + int(H * 0.026) + 7], radius=4, fill=accent)
     y += int(H * 0.090) - hgap
     for k, (_p, r) in enumerate(rows):
-        nb = _text_png(_mmnum(k + 1), int(ipx * 0.86), mmf, accent
-                       if isinstance(accent, tuple) else _hex2rgb(accent))
+        nb = _nbs[k]
         _paste(im, nb, L + 2, y + (r[0].shape[0] - nb.shape[0]) // 2)
         for b in r:
-            _paste(im, b, L + int(W * 0.060), y); y += b.shape[0] + igap
+            _paste(im, b, L + _ind, y); y += b.shape[0] + igap
         y += rgap - igap
     return im
 

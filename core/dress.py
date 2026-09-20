@@ -15,9 +15,25 @@ def pick(rc, dur, sil, segs):
     """(when, kind) စာရင်း — ဂရပ်ဖစ် ဘယ်အချိန် ဘယ်ဟာ ချမလဲ。"""
     want = int(rc.get("gfx") or 0)
     if want <= 0 or dur < 12: return []
-    # ⚠️ ရှည်သော တိတ်ဆိတ်မှုမှာသာ ချသည် — စကားပြောနေတုန်း မချရ
-    cand = sorted([s for s in sil if s[1]-s[0] >= 0.45], key=lambda s: -(s[1]-s[0]))
+    # ⚠️ ပုံမှန်က **ရှည်သော တိတ်ဆိတ်မှုမှာသာ** ချသည် — စကားပြောနေတုန်း မချရ。
+    # ⚠️ ဒါပေမယ့် တင်းတင်း ဖြတ်ထားသော footage မှာ အဲဒီလို နေရာ မရှိတော့。
+    #    reference တိုင်းချက် (၂၀၂၆-၀၉-၂၀ · `assets/calib/ref_hype_2026.json`):
+    #    တိတ်ဆိတ်မှု အလယ်တန်း **၀.၁၆s** · ၀.၄၅s ကျော် **၁၀ နေရာသာ** ရှိပြီး
+    #    စာသားက **စကားပြောနေတုန်း ၃၅% ပေါ်နေ**သည် ⇒ ပုံစံ ဒီလို လိုချင်လျှင်
+    #    တိတ်ဆိတ်မှုကို စောင့်၍ မရ。 ⇒ style က `gfx_in_speech` ပေးလျှင်
+    #    အချိန် အညီအမျှ နေရာချသည် (တိတ်ဆိတ်မှု နီးလျှင် အဲဒီဆီ ကပ်ပေးသည်)。
+    _minsil = float(rc.get("gfx_min_sil") or 0.45)
+    cand = sorted([s for s in sil if s[1]-s[0] >= _minsil], key=lambda s: -(s[1]-s[0]))
     cand = [s for s in cand if 2.0 <= s[2] <= dur-3.0]
+    if rc.get("gfx_in_speech") and len(cand) < want:
+        # အချိန် အညီအမျှ အမှတ်များ — တိတ်ဆိတ်မှု ရှိလျှင် အနီးဆုံးဆီ ရွှေ့
+        grid = [2.0 + (dur-5.0) * (k+0.5)/want for k in range(want)]
+        near = sorted(sil, key=lambda s: s[2]) if sil else []
+        out = []
+        for g in grid:
+            best = min(near, key=lambda s: abs(s[2]-g)) if near else None
+            out.append(best if (best and abs(best[2]-g) <= 1.2) else (g, g, g))
+        cand = out
     if not cand: return []
     # အချိန် အညီအမျှ ဖြန့် — အစုအစု မဖြစ်စေရန်
     cand.sort(key=lambda s: s[2])
@@ -30,16 +46,79 @@ def pick(rc, dur, sil, segs):
     #    တစ်ခုချင်း ကွာသဖြင့် အားလုံးက အလိုအလျောက် ဖြည့်လို့ မရ。
     #    `assets/gfx_ok.txt` = တစ်ခုချင်း သီးသန့် process နဲ့ စမ်းပြီး
     #    အောင်မြင်ခဲ့သော စာရင်း (၅၉/၁၉၄)。
-    KINDS = _verified() or ["headline_bar","locator","big_number","pull_quote",
+    # ⚠️ **ဗီဒီယိုတိုင်း တူတူ မဖြစ်စေရ**。 အရင်က `random.Random(7)` ပုံသေ seed
+    #    နဲ့ ရောပြီး `KINDS[i % len]` က အမြဲ ၀ ကနေ စခဲ့သဖြင့် — pool ၂၈၄ ခု
+    #    ရှိပါလျက် **ဗီဒီယိုတိုင်း တူညီသော ၁၀ ခု** ပဲ ထွက်ခဲ့သည်
+    #    (Zin ၂၀၂၆-၀၉-၁၉: 「Template ၄၀၀ ကျော် ရှိပါတယ်။ အဲဒါတွေ တကယ် သုံးပေးပါ」)。
+    #    ⇒ job id ကနေ seed ယူသည် — ဗီဒီယိုတိုင်း ကွဲပြားပြီး **တစ်ပုဒ်တည်းကို
+    #      ပြန်ထုတ်လျှင် တူညီ**သည် (ပြန်စစ်လို့ ရရန်)。
+    KINDS = _verified(rc.get("_seed")) or ["headline_bar","locator","big_number","pull_quote",
              "label_pill","kicker_title","section","chapter","stat_title",
              "fact_box","list_title","topic_bar"]
-    return [dict(at=round(s[2],2), kind=KINDS[i % len(KINDS)])
-            for i,s in enumerate(picked)]
+    out = [dict(at=round(s[2],2), kind=KINDS[i % len(KINDS)])
+           for i,s in enumerate(picked)]
+    # ⚠️ **explainer insert ကို သီးသန့် နှုန်းနဲ့ ချသည်** (၂၀၂၆-၀၉-၂၀)。
+    #    Zin ရဲ့ reference (KCN4-2hyUBM) မှာ မြင်ကွင်း လုံးဝပြောင်းမှု
+    #    **၂.၅/မိနစ်** (၁၃:၀၂ မှာ ၃၃ ခါ)。 ကျပန်း ရွေးလျှင် ပေါ်ချင်မှ ပေါ်မည်
+    #    ⇒ နေရာ အညီအမျှ ချပြီး insert template ကို **အတင်း သတ်မှတ်**သည်。
+    return apply_inserts(out, rc, dur, log=log)
+
+
+def apply_inserts(out, rc, dur, log=None):
+    """ရွေးပြီးသား ဂရပ်ဖစ် စာရင်းထဲ **explainer insert** ကို နှုန်းအလိုက် ထည့်သည်。
+
+    ⚠️ **လမ်းကြောင်း ၂ ခု ရှိသည်** — `pick()` က ပြန်ဆုတ်လမ်းသာ、အဓိကလမ်းက
+       `worker/run.py` ရဲ့ Gemini ခေါင်းစဉ် loop ဖြစ်သည်。 ၂၀၂၆-၀၉-၂၀ မှာ
+       `pick()` ထဲမှာပဲ ရေးမိ၍ ref-talk render မှာ insert **တစ်ခုမှ မဝင်**ခဲ့。
+       ⇒ ဒီ function ကို **နှစ်လမ်းစလုံးက ခေါ်ရမည်**。
+    """
+    ins_pm = rc.get("insert_per_min")
+    if ins_pm and out:
+        KINDS = _verified(rc.get("_seed")) or []
+        pool = [k for k in KINDS if k in INSERT_KINDS] or list(INSERT_KINDS)
+        # ⚠️ **ဂရပ်ဖစ် အားလုံးကို insert မဖြစ်စေရ**。 ၂၀၂၆-၀၉-၂၀ စမ်းသပ်ချက်:
+        #    knowledge (gfx ၁၀) မှာ ၁၀ ခုလုံး insert ဖြစ်သွားပြီး ပုံစံ
+        #    ကွဲပြားမှု လုံးဝ ပျောက်ခဲ့သည်。 ⇒ ဂရပ်ဖစ်ရဲ့ ၄၀% ထက် မပိုရ。
+        # ⚠️ reference ရဲ့ ၂.၅/မိနစ် က **မြင်ကွင်း ပြောင်းမှု အားလုံး** (B-roll ပါ)
+        #    ဖြစ်၍ explainer insert တစ်ခုတည်းနဲ့ မပြည့်နိုင်ပါ。 `gfx` နည်းလျှင်
+        #    ရနိုင်သလောက်သာ ရသည် — log မှာ အမှန်အတိုင်း ပြသည်。
+        n = int(round(float(ins_pm) * dur / 60.0))
+        n = max(1, min(int(len(out) * 0.40) or 1, n))
+        step = len(out) / float(n)
+        for j in range(n):
+            g = out[int(j * step)]
+            g["kind"] = pool[j % len(pool)]
+            # ⚠️ `args` က **မူလ template အတွက်** တွက်ထားသည် — kind ပြောင်းလျှင်
+            #    မကိုက်တော့。 ရှင်းပစ်လျှင် `track()` က template အလိုက်
+            #    ပြန်တွက်သည် (`a = g.get("args") or …`)。
+            g["args"] = None
+        # ⚠️ **တောင်းသော နှုန်းနဲ့ ရသော နှုန်း ကွာလျှင် ဖော်ပြရမည်**。
+        #    podcast က gfx ၂ ခုသာ ရှိ၍ ၂.၅/မိနစ် တောင်းလည်း ~၀.၁ ပဲ ရသည် —
+        #    မပြလျှင် ဆက်တင်က အလုပ်လုပ်နေသလို ထင်ရမည် (တိတ်တဆိတ် ကျရှုံးမှု)。
+        if log:
+            got = n / (dur / 60.0) if dur > 0 else 0.0
+            msg = (f"  insert {n} ခု · {got:.1f}/မိနစ် (တောင်း {float(ins_pm):.1f}) "
+                   f"· ဂရပ်ဖစ် {len(out)} ခုရဲ့ {n / len(out) * 100:.0f}%")
+            if got < float(ins_pm) * 0.75:
+                msg += " ⚠️ ဂရပ်ဖစ် နည်း၍ မပြည့်ပါ — `gfx` တင်မှ ရမည်"
+            log(msg)
+    return out
 
 _VER = None
-def _verified():
-    """စမ်းပြီးသား template စာရင်း — id ("titles.title_card") မှ fn နာမည်သို့"""
-    global _VER
+_RAW = None
+def _verified(seed=None):
+    """စမ်းပြီးသား template စာရင်း — id ("titles.title_card") မှ fn နာမည်သို့
+
+    `seed` ပေးလျှင် **အဲဒီ seed အလိုက် ရောပြီး** ပြန်ပေးသည် ⇒ ဗီဒီယို
+    တစ်ပုဒ်ချင်း template ကွဲပြားသည်。 seed မပါလျှင် ယခင်အတိုင်း。
+    """
+    global _VER, _RAW
+    if seed is not None:
+        if _RAW is None: _verified()          # _RAW ဖြည့်ရန်
+        import random as _r
+        out = list(_RAW or [])
+        _r.Random(str(seed)).shuffle(out)
+        return out
     if _VER is not None: return _VER
     p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                      "assets", "gfx_ok.txt")
@@ -47,12 +126,16 @@ def _verified():
     try:
         for line in open(p, encoding="utf-8"):
             line = line.strip()
-            if not line or "." not in line: continue
+            # ⚠️ `#` မှတ်ချက်ကြောင်းကို **ကျော်ရမည်** — မကျော်လျှင် မှတ်ချက်ထဲက
+            #    "၀.၀၅%" လို အစက်ပါသော စာသားကို template နာမည် ဟု မှတ်ပြီး
+            #    "template မတွေ့" ဖြင့် ကျသည် (၂၀၂၆-၀၉-၁၉)。
+            if not line or line.startswith("#") or "." not in line: continue
             out.append(line.split(".", 1)[1])
     except OSError:
         pass
     # ⚠️ အလှည့်ကျ သုံးသဖြင့် စာရင်းကို **ရောရမည်** — မရောလျှင် ဗီဒီယိုတိုင်း
     #    ပထမ ၅ ခုပဲ သုံးပြီး ကွဲပြားမှု မရှိဘူး。
+    _RAW = list(out)
     import random
     random.Random(7).shuffle(out)
     _VER = out
@@ -63,12 +146,64 @@ def _verified():
 #    settle ချိန်ကို နုတ်ရသည် — မနုတ်လျှင် အသံက ပုံထက် စောသည်。
 SETTLE = 0.22
 
+
+# ── template အလိုက် SFX ─────────────────────────────────────
+# ⚠️ အရင်က ဂရပ်ဖစ် **တိုင်း**ကို `whoosh_in` တစ်မျိုးတည်း တွဲထားခဲ့သည် —
+#    role ၂၂ မျိုး ရှိပါလျက် (Zin ၂၀၂၆-၀၉-၁၉: 「လိုက်ဖတ်တဲ့ sound effect နဲ့တွဲ」)。
+#    ⇒ template ရဲ့ **လှုပ်ရှားပုံ**နှင့် ကိုက်အောင် module အလိုက် တွဲသည်。
+# ⚠️ အရေအတွက် **မတိုးစေရ** — ဂရပ်ဖစ် တစ်ခုလျှင် အသံ တစ်ထပ် အတိုင်းပင်。
+#    (QC `sfx_density` ≤ playbook · `sfx_spacing` ≥ ၈s ဂိတ်များ မပျက်စေရန်)
+# ⚠️ explainer insert — `insert.py` (motionkit) ရဲ့ template များ。
+INSERT_KINDS = ("insert_label", "insert_flow")
+
+SFX_BY_MOD = {
+    # စာတန်း ကတ် — လေ သွားသံ · နက်ရှိုင်း
+    "titles": ("whoosh_in", "click"),   "titles2": ("whoosh_in", "click"),
+    "titles3": ("deep_whoosh", "latch"), "prem": ("deep_whoosh", "latch"),
+    "prem2": ("riser_soft", "latch"),    "prem3": ("deep_whoosh", "click"),
+    "qcard": ("whoosh_in", "snap"),      "cine": ("riser_air", "deep_hit"),
+    # စက်ရုပ် စာရိုက် — ခလုတ် သံ
+    "typew": ("type_tick", "type_key"),
+    # စာလုံး လှုပ်ရှား — မြန်ဆန် သွက်လက်
+    "typo": ("swipe", "pop"),            "typo2": ("swipe", "pop"),
+    "kinetic": ("swipe", "click"),       "kinetic2": ("swipe_metal", "pop"),
+    "kinetic3": ("swipe", "pop"),        "kin4": ("swipe_metal", "click"),
+    "capt": ("pop", "click"),
+    # အထူး အာနိသင်
+    "glitch": ("glitch", "radio"),       "retro": ("shutter", "click2"),
+    "social": ("snap", "pop"),
+    # ကိန်းဂဏန်း / ဇယား — ရေတွက် သံ
+    "infogfx": ("pop", "type_tick"),     "charts": ("swipe", "type_tick"),
+    "dash": ("latch", "type_tick"),      "odo": ("type_tick", "click"),
+    "callouts": ("pop", "click"),        "maps": ("deep_whoosh", "latch"),
+    "brows": ("click2", "pop"),          "mockups": ("snap", "click"),
+}
+SFX_DEF = ("whoosh_in", "click")
+
+_MODOF = None
+def _mod_of(kind):
+    """fn နာမည် ("title_card") → module နာမည် ("titles")"""
+    global _MODOF
+    if _MODOF is None:
+        _MODOF = {}
+        try:
+            import gfxcat as _G
+            for e in _G.catalog(): _MODOF[e["fn"]] = e["module"]
+        except Exception: pass
+    return _MODOF.get(kind)
+
+
+def sfx_for(kind):
+    """template တစ်ခုအတွက် (ရှေ့သံ, ထပ်သံ)"""
+    return SFX_BY_MOD.get(_mod_of(kind) or "", SFX_DEF)
+
 def sfx(gfx, caps, rc):
     """[(offset, role, dB)] — sfxlib ရဲ့ role နာမည်များ"""
     out=[]
     for g in gfx:
-        out.append((max(0.0, g["at"]-SETTLE), "whoosh_in", -13))
-        out.append((g["at"], "click", -16))
+        a, b = sfx_for(g.get("kind") or "")
+        out.append((max(0.0, g["at"]-SETTLE), a, -13))
+        out.append((g["at"], b, -16))
     # ⚠️ စာတန်းတိုင်းမှာ အသံ မထည့်ရ — Zin ရဲ့ spec: "no per-word SFX"
     if rc.get("captions") == "big" and caps:
         for c in caps[:6]:
@@ -104,7 +239,11 @@ def sfx(gfx, caps, rc):
         if last is None or at - last >= MIN_GAP:
             keep.append((at, layers)); last = at
 
-    cap = max(0, int(round(float(per) * dur / 60.0)))
+    # ⚠️ **`round` မသုံးရ — အောက်သို့ ဖြတ်ရမည်**。 `round` က တောင်းထားသော
+    #    နှုန်းထက် **ကျော်သွားစေနိုင်**သည်: ၁.၅/မိနစ် × ၇၇.၇s = ၁.၉၄ → ၂ ခု
+    #    ⇒ တိုင်းလိုက်တော့ ၁.၅၄၅/မိနစ် ဖြစ်ကာ QC ဂိတ် (≤၁.၅) ကျခဲ့သည်
+    #    (၂၀၂၆-၀၉-၂၀ j_f5bd998f5ca3)。 အောက်ဖြတ်လျှင် ဘယ်တော့မှ မကျော်ပါ。
+    cap = max(0, int(float(per) * dur / 60.0))
     if cap == 0: return []
     if len(keep) > cap:
         step = len(keep) / float(cap)
@@ -232,7 +371,14 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    အားလုံးမှာ ရှေ့က ထည့်လျှင် argument တစ်နေရာစီ ရွေ့သွားပြီး
             #    စာသားက number param ထဲ ကျသည် ("can't multiply sequence by
             #    non-int" · "invalid literal for int()" — တကယ် ဖြစ်ခဲ့)。
-            el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
+            # ⚠️ renderer v2 (60fps · motion blur) သုံးမည်ဆိုလျှင် builder ကိုပါ
+            #    60fps နဲ့ ဆောက်ရသည် — 30fps ဖရိမ်တွေနဲ့ blur မထွက်。
+            _r = _r2()
+            if _r is not None:
+                with _r.hifps(60):
+                    el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
+            else:
+                el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
         except Exception as e:
             LAST["build_fail"] += 1
             log(f"  ⊘ ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s "
@@ -297,9 +443,42 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                        f"stop_duration={hold-gdur:.2f}[hp]")
             last2 = "hp"; gdur = float(hold)
         try:
-            subprocess.run(["ffmpeg","-v","error","-y"]+ins+["-filter_complex",";".join(fc2),
-                "-map",f"[{last2}]","-t",f"{gdur:.2f}","-r",str(fps),
-                "-c:v","qtrle","-pix_fmt","argb",mov],check=True)
+            # ⚠️ renderer v2 — 60fps · sub-pixel · motion blur · alpha (ProRes 4444)。
+            #    ယခင် ffmpeg overlay chain က 30fps · blur မရှိ。 မအောင်မြင်လျှင်
+            #    အဟောင်းလမ်းကြောင်းသို့ ပြန်ဆုတ်သည် (job မကျအောင်)。
+            done_v2 = False
+            _r = _r2()
+            if _r is not None and os.environ.get("IKKI_GFX_V2", "1") != "0":
+                try:
+                    el2 = dict(el)
+                    el2["anim"] = [(p_, x_, y_ + dy) for (p_, x_, y_) in el["anim"]]
+                    el2["statics"] = [(p_, x_, y_ + dy, d_) for (p_, x_, y_, d_) in el.get("statics", [])]
+                    base_mov = mov.replace(".mov", "_v2.mov")
+                    # ⚠️ `src_fps` က **အပေါ်က `hifps(60)` နဲ့ တွဲနေသည်** —
+                    #    builder ကို ၆၀ နဲ့ ဆောက်ခိုင်းထားသဖြင့် ဒီမှာလည်း ၆၀。
+                    #    တစ်ဖက် ပြောင်းလျှင် နှစ်ဖက်လုံး ပြောင်းရမည် — မဟုတ်လျှင်
+                    #    anim က မြန်/နှေး ဖြစ်ပြီး ခဲသွားမည် (slide မှာ တကယ် ဖြစ်ခဲ့)。
+                    _f2, _sub2 = _v2fps(fps)
+                    _r.clip_alpha(el2, base_mov, hold=0.02, fps=_f2, sub=_sub2, src_fps=60,
+                                   look=dict(grain=1.1,
+                                             tone=getattr(_r, "LOOK2026", {}).get("tone")),
+                                   camera=(1.0, 1.015))
+                    if hold and hold > float(el["dur"]) + 0.05:
+                        subprocess.run(["ffmpeg","-v","error","-y","-i",base_mov,"-vf",
+                            f"tpad=stop_mode=clone:stop_duration={hold-float(el['dur']):.2f}",
+                            "-c:v","prores_ks","-profile:v","4444","-pix_fmt","yuva444p10le",
+                            mov], check=True)
+                        os.remove(base_mov)
+                    else:
+                        os.replace(base_mov, mov)
+                    gdur = float(hold) if (hold and hold > float(el["dur"])) else float(el["dur"])
+                    done_v2 = True
+                except Exception as _e:
+                    log(f"  ⚠️ v2 render မရ ({type(_e).__name__}) — အဟောင်းနဲ့ ဆက်လုပ်")
+            if not done_v2:
+                subprocess.run(["ffmpeg","-v","error","-y"]+ins+["-filter_complex",";".join(fc2),
+                    "-map",f"[{last2}]","-t",f"{gdur:.2f}","-r",str(fps),
+                    "-c:v","qtrle","-pix_fmt","argb",mov],check=True)
             made.append((g["at"], mov, gdur, bool(g.get("fixed")),
                          max(0,int(y0)), min(int(H),int(y1))))
         except subprocess.CalledProcessError as e:
@@ -334,6 +513,136 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
     if moved:   log(f"  ဂရပ်ဖစ် {moved} ခု ထပ်နေ၍ ရွှေ့လိုက်သည်")
     if dropped: log(f"  ⊘ ထပ်နေ၍ ဖျက် {len(dropped)} ခု (ရွှေ့၍ မရ): {dropped}")
     return keep, len(keep)
+
+
+_R2 = None
+def _r2():
+    """motionkit ရဲ့ renderer v2 — ရှိလျှင် သုံး (alpha · 60fps · motion blur)。"""
+    global _R2
+    if _R2 is not None: return _R2
+    try:
+        import sys as _s, os as _o
+        import gfxcat as GC
+        if GC.MK not in _s.path: _s.path.insert(0, GC.MK)
+        cwd = _o.getcwd(); _o.chdir(GC.MK)
+        try:
+            import render2 as R2
+        finally:
+            _o.chdir(cwd)
+        _R2 = R2
+    except Exception:
+        _R2 = None
+    return _R2
+
+def _mk_fps(_r=None):
+    """motionkit ရဲ့ builder က **တကယ် သုံးနေသော** fps。
+
+    `kit.nfr(dur) = dur × kit.FPS` ⇒ ဒီတန်ဖိုးကိုပဲ `src_fps` အဖြစ်
+    ပေးရမည်。 ကိန်းသေ ရေးထားလျှင် motionkit ဘက်က ပြောင်းသွားချိန်မှာ
+    တိတ်တဆိတ် လွဲသွားမည်。
+    """
+    try:
+        import sys as _s
+        import gfxcat as GC
+        if GC.MK not in _s.path: _s.path.insert(0, GC.MK)
+        import kit as _k
+        return int(getattr(_k, "FPS", 30)) or 30
+    except Exception:
+        return 30
+
+
+def _v2fps(fps):
+    """timeline fps နဲ့ ကိုက်ညီသော (fps, sub) ကို ပြန်ပေးသည်。
+
+    ⚠️ **overlay ကို timeline ရဲ့ fps နဲ့ပဲ ထုတ်ရမည်**。 ၆၀fps နဲ့ ထုတ်ပြီး
+       ၃၀fps timeline ပေါ် တင်လျှင် ffmpeg က ဖရိမ် **တစ်ဝက် ပစ်သည်** —
+       တကယ့် ဂရပ်ဖစ်ဖိုင်နဲ့ တိုင်းကြည့်ရာ ရေးဆွဲထားသော ၁၀၉ ဖရိမ်ထဲက
+       ၅၅ ခုသာ ထွက်ဗီဒီယိုထဲ ရောက်သည် (၂၀၂၆-၀၉-၂၀ တိုင်းချက်)。
+    ⚠️ fps လျှော့လျှင် `sub` ကို **လိုက်တင်ရမည်**。 sub က ဖရိမ်တစ်ခုအတွင်း
+       နမူနာ အရေအတွက် ⇒ fps တစ်ဝက် ဖြစ်လျှင် နမူနာ ခြားချိန် နှစ်ဆ ကျယ်ကာ
+       blur က ဆက်တိုက် မဟုတ်ဘဲ **တစ်ဆင့်ချင်း** ဖြစ်သွားမည်。
+       ⇒ `fps × sub` (တစ်စက္ကန့် ရေးဆွဲချက်) ကို ၆၀×၃ အတိုင်း ထိန်းထားသည်。
+    """
+    _r = _r2()
+    sub0 = getattr(_r, "SUB", 3) if _r is not None else 3
+    f = int(fps or 30) or 30
+    return f, max(sub0, int(round(sub0 * 60.0 / f)))
+
+
+# ══ slide — motionkit template ═══════════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၀ Zin: 「ဘောင်အပြည့် ဖြူဖြူ slide … မသုံးနဲ့」。
+#    IKKI ကိုယ်ပိုင် `core/slide.py` က PNG တစ်ချပ်ထုတ်ပြီး ၁၀.၅s ငြိမ်နေသည် —
+#    ထွက်ဗီဒီယိုရဲ့ ၃၃% မလှုပ်ဘဲ ဖြစ်ခဲ့သည်。 ⇒ motionkit template နဲ့ ပြောင်း。
+# ⚠️ template ရဲ့ သဘာဝ ကြာချိန် (~၃.၆s) ကိုသာ animate စေပြီး ကျန်တာကို
+#    `tpad=stop_mode=clone` နဲ့ ဆွဲရမည် — `dur` ကို ၁၀.၅ ပေးလျှင် animation
+#    တစ်ခုလုံး နှေးကွေးသွားမည်。 (ဂရပ်ဖစ် လမ်းကြောင်းက ဒီနည်းအတိုင်းပါပဲ)
+SLIDE_TPL = {
+    "bullets":   ("prem", "split_hero"),    # (tag, title, items, eyebrow)
+    "statement": ("prem", "quote_card"),    # (tag, quote, who, role)
+    "bignum":    ("prem", "quote_card"),
+}
+
+
+def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30):
+    """slide တစ်ခုကို motionkit template ဖြင့် alpha .mov အဖြစ် ထုတ်သည်。
+
+    ရလျှင် `out` လမ်းကြောင်း、မရလျှင် `None` (ခေါ်သူက PNG သို့ ပြန်ဆုတ်ရန်)。
+    """
+    import subprocess, os as _o, sys as _s
+    _r = _r2()
+    if _r is None: return None
+    mod_name, fn_name = SLIDE_TPL.get(layout) or SLIDE_TPL["statement"]
+    out = _o.path.abspath(out)
+    base = out.replace(".mov", "_b.mov")
+    import gfxcat as GC
+    if GC.MK not in _s.path: _s.path.insert(0, GC.MK)
+    # ⚠️ **cwd ကို motionkit မှာပဲ ထားရမည်** — template တွေက frame PNG ကို
+    #    `work/prem/sl_f0000.png` ဆိုတဲ့ **relative** လမ်းကြောင်းမှာ ရေးသည်。
+    #    `el` ဆောက်ပြီးမှ cwd ပြန်ပြောင်းလျှင် `clip_alpha` က ရှာမတွေ့ဘဲ
+    #    `FileNotFoundError` ဖြစ်သည် (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
+    cwd = _o.getcwd()
+    try:
+        _o.chdir(GC.MK)
+        try:
+            mod = __import__(mod_name)
+            fn = getattr(mod, fn_name)
+            its = [str(x).strip() for x in (items or []) if str(x).strip()][:4]
+            if layout == "bullets":
+                el = fn("sl", head, its or [brand], eyebrow=brand)
+            elif layout == "bignum":
+                el = fn("sl", str(num or head), head if num else brand, role=brand)
+            else:
+                el = fn("sl", head, brand, role="")
+        except Exception as e:
+            log(f"  ⚠️ slide template {mod_name}.{fn_name} မရ: {type(e).__name__}: {e}")
+            return None
+        if not isinstance(el, dict) or not el.get("anim"): return None
+        # ⚠️ **`src_fps` ကို builder ရဲ့ အမှန်နဲ့ ကိုက်ရမည်**。 `track()` က
+        #    `hifps(60)` သုံး၍ ကိုက်နေပေမယ့် ဒီနေရာမှာ မသုံးသဖြင့် motionkit က
+        #    `kit.FPS`=30 နဲ့ ဆောက်ကာ `clip_alpha` က ၆၀ ဟု ယူဆခဲ့သည်。
+        #    ⇒ anim ကို **နှစ်ဆ မြန်** စားပြီး တစ်ဝက်မှာ ခဲသွားသည်
+        #    (တိုင်းချက်: quote_card · split_hero နှစ်ခုလုံး anim ၁၀၈ / ၃.၆၀s
+        #     = ၃၀fps · ၂၀၂၆-၀၉-၂၀)。 slide က 「မလှုပ်ဘူး」ဖြစ်ရခြင်း。
+        _sf = _mk_fps(_r)
+        _f2, _sub2 = _v2fps(fps)
+        _r.clip_alpha(el, base, hold=0.02, fps=_f2, sub=_sub2, src_fps=_sf,
+                      look=dict(grain=1.1,
+                                tone=getattr(_r, "LOOK2026", {}).get("tone")),
+                      camera=(1.0, 1.015))
+        # ⚠️ ကြာချိန်ကို clip ထဲ **မဆွဲရ**。 `tpad` နဲ့ ၁၀.၅s အထိ ဆွဲလျှင်
+        #    ProRes 4444 က တစ်ချပ် **၇၀၃ MB** ဖြစ်သည် (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
+        #    overlay မှာ `eof_action=repeat` သုံးလျှင် နောက်ဆုံး frame ကို
+        #    ဝင်းဒိုး ပိတ်သည်အထိ ရပ်ထားပေးသည် ⇒ clip က သဘာဝ ၃.၆s ပဲ လို
+        #    (၂၂၇ MB)。 စမ်းသပ်ပြီး အတည်ပြုထားသည်。
+        _o.replace(base, out)
+    except Exception as e:
+        log(f"  ⚠️ slide clip ထုတ်၍ မရ: {type(e).__name__}: {e}")
+        try: _o.remove(base)
+        except Exception: pass
+        return None
+    finally:
+        _o.chdir(cwd)
+    return out
 
 
 _CIDX = None

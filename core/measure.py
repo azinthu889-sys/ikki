@@ -151,6 +151,50 @@ def as_gaps(sil, min_len=0.24):
     return [(a, b, (a + b) / 2.0) for a, b in (sil or []) if b - a >= min_len]
 
 
+def splits(segs, sil, min_gap=0.20, margin=0.15):
+    """{ဝါကျ index: [ဖြတ်မှတ် အချိန်, …]} — **ဝါကျ အတွင်း** ဖြတ်လို့ရသော နေရာများ。
+
+    ⚠️ စကားလုံး အချိန်မှတ် (ASR/forced-align) ကို **မသုံးပါ** — ၂၀၂၆-၀၉-၁၈ တိုင်းချက်:
+       MMS_FA နယ်နိမိတ် ၆ ခုမှ ၅ ခု စကား run ထဲ ကျသည် (−20 dB အထိ) ⇒ ဖြတ်၍ မရ。
+       ဤနေရာမှာ **တကယ့် တိတ်ဆိတ်မှု** ကိုသာ သုံးသည် ⇒ ဖြတ်လျှင် F2 = ၀ အာမခံ。
+    ⚠️ `margin` — ဝါကျ အစွန်းနား ကွက်လပ်က ဝါကျကြား ကွက်လပ် ဖြစ်တတ်၍ ချန်သည်。
+    """
+    out = {}
+    for n, s in enumerate(segs or []):
+        a0 = float(s.get("start") or 0); b0 = float(s.get("end") or 0)
+        if b0 - a0 <= 2*margin: continue
+        pts = [round((x + y) / 2.0, 3) for x, y in (sil or [])
+               if y - x >= min_gap and x > a0 + margin and y < b0 - margin]
+        if pts: out[n] = pts
+    return out
+
+
+def sounds(path, sp=None, min_ms=80, pad=0.02):
+    """[(start, end, peak_db), …] — **စကား မဟုတ်သော အသံ ဖြစ်ရပ်**。
+
+    ချောင်းဆိုးသံ · ခေါက်သံ · ကုလားထိုင် တွန့်သံ · အသက်ရှူသံ စသည်。
+    ⚠️ `db > thr` **ဖြစ်ပြီး** `voice ≤ 0.25` (စကား band မဟုတ်) ဆိုမှ ⇒
+       စကားသံကို ဤနေရာမှာ မဖမ်းမိစေရ。
+    ⚠️ စကား run **ထဲ ကျနေလျှင် ချန်**သည် — ပြောရင်း ထွက်တဲ့ အသံက
+       သီးသန့် ဖြစ်ရပ် မဟုတ်、ဖြတ်၍လည်း မရ。
+    """
+    import numpy as np
+    db, voice, dur = analyse(path)
+    if len(db) == 0: return []
+    thr = thr_of(db)
+    m = (db > thr) & (voice <= 0.25)
+    m = np.convolve(m.astype(float), np.ones(3)/3, "same") > 0.5
+    out = []
+    for a, b in runs(m, True):
+        if b - a < min_ms/1000.0: continue
+        mid = (a + b) / 2.0
+        if sp and in_speech(mid, sp): continue
+        i0, i1 = int(a/FRAME), max(int(a/FRAME)+1, int(b/FRAME))
+        out.append((round(max(0.0, a-pad), 3), round(b+pad, 3),
+                    round(float(db[i0:i1].max()), 1)))
+    return out
+
+
 def speech(path):
     """(sp, sil, dur, ev, cls) — SKILL အတိုင်း တစ်ကြိမ်တည်း တွက်သည်。"""
     db, voice, dur = analyse(path)

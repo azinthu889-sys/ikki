@@ -10,9 +10,15 @@ data/
 .env.local
 .env.*.local
 *.key
-# ⚠️ ကြီးမားသော media — git ထဲ မထည့် (broll ၄၉၈ MB · music ၂၅ MB)
+# ⚠️ **ဒေါင်းလုဒ်ဆွဲထားသော stock footage** — git ထဲ မထည့်ရ。
+#    (၁) ၁.၀ GB ရှိပြီး git က binary ကို delta မလုပ်နိုင်၍ version တိုင်း
+#        အပြည့် သိမ်းသည် — repo ချက်ချင်း ကြီးသွားမည်。
+#    (၂) ငါတို့ ပိုင်ဆိုင်မှု မဟုတ် — stock site ရဲ့ licence က ပြန်ဖြန့်ခွင့်
+#        မပေးတတ်ပါ (private repo ဖြစ်လျှင်တောင်)。 index.json ကတော့ ပါသည်
+#        ⇒ ဘယ် clip တွေလဲ သိရပြီး ပြန်ဒေါင်းလို့ ရသည်。
 assets/broll/clips/
-assets/music/
+assets/broll/stock_ja/
+# ⚠️ music က **ကုဒ်နဲ့ ထုတ်ထားတာ** (ကိုယ်ပိုင် · copyright ကင်း) ⇒ ထည့်သည်
 scratch/
 *.mp4
 *.wav
