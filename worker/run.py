@@ -133,6 +133,54 @@ def _breathe(cutv, out, fps, amt, w, h, log=None):
     return out
 
 
+def _plate_decide(video, caps, cap_top, H, rc, log=None):
+    """စာတန်း နောက်ခံ တိုင်းပြီး plate လိုမလို ဆုံးဖြတ်သည် — မလိုလျှင် None
+
+    ⚠️ **`cutv` ကို မသုံးရ** — စာတန်းကို `cutv` မဖန်တီးခင် ဆောက်သည် ⇒
+       `local variable 'cutv' referenced before assignment` ဖြစ်ပြီး
+       **စာတန်း တစ်ခုလုံး ပျက်**ခဲ့သည် (၂၀၂၆-၀၉-၂၁ j_d651c2ef2292)。
+    ⚠️ caption အချိန်တွေက source လား cut လား မသေချာသဖြင့် **အချိန်နဲ့
+       မချိတ်ဘဲ** ဗီဒီယိုတစ်ခုလုံးကနေ အညီအမျှ နမူနာ ယူသည်。
+       「ဒီရုပ်က စာတန်းအတွက် လင်းလွန်းသလား」ဆိုတာ မေးခွန်းဖြစ်၍
+       အချိန် တိတိကျကျ မလိုပါ (နောက်ခံက တစ်ပုံစံတည်း — ၁၃/၁၃ ကျခဲ့သည်)。
+    """
+    if not caps or not rc.get("plan") or not video:
+        return None
+    try:
+        import contrast as CT
+    except Exception:
+        return None
+    top = max(0.0, min(0.98, (cap_top - int(H * 0.06)) / float(H)))
+    bot = min(1.0, top + 0.20)
+    fill = rc.get("cap_fill") or "#FFFFFF"
+    bad = n = 0
+    # ⚠️ စာတန်း **အားလုံး** မတိုင်းပါ — ၈ ခုလောက် နမူနာ ယူသည်
+    #    (တစ်ခုလျှင် ffmpeg ၉ ခါ ခေါ်သဖြင့် အားလုံးဆို အချိန်ကုန်သည်)。
+    try:
+        _d = float(probe(video).get("dur") or 0)
+    except Exception:
+        return None
+    if _d <= 0:
+        return None
+    for k in range(8):
+        _t = _d * (k + 0.5) / 8.0
+        m = CT.measure(video, _t, _t + 0.4, fill=fill,
+                       top_pct=top, bot_pct=bot, samples=2)
+        n += 1
+        if not m.get("ok"):
+            bad += 1
+    if not n:
+        return None
+    if bad * 2 < n:                       # အများစု အောင်လျှင် မလိုပါ
+        if log:
+            log(f"  စာတန်း ကွာဟမှု · နမူနာ {n} ခုထဲ {bad} ကျ — plate မလို")
+        return None
+    if log:
+        log(f"  စာတန်း ကွာဟမှု · နမူနာ {n} ခုထဲ **{bad} ကျ** — "
+            f"အမှောင် အကွက် (α {CT.PLATE_ALPHA}) ခံသည်")
+    return dict(alpha=CT.PLATE_ALPHA)
+
+
 def _fit_gfx(keep, share, dur, log=None):
     """ဂရပ်ဖစ် ကတ်များကို `share` ဘောင်ရဲ့ **အလယ်** ဆီ ချိန်သည်。
 
@@ -1017,7 +1065,40 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    လက်နဲ့ လုပ်တုန်းက "② စာမေးပွဲ" က စာမေးပွဲအကြောင်း ပြောတဲ့အခါ ပေါ်ခဲ့သည်。
     #    တိတ်ဆိတ်မှုပေါ် ချလျှင် ကျဘမ်း ဖြစ်သည် (တကယ် ဖြစ်ခဲ့)。
     gfx = []
-    if segs:
+    # ══ Headtop — plan လမ်းကြောင်း ═══════════════════════════════
+    # ⚠️ `rc["plan"]` ဆိုမှသာ。 ကျန် ပုံစံ ၁၀ ခု **ယခင်အတိုင်း** —
+    #    worker က ဆုံးဖြတ်နေဆဲ。 တစ်ပြိုင်နက် မပြောင်းရ (ပြောင်းလျှင်
+    #    ပုံစံအားလုံး တစ်ပြိုင်နက် ပျက်နိုင်သည်)。
+    # ⚠️ plan က **source အချိန်** နဲ့ ထုတ်သည် — အောက်က `omap` က
+    #    ဖြတ်ပြီး timeline သို့ ပြောင်းပေးမည်。
+    _PLAN = None
+    if rc.get("plan") and segs:
+        try:
+            import planner as PLN
+            import execute as EX
+            _PLAN, _pwarn = PLN.plan(
+                segs, float(m["dur"]),
+                dict(energy=rc.get("energy"), fps=rc["fps"],
+                     aspect=f'{TH["W"]}:{TH["H"]}'),
+                video_id=job["id"], log=log)
+            # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
+            #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
+            #    ထပ်တင်အဖြစ် တစ်ခါ ကြိုးစားပြီး 「နေရာ မတည့်」နဲ့ ကျမည်
+            #    (ကျန်နေရာ ၅.၆% ·H သာ) — ပြီးမှ ဖြတ်ပြောင်းအဖြစ် ထပ်လုပ်သည်。
+            #    ⇒ အလုပ် နှစ်ခါ လုပ်ပြီး log ရှုပ်သည် (၂၀၂၆-၀၉-၂၁ တွေ့)。
+            gfx = []
+            _sm = EX.summary(_PLAN)
+            log(f"  plan · template {_sm['templates']} · စာတန်း {_sm['captions']}"
+                f" · သတိပေး {_sm['warnings']} (အတည်ပြုရန် {_sm['critical']})")
+            # ⚠️ `st["plan"]` ဟု **မရေးရ** — job ထဲမှာ `plan` က ဖြတ်မှတ်
+            #    အတွက် ရှိပြီးသား ဖြစ်ပြီး နာမည်တူသွားသည်。 `edit_plan` ဟု
+            #    ခွဲရမည်、ပြီးတော့ `post_result` ထဲ **ထည့်မှ** သိမ်းသည်。
+            st["edit_plan"] = _PLAN
+        except Exception as _e:
+            # ⚠️ plan မရလျှင် **အလုပ် မရပ်ရ** — ယခင်နည်းနဲ့ ဆက်သွားသည်
+            log(f"  ⚠️ plan မရ ({type(_e).__name__}: {_e}) — ယခင်နည်းနဲ့ ဆက်သွားသည်")
+            _PLAN = None
+    if segs and not _PLAN:
         try:
             # ⚠️ **ပိုတောင်းရမည်** — မျက်နှာရှောင်ရာမှာ တချို့ ကျော်ရသည်။
             #    အတိအကျ တောင်းလျှင် နောက်ဆုံး အရေအတွက် မပြည့်。
@@ -1166,6 +1247,67 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    (recipe band 0.10–0.17 နဲ့ တိကျစွာ ကိုက်) · တစ်ခုချင်း ပျမ်းမျှ ၆.၂s。
     #    ⇒ အရေအတွက် တိုးတာ မဟုတ်、**မျက်နှာပြင် အပြည့်** ပြရမည်。
     slides = []
+    # ══ Headtop — ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်သည် ═══════
+    # ⚠️ ထပ်တင်လို့ မရပါ。 ပြောသူက ဘောင်ရဲ့ ၆၄% (မျက်နှာဇုန် ၀–၆၉၆px) ယူပြီး
+    #    စာတန်းက ၇၀% (၇၅၇px) ကနေ စသဖြင့် ကျန်နေရာက **၆၁px = ၅.၆% ·H** သာ。
+    #    template တွေက ၅၀၇–၁၀၇၉px ရှိ၍ ၄ ခုလုံး 「နေရာ မတည့်」နဲ့ ပယ်ခံခဲ့သည်
+    #    (၂၀၂၆-၀၉-၂၁ j_d651c2ef2292 — ဂရပ်ဖစ် တပ်ပြီး ၀ ခု)。
+    #    ⇒ reference လိုပဲ **ပြောသူကို ဖုံးပြီး** ကတ် ပြရသည် (Zin အတည်ပြု)。
+    if _PLAN and _PLAN.get("templateEvents"):
+        try:
+            import slide as SL2
+            import dress as _DR
+            work_s = os.path.join(work, "sl"); os.makedirs(work_s, exist_ok=True)
+            SL2.setsize(TH["W"], TH["H"])
+            _bn = (brand or {}).get("name") or rc["label"]
+            _nok = _nno = 0
+            for _i, _ev in enumerate(sorted(_PLAN["templateEvents"],
+                                            key=lambda x: x.get("startTime") or 0)):
+                _cid = _ev.get("motionKitTemplateId")
+                _a0 = omap(float(_ev.get("startTime") or 0), snap=True)
+                if _a0 is None:
+                    continue
+                _b0 = _a0 + max(1.5, min(4.5,
+                                float(_ev.get("endTime") or 0) - float(_ev.get("startTime") or 0)))
+                _head = (_ev.get("props") or {}).get("q") \
+                    or (_ev.get("props") or {}).get("text") \
+                    or (_ev.get("props") or {}).get("title") \
+                    or ((_ev.get("props") or {}).get("items") or [""])[0]
+                _pp = os.path.join(work_s, f"p{_i:02d}.png")
+                try:
+                    SL2.statement(str(_head)[:60], index=_i + 1,
+                                  brand=_bn).convert("RGB").save(_pp)
+                except Exception:
+                    _pp = None
+                _mv = None
+                try:
+                    _mv = _DR.slide_clip(
+                        "statement", str(_head)[:60], None, None, _bn,
+                        os.path.join(work_s, f"p{_i:02d}.mov"), _b0 - _a0,
+                        log=log, fps=rc["fps"],
+                        template=_cid, props=_ev.get("props") or {})
+                except Exception as _e:
+                    log(f"  ⊘ ဖြတ်ပြောင်း ဆောက်မရ: {_cid} — {type(_e).__name__}: {_e}")
+                if _mv:
+                    _nok += 1; slides.append((_mv, _a0, _b0, "statement"))
+                elif _pp:
+                    _nno += 1; slides.append((_pp, _a0, _b0, "statement"))
+            log(f"  ဖြတ်ပြောင်း · motionkit {_nok} ခု"
+                + (f" · စာရွက် ပြန်ဆုတ် {_nno} ခု" if _nno else ""))
+            # ⚠️ **ဖုံးအုပ်မှုကို ဘောင်ထဲ ချရမည်**。 ကတ် ၃ ခု × ၂.၅s =
+            #    ၇.၇s ÷ ၇၇.၆s = ၀.၀၉၉ ဖြစ်ပြီး QC `gfx_share` (၀.၁၇–၀.၂၅)
+            #    ကျခဲ့သည် (၂၀၂၆-၀၉-၂၁)。 `_fit_slides()` က ဒီအတွက် ရေးထားပြီးသား
+            #    — ဘောင်ရဲ့ **အလယ်** ဆီ ချိန်ပေးသည် ⇒ ပြန်ရေးစရာ မလို。
+            _shb3 = rc.get("gfx_share") or (0.17, 0.25)
+            _od3 = sum(b - a for a, b in spans) or float(m["dur"])
+            _cmax3 = min(float(rc.get("card_max_s") or QC.CARD_MAX),
+                         float(QC.CARD_MAX))
+            slides, _why3 = _fit_slides(slides, float(_shb3[0]) * _od3,
+                                        float(_shb3[1]) * _od3, _cmax3,
+                                        dur=_od3, log=log)
+            gfx = []          # ⚠️ ထပ်တင် မလုပ်တော့ — ဖြတ်ပြောင်း ဖြစ်သွားပြီ
+        except Exception as _e:
+            log(f"  ⚠️ ဖြတ်ပြောင်း မရ ({type(_e).__name__}: {_e})")
     if rc.get("slides") and segs:
         try:
             import slide as SL2
@@ -1343,6 +1485,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
     capv = os.path.join(work, "caps.mov") if (caps and csize) else None
     if capv:
       try:
+          # ⚠️ **စာတန်း နောက်ခံကို တိုင်းပြီးမှ** ဆုံးဖြတ်ရသည်。 IKKI ရဲ့
+          #    အဖြူစာတန်းက အဖြူနံရံ/မိုးကောင်းကင်ပေါ် ပျောက်သွားသည် —
+          #    `IKKI_Premium_v2.mp4` မှာ နမူနာ **၁၃/၁၃ လုံး** WCAG ၃:၁
+          #    မမီခဲ့ (၂.၁၃–၂.၇၅)。 plate ခံလျှင် ၆.၅၆ ရသည် (စမ်းပြီး)。
+          # ⚠️ `CP.track` က plate တစ်ခုတည်းသာ ယူသဖြင့် **စာတန်းအများစု**
+          #    ကျမှ ဖွင့်သည် — တစ်ကြောင်းနှစ်ကြောင်းအတွက် တစ်ဗီဒီယိုလုံး
+          #    အကွက် ခံလျှင် ပိုဆိုးသည်。
+          _plate = _plate_decide(src, caps, cap_top, TH["H"], rc, log)
           CP.track(caps, capv, os.path.join(work,"cp"),
                    # ⚠️ အရောင်ကို recipe က ပြင်နိုင်သည် — မပြင်လျှင် theme ရဲ့ ပုံသေ
                    TH["W"], TH["H"], csize,
@@ -1370,6 +1520,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    hide=[(at, at+d) for at, _m, d, _y0, y1 in (gmov or [])
                          if y1 > cap_top - 20]
                         + [(a, b) for _p, a, b, _l in (slides or [])],
+                   plate=_plate,
                    log=log,
                    # ⚠️ `total` ကို **ပေးရမည်** — မပေးလျှင် track က နောက်ဆုံး
                    #    စာတန်းမှာ ကုန်သွားပြီး overlay ရဲ့ `repeatlast` ပုံသေက
@@ -1584,7 +1735,44 @@ def render(job, brand, src, out, stage, log=print, over=None):
         import grade as GR
         gv = os.path.join(work, "graded.mp4")
         _pre = cutv
-        cutv = GR.apply(cutv, gv, rc, log=log)
+        # ⚠️ `shot_grade` ဆိုလျှင် **အပိုင်းလိုက်** ချသည် — အပြင်ဘက်
+        #    (highlight ပြတ်နေ) နဲ့ အတွင်းဘက် (အဝါဓာတ်) ကို တူညီစွာ
+        #    ကိုင်လျှင် နှစ်ခုလုံး မကောင်းပါ (Zin ၂၀၂၆-၀၉-၂၀)。
+        #    `curves`/`eq`/`colorlevels` က `enable=` ထောက်ပံ့သဖြင့်
+        #    ဖြတ်/concat ပြန်လုပ်စရာ မလိုပါ (စမ်းပြီး)。
+        _sg = None
+        if rc.get("shot_grade"):
+            try:
+                import shotlook as SH
+                _segs = SH.scan(cutv, float(probe(cutv).get("dur") or 0), log=log)
+                # ⚠️ **အပိုင်း တစ်ခုတည်းဆိုလည်း ကုသမှု ချရမည်**。 အရင်က
+                #    `len > 1` ဆိုမှ လုပ်ရန် ရေးမိ၍ ပြောသူရဲ့ မူရင်းရုပ်
+                #    (အလင်း တစ်မျိုးတည်း) မှာ source-aware ကုသမှု လုံးဝ
+                #    ပစ်ပယ်ခံခဲ့သည် — highlight ပြတ်နေတာ မပြင်ဘဲ ကျန်ခဲ့
+                #    (၂၀၂၆-၀၉-၂၁ j_d651c2ef2292)。 တစ်ပိုင်းဆိုလျှင်
+                #    ဝင်းဒိုး မလိုဘဲ `rc` ထဲ ပေါင်းရုံ。
+                if len(_segs) == 1:
+                    _a1, _b1, _k1, _s1 = _segs[0]
+                    rc = dict(rc); rc.update(SH.treatment(_k1, _s1))
+                    log(f"  grade · အပိုင်း တစ်ခုတည်း ({_k1}) — ကုသမှု တိုက်ရိုက်")
+                elif len(_segs) > 1:
+                    _parts = []
+                    for _a, _b, _k, _st in _segs:
+                        _rc2 = dict(rc); _rc2.update(SH.treatment(_k, _st))
+                        _fc = GR.chain(_rc2)
+                        if _fc:
+                            _parts.append(SH.windowed(_fc, _a, _b))
+                    if _parts:
+                        _sg = ",".join(_parts)
+            except Exception as _e:
+                log(f"  ⚠️ အပိုင်းလိုက် grade မရ ({type(_e).__name__}: {_e})")
+        if _sg:
+            ff(["ffmpeg", "-v", "error", "-y", "-i", cutv, "-vf", _sg,
+                "-c:v", "h264_videotoolbox", "-b:v", "16M", "-c:a", "copy", gv])
+            cutv = gv
+            log(f"  grade · အပိုင်းလိုက် {len(_segs)} ပိုင်း")
+        else:
+            cutv = GR.apply(cutv, gv, rc, log=log)
         if cutv != _pre: _drop(_pre)
     except Exception as e:
         log(f"  ⚠️ grade မရ: {e}")
@@ -2425,6 +2613,8 @@ def handle(d):
                                    captions=ncap, flags=st.get("flags",0),
                                    flag_list=st.get("flag_list") or [],
                                    segs=st.get("segs") or [],
+                                   # ⚠️ မပါလျှင် plan က တိတ်တဆိတ် ပျောက်သည်
+                                   edit_plan=st.get("edit_plan"),
                                    minutes=round((time.time()-t0)/60, 2), note=job.get("recipe","")))
     except Exception:
         _failed = True

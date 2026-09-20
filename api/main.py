@@ -515,6 +515,22 @@ def retake_picks(authorization: str = Header(None), job: str = "", vfmt: str = "
     return {"n": len(rows), "picked": sum(1 for r in rows if (r.get("picked") or "none") != "none"),
             "rows": rows}
 
+@app.get("/api/jobs/{jid}/editplan")
+def job_editplan(jid: str, authorization: str = Header(None)):
+    """Headtop ရဲ့ edit plan (JSON) — UI က event တစ်ခုချင်း ပြရန်。
+
+    ⚠️ `/plan` **မဟုတ်**。 `plan` ကော်လံက ဖြတ်မှတ်/retake အတွက် ရှိပြီးသား。
+    """
+    j = mine(authorization, jid)
+    try:
+        p = json.loads(j.get("edit_plan") or "{}")
+    except Exception:
+        p = {}
+    if not p:
+        raise HTTPException(404, "edit plan မရှိပါ (headtop ပုံစံမှသာ ထွက်သည်)")
+    return p
+
+
 @app.get("/api/jobs/{jid}/srt")
 def job_srt(jid: str, authorization: str = Header(None), t: str = ""):
     """စာတန်း ဖိုင် — SRT (ဗီဒီယို မလိုဘဲ သီးသန့် သုံးရန်)"""
@@ -1009,6 +1025,11 @@ async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}
     if m.get("segs") is not None:
         db.run("UPDATE jobs SET segs=? WHERE id=?",
                json.dumps(m.get("segs"), ensure_ascii=False), jid)
+    # ⚠️ Headtop ရဲ့ edit plan — **သိမ်းမှသာ** သုံးစွဲသူက event ပြင်နိုင်သည်。
+    #    `flags` လိုပဲ worker က ပို့ပေမယ့် သိမ်းမထားလျှင် တိတ်တဆိတ် ပျောက်သည်。
+    if m.get("edit_plan"):
+        db.run("UPDATE jobs SET edit_plan=? WHERE id=?",
+               json.dumps(m.get("edit_plan"), ensure_ascii=False), jid)
     db.run("UPDATE usage SET minutes=minutes+? WHERE ym=?",
            float(m.get("minutes",0)), time.strftime("%Y-%m"))
     _notify(jid, m)

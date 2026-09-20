@@ -148,7 +148,8 @@ def plan(segs, spans, max_lines=2):
 
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
-          gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86):
+          gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
+          plate=None):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -159,6 +160,13 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
          ဖြင့် ထပ်သည်。
     ⚠️ `hide` — ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်း **ဖျောက်**ရသည် (စာနှစ်ထပ် မဖြစ်စေရန်)。
     ⚠️ `fade` — ကတ်တိုင်း alpha ၃ ဆင့်ဖြင့် ပွင့်လာသည် (ရုတ်တရက် မပေါ်စေရန်)。
+    ⚠️ `plate` — `dict(alpha, pad_x, pad_y, radius)` ပေးလျှင် စာလုံးနောက်မှာ
+       **အမှောင် အကွက်** ခံသည်。 နောက်ခံ လင်းလွန်းလျှင် အဖြူစာ ပျောက်သည် —
+       `IKKI_Premium_v2.mp4` ကို တိုင်းရာ နမူနာ ၁၃ နေရာလုံး WCAG ၃:၁
+       မမီခဲ့ (၂.၁၃–၂.၇၅ · နောက်ခံ RGB ~၁၇၆)。 `None` ဆိုလျှင် ယခင်အတိုင်း
+       — အခြား ပုံစံများ မထိခိုက်စေရန်。
+    ⚠️ အကွက်က **ink ရဲ့ အကျယ်အတိုင်း**သာ ဖြစ်ရမည်、ဘောင်အပြည့် ဘားက
+       ဈေးပေါဆန်သည်。
     """
     os.makedirs(work, exist_ok=True)
     band_h = int(size*2.2)*2
@@ -184,10 +192,13 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         return d
 
     try:
-        from PIL import Image
+        # ⚠️ `ImageDraw` ကိုပါ ဒီမှာပဲ ယူရမည် — plate ဆွဲရာမှာ လိုသည်。
+        #    ဖိုင်ထိပ်မှာ မယူဘဲ ဒီထဲ ထားရခြင်းက PIL မရှိလျှင်လည်း
+        #    module က import ရနေစေရန် (fallback လမ်းကြောင်း ရှိသည်)。
+        from PIL import Image, ImageDraw
         import numpy as _np
     except Exception:
-        Image = None
+        Image = ImageDraw = None
 
     def _ink(p, pad=3):
         """PNG ကို alpha bbox အတိုင်း ဖြတ်သည် (ဒေါင်လိုက်သာ)。"""
@@ -208,8 +219,29 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         gap = int(sz*gap_pct)
         tot = sum(x.size[1] for x in ims) + gap*(len(ims)-1)
         canvas = Image.new("RGBA", (W, band_h), (0,0,0,0))
-        y = band_h - tot
-        if y < 0: y = 0
+        y0 = band_h - tot
+        if y0 < 0: y0 = 0
+        if plate:
+            # ⚠️ ink ရဲ့ **အလျားလိုက် နယ်နိမိတ်** ကို အရင် ရှာရသည် —
+            #    `_ink()` က ဒေါင်လိုက်သာ ဖြတ်သဖြင့် ပုံက ဘောင်အပြည့် ကျန်နေသည်。
+            x0, x1 = W, 0
+            for x in ims:
+                a = _np.asarray(x)[:, :, 3]
+                cols = _np.nonzero(a.max(axis=0) > 6)[0]
+                if len(cols):
+                    x0 = min(x0, int(cols.min())); x1 = max(x1, int(cols.max()))
+            if x1 > x0:
+                px = int(plate.get("pad_x", sz * 0.45))
+                py = int(plate.get("pad_y", sz * 0.22))
+                rad = int(plate.get("radius", sz * 0.28))
+                al = int(max(0.0, min(1.0, plate.get("alpha", 0.62))) * 255)
+                box = (max(0, x0 - px), max(0, y0 - py),
+                       min(W, x1 + px), min(band_h, y0 + tot + py))
+                lay = Image.new("RGBA", (W, band_h), (0, 0, 0, 0))
+                ImageDraw.Draw(lay).rounded_rectangle(box, radius=rad,
+                                                      fill=(0, 0, 0, al))
+                canvas.alpha_composite(lay)
+        y = y0
         for x in ims:
             canvas.alpha_composite(x, (0, y)); y += x.size[1] + gap
         canvas.save(outp)

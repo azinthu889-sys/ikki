@@ -24,6 +24,11 @@ var STYLES={creator:[
      ⚠️ အောက်က ၃ ခုက **reference ၃ ပုဒ် တိုင်းပြီး** ဆောက်ထားသည်
         (`assets/calib/ref_hype_2026.json`) — ပုံစံ ၃ မျိုး ကွဲသဖြင့်
         ပျမ်းမျှ မယူဘဲ သီးသန့် ခွဲထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。 */
+  /* ⚠️ **Headtop** — plan-driven。 ကျန်ပုံစံတွေက worker က ဆုံးဖြတ်ပြီး
+        ဒီတစ်ခုကတော့ **AI plan ကို အကောင်အထည်ဖော်**သည် ⇒ event တိုင်း
+        သုံးစွဲသူ ပြင်နိုင်သည် (Zin ၂၀၂၆-၀၉-၂၀ spec)。 */
+  ["headtop","Headtop","စာတန်း ဖတ်လွယ် · အဓိပ္ပာယ်အလိုက် ဂရပ်ဖစ် · ပြင်လို့ရ",
+   "Readable captions · semantic graphics · editable","MasterpieceUniRound","plan"],
   /* ⚠️ "Fast Cut" ကို ဤပုံစံထဲ **ပေါင်းထားသည်** (Zin ၂၀၂၆-၀၉-၂၀) —
         ကွာတာက ဖြတ်နှုန်းတစ်ခုတည်း ဖြစ်၍ ပုံစံ သီးသန့် မလို。
         ပုံစံ ဆက်တင်ထဲက 「အရှိန်」 ကနေ မြန်/ပုံမှန် ရွေးပါ。 */
@@ -57,7 +62,7 @@ var STHEME={'cinematic-vlog':'zjl','vlog':'zjl','podcast':'zjl',
   /* ⚠️ `ref-slides` · `ref-fast` က ပေါင်းပြီးသား — စာရင်းမှာ မပြတော့。
      ဒါပေမယ့် **အဟောင်း job တွေရဲ့ recipe အမည်** အဖြစ် ကျန်နိုင်သဖြင့်
      theme map မှာတော့ ထားရမည် — မရှိလျှင် ပုံစံ ပြန်ဖွင့်တဲ့အခါ ပျက်မည်。 */
-  'ref-talk':'ikki','ref-slides':'zjl','ref-fast':'zjl',
+  'headtop':'ikki','ref-talk':'ikki','ref-slides':'zjl','ref-fast':'zjl',
   'knowledge':'zjl','brand-review':'zjl','course':'zjl',
   'short-video':'zae','promotional':'zae','short-biz':'zae'};
 /* ⚠️ style အချို့မှာ brand ရဲ့ native အရွယ်နဲ့ **မတူ**。 `short-biz` က

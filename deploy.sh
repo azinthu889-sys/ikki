@@ -57,11 +57,24 @@ fi
 echo "── asset version ──"
 ~/.ikki/venv/bin/python tools/stamp.py
 
+# ⚠️ **ချန်ထားချက်ကို လက်နဲ့ စာရင်းလုပ်ထားသည် ⇒ repo ပုံစံ ပြောင်းတိုင်း
+#    ဟောင်းသွားသည်**。 ၂၀၂၆-၀၉-၂၁ မှာ ဖြစ်ခဲ့သည် —
+#      `.git`  — B-roll ၁ GB commit လုပ်လိုက်တော့ ၉၂၈ MB ဖြစ်ပြီး
+#                deploy တိုင်း တင်နေသည် (VPS မှာ ၂၀၄ MB ရောက်မှ တွေ့)。
+#      `work/` — render scratch ၄၄၁ MB。 VPS မှာ render မလုပ်ပါ。
+#    ⚠️ နှစ်ခုလုံး `.gitignore` ထဲ ပါပြီးသား — ဒါပေမယ့် **rsync က
+#       gitignore မဖတ်ပါ**。 ချန်ထားချက် နှစ်နေရာ သီးသန့် ထိန်းရသည်。
+# ⚠️ မှတ်ချက်ကို backtick (`# …`) နဲ့ command ထဲ မထည့်ရ — မှတ်ချက်ထဲ
+#    backtick တစ်လုံး ပါမိလျှင် script တစ်ခုလုံး ပျက်သည် (တကယ် ဖြစ်ခဲ့ပြီး
+#    worker ပြန်မစဘဲ ကျန်ခဲ့သည်)。 `sh -n` ကလည်း မဖမ်းမိပါ。
 echo "── rsync (.env ချန်) ──"
 rsync -az \
   --exclude='.env' --exclude='.env.*' \
   --exclude='.venv' --exclude='data' --exclude='__pycache__' \
-  --exclude='._*' --exclude='assets/broll/clips' \
+  --exclude='._*' \
+  --exclude='assets/broll/clips' --exclude='assets/broll/stock_ja' \
+  --exclude='.git' --exclude='tests' \
+  --exclude='work' --exclude='scratch' --exclude='reports' \
   ./ root@srv1866621.hstgr.cloud:/srv/ikki/
 
 echo "── rebuild ──"

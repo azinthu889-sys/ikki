@@ -438,6 +438,11 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    ⇒ နောက်ဆုံး frame ကို `tpad` နဲ့ ဆွဲထားသည်。
         gdur = float(el["dur"])
         fc2 = list(fc); last2 = last
+        # ⚠️ **event တစ်ခုချင်း** ရပ်ချိန် ပေးလို့ ရရမည် — plan (`execute.py`)
+        #    က event တစ်ခုချင်း `startTime`/`endTime` ပေးသည်。 မရှိလျှင်
+        #    ယခင်အတိုင်း global `hold`。
+        _h = g.get("hold")
+        hold = float(_h) if _h else hold
         if hold and hold > gdur + 0.05:
             fc2.append(f"[{last2}]tpad=stop_mode=clone:"
                        f"stop_duration={hold-gdur:.2f}[hp]")
@@ -583,7 +588,8 @@ SLIDE_TPL = {
 }
 
 
-def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30):
+def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
+               template=None, props=None):
     """slide တစ်ခုကို motionkit template ဖြင့် alpha .mov အဖြစ် ထုတ်သည်。
 
     ရလျှင် `out` လမ်းကြောင်း、မရလျှင် `None` (ခေါ်သူက PNG သို့ ပြန်ဆုတ်ရန်)。
@@ -591,7 +597,17 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30):
     import subprocess, os as _o, sys as _s
     _r = _r2()
     if _r is None: return None
-    mod_name, fn_name = SLIDE_TPL.get(layout) or SLIDE_TPL["statement"]
+    # ⚠️ `template` ပေးလျှင် **အဲဒါကို** သုံးသည် — plan (Headtop) က ရွေးထားသော
+    #    ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်ရန်。 မပေးလျှင်
+    #    ယခင်အတိုင်း `SLIDE_TPL` (Knowledge Sharing လမ်းကြောင်း)。
+    # ⚠️ ဘာကြောင့် ဖြတ်ပြောင်း လိုသလဲ — ပြောသူက ဘောင်ရဲ့ ၆၄% ယူပြီး
+    #    စာတန်းက ၇၀% ကနေ စသဖြင့် ထပ်တင်ဖို့ **၅.၆% ·H သာ ကျန်**သည်。
+    #    template တွေက ၅၀၇–၁၀၇၉px ရှိ၍ ဘာမှ မဝင်နိုင်ပါ (၂၀၂၆-၀၉-၂၁ တိုင်း၍
+    #    တွေ့ — ဂရပ်ဖစ် ၄ ခုလုံး 「နေရာ မတည့်」နဲ့ ပယ်ခံခဲ့သည်)。
+    if template and "." in template:
+        mod_name, fn_name = template.split(".", 1)
+    else:
+        mod_name, fn_name = SLIDE_TPL.get(layout) or SLIDE_TPL["statement"]
     out = _o.path.abspath(out)
     base = out.replace(".mov", "_b.mov")
     import gfxcat as GC
@@ -607,7 +623,11 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30):
             mod = __import__(mod_name)
             fn = getattr(mod, fn_name)
             its = [str(x).strip() for x in (items or []) if str(x).strip()][:4]
-            if layout == "bullets":
+            if template and props is not None:
+                # ⚠️ plan ရဲ့ props ကို **အတိအကျ** ပေးသည် — manifest နဲ့
+                #    စစ်ပြီးသား ဖြစ်၍ မှန်းဆ မလုပ်ရ。
+                el = fn("sl", **props)
+            elif layout == "bullets":
                 el = fn("sl", head, its or [brand], eyebrow=brand)
             elif layout == "bignum":
                 el = fn("sl", str(num or head), head if num else brand, role=brand)
@@ -667,14 +687,27 @@ def _cargs(kind, brand, label):
 
 _FNC = {}
 def _fn(name):
-    """catalog ကနေ template function ရှာသည် (module ဘယ်ဟာမဆို)。"""
+    """catalog ကနေ template function ရှာသည်。
+
+    `"module.fn"` ပေးလျှင် **အဲဒီ module ကသာ** ယူသည်。
+    `"fn"` သက်သက်ဆိုလျှင် ပထမတွေ့သော module (ယခင်အတိုင်း)。
+
+    ⚠️ **fn နာမည် ၁၈ ခု module အချင်းချင်း တူနေသည်** (၂၀၂၆-၀၉-၂၀ တိုင်း၍
+       တွေ့) — `line_by_line` က `capt` ရော `prem5` ရောမှာ ရှိပြီး
+       `compare_bar` က `dash`·`infogfx`·`prem7` ၃ ခုမှာ ရှိသည်。
+       နာမည်သက်သက် ပေးလျှင် **မှားသော module** ကို တိတ်တဆိတ် ယူမိနိုင်သည်
+       ⇒ plan က `motionKitTemplateId` အပြည့် ပေးရမည်。
+    """
     if name in _FNC: return _FNC[name]
     f = None
+    want_mod = None
+    if "." in name:
+        want_mod, name = name.split(".", 1)
     try:
         import importlib, sys as _s
         import gfxcat as GC
         for e in GC.catalog():
-            if e["fn"] == name:
+            if e["fn"] == name and (want_mod is None or e["module"] == want_mod):
                 cwd = os.getcwd()
                 try:
                     if GC.MK not in _s.path: _s.path.insert(0, GC.MK)

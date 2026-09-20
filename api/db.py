@@ -97,7 +97,14 @@ def init():
     #    ဝါကျတွေ **ပြန်ပါလာ**ပြီး ဗီဒီယိုက ကြောင်တောင်တောင် ဖြစ်ခဲ့သည်
     #    (Zin ၂၀၂၆-၀၉-၂၀ · j_dd56e503c95c: ချန် ၁၁၂s ဖြစ်ပါလျက် ၃၂၂s ထွက်)。
     #    ⇒ `segs_all` = ASR ရဲ့ **အပြည့်** · `keep_n` = ချန်ခဲ့သော နံပါတ်များ。
-    for _c, _d in (("segs_all", "TEXT"), ("keep_n", "TEXT")):
+    # ⚠️ `edit_plan` က **Headtop ရဲ့ HeadtopEditPlan** — ရှိပြီးသား `plan`
+    #    (ဖြတ်မှတ် · retake အကြံပြုချက်) နဲ့ **လုံးဝ မတူ**。 worker က
+    #    `st["plan"]` ဟု ရေးခဲ့သဖြင့် နာမည်တူပြီး `w_result` ကလည်း
+    #    မသိမ်းသဖြင့် plan က တိတ်တဆိတ် ပျောက်ခဲ့သည် (၂၀၂၆-၀၉-၂၁ တိုင်းချက်:
+    #    job ထဲက `plan` မှာ ဖြတ်မှတ်သာ ပါပြီး template event ၀ ခု)。
+    #    ⇒ သုံးစွဲသူက event တစ်ခုချင်း ပြင်နိုင်ရန် **သီးသန့် ကော်လံ** လိုသည်。
+    for _c, _d in (("segs_all", "TEXT"), ("keep_n", "TEXT"),
+                   ("edit_plan", "TEXT")):
         if _c not in jcols2: c.execute(f"ALTER TABLE jobs ADD COLUMN {_c} {_d}")
     ucols = [r[1] for r in c.execute("PRAGMA table_info(uploads)")]
     for extra, ddl in (("key","TEXT"), ("mpu","TEXT"),

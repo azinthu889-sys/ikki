@@ -91,8 +91,12 @@ R = {
     #    「Ikki Brand Color themes ကိုသုံးပေးပါ」 → 「အရောင်အသစ် သတ်မှတ်ပါ」)。
     #    ⚠️ အရင်က #FFE000 (app.css ရဲ့ --ac) သုံးခဲ့ရာ **ZJL နဲ့ တစ်ထပ်တည်း**
     #    ဖြစ်နေသည် ⇒ IKKI ကိုယ်ပိုင် အအေးရောင် သတ်မှတ်ထားသည်。 တိုင်းချက်:
-    #    အမှောင်ပေါ် ၁၀.၆:၁ · ZAE နှင့် ΔE ၈၈ · ZJL နှင့် ΔE ၁၀၂ ·
-    #    အသားရောင်နှင့် ΔE ၆၅ (မျက်နှာပေါ် ရောမသွားပါ)。
+    #    ⚠️ ငါ ဖျော့စိမ်း #22D3C5 ကို တိုင်းပြီး ရွေးခဲ့ရာ Zin က
+    #    **အဝါပဲ ဆက်သုံး**ဟု ဆုံးဖြတ်သည် (၂၀၂၆-၀၉-၂၁)。 တိုင်းချက်က
+    #    「ဘယ်အရောင် ဖတ်ရလွယ်လဲ」ကို ဖြေပေးသည်、「brand ဘာလဲ」ကို မဖြေပါ —
+    #    ဒါက ပိုင်ရှင်ရဲ့ ဆုံးဖြတ်ချက် ဖြစ်သည်。
+    #    ⚠️ ZJL ရဲ့ GOLD နဲ့ တူညီသည် — ကွဲပြားမှုက နောက်ခံ (#0A0A0A vs
+    #       #101014) နဲ့ ဖောင့် (MasterpieceUniRound vs MyanmarYinmar)。
     cap_typo=0.22, accent="#22D3C5", insert_per_min=2.5, zoom_amt=0.055,
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      keep_pause=0.20, min_sil=0.32,
@@ -145,6 +149,26 @@ R = {
  #    ၆၄% က ၂s အောက် · စာသား ၄၆% (အပေါ် ၃၄% · အောက် ၁၄% သာ)
  #    ⚠️ ကတ်နဲ့ဆို ၁၆၃ ခု လိုမည် — **မရနိုင်**。 ⇒ ဤ style ရဲ့ လက္ခဏာက
  #      **ဖြတ်ချက် တင်းမှု** ဖြစ်သည် ⇒ `keep_pause`/`min_sil` ကို တင်းထားသည်。
+# ⚠️ **Headtop** — Zin ရဲ့ ၂၀၂၆-၀၉-၂၀ spec。 ref-talk နဲ့ ကွာတာက
+#    「worker က ဆုံးဖြတ်」မဟုတ်ဘဲ **plan ကို အကောင်အထည်ဖော်**ခြင်း ဖြစ်သည်
+#    ⇒ event တိုင်း သုံးစွဲသူ ပြင်နိုင်သည်。
+# ⚠️ စာတန်း ကိန်းများကို reference (KCN4-2hyUBM) ကနေ တိုင်းယူထားသည် —
+#    ပေါ်ချိန် ၇၂% · အမြင့် အလယ်တန်း ၃.၆%·H (p75 ၅.၇%) · အလယ် y ၇၂%。
+#    ⚠️ `cap_base` ကို **အောက်ခြေမှ ၇–၉%** ဟု spec မှာ သတ်မှတ်ထားသဖြင့်
+#       ၀.၉၂ (= အောက်ခြေမှ ၈%) ထားသည် — QC `cap_max` ၀.၉၃ အောက်。
+ "headtop": dict(
+     label="Headtop", theme="ikki", fps=30,
+     plan=True, energy="standard", shot_grade=True,
+     keep_pause=0.20, min_sil=0.32, silence_ms=400,
+     captions="accent", cap_pct=0.050, cap_base=0.92, cap_max=0.93,
+     cap_cover=0.85, cap_typo=0.0,
+     mmf="MasterpieceUniRound", latin="Figtree-Black",
+     accent="#FFE000", stroke="#0A0A0A", stroke_w=0.06,
+     gfx=16, gfx_share=(0.17, 0.25), broll=6, broll_pct=0.18,
+     music="calm", lufs=-14.0, sfx_per_min=1.5,
+     zoom_amt=0.045, natural=True, grade=True,
+     sat=1.03, vign=0.0, cbal=False),
+
  "ref-fast": dict(
      label="Fast Cut", theme="zjl", fps=30,
      keep_pause=0.12, min_sil=0.22,
@@ -299,6 +323,18 @@ DEF = dict(cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
            #    အတိမ်အနက်ကို reference ကနေ **မတိုင်းရသေးပါ**、ဘောင်အတွင်း
            #    (≤၁.၂၅×) ဒီဇိုင်း ရွေးချယ်မှု ဖြစ်သည်。
            zoom_amt=0.0,
+           # ── Headtop ရဲ့ ထိန်းချုပ်ချက် (Zin ၂၀၂၆-၀၉-၂၀ spec) ──
+           # ⚠️ `plan=True` ဆိုမှ plan လမ်းကြောင်း သုံးသည် ⇒ ကျန် ပုံစံ ၁၀ ခု
+           #    ယခင်အတိုင်း — worker က ဆုံးဖြတ်နေဆဲ。 တစ်ပြိုင်နက် မပြောင်းရ。
+           plan=False,              # plan-driven render သုံးမလား
+           energy=None,             # minimal · standard · dynamic
+           broll_freq=None,         # B-roll ဘယ်လောက် မကြာခဏ
+           motion=None,             # ရုပ် လှုပ်ရှားမှု ပြင်းအား
+           sfx_on=True,
+           autocut=True,            # တိတ်ဆိတ်မှု အလိုအလျောက် ဖြတ်
+           review=True,             # render မလုပ်ခင် transcript ပြ
+           shot_grade=False,        # အပိုင်းလိုက် grade (အပြင်/အတွင်း)
+           silence_ms=400,          # တိတ်ဆိတ်မှု ဖြတ်မှတ် (ms)
            broll_gap=3.0, sfx_per_min=None, cap_hold=4.0, broll_minscore=2.0,
            broll_tail=5.0, cap_gap=0.18, cap_fade=0.14, cap_wide=0.86,
            gfx_share=None,
@@ -490,6 +526,14 @@ BOUNDS = dict(
  slide_amt= ("choice", list(SLIDE_AMT)),
  pace     = ("choice", list(PACE)),
  zoom_amt = ("float", 0.0, 0.12),
+ energy   = ("choice", ["minimal", "standard", "dynamic"]),
+ broll_freq = ("choice", ["low", "normal", "high"]),
+ motion   = ("choice", ["low", "normal", "high"]),
+ sfx_on   = ("bool",),
+ autocut  = ("bool",),
+ review   = ("bool",),
+ shot_grade = ("bool",),
+ silence_ms = ("int", 150, 1200),
 )
 
 def cut_name(r):

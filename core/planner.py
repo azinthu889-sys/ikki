@@ -1,0 +1,472 @@
+"""transcript → HeadtopEditPlan。
+
+⚠️ **AI ကို timeline မတောင်းပါ**。 Zin ရဲ့ စည်းမျဉ်း —
+   「AI must NOT directly generate a free-form video edit」。
+   ⇒ AI က **အဓိပ္ပာယ် အညွှန်း** (ဝါကျတစ်ခုချင်း ဘာအမျိုးအစားလဲ) သာ
+     ပြန်ပေးပြီး **timeline ကို ဒီကုဒ်က တည်ဆောက်**သည်。
+   ဒါကြောင့် မရှိသော template · ဘောင်ပြင် အချိန် · မမှန်သော layer
+   ထွက်ဖို့ **လမ်းမရှိ**တော့ပါ — Gemini က ဘာပဲ ပြန်ပြန် label ကို
+   ပိတ်ထားသော စာရင်းနဲ့ စစ်ပြီး မကိုက်လျှင် `plain` ဖြစ်သွားသည်。
+
+⚠️ Gemini မရလျှင် **အလုပ် မရပ်ရ** — heuristic နဲ့ ဆက်လုပ်သည်。
+   (ASR တိတ်တဆိတ် ကျရှုံးမှုက ဒီ project မှာ တစ်နာရီ ကုန်စေဖူးသည်)。
+"""
+import json
+import os
+import re
+import urllib.request
+
+try:
+    import gemguard as G
+    import manifest as MF
+    import plan_schema as PS
+except ImportError:                                   # API က package အဖြစ်
+    from core import gemguard as G
+    from core import manifest as MF
+    from core import plan_schema as PS
+
+# ⚠️ model ကို **ကိန်းသေ မရေးရ** — `IKKI_GEMINI_MODEL` ကနေ ယူရသည်
+#    (`topics.py` · `asr.py` နဲ့ တူညီစွာ)。 ကိန်းသေ ရေးမိ၍ `gemini-2.0-flash`
+#    က **HTTP 404** ပြန်ကာ planner က heuristic သို့ တိတ်တဆိတ် ကျဆင်းခဲ့သည်
+#    (၂၀၂၆-၀၉-၂၁ — log မှာ 「Gemini မရ」ဟုသာ ပေါ်၍ အကြောင်းရင်း မသိခဲ့)。
+MODEL = os.environ.get("IKKI_GEMINI_MODEL", "gemini-flash-latest")
+
+# ── ပိတ်ထားသော အညွှန်း စာရင်း ────────────────────────────────
+# ⚠️ AI က ဒီထဲကပဲ ရွေးခွင့် ရှိသည်。 အခြားဟာ ပြန်ပေးလျှင် `plain` ဖြစ်သည်。
+LABELS = ("hook", "section", "fact", "number", "steps", "checklist",
+          "compare", "location", "warning", "plain")
+
+# အညွှန်း → template မိသားစု (manifest.HEADTOP ထဲက)
+FAMILY = {
+    "hook":      "hook",
+    "section":   "ident",
+    "fact":      "callout",
+    "number":    "number",
+    "steps":     "explain",
+    "checklist": "explain",
+    "compare":   "explain",
+    "location":  "broll",
+    "warning":   "callout",
+}
+
+# အညွှန်း → template ID ဦးစားပေး (မိသားစုထဲမှ)
+PREFER = {
+    "steps":     ["infogfx.steps", "infogfx.checklist"],
+    "checklist": ["infogfx.checklist"],
+    "compare":   ["infogfx.big_number", "infogfx.checklist"],
+    "number":    ["odo.big_stat", "odo.count_up", "odo.percent_ring"],
+    "location":  ["prem7.location_tag", "prem7.note_card"],
+    "warning":   ["callouts.box_call", "callouts.underline_call"],
+    "fact":      ["callouts.line_call", "callouts.underline_call"],
+    "section":   ["titles3.minimal_third", "titles.topic_bar", "titles.chapter"],
+    "hook":      ["prem4.big_question", "prem4.stop_scroll", "titles3.opening_bars"],
+}
+
+# ── စွမ်းအင် အဆင့် ──────────────────────────────────────────
+# `gap` — မြင်ကွင်း ပြောင်းမှု ကြားကာလ ပစ်မှတ် (စက္ကန့်)
+ENERGY = {
+    "minimal":  dict(gap=11.0, punch=False, transitions=False),
+    "standard": dict(gap=6.5,  punch=True,  transitions=True),
+    "dynamic":  dict(gap=4.5,  punch=True,  transitions=True),
+}
+
+# ⚠️ စာသားကနေ **ပုံသဏ္ဌာန် မှန်မှန် မဆောက်နိုင်သော** template များ。
+#    ဒါတွေက ကိန်းဂဏန်း ဖွဲ့စည်းပုံ လိုသည် — ASR စာသားကနေ မှန်းဆ၍ မရပါ。
+STRUCTURED = {
+    "infogfx.compare_bar",     # rows = [(စာသား, ဘယ်, ညာ)] ၃ လုံးတွဲ
+    "infogfx.timeline",        # points = ဖွဲ့စည်းပုံ ရှိသော စာရင်း
+}
+
+DIGITS = set("0123456789" + "".join(chr(0x1040 + i) for i in range(10)))
+
+PROMPT = """မြန်မာလို စကားပြော ဗီဒီယိုတစ်ခုရဲ့ စာကြောင်းများ ဖြစ်သည်။
+စာကြောင်းတစ်ခုချင်းကို အောက်ပါ အမျိုးအစား **တစ်ခုတည်း** သတ်မှတ်ပါ —
+
+hook      ဗီဒီယိုအစ စိတ်ဝင်စားစေသော မေးခွန်း/ထိတ်လန့်ဖွယ် ဖွင့်ဆိုချက်
+section   ခေါင်းစဉ် အသစ် စတင်ခြင်း
+fact      အရေးကြီး အချက်အလက် တစ်ခု
+number    ဂဏန်း/ရာခိုင်နှုန်း/ကာလ တကယ် ပြောထားသည်
+steps     အဆင့်ဆင့် လုပ်ငန်းစဉ်
+checklist လိုအပ်ချက် / စာရင်း
+compare   နှိုင်းယှဉ်ချက်
+location  နေရာ / ကျောင်း / ရုံး ဖော်ပြချက်
+warning   သတိပေးချက် / ပြဿနာ / အန္တရာယ်
+plain     အထက်ပါ ဘယ်ဟာမှ မဟုတ် (အများစုက ဒါ ဖြစ်သင့်သည်)
+
+⚠️ အများစုကို `plain` ထားပါ။ တကယ် ထင်ရှားမှသာ အခြား အမျိုးအစား ပေးပါ။
+⚠️ `number` ကို **ဂဏန်း တကယ် ပါမှသာ** ပေးပါ။
+JSON array သာ ပြန်ပါ — ပုံစံ: [{"line":1,"label":"plain"}, ...]
+
+စာကြောင်းများ:
+%s"""
+
+
+def _has_digit(t):
+    return any(c in DIGITS for c in (t or ""))
+
+
+def _heuristic(segs):
+    """Gemini မရလျှင် — စာသားကြည့်ပြီး ခန့်မှန်းသည်
+
+    ⚠️ ရိုးရှင်းပေမယ့် **ဘယ်တော့မှ မမှားသော ပုံစံ** ထုတ်ပေးသည်。
+       ဂဏန်း မပါဘဲ `number` မပေးပါ ⇒ QC ရဲ့ `number_without_data` မဖြစ်。
+    """
+    out = []
+    for i, s in enumerate(segs):
+        t = (s.get("text") or "").strip()
+        lab = "plain"
+        if i == 0:
+            lab = "hook"
+        elif _has_digit(t):
+            lab = "number"
+        elif re.search(r"(လား|လဲ)\s*[?။]?\s*$", t):
+            lab = "fact"
+        elif any(k in t for k in ("အဆင့်", "ပထမ", "ဒုတိယ", "နည်းလမ်း")):
+            lab = "steps"
+        elif any(k in t for k in ("လိုအပ်", "ရှိရမယ်", "ရှိရမည်")):
+            lab = "checklist"
+        elif any(k in t for k in ("သတိ", "ပြဿနာ", "အန္တရာယ်", "မရ")):
+            lab = "warning"
+        elif any(k in t for k in ("ကျောင်း", "ရုံး", "နေရာ", "မြို့")):
+            lab = "location"
+        out.append(lab)
+    return out
+
+
+def annotate(segs, log=print):
+    """ဝါကျတစ်ခုချင်းအတွက် အညွှန်း — Gemini、မရလျှင် heuristic"""
+    if not segs:
+        return []
+    lines = "\n".join(f"{i+1}. {s.get('text','')}" for i, s in enumerate(segs[:200]))
+    body = {"contents": [{"parts": [{"text": PROMPT % lines}]}],
+            "generationConfig": {"temperature": 0.1}}
+    for attempt in range(2):
+        try:
+            G.throttle()
+            r = urllib.request.Request(
+                G.endpoint(MODEL), data=json.dumps(body).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(r, timeout=180) as f:
+                d = json.loads(f.read())
+            txt = "".join(p.get("text", "")
+                          for p in d["candidates"][0]["content"]["parts"])
+            m = re.search(r"\[.*\]", txt, re.S)
+            if not m:
+                raise ValueError("JSON မတွေ့")
+            out = ["plain"] * len(segs)
+            bad = 0
+            for it in json.loads(m.group(0)):
+                n = int(it.get("line", 0)) - 1
+                lab = str(it.get("label", "plain"))
+                if not (0 <= n < len(segs)):
+                    bad += 1
+                    continue
+                # ⚠️ **ပိတ်ထားသော စာရင်းနဲ့ စစ်ရမည်** — Gemini က
+                #    အမျိုးအစား တီထွင်တတ်သည်。
+                out[n] = lab if lab in LABELS else "plain"
+            # ⚠️ ဂဏန်း မပါဘဲ `number` ပေးလျှင် **ပြန်ဖြုတ်ရမည်** —
+            #    မဟုတ်လျှင် odo template က ဂဏန်းမဲ့ ထွက်မည်。
+            fixed = 0
+            for i, lab in enumerate(out):
+                if lab == "number" and not _has_digit(segs[i].get("text")):
+                    out[i] = "fact"
+                    fixed += 1
+            if bad or fixed:
+                log(f"  planner · index မှား {bad} · ဂဏန်းမဲ့ number {fixed} ပြင်ပြီး")
+            return out
+        except Exception as e:
+            G.log_fail("headtop_annotate", attempt + 1, 2, None, str(e)[:120],
+                       final=(attempt == 1))
+    log("  ⚠️ planner · Gemini မရ — heuristic နဲ့ ဆက်သွားသည်")
+    return _heuristic(segs)
+
+
+
+def split2(text, maxlen=34):
+    """စာသားကို **အများဆုံး ၂ ကြောင်း** ခွဲသည်
+
+    ⚠️ မြန်မာစာမှာ **စာလုံးတစ်လုံးချင်း မခွဲရ** — glyph shaping ပျက်သည်
+       (ေ ိ ် စသည် အသီးသီး ကွဲသွားမည်)。 ⇒ **space နေရာမှာသာ** ခွဲသည်。
+       space မရှိလျှင် တစ်ကြောင်းတည်း ထားလိုက်သည် — မခွဲဘဲ ကျန်တာက
+       ပျက်နေတာထက် ကောင်းသည်。
+    """
+    t = " ".join((text or "").split())
+    if len(t) <= maxlen or " " not in t:
+        return [t] if t else []
+    words = t.split(" ")
+    best, bi = None, 1
+    for i in range(1, len(words)):
+        a = " ".join(words[:i]); b = " ".join(words[i:])
+        d = abs(len(a) - len(b))
+        if best is None or d < best:
+            best, bi = d, i
+    return [" ".join(words[:bi]), " ".join(words[bi:])]
+
+
+def _first_number(text):
+    """ဝါကျထဲက ပထမ ဂဏန်း — မတွေ့လျှင် None"""
+    m = re.search(r"[0-9\u1040-\u1049]+(?:[.,][0-9\u1040-\u1049]+)?", text or "")
+    return m.group(0) if m else None
+
+
+_CL = re.compile(r"[\u1000-\u102A\u103F\u104C-\u104F\u0020-\u007E]"
+                 r"[\u102B-\u103E\u1039\u1040-\u104B\uFE00-\uFE0F]*")
+
+
+def _ncl(t):
+    """မြင်ရသော စာလုံး အရေအတွက် (မြန်မာ cluster)
+
+    ⚠️ `len()` က **code point** ရေတွက်သည် — 「ပြီး」က ၄ ခု ဖြစ်ပြီး
+       မြင်ရတာ ၁ လုံးသာ。 ⇒ မြန်မာစာကို အလွန်အကျွံ တိုအောင် ဖြတ်မိသည်
+       (「Language school နှစ်နှစ်တက်ပြီးတော့」 = code point ၃၅ · cluster ၂၅)。
+    """
+    out = _CL.findall(t or "")
+    return len(out) if sum(len(x) for x in out) == len(t or "") else len(t or "")
+
+
+def _short(text, n=26):
+    """ကတ်ပေါ် တင်ရန် အတိုချုံး — **space မှာသာ ဖြတ်သည်**
+
+    ⚠️ `t[:n]` ဟု တိုက်ရိုက် ဖြတ်လျှင် မြန်မာစာလုံးတစ်လုံး အလယ်မှာ ပြတ်သည် —
+       `IKKI_Headtop_16s.mp4` ၁.၅s မှာ 「…တက်ပြီးတ」ဟု ထွက်ခဲ့သည်
+       (「တော့」 ရဲ့ 「ော့」 ပျောက်)。 ဗျည်းတွဲ/သရ က code point သီးသန့်
+       ဖြစ်သဖြင့် စာလုံးရေ နဲ့ ဖြတ်၍ **လုံးဝ မရ**。
+    ⚠️ `n` အတွင်း space မရှိလျှင် **မဖြတ်ဘဲ အပြည့်** ပြန်ပေးသည် —
+       စာလုံး ပျက်တာထက် ကတ် ရှည်တာက သာသည် (`split2()` နဲ့ တစ်သဘောတည်း)。
+    """
+    t = " ".join((text or "").split())
+    if _ncl(t) <= n:
+        return t
+    words, out = t.split(" "), []
+    for w in words:
+        cand = out + [w]
+        if out and _ncl(" ".join(cand)) > n:
+            break
+        out = cand
+    return " ".join(out) if out else t
+
+
+def fill(cid, label, text):
+    """template ရဲ့ **required param အတိုင်း** ဖြည့်သည် — မဖြည့်နိုင်လျှင် None
+
+    ⚠️ param နာမည်ကို **မှန်းဆ မရေးရ** — manifest ကနေ ဖတ်ရသည်。
+       ငါ `text`/`color` ဟု မှန်းဆရေးမိပြီး schema က ဖမ်းခဲ့သည်
+       (`capt.multi_line` က `lines`/`col` ယူသည်)。
+    """
+    e = MF.entry(cid)
+    if not e:
+        return None
+    # ⚠️ **ပုံသဏ္ဌာန် မတည်ဆောက်နိုင်သော template ကို လုံးဝ မသုံးရ**。
+    #    `infogfx.compare_bar` ရဲ့ `rows` က **၃ လုံးတွဲ** (စာသား, ဘယ်, ညာ)
+    #    လိုသည် — စာသား စာရင်း ပေးမိ၍ render ချိန်မှာ
+    #    `ValueError: not enough values to unpack` ဖြစ်ခဲ့သည်
+    #    (၂၀၂၆-၀၉-၂၁)。 schema က **နာမည်နဲ့ ရှိမရှိ**သာ စစ်ပြီး
+    #    ပုံသဏ္ဌာန် မစစ်နိုင်ပါ ⇒ ဒီမှာ ပိတ်ရသည်。
+    #    ⚠️ ဂဏန်း ၂ ခု တကယ် မပါဘဲ နှိုင်းယှဉ်ချက် မဆွဲရ (Zin ရဲ့
+    #       「Never add a chart without factual data」နဲ့ တူညီသော စည်းမျဉ်း)。
+    if cid in STRUCTURED:
+        return None
+    req = [q["name"] for q in (e.get("params") or [])
+           if q.get("required") and not q.get("auto")]
+    two = split2(text)
+    num = _first_number(text)
+    hot = _short(text, 14)
+    m = {
+        "lines":  two,
+        "line1":  two[0] if two else "",
+        "line2":  two[1] if len(two) > 1 else "",
+        "text":   _short(text, 30),
+        "q":      _short(text, 32),
+        "title":  _short(text, 24),
+        "name":   _short(text, 22),
+        "place":  _short(text, 20),
+        "before": two[0] if two else _short(text, 20),
+        "hot":    hot,
+        "after":  two[1] if len(two) > 1 else "",
+        "items":  two or [_short(text, 24)],
+        "points": two or [_short(text, 24)],
+        "rows":   two or [_short(text, 24)],
+        "left":   two[0] if two else _short(text, 12),
+        "right":  two[1] if len(two) > 1 else _short(text, 12),
+        "value":  num or "",
+        "target": num or "",
+        "pct":    num or "",
+        "label":  _short(text, 18),
+        "num":    num or "1",
+    }
+    out = {}
+    for k in req:
+        if k not in m:
+            # ⚠️ မသိသော required param — **မှန်းဆ မဖြည့်ရ**、
+            #    ဒီ template ကို ကျော်လိုက်သည်。
+            return None
+        v = m[k]
+        if v in ("", [], None):
+            return None
+        out[k] = v
+    return out
+
+def _pick(family, labels_used, last_id):
+    """မိသားစုထဲက template — **ဆက်တိုက် မတူစေရ**"""
+    opts = [c for c in family if c in MF.ids()]
+    if not opts:
+        return None
+    for c in opts:
+        if c != last_id:
+            return c
+    return opts[0] if opts[0] != last_id else None
+
+
+def build(segs, labels, dur, opts=None, video_id="src"):
+    """အညွှန်း → plan (ကုဒ်က တည်ဆောက်သည်、AI မဟုတ်)"""
+    o = dict(opts or {})
+    en = ENERGY.get(o.get("energy") or "standard", ENERGY["standard"])
+    gap = float(o.get("changeGap") or en["gap"])
+    fps = int(o.get("fps") or 30)
+
+    p = PS.empty(video_id, fps=fps, aspect=o.get("aspect") or "16:9")
+    p["transcript"] = [dict(start=s.get("start"), end=s.get("end"),
+                            text=s.get("text", "")) for s in segs]
+
+    n = 0
+    last_change = -99.0
+    last_id = None
+
+    for i, s in enumerate(segs):
+        a = float(s.get("start") or 0.0)
+        b = float(s.get("end") or a + 1.0)
+        # ⚠️ ASR က နောက်ဆုံးဝါကျကို media အဆုံးထက် **အနည်းငယ် ကျော်**ပြီး
+        #    ပေးတတ်သည် (၁၆.၀၀s clip မှာ ၁၆.၄s)。 ပယ်ချလျှင် plan တစ်ခုလုံး
+        #    မမှန်ဖြစ်ပြီး fallback သို့ ကျကာ **ဂရပ်ဖစ် ၀ ခု** ဖြစ်သွားသည်
+        #    (၂၀၂၆-၀၉-၂၁ j_ec9716d51b31)。 ⇒ **ချ (clamp) ရမည်**、မပယ်ရ。
+        if dur and dur > 0:
+            a = max(0.0, min(a, dur - 0.05))
+            b = min(b, dur)
+        if b <= a:
+            continue
+        lab = labels[i] if i < len(labels) else "plain"
+        txt = (s.get("text") or "").strip()
+        if not txt:
+            continue
+
+        # ── စာတန်း — စကားတိုင်းမှာ ရှိရမည် ──
+        n += 1
+        col = PS.WHITE
+        if lab in ("number", "fact"):
+            col = PS.ACCENT
+        elif lab == "warning":
+            col = PS.ALERT
+        cap_id = "capt.hl_phrase" if col != PS.WHITE else "capt.multi_line"
+        cap_props = fill(cap_id, lab, txt)
+        if cap_props is None:                    # ဖြည့်၍ မရလျှင် ရိုးရှင်းသို့
+            cap_id, cap_props = "capt.multi_line", fill("capt.multi_line", lab, txt)
+        if cap_props is None:
+            continue
+        p["captions"].append(dict(
+            id=f"cap{n:03d}", startTime=a, endTime=b,
+            layer="caption", type="caption",
+            motionKitTemplateId=cap_id,
+            props=cap_props,
+            style=dict(color=col, bottomPct=0.08),
+            reason=("အလေးထား စကားစု" if col != PS.WHITE else "ပုံမှန် စကား"),
+            confidence=0.9))
+
+        # ── ဂရပ်ဖစ် — အဓိပ္ပာယ် ရှိမှ · ကြားကာလ စောင့် ──
+        fam = FAMILY.get(lab)
+        if not fam or (a - last_change) < gap:
+            continue
+        cands = [c for c in (PREFER.get(lab) or MF.HEADTOP.get(fam) or [])
+                 if c != last_id]
+        cid = pr = None
+        for c in cands:
+            pr = fill(c, lab, txt)
+            if pr is not None:
+                cid = c
+                break
+        if not cid:
+            continue
+        n += 1
+        p["templateEvents"].append(dict(
+            id=f"tpl{n:03d}", startTime=a,
+            endTime=min(b, a + 3.2, dur if dur else a + 3.2),
+            layer="template", type="template", motionKitTemplateId=cid,
+            props=pr, style={},
+            reason=f"「{lab}」အမျိုးအစား — {txt[:28]}",
+            confidence=0.72))
+        last_change, last_id = a, cid
+
+    # ── punch-in — ၁၅s အတွင်း ၂ ခု · ၁.၀၈ ထက် မကျော် ──
+    if en["punch"]:
+        marks = [e["startTime"] for e in p["templateEvents"]]
+        used = []
+        for t in marks:
+            if sum(1 for x in used if t - x < PS.PUNCH_WINDOW) >= PS.PUNCH_MAX_IN_WINDOW:
+                continue
+            if t + 2.0 > dur:
+                continue
+            n += 1
+            p["cameraReframes"].append(dict(
+                id=f"pun{n:03d}", startTime=t, endTime=min(dur, t + 2.4),
+                layer="reframe", type="reframe",
+                props=dict(zoom=1.06, anchorY=0.42),
+                reason="အလေးထားချက်ကို ခံစားစေရန် အနည်းငယ် ချဲ့သည်",
+                confidence=0.6))
+            used.append(t)
+
+    return p
+
+
+def plan(segs, dur, opts=None, video_id="src", log=print):
+    """အဓိက လမ်းကြောင်း — `(plan, warnings)`
+
+    schema မအောင်လျှင် **fallback** ကို သုံးသည် — အလုပ် မရပ်ပါ。
+    """
+    labels = annotate(segs, log=log)
+    p = build(segs, labels, dur, opts, video_id)
+    ok, errs, warns = PS.validate(p, MF, duration=dur)
+    if not ok:
+        # ⚠️ ကိုယ့်ကုဒ်ကိုယ် မယုံရ — build() က ပျက်လျှင်လည်း
+        #    fallback နဲ့ ဗီဒီယို ထွက်ရမည် (Zin: safe fallback edit)。
+        log(f"  ⚠️ planner · plan မမှန် ({len(errs)} ချက်) — fallback သို့")
+        for x in errs[:3]:
+            log(f"      {x}")
+        p = fallback(segs, dur, opts, video_id)
+        ok, errs, warns = PS.validate(p, MF, duration=dur)
+        if not ok:
+            raise RuntimeError(f"fallback ပင် မမှန်: {errs[:2]}")
+    p["qualityWarnings"] = warns
+    log(f"  planner · စာတန်း {len(p['captions'])} · ဂရပ်ဖစ် "
+        f"{len(p['templateEvents'])} · punch {len(p['cameraReframes'])} · "
+        f"သတိပေး {len(warns)}")
+    return p, warns
+
+
+def fallback(segs, dur, opts=None, video_id="src"):
+    """AI မပါဘဲ — စာတန်းသာ · ဂရပ်ဖစ် မပါ · ဘယ်တော့မှ မမှန်မဖြစ်
+
+    ⚠️ ဒါက **ဘေးကင်းသော အနိမ့်ဆုံး** ဖြစ်သည် — ဖတ်လို့ရသော စာတန်းနဲ့
+       သန့်ရှင်းသော ဖြတ်ချက်。 ဂရပ်ဖစ် မထည့်သဖြင့် မမှန်သော template
+       ထွက်ဖို့ လမ်း မရှိပါ。
+    """
+    o = dict(opts or {})
+    p = PS.empty(video_id, fps=int(o.get("fps") or 30),
+                 aspect=o.get("aspect") or "16:9")
+    p["transcript"] = [dict(start=s.get("start"), end=s.get("end"),
+                            text=s.get("text", "")) for s in segs]
+    for i, s in enumerate(segs):
+        txt = (s.get("text") or "").strip()
+        if not txt:
+            continue
+        a = float(s.get("start") or 0.0)
+        b = float(s.get("end") or a + 1.0)
+        pr = fill("capt.multi_line", "plain", txt)
+        if pr is None:
+            continue
+        p["captions"].append(dict(
+            id=f"cap{i+1:03d}", startTime=max(0.0, min(a, dur - 0.05)),
+            endTime=min(b, dur),
+            layer="caption", type="caption",
+            motionKitTemplateId="capt.multi_line",
+            props=pr, style=dict(color=PS.WHITE, bottomPct=0.08),
+            reason="fallback — စာတန်းသာ", confidence=0.5))
+    return p
