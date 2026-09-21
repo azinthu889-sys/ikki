@@ -374,6 +374,18 @@ def _pack_props(tid, lab, txt):
                 continue
             if spec.get("type") != "text":
                 continue
+            # ⚠️ `value` က **ဂဏန်း** ဖြစ်ရမည် — ဝါကျကို ၅ လုံး ဖြတ်ထည့်လျှင်
+            #    「ဂျပန်မှာ အ」 လို အဓိပ္ပာယ်မဲ့ စာပိုင်း ဖြစ်ပြီး maxChars
+            #    ဂိတ်ကိုလည်း ကျော်သည် (၂၀၂၆-၀၉-၂၁ render မှာ plan တစ်ခုလုံး
+            #    fallback ကျခဲ့: 「'value' က 7 လုံး > 5」)。
+            #    ⚠️ ဂဏန်း မပါလျှင် **ဤ template ကို မသုံးရ** — Zin ရဲ့
+            #      「Never add a chart without factual data」နဲ့ တစ်သဘောတည်း。
+            if k == "value":
+                num = _first_number(txt)
+                if not num:
+                    return None
+                out[k] = _short(str(num), mx)
+                continue
             # ⚠️ `left`/`right` က **နှစ်ပိုင်း ခွဲ**ရမည် — တစ်ခုတည်း ထည့်လျှင်
             #    နှိုင်းယှဉ်ချက် မဖြစ်ပါ。
             if k in ("left", "right"):
@@ -555,8 +567,12 @@ def sfx_plan(events, dur, per_min, log=None, style=None):
                 reason=f"「{kind}」ဖြစ်ရပ် — {'ဝင်လာ' if off else 'ကျနေရာ'}",
                 confidence=0.7))
     if log:
-        log(f"  SFX plan · အသံအခိုက် {len(keep)} · ဖြစ်ရပ် {len(out)} "
-            f"· ဘောင် {per_min}/မိနစ် · ကွာ ≥{gap:.1f}s")
+        # ⚠️ **တကယ် သုံးတဲ့ ကိန်းကို ပြရမည်** — `per_min` က ဝင်လာတဲ့
+        #    argument သာ ဖြစ်ပြီး profile က လွှမ်းနိုင်သည်。 အဟောင်းကို
+        #    ပြလျှင် 「၁.၅/min」 ဟု မြင်ရပြီး တကယ် ၆.၀ ဖြစ်နေသည်。
+        log(f"  SFX plan · အသံအခိုက် {len(keep)}/{len(moments)} · ဖြစ်ရပ် {len(out)} "
+            f"· ဘောင် {_pol['per_min']:.1f}/မိနစ် · ကွာ ≥{gap:.1f}s"
+            + (" (တိုင်းထား)" if _pol.get("measured") else ""))
     return out
 
 
