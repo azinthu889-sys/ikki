@@ -56,9 +56,16 @@ def log_fail(tag, attempt, tries, code=None, err="", final=False):
 
 
 def fatal(code, body):
-    """429/403 က ပြန်ထူမလာတဲ့ အမျိုးအစားလား စစ်သည်။ ဟုတ်လျှင် အားလုံး ရပ်။"""
+    """429/403 က ပြန်ထူမလာတဲ့ အမျိုးအစားလား စစ်သည်။ ဟုတ်လျှင် အားလုံး ရပ်။
+
+    ⚠️ **402 (credit ကုန်) ကို ထည့်ရမည်** — ၂၀၂၆-၀၉-၂၁: `402 Your prepayment
+       credits are depleted` က fatal စာရင်းထဲ မပါသဖြင့် chunk တစ်ခုလျှင်
+       retry ၄ ခါ × chunk ၆ ခု = **ခေါ်ဆိုမှု ၂၄ ခု** အလကား ကုန်ပြီး
+       တစ်ခုလျှင် ~၆၂s ⇒ Zin ရဲ့ အချိန် ၆ မိနစ်ကျော် ကုန်ခဲ့သည် —
+       ပြီးတော့ ပြန်ကြိုးစားလည်း ဘယ်တော့မှ မရနိုင်ပါ (ငွေ ကိစ္စ)。
+    """
     b = (body or "").lower()
-    if code in (401, 403) or (code == 429 and any(k.lower() in b for k in _FATAL)):
+    if code in (401, 402, 403) or (code == 429 and any(k.lower() in b for k in _FATAL)):
         if not _dead.is_set():
             _reason[0] = (body or "")[:200]
         _dead.set()

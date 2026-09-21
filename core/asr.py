@@ -385,7 +385,12 @@ def _call(b64, mime="audio/ogg", tries=4, schema=None, model=None, gloss_ok=True
                 # ⚠️ quota ကုန်လျှင် **တိတ်တဆိတ် ဗလာ မပြန်ရ** — ၂၀၂၆-၀၉ မှာ chunk
                 #    တိုင်း ဗလာ ဖြစ်ပြီး error မပြဘဲ ASR အားလုံး ပျောက်ခဲ့သည်。
                 #    ⇒ **ပိုသေးသော model ဆီ ကျဆင်း**ပြီး log မှာ ကျယ်ကျယ် ပြောသည်。
-                if MODEL != FALLBACK and not _FELL[0]:
+                # ⚠️ **402 (credit ကုန်) မှာ model မလဲရ** — billing က account
+                #    အလိုက် ဖြစ်၍ တခြား model သုံးလည်း တူတူ ကျမည်。 ခေါ်ဆိုမှု
+                #    တစ်ခု (~၆၂s) အလကား ကုန်ပြီး အမှားစာသားလည်း ရှုပ်သည်。
+                _bill = ("depleted" in raw.lower() or "prepayment" in raw.lower()
+                         or e.code == 402)
+                if MODEL != FALLBACK and not _FELL[0] and not _bill:
                     _FELL[0] = True
                     G.log_fail("asr", i + 1, tries, e.code,
                                f"{MODEL} ရပ်သွား — {FALLBACK} သို့ ကျဆင်းသည်", final=False)
@@ -536,16 +541,37 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
                 if txt.strip():
                     log(f"  ⚠️ ASR chunk {i+1} — JSON ပုံစံ မမှန် · "
                         f"အချိန် မခွဲဘဲ သိမ်းသည် ({len(good)} ကြောင်း)")
-                if not good: n_empty += 1      # သုံးလို့ရတာ မရှိ = အလွတ်
+                # ⚠️ **နှစ်ခါ မတိုးရ** — အပေါ်မှာ `if not txt.strip()` နဲ့
+                #    တိုးပြီးသား ဖြစ်၍ ဗလာ chunk တစ်ခုကို ၂ ခု ဟု ရေတွက်မိသည်
+                #    ⇒ chunk ၆ ခု ဗလာဆို 「၁၂/၆ ခု အလွတ်」ဟု ပြခဲ့သည်
+                #    (၂၀၂၆-၀၉-၂၁ Zin ရဲ့ မျက်နှာပြင်)。 ဒီမှာက စာသား
+                #    **ရပေမယ့် သုံးမရ**တာကိုသာ ရေတွက်ရမည်。
+                if not good and txt.strip(): n_empty += 1
                 for line in good:
                     out.append(dict(text=line, chunk=i, a=round(a,2), b=round(b,2)))
     finally:
         subprocess.run(["rm","-rf",work])
     # ⚠️ တစ်ဝက်ကျော် အလွတ်ဆိုလျှင် ရလဒ်က မယုံရ — စာတန်းတွေ ပြုတ်ကျန်မည်
     if n_try and n_empty > n_try * 0.5:
+        # ⚠️ **တကယ့် အကြောင်းရင်းကို ပြရမည်** (「Name the blocker」)。
+        #    ၂၀၂၆-၀၉-၂၁: တကယ်က `402 credits are depleted` ဖြစ်ပါလျက်
+        #    「chunk ၁၂/၆ ခု အလွတ် (model gemini-flash-latest)」ဟု ပြခဲ့သဖြင့်
+        #    model/ASR ချွတ်ယွင်းချက် ဟု ထင်ရပြီး **ဘာလုပ်ရမလဲ မသိ**ပါ。
+        _why = (G.reason() or "")
+        _wl = _why.lower()
+        if "depleted" in _wl or "prepayment" in _wl or "billing" in _wl:
+            raise RuntimeError(
+                "Gemini ရဲ့ credit ကုန်ပါပြီ — စာသား ထုတ်လို့ မရပါ။ "
+                "ai.studio/projects မှာ billing ဖြည့်ပြီး ပြန်လုပ်ပါ။ "
+                "(ဗီဒီယို မထုတ်ပါ · မိနစ် မယူပါ · မူရင်း ဖိုင် မထိပါ)")
+        if "quota" in _wl or "rate" in _wl:
+            raise RuntimeError(
+                f"Gemini ရဲ့ quota ကုန်နေပါသည် — စာသား ထုတ်လို့ မရပါ။ "
+                f"ခဏ စောင့်ပြီး ပြန်လုပ်ပါ (model {MODEL})။")
         raise RuntimeError(
             f"ASR chunk {n_empty}/{n_try} ခု အလွတ် — စာသား မပြည့်စုံပါ "
-            f"(model {MODEL})။ ဒီအတိုင်း ဆက်လုပ်လျှင် စာတန်း ပြုတ်မည်။")
+            f"(model {MODEL})။ ဒီအတိုင်း ဆက်လုပ်လျှင် စာတန်း ပြုတ်မည်။"
+            + (f" အကြောင်းရင်း: {_why[:120]}" if _why else ""))
     if not out:
         raise RuntimeError(f"ASR က စာသား လုံးဝ မရပါ (model {MODEL})")
     log(f"  ASR · အချိန်ပါ ဝါကျ {TIMED[0]} ခု / chunk {TIMED[1]}/{len(marks)-1} · "
