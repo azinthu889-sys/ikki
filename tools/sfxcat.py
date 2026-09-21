@@ -34,14 +34,35 @@ HINT = [
     (r"shutter|camera", "shutter"),
     (r"success|correct|win|positive", "success"),
     (r"wrong|fail|negative|denied", "error"),
+    # ── ၂၀၂၆-၀၉-၂၁ ထပ်ထည့် — unknown ၁၄၄ ခုကို တိုင်းထားသော
+    #    dur/brightness/loud_db နဲ့ တိုက်စစ်ပြီး ခွဲသည် (reclass)。
+    #    ⚠️ ဒီစာရင်း မရှိလျှင် catalog ပြန်ဆောက်တာနဲ့ `unknown` ပြန်ဖြစ်မည်。
+    (r"^metal(_\d+)?$", "sub"),                                # br 153–156Hz — အလွန် နိမ့်
+    (r"focus_beep", "pop"),                                     # 0.14s blip
+    (r"braam|punch|knock|stomp|clap|heartbeat|^wood(_\d+)?$", "impact"),  # loud −12.2 ≈ impact −12.4
+    (r"glass|ting|star_ping|glitter|magic_dust|kalimba|ding", "shimmer"),  # br 8.5–12k
+    (r"downer|down_tonal|power_down", "sub"),                   # br 153–1993Hz
+    (r"paper|page_flip|card_deal|flip_card|zipper|scribble", "swipe"),
+    (r"vinyl|static|crackle|projector|breath|dream_wash", "air"),
+    (r"data_|radio_scan|vintage_flash|radio_adjustment", "glitch"),
+    (r"doppler|suck_reverse", "whoosh"),
+    (r"reverse_cym|lift_bright", "riser"),
+    (r"notify|alert|message_in|reminder|level_up", "pop"),      # br 1.8–2.2k ≈ pop 2124Hz
+    (r"toggle|button|select|hover|menu_open|foley|beep", "click"),  # loud −20.2 ≈ click −19.6
 ]
+
+# ⚠️ **MAP က မညွှန်သော family ကို မထားရ** (၂၀၂၆-၀၉-၂၁)。 `sfxpool.MAP` က
+#    family ၁၁ ခုသာ ညွှန်သဖြင့် `type`(၇) · `success`(၄) · `error`(၁) တွေ
+#    catalog ထဲ ရှိပါလျက် **ထာဝရ မရွေးခံရ**ခဲ့သည်。 ⇒ ညွှန်ပြီးသား family သို့။
+#    `air` ကို ချန်ထားသည် — ၃.၅s ambient bed ကို IKKI ရဲ့ cue role တွေ မလိုပါ。
+ORPHAN = {"type": "click", "success": "pop", "error": "glitch"}
 
 
 def role_of(name):
     n = name.lower()
     for pat, r in HINT:
         if re.search(pat, n):
-            return r
+            return ORPHAN.get(r, r)
     return "unknown"
 
 

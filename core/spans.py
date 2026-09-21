@@ -145,32 +145,55 @@ def loudness(inp, out, lufs=-14.0, tp=-1.0, lra=11.0):
     # ⚠️ ceiling ကို **ကြိမ်တိုင်း −2.0 ကနေ ပြန်မစရ** — အရင်က အဲဒီလို ရေးမိပြီး
     #    −2.9 → −2.5 → −2.6 ဟု **တုန်ခါ**နေခဲ့သည် (စမ်းစဉ် ဖမ်းမိ · ၂၀၂၆-၀၉-၂၀)。
     #    ⇒ state အဖြစ် ချန်ပြီး **အဆင့်လိုက် ချသွား**ရမည်。
-    gain = 0.0
+    # ⚠️ **gain ကို စုပေါင်းပြီး မထည့်ရ** (၂၀၂၆-၀၉-၂၁ j_1f9561de04b3)。
+    #    `out` က ကြိမ်တိုင်း ပြောင်းပြီးသား ဖြစ်သဖြင့် စုပေါင်း gain ကို
+    #    ပြန်ထည့်လျှင် **နှစ်ထပ်** ဖြစ်သည် — ကြိမ် ၂ မှာ +1.40 ပါပြီးသား ဖိုင်ပေါ်
+    #    +2.00 ထပ်ထည့်၍ တကယ် +3.40 ဖြစ်ကာ တုန်ခါခဲ့သည်:
+    #        −15.4 → −14.6 → −13.6 → −13.4  ⇒ loop ကုန်ပြီး −13.0 ထွက်
+    #    ⇒ **ကြိမ်တိုင်း ကွာချက် (delta) ကိုသာ** ထည့်သည် — loop ကိုယ်တိုင်
+    #      တိုင်းပြီး ပြန်ချိန်သဖြင့် feedback က စုပေါင်းပေးပြီးသား。
+    # ⚠️ **နောက်ဆုံး ရေးချက်ကို မတိုင်းဘဲ မထွက်ရ** — အရင်က loop ကုန်တာနဲ့
+    #    ပြန်မတိုင်းသဖြင့် log ရဲ့ နောက်ဆုံးလိုင်းက **ဟောင်းနေ**ခဲ့ပြီး
+    #    တကယ့် ထွက်ကိန်းကို QC မှာမှ တွေ့ရသည်。
+    ITER = 5
+    tot = 0.0
     ceil_db = -2.0
-    for _it in range(4):
+    ok = False
+    for _it in range(ITER):
         got_tp, got_i = _tp(out), _lufs(out)
         if got_tp is None or got_i is None:
             print("  ⚠️ mastering ကိန်း မတိုင်းနိုင် — ဆက်သွားသည်", flush=True); break
         d_tp = got_tp - tp                  # >0 = ပြင်းလွန်း
         d_i  = lufs - got_i                  # >0 = တိတ်လွန်း
         if d_tp <= 0.0 and abs(d_i) <= 0.4:
+            ok = True
             print(f"  mastering · I {got_i:+.1f} LUFS · TP {got_tp:+.2f} dBTP "
                   f"[≤ {tp}] ✓{' · ချိန် '+str(_it)+' ကြိမ်' if _it else ''}", flush=True)
             break
         # limiter ခေါင်း — TP ကျော်လျှင် ချ · loudness က gain နဲ့ ပြန်တင်
         if d_tp > 0: ceil_db -= (d_tp + 0.25)     # ပြင်းလျှင် ခေါင်း ချ (တစ်လမ်းသာ)
-        gain += d_i
-        gain = max(-6.0, min(6.0, gain))
+        # ⚠️ တစ်ကြိမ်လျှင် ±၃ dB ထက် မခုန်ရ — တုန်ခါမှု တားရန်
+        step = max(-3.0, min(3.0, d_i))
+        tot = max(-9.0, min(9.0, tot + step))
         lim = 10 ** (ceil_db / 20.0)
         tmp = out + ".fix.mp4"
         subprocess.run(["ffmpeg","-v","error","-y","-i",out,
-            "-af", f"volume={gain:+.2f}dB,"
+            "-af", f"volume={step:+.2f}dB,"
                    f"alimiter=limit={lim:.4f}:level=disabled:attack=5:release=50",
             "-c:v","copy","-c:a","aac","-b:a","192k",
             "-movflags","+faststart",tmp], check=True)
         os.replace(tmp, out)
         print(f"  🔧 ချိန် {_it+1} — I {got_i:+.1f}→ပစ်မှတ် {lufs} · TP {got_tp:+.2f} "
-              f"· gain {gain:+.2f} dB · ceiling {ceil_db:.2f} dBFS", flush=True)
+              f"· ဒီကြိမ် {step:+.2f} dB (စုစုပေါင်း {tot:+.2f}) · "
+              f"ceiling {ceil_db:.2f} dBFS", flush=True)
+    if not ok:
+        # ⚠️ မကိုက်ဘဲ ထွက်လျှင် **တကယ့် ကိန်းကို ပြရမည်** — QC က ပိတ်မည်、
+        #    ဒါပေမယ့် ဘာလို့ ပိတ်လဲ log ကနေ ချက်ချင်း မြင်ရစေရန်。
+        f_tp, f_i = _tp(out), _lufs(out)
+        print(f"  ⚠️ mastering ချိန် {ITER} ကြိမ် ပြီးလည်း မကိုက် — "
+              f"I {f_i if f_i is None else round(f_i,1)} LUFS (ပစ်မှတ် {lufs}) · "
+              f"TP {f_tp if f_tp is None else round(f_tp,2)} dBTP (≤ {tp})",
+              flush=True)
     return out
 
 
