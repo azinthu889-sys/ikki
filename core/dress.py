@@ -447,8 +447,24 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    မချိတ်လျှင် pack က verify ပြီးသား ဖြစ်ပါလျက်
         #    **ဗီဒီယိုထဲ ဘယ်တော့မှ မပေါ်ဘူး**。
         if str(g.get("kind", "")).startswith("headtop."):
-            el = pack_el(g["kind"], g.get("props") or g.get("args") or {},
-                         work, f"g{i}", W, H, fps=fps,
+            # ⚠️ **လဲလိုက်သော graphic မှာ `props` မရှိပါ** — `pick()` က
+            #    `at`/`kind` သာ ပေးသည် ⇒ စာသား ဗလာ ဖြစ်ပြီး အနားသတ်
+            #    **ဗလာ ကွက်** ထွက်မည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+            #    ⇒ legacy လမ်းကြောင်းနဲ့ တူညီစွာ brand/label ကနေ ဖြည့်သည်。
+            _pp = dict(g.get("props") or {})
+            if not _pp:
+                _pp = _pack_fill(g["kind"], g.get("text"))
+            if not _pp:
+                # ⚠️ **အဓိပ္ပာယ်မဲ့ ဂရပ်ဖစ်ထက် မရှိတာက ကောင်း**သည် —
+                #    အကြောင်းအရာ စာသား မရလျှင် recipe နာမည် တင်မိမည်。
+                LAST["no_args"] = LAST.get("no_args", 0) + 1
+                log(f"  ⊘ {g['kind']} @ {g.get('at',0):.1f}s — "
+                    f"အကြောင်းအရာ စာသား မရှိ၍ မထည့်ပါ")
+                continue
+            # ⚠️ တစ်မျိုးတည်း ထပ်နေလျှင် **နေရာ ပြောင်း**ပေးသည် —
+            #    ၄ ခုလုံး အလယ်မှာ ပေါ်လျှင် တစ်ပုံစံတည်း ဖြစ်သည်。
+            _pp.setdefault("cy", (0.30, 0.42, 0.62, 0.72)[i % 4])
+            el = pack_el(g["kind"], _pp, work, f"g{i}", W, H, fps=fps,
                          dur=(hold or None), log=log)
             if el is None:
                 LAST["build_fail"] += 1
@@ -982,6 +998,32 @@ def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
         log and log(f"  ↺ {k} ({sz.get(k, {}).get('h', '?')}px) မဝင် ⇒ "
                     f"{alt} ({src}) · နေရာ {cap}px")
     return out, n
+
+
+def _pack_fill(tid, text):
+    """pack template ရဲ့ required text props — **အကြောင်းအရာ စာသား** ကနေ
+
+    ⚠️ brand/label ကို **မသုံးရ** — 「Headtop」လို recipe နာမည်ကို
+       မျက်နှာပြင်ပေါ် တင်မိပြီး အဓိပ္ပာယ်မဲ့ ဖြစ်သည်。 စာသား မရှိလျှင်
+       `{}` ပြန်ပေးပြီး ခေါ်သူက **ကျော်**ရမည်。
+    """
+    txt = (text or "").strip()
+    if not txt:
+        return {}
+    try:
+        try:
+            import pack as _PK
+            import planner as _P
+        except ImportError:
+            from core import pack as _PK, planner as _P
+        t = _PK.template(tid) or {}
+        out = {}
+        for k, spec in (t.get("props") or {}).items():
+            if spec.get("type") == "text" and spec.get("required"):
+                out[k] = _P._short(txt, int(spec.get("maxChars") or 30))
+        return out
+    except Exception:
+        return {}
 
 
 def _subject_pool():

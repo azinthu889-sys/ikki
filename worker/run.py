@@ -1279,7 +1279,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 else:
                     nm = TP.templ(t["kind"], seed + i, used)
                 used.add(nm)
-                gfx.append(dict(at=t["at"], kind=nm,
+                # ⚠️ **အကြောင်းအရာ စာသားကို ပါသွားစေရမည်** — template လဲရာမှာ
+                #    လိုသည်。 မပါလျှင် လဲလိုက်တာက recipe နာမည် (「Headtop」)
+                #    ကို မျက်နှာပြင်ပေါ် တင်မိပြီး အဓိပ္ပာယ်မဲ့ ဖြစ်သည်。
+                gfx.append(dict(at=t["at"], kind=nm, text=t.get("text") or "",
                                 args=TP.targs(nm, t["text"], bname)))
             # ⚠️ **explainer insert ကို ဒီမှာပါ ထည့်ရမည်** — `DR.pick()` က
             #    ပြန်ဆုတ်လမ်းသာ ဖြစ်၍ ဒီအဓိကလမ်းမှာ မထည့်လျှင် insert
