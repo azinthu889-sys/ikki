@@ -238,11 +238,23 @@ pitch       ၁၃.၁၅%H (၁၄၂px) ⇒ ကြားကွာ ၂.၇%H ·
 
 ## ၁၀ · Step 1 calibration dataset (၂၀၂၆-၀၉-၂၁)
 
-`assets/calib/refboard_2026.json` — ဖြစ်ရပ် **၄၃ ခု** · ဗီဒီယို ၅ ပုဒ်
+`assets/calib/refboard_2026.json` — ဖြစ်ရပ် **၄၈ ခု** · ဗီဒီယို **၆ ပုဒ်**
 
 ```
-KCN4   14 · HJ0K1 11 · 01Bnhf 7 · j4FzO 6 · 6kGBZ 5
+KCN4 14 · HJ0K1 11 · 01Bnhf 7 · j4FzO 6 · 6kGBZ 5 · vplay6 5
 ```
+
+### ⚠️ detector ရဲ့ precision က footage အလိုက် **အလွန် ကွာ**သည်
+
+```
+v2 6kGBZ    5/5   100%
+v5 HJ0K1   12/12  100%
+v4 KCN4      —     82%  (ground truth နဲ့)
+v6 vplay6    5/12   42%  ← RGB မီးရောင် ပြောင်းလဲမှု
+```
+
+⇒ **အလိုအလျောက် မယုံရ**。 v6 မှာ RGB မီးရောင်က static အနား အတု ဖြစ်စေပြီး
+ပြောသူချည်းသာ ရှိသော frame ၇ ခုကို ဂရပ်ဖစ်ဟု ထင်မှတ်ခဲ့သည်。
 
 ### တွေ့ရှိသော template ဝေါဟာရ ၁၄ မျိုး
 

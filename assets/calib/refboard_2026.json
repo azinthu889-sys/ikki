@@ -5,7 +5,8 @@
   "01Bnhf": 7,
   "6kGBZ": 5,
   "HJ0K1": 11,
-  "j4FzO": 6
+  "j4FzO": 6,
+  "vplay6": 5
  },
  "kinds": {
   "gold_pop": 21,
@@ -21,7 +22,12 @@
   "icon_pair": 1,
   "gradient_text_card": 1,
   "inset_media_card": 1,
-  "screen_pip": 4
+  "screen_pip": 4,
+  "title_3d": 1,
+  "board_map": 1,
+  "small_label": 1,
+  "screen_full": 1,
+  "ui_inline": 1
  },
  "motion": {
   "enter": {
@@ -706,6 +712,47 @@
    "note": "AI chat UI + PiP",
    "timing": "none",
    "verified": true
+  },
+  {
+   "src": "vplay6",
+   "t": 75.5,
+   "kind": "title_3d",
+   "note": "3D perspective ခေါင်းစဉ် + ဒုတိယကြောင်း · အမှောင် navy",
+   "timing": "none",
+   "verified": true
+  },
+  {
+   "src": "vplay6",
+   "t": 175.0,
+   "kind": "board_map",
+   "note": "အဖြူ board — thumbnail ဇယား + အညွှန်း",
+   "timing": "none",
+   "verified": true
+  },
+  {
+   "src": "vplay6",
+   "t": 293.0,
+   "kind": "small_label",
+   "note": "အဖြူ စာတန်းသေး ဘယ်အောက် (ပြောသူပေါ်)",
+   "timing": "none",
+   "verified": true
+  },
+  {
+   "src": "vplay6",
+   "t": 356.0,
+   "kind": "screen_full",
+   "note": "မျက်နှာပြင် ဖမ်းယူ ဘောင်အပြည့် (editor UI)",
+   "timing": "none",
+   "verified": true
+  },
+  {
+   "src": "vplay6",
+   "t": 422.0,
+   "kind": "ui_inline",
+   "note": "UI bar + စာသား အလယ်အောက် (ပြောသူပေါ်)",
+   "timing": "none",
+   "verified": true
   }
- ]
+ ],
+ "_detector_note": "detector precision က footage အလိုက် ကွာသည် — v4 ၈၂% · v2 ၁၀၀% (၅/၅) · v5 ၁၀၀% (၁၂/၁၂) · **v6 ၄၂% (၅/၁၂)**。 v6 က RGB မီးရောင် ပြောင်းလဲမှုကြောင့် static အနား အတု ဖြစ်စေသည် ⇒ **အလိုအလျောက် မယုံရ**、ဖရိန်နဲ့ အတည်ပြုမှသာ dataset ထဲ ထည့်သည်。"
 }
