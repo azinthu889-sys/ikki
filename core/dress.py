@@ -991,7 +991,11 @@ def _subject_pool():
             import pack as _PK
         except ImportError:
             from core import pack as _PK
-        return [t for t in _PK.selectable() if _over_subject(t)]
+        # ⚠️ **fullFrame ကို အစားထိုး အဖြစ် မသုံးရ** — ဂရပ်ဖစ်တိုင်းကို
+        #    ဘောင်အပြည့် ကတ်နဲ့ လဲလျှင် ဗီဒီယိုက slideshow ဖြစ်သွားပြီး
+        #    ပြောသူနဲ့ ဆက်သွယ်မှု ပြတ်သည်。 အနားသတ်သာ ယူသည်。
+        return [t for t in _PK.selectable()
+                if _over_subject(t) and not _full_frame(t)]
     except Exception:
         return []
 
@@ -1088,8 +1092,11 @@ _PRIMS = {}
 
 
 def _over_subject(kind):
-    """ဤ template က ပြောသူပေါ် တင်လို့ရလား — pack manifest ကနေ
+    """ဤ template က မျက်နှာဇုန်ကို ကျော်လို့ရလား — pack manifest ကနေ
 
+    နည်းလမ်း ၂ ခု ရှိသည် —
+      · `safeZones.subject` — **အနားသတ်သာ** ⇒ ပြောသူ မြင်နေရသည်
+      · `fullFrame`         — **တမင် ဖုံး**သည် (title card အခိုက်)
     ⚠️ **manifest ကနေသာ ယူရမည်** — နာမည်နဲ့ မှန်းလျှင် template အသစ်
        တိုင်း မှားမည်。
     """
@@ -1100,8 +1107,22 @@ def _over_subject(kind):
             import pack as _PK
         except ImportError:
             from core import pack as _PK
-        t = _PK.template(kind)
-        return bool((t or {}).get("safeZones", {}).get("subject"))
+        t = _PK.template(kind) or {}
+        return bool(t.get("safeZones", {}).get("subject") or t.get("fullFrame"))
+    except Exception:
+        return False
+
+
+def _full_frame(kind):
+    """ဘောင်အပြည့် ဖုံးသော template လား — **တစ်ခါသာ** သုံးခွင့်ရှိသည်"""
+    if not kind or "." not in str(kind):
+        return False
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        return bool((_PK.template(kind) or {}).get("fullFrame"))
     except Exception:
         return False
 

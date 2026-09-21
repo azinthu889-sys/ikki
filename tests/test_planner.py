@@ -93,6 +93,16 @@ def main():
     _ok = set(MF.ids()) | set(PK.selectable())
     check("template ID အားလုံး တကယ်ရှိသည်",
           all(c in _ok for c in tids), [c for c in tids if c not in _ok])
+    # ⚠️ **ဘောင်အပြည့် ကတ်က တစ်ခါသာ** — ပြောသူကို တမင် ဖုံးသဖြင့်
+    #    ထပ်ခါထပ်ခါ သုံးလျှင် talking-head က slideshow ဖြစ်သည်。
+    _ff = [c for c in tids
+           if (PK.template(c) or {}).get("fullFrame")] if True else []
+    check("ဘောင်အပြည့် ကတ် ≤ ၁ ခု", len(_ff) <= 1, _ff)
+    _ffe = [x for x in _gfx(p) if (PK.template(x["motionKitTemplateId"]) or {})
+            .get("fullFrame")]
+    check("ဘောင်အပြည့်က ဖွင့်ချက်မှာသာ",
+          all((x.get("style") or {}).get("lab") == "hook" for x in _ffe),
+          [(x["startTime"], (x.get("style") or {}).get("lab")) for x in _ffe])
     check("pack template က verify ပြီးသားသာ",
           all(c in set(PK.selectable()) for c in tids if str(c).startswith("headtop.")),
           [c for c in tids if str(c).startswith("headtop.")

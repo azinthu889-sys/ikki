@@ -332,6 +332,18 @@ def _pack_ids(lab):
         return []
 
 
+def _full_frame(tid):
+    """ဘောင်အပြည့် ဖုံးသော pack template လား"""
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        return bool((_PK.template(tid) or {}).get("fullFrame"))
+    except Exception:
+        return False
+
+
 def _pack_props(tid, lab, txt):
     """pack template ရဲ့ **required props** ဖြည့်သည် — မရလျှင် `None`
 
@@ -543,6 +555,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
 
     n = 0
     last_change = -99.0
+    _ff_used = False        # ⚠️ ဘောင်အပြည့် ကတ် — ဗီဒီယိုတစ်ပုဒ်လျှင် တစ်ခါသာ
     last_id = None
 
     for i, s in enumerate(segs):
@@ -594,10 +607,18 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         #    ⚠️ legacy ကို **ဖ်ယ်မပစ်ရ** — pack မှာ template ၂ ခုပဲ
         #       ရှိသေး၍ label ၁ ခုထဲ ၂ ခုသာ အကျုံးဝင်သည်。
         cid = pr = None
+        # ⚠️ **ဘောင်အပြည့် ကတ်က တစ်ခါသာ** — ပြောသူကို တမင် ဖုံးသဖြင့်
+        #    ထပ်ခါထပ်ခါ သုံးလျှင် talking-head က slideshow ဖြစ်ပြီး
+        #    ပြောသူနဲ့ ဆက်သွယ်မှု ပြတ်သည် (pack.json မှတ်ချက်)。
+        #    ဖွင့်ချက် (`hook`) မှာသာ ခွင့်ပြုသည်。
         for _pid in _pack_ids(lab):
+            if _full_frame(_pid) and (lab != "hook" or _ff_used):
+                continue
             _pp = _pack_props(_pid, lab, txt)
             if _pp is not None:
                 cid, pr = _pid, _pp
+                if _full_frame(_pid):
+                    _ff_used = True
                 break
         if not cid:
             cands = [c for c in (PREFER.get(lab) or MF.HEADTOP.get(fam) or [])
