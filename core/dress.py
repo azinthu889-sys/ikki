@@ -417,6 +417,10 @@ def _yparam(fn):
 LAST = {}
 
 
+class _PackDone(Exception):
+    """pack element ဆောက်ပြီးသား — ပုံမှန် builder ကို ကျော်ရန်"""
+
+
 def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
           avoid=None, capy=None, hold=None):
     """ရွေးထားသော ဂရပ်ဖစ်များကို alpha overlay ဗီဒီယို **တစ်ခု** အဖြစ် ဆောက်သည်。
@@ -438,13 +442,31 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    typo · kinetic · callouts · infogfx ထဲက template တွေ
         #    **တိတ်တဆိတ် ပယ်ခံခဲ့ရသည်** — "ရွေး ၈ ခု · တပ်ပြီး ၂ ခု"
         #    ဆိုပြီး အကြောင်းရင်း မပြဘူး。 ⇒ catalog ကနေ ရှာသည်。
-        fn = getattr(T2, g["kind"], None) or getattr(T1, g["kind"], None) or _fn(g["kind"])
-        if not fn:
+        # ⚠️ **pack template က သီးသန့် လမ်းကြောင်း** — `cards.py` ကို
+        #    ခေါ်ပြီး pack ရဲ motion token နဲ့ animation ဆောက်သည်。
+        #    မချိတ်လျှင် pack က verify ပြီးသား ဖြစ်ပါလျက်
+        #    **ဗီဒီယိုထဲ ဘယ်တော့မှ မပေါ်ဘူး**。
+        if str(g.get("kind", "")).startswith("headtop."):
+            el = pack_el(g["kind"], g.get("props") or g.get("args") or {},
+                         work, f"g{i}", W, H, fps=fps,
+                         dur=(hold or None), log=log)
+            if el is None:
+                LAST["build_fail"] += 1
+                log(f"  ⊘ pack ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s")
+                continue
+            fn = None
+        else:
+            el = None
+            fn = (getattr(T2, g["kind"], None) or getattr(T1, g["kind"], None)
+                  or _fn(g["kind"]))
+        if el is None and not fn:
             LAST["no_template"] += 1
             log(f"  ⊘ template မတွေ့: {g['kind']} @ {g.get('at',0):.1f}s "
                 f"(catalog {len(_CIDX or {})} ခု)")
             continue
         try:
+            if el is not None:
+                raise _PackDone
             # ⚠️ topics.py က args ပေးလာလျှင် **အဲဒါကို** သုံးရမည် —
             #    အကြောင်းအရာနဲ့ ကိုက်တဲ့ စာသားပါ。
             # ⚠️ ARGS မှာ ၁၂ ခုပဲ ရှိ — စမ်းပြီးသား ၅၉ ခုအတွက် catalog ရဲ့
@@ -471,6 +493,8 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                     el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
             else:
                 el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
+        except _PackDone:
+            pass
         except Exception as e:
             LAST["build_fail"] += 1
             log(f"  ⊘ ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s "
@@ -930,6 +954,13 @@ def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
     if not sz:
         return gfx, 0
     pool = [k for k in _verified(seed) if k in sz and int(sz[k]["h"]) <= cap]
+    # ⚠️ **နေရာ တစ်ခုမှ မရှိသော အခြေအနေ ရှိသည်**。 ၂၀၂၆-၀၉-၂၁ တိုင်းချက် —
+    #    headtop framing (မျက်နှာ ၀–၆၄% · စာတန်း ၇၀%) မှာ ကျန်နေရာက
+    #    **၃၃ px (၃.၁%H)** သာ ဖြစ်ပြီး တိုင်းထားသော template ၂၄၃ ခုထဲက
+    #    **တစ်ခုမှ မဝင်**ပါ (အနိမ့်ဆုံးက ၆၁px)。
+    #    ⇒ တစ်ခုတည်းသော လမ်းက **ပြောသူပေါ် တင်နိုင်သော အနားသတ်** —
+    #      reference ကလည်း အဲဒီလိုပဲ လုပ်ထားသည် (ink ၈–၁၆%H · ပွင့်လင်း)。
+    sub = _subject_pool()
     out, n, used = [], 0, set()
     for i, g in enumerate(gfx):
         k = g.get("kind")
@@ -937,13 +968,32 @@ def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
             out.append(g); used.add(k); continue
         alt = next((c for c in pool if c not in used), None) \
             or (pool[i % len(pool)] if pool else None)
+        src = "အမြင့် ဝင်ဆံ့"
+        if not alt and sub:
+            alt = sub[i % len(sub)]
+            src = "ပြောသူပေါ် တင်နိုင်"
         if not alt:
+            # ⚠️ **တိတ်တဆိတ် မထားရ** — ဘာမှ မရှိလျှင် အကြောင်းရင်း ပြရမည်
+            log and log(f"  ⚠️ {k} မဝင် · အစားထိုး မရှိ (နေရာ {cap}px) — "
+                        f"placement မှာ ပယ်မည်")
             out.append(g); continue
         g2 = dict(g); g2["kind"] = alt; g2.pop("args", None)
         used.add(alt); out.append(g2); n += 1
         log and log(f"  ↺ {k} ({sz.get(k, {}).get('h', '?')}px) မဝင် ⇒ "
-                    f"{alt} ({sz[alt]['h']}px) · နေရာ {cap}px")
+                    f"{alt} ({src}) · နေရာ {cap}px")
     return out, n
+
+
+def _subject_pool():
+    """ပြောသူပေါ် တင်နိုင်သော **verify ပြီးသား** pack template များ"""
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        return [t for t in _PK.selectable() if _over_subject(t)]
+    except Exception:
+        return []
 
 
 # ══ SFX က စကားကို မဖုံးစေရန် (SFX audit P0) ═══════════════════════

@@ -306,6 +306,60 @@ def fill(cid, label, text):
         out[k] = v
     return out
 
+# ⚠️ semantic label → pack intent。 pack က `title`/`statement`/`chapter`/
+#    `hook`/`emphasis`/`section` ကို လက်ခံသည် — FAMILY label နဲ့ မတူ ⇒ ချိတ်ရမည်。
+PACK_INTENT = {"hook": "hook", "section": "section", "fact": "statement"}
+
+
+def _pack_ids(lab):
+    """label အတွက် **verify ပြီးသား** pack template များ — မရှိလျှင် ဗလာ
+
+    ⚠️ `selectable()` က manifest စစ်ပြီးသား id ကိုသာ ပြန်ပေးသည်
+       (spec §5: 「No planner may select a template until its manifest is
+       valid」)。 ဒါကို မဖြတ်ရ。
+    """
+    it = PACK_INTENT.get(lab)
+    if not it:
+        return []
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        ok = set(_PK.selectable())
+        return [x for x in _PK.by_intent(it) if x in ok]
+    except Exception:
+        return []
+
+
+def _pack_props(tid, lab, txt):
+    """pack template ရဲ့ **required props** ဖြည့်သည် — မရလျှင် `None`
+
+    ⚠️ manifest ရဲ့ `maxChars` ကို လိုက်နာရမည် — ကျော်လျှင် စာလုံး ပြတ်ပြီး
+       မြန်မာစာ ဗျည်းတွဲ ပျက်နိုင်သည် ⇒ `_short()` (cluster-safe) နဲ့ ဖြတ်。
+    """
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        t = _PK.template(tid) or {}
+        out = {}
+        for k, spec in (t.get("props") or {}).items():
+            if spec.get("type") != "text":
+                continue
+            mx = int(spec.get("maxChars") or 40)
+            if not spec.get("required"):
+                continue
+            v = _short(txt, mx)
+            if not v:
+                return None
+            out[k] = v
+        return out or None
+    except Exception:
+        return None
+
+
 def _pick(family, labels_used, last_id):
     """မိသားစုထဲက template — **ဆက်တိုက် မတူစေရ**"""
     opts = [c for c in family if c in MF.ids()]
@@ -534,14 +588,25 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         fam = FAMILY.get(lab)
         if not fam or (a - last_change) < gap:
             continue
-        cands = [c for c in (PREFER.get(lab) or MF.HEADTOP.get(fam) or [])
-                 if c != last_id]
+        # ⚠️ **pack ကို အရင် စစ်ရမည်** (spec §5 · audit P0) — verify
+        #    ပြီးသား pack template ရှိလျှင် အဲဒါကို ယူပြီး
+        #    မရှိမှ legacy manifest ကို ပြန်ဆုတ်သည်。
+        #    ⚠️ legacy ကို **ဖ်ယ်မပစ်ရ** — pack မှာ template ၂ ခုပဲ
+        #       ရှိသေး၍ label ၁ ခုထဲ ၂ ခုသာ အကျုံးဝင်သည်。
         cid = pr = None
-        for c in cands:
-            pr = fill(c, lab, txt)
-            if pr is not None:
-                cid = c
+        for _pid in _pack_ids(lab):
+            _pp = _pack_props(_pid, lab, txt)
+            if _pp is not None:
+                cid, pr = _pid, _pp
                 break
+        if not cid:
+            cands = [c for c in (PREFER.get(lab) or MF.HEADTOP.get(fam) or [])
+                     if c != last_id]
+            for c in cands:
+                pr = fill(c, lab, txt)
+                if pr is not None:
+                    cid = c
+                    break
         if not cid:
             continue
         n += 1

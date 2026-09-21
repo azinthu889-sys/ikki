@@ -138,6 +138,33 @@ def verify(subset=None):
     return good, bad
 
 
+def _pack_props_ok(cid, props):
+    """pack template ရဲ့ props စစ်ချက် — pack.json ရဲ့ manifest အတိုင်း"""
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        if cid not in set(_PK.selectable()):
+            return False, [f"pack template verify မပြီး: {cid}"]
+        t = _PK.template(cid) or {}
+        spec = t.get("props") or {}
+        errs = []
+        for k in (props or {}):
+            if k not in spec:
+                errs.append(f"{cid}: param မရှိ '{k}' (ရှိသည်: {sorted(spec)})")
+        for k, v in spec.items():
+            if v.get("required") and k not in (props or {}):
+                errs.append(f"{cid}: လိုအပ်သော param ကျန် '{k}'")
+            mx = v.get("maxChars")
+            if mx and k in (props or {}) and isinstance(props[k], str) \
+               and len(props[k]) > int(mx):
+                errs.append(f"{cid}: '{k}' က {len(props[k])} လုံး > {mx}")
+        return (not errs), errs
+    except Exception as e:
+        return False, [f"pack စစ်မရ: {type(e).__name__}"]
+
+
 def props_ok(cid, props):
     """event ရဲ့ props က template ရဲ့ param နဲ့ ကိုက်လား — `(ok, [အမှား])`
 
@@ -145,6 +172,12 @@ def props_ok(cid, props):
        တီထွင်ထားတာ ဖြစ်နိုင်၍ တိတ်တဆိတ် ကျော်သွားလျှင် ဘာမှ မပေါ်ဘဲ
        ဖြစ်မည် (ဒီ project မှာ တိတ်တဆိတ် ကျရှုံးမှု ထပ်ခါထပ်ခါ ဖြစ်ခဲ့သည်)。
     """
+    # ⚠️ **pack template က motionkit catalog ထဲ မရှိပါ** — pack.json မှာ
+    #    ကိုယ်ပိုင် manifest ရှိသည် ⇒ အဲဒါနဲ့ စစ်ရမည်。 catalog တစ်ခုတည်းနဲ့
+    #    စစ်လျှင် verify ပြီးသား pack template ကို 「မရှိ」ဟု ပယ်မိမည်
+    #    (၂၀၂၆-၀၉-၂၁ — pack ချိတ်ချိန်မှာ တကယ် ဖြစ်ခဲ့)。
+    if "." in str(cid) and str(cid).split(".", 1)[0] == "headtop":
+        return _pack_props_ok(cid, props)
     e = entry(cid)
     if not e:
         return False, [f"template မရှိ: {cid}"]

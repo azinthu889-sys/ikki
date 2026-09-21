@@ -86,8 +86,17 @@ def main():
     def _gfx(q): return [x for x in q["templateEvents"]
                          if (x.get("style") or {}).get("kind") != "pop"]
     tids = [x["motionKitTemplateId"] for x in _gfx(p)]
+    # ⚠️ template က motionkit catalog **သို့မဟုတ်** verify ပြီးသား pack
+    #    ကနေ လာနိုင်သည် — catalog တစ်ခုတည်းနဲ့ စစ်လျှင် pack template
+    #    အားလုံး 「မရှိ」ဟု ကျမည် (၂၀၂၆-၀၉-၂၁ pack ချိတ်ချိန် ဖြစ်ခဲ့)。
+    import pack as PK
+    _ok = set(MF.ids()) | set(PK.selectable())
     check("template ID အားလုံး တကယ်ရှိသည်",
-          all(c in MF.ids() for c in tids), [c for c in tids if c not in MF.ids()])
+          all(c in _ok for c in tids), [c for c in tids if c not in _ok])
+    check("pack template က verify ပြီးသားသာ",
+          all(c in set(PK.selectable()) for c in tids if str(c).startswith("headtop.")),
+          [c for c in tids if str(c).startswith("headtop.")
+           and c not in set(PK.selectable())])
     check("ဆက်တိုက် တူသော template မရှိ",
           all(a != b for a, b in zip(tids, tids[1:])), tids)
 

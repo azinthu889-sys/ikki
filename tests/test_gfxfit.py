@@ -62,8 +62,16 @@ def main():
         bad = [g["kind"] for g in out
                if not D.fits(g["kind"], (0, 696), 757, H, "16:9")]
         check("လဲပြီးတာ အားလုံး ဝင်ဆံ့", not bad, bad)
-        check("အတူတူ မထပ်", len({g["kind"] for g in out}) == len(out),
-              [g["kind"] for g in out])
+        # ⚠️ headtop framing မှာ ကျန်နေရာက **၃၃px** သာ ဖြစ်ပြီး တိုင်းထားသော
+        #    template ၂၄၃ ခုထဲက တစ်ခုမှ မဝင်ပါ ⇒ အစားထိုးက **ပြောသူပေါ်
+        #    တင်နိုင်သော pack template** ဖြစ်မည် (အတူတူ ဖြစ်နိုင်သည်)。
+        if D.room((0, 696), 757, H) >= 61:
+            check("အတူတူ မထပ်", len({g["kind"] for g in out}) == len(out),
+                  [g["kind"] for g in out])
+        else:
+            check("ပြောသူပေါ် တင်နိုင်သော အစားထိုး သုံးသည်",
+                  all(D._over_subject(g["kind"]) for g in out),
+                  [g["kind"] for g in out])
     # ⚠️ တူညီသော seed ⇒ တူညီသော အစားထိုး (ပြန်ထုတ်လျှင် တူရန်)
     o2, _ = D.swap_fit(gfx, (0, 696), 757, H, seed="j1", fmt="16:9")
     check("seed တူ ⇒ ရလဒ် တူ",
@@ -73,6 +81,12 @@ def main():
     out3, n3 = D.swap_fit(gfx, None, 1080, H, seed="j1", fmt="16:9")
     check("မလဲပါ", n3 == 0 and [g["kind"] for g in out3] == ["box_call"] * 2,
           (n3, [g["kind"] for g in out3]))
+
+    print("\n── ၅b · ပြောသူပေါ် တင်နိုင်သော template ──")
+    subp = D._subject_pool()
+    check("pack မှာ ရှိသည်", len(subp) >= 1, subp)
+    for t in subp:
+        check(f"{t} က အမြင့်နဲ့ မပယ်ခံရ", D.fits(t, (0, 696), 757, H), t)
 
     print("\n── ၆ · `room()` က placement နဲ့ တစ်ထပ်တည်း ──")
     # ⚠️ တွက်နည်း ၂ ခု ကွဲသွားလျှင် ကြိုစစ်ချက် အလကား ဖြစ်သည်
