@@ -781,13 +781,17 @@ async def w_plan(jid: str, req: Request, authorization: str = Header(None)):
     _beat()
     b = await req.json()
     segs = b.get("segs") or []
+    plan = b.get("plan") or {}
+    review_flags = plan.get("flags") if isinstance(plan, dict) else []
+    if not isinstance(review_flags, list): review_flags = []
     # ⚠️ `segs_all` = ASR ရဲ့ **အပြည့်** — ဘယ်တော့မှ မပြောင်းရ (ပြန်ပြင်ရန်)
     db.run("UPDATE jobs SET status='review',stage=2,stage_name='စာတမ်း အတည်ပြုရန်',"
-           "segs=?,segs_all=?,keep_n=NULL,plan=?,src_dur=?,minutes=0 WHERE id=?",
+           "segs=?,segs_all=?,keep_n=NULL,plan=?,src_dur=?,flags=?,flag_list=?,minutes=0 WHERE id=?",
            json.dumps(segs, ensure_ascii=False),
            json.dumps(segs, ensure_ascii=False),
-           json.dumps(b.get("plan") or {}, ensure_ascii=False),
-           float(b.get("src_dur") or 0), jid)
+           json.dumps(plan, ensure_ascii=False),
+           float(b.get("src_dur") or 0), len(review_flags),
+           json.dumps(review_flags, ensure_ascii=False), jid)
     return {"ok": True, "segs": len(segs)}
 
 

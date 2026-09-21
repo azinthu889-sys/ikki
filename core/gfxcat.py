@@ -56,6 +56,57 @@ def usable(categories=USE):
     return [e for e in catalog() if e.get("category") in categories]
 
 
+# ── edit style ⇄ template ─────────────────────────────────────
+# ⚠️ မြေပုံကို **motionkit ထဲက `stylemap.py`** မှာသာ ထားသည် — gallery ရော
+#    IKKI ရော ဤတစ်ခုတည်းကို ဖတ်ရမည်。 နှစ်နေရာ ရေးလျှင် တစ်ဖက် ကျန်ခဲ့မည်。
+_SM = None
+
+
+def _stylemap():
+    global _SM
+    if _SM is not None: return _SM
+    cwd = os.getcwd()
+    try:
+        if MK not in sys.path: sys.path.insert(0, MK)
+        os.chdir(MK)
+        import stylemap as SM
+        _SM = SM
+    except Exception as e:
+        print(f"  ✖ stylemap ဖတ်မရ: {type(e).__name__}: {e}", flush=True)
+        _SM = None
+    finally:
+        try: os.chdir(cwd)
+        except Exception: pass
+    return _SM
+
+
+def styles():
+    """[(key, နာမည်, ရှင်းလင်းချက်, အုပ်စု)] — IKKI ရဲ့ UI အတွက်。"""
+    sm = _stylemap()
+    return list(sm.STYLES) if sm else []
+
+
+def by_style(style, categories=USE):
+    """edit style တစ်ခုအတွက် သုံးနိုင်သော template များ。
+
+    ⚠️ style မသိလျှင် **ဗလာ မပြန်ရ** — ဂရပ်ဖစ် လုံးဝ ပျောက်မည်。
+       ⇒ `usable()` အပြည့် ပြန်ပေးပြီး အကြောင်း ပြောသည်。
+    """
+    sm = _stylemap()
+    pool = usable(categories)
+    if not sm or style not in getattr(sm, "MAP", {}):
+        if style: print(f"  ⚠ style မသိ: {style} — template အားလုံး သုံးမည်", flush=True)
+        return pool
+    mods = set(sm.MAP[style])
+    return [e for e in pool if e["module"] in mods]
+
+
+def role_of(entry):
+    """overlay | cut | fullbleed — ဘယ်နေရာမှာ သုံးရမလဲ。"""
+    sm = _stylemap()
+    return sm.role_of(entry) if sm else "overlay"
+
+
 # ── စာရင်း (list) argument ─────────────────────────────────
 # ⚠️ template ၁၀၂ ခု (charts · infogfx · maps · dash · capt …) က ပထမ param
 #    အဖြစ် **စာရင်း** ယူသည် — `rows` · `lines` · `items` · `words` · `vals`。

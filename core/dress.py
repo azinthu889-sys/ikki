@@ -455,6 +455,11 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    (`props` မဟုတ်) ⇒ နှစ်ခုလုံး ကြည့်ရမည်。 မကြည့်လျှင်
             #    「စာသား မရှိ」ဟု ထင်ပြီး ကျော်မိသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
             _pp = dict(g.get("props") or g.get("args") or {})
+            # ⚠️ **လွတ်တဲ့ဘက်ကို ပေးရမည်** — ဘေးဘက် ကပ်သော template က
+            #    ပုံသေဘက်မှာ ပြောသူ ရှိလျှင် အဲဒီပေါ် တည့်တည့် ကျသည်。
+            if avoid and len(list(avoid)) >= 4:
+                _y0s, _y1s, _x0s, _x1s = _box(avoid)
+                _pp.setdefault("side", "left" if _x0s >= (1.0 - _x1s) else "right")
             if not _pp:
                 _pp = _pack_fill(g["kind"], g.get("text"))
             if not _pp:
@@ -1330,10 +1335,15 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
             base = CD.concept_card(props.get("head") or "", props.get("sub") or "",
                                    W=W, H=H, mmf=mmf)
         elif fn == "stat_ring":
+            # ⚠️ **လွတ်တဲ့ဘက်ကို ရွေးရမည်**。 `side` ပုံသေက "right" ဖြစ်ပြီး
+            #    ပြောသူက ညာမှာ ရှိလျှင် ပြောသူပေါ် တည့်တည့် ကျသည်
+            #    (၂၀၂၆-၀၉-၂၁ render — ပြောသူ x ၀.၄၃–၁.၀၀)。
             base = CD.stat_ring(props.get("value") or "", props.get("label") or "",
-                                W=W, H=H, mmf=mmf)
+                                W=W, H=H, mmf=mmf,
+                                side=props.get("side") or "right")
         elif fn == "check_list":
-            base = CD.check_list(props.get("items") or [], W=W, H=H, mmf=mmf)
+            base = CD.check_list(props.get("items") or [], W=W, H=H, mmf=mmf,
+                                 side=props.get("side") or "left")
         elif fn == "compare_two":
             base = CD.compare_two(props.get("left") or "", props.get("right") or "",
                                   W=W, H=H, mmf=mmf)

@@ -184,7 +184,9 @@ def _panel(W, H, side="left", w=SIDE_W, a=SCRIM_A, pad=0.045):
     x0 = int(W * pad) if side == "left" else W - bw - int(W * pad)
     y0, y1 = int(H * 0.20), int(H * 0.78)
     t = _tok()
-    bg = _rgb(PK.tok(t, "color", "cardFill"), (14, 16, 24))
+    # ⚠️ `cardFill` ဆိုသော token **မရှိပါ** — အမြဲ fallback ကျနေသည် ⇒
+    #    IKKI theme ရဲ့ `surface` (#151820) ကို သုံးသည်。
+    bg = _rgb(PK.tok(t, "color", "surface"), (21, 24, 32))
     d.rounded_rectangle([x0, y0, x0 + bw, y1], radius=int(H * 0.022),
                         fill=bg + (int(255 * a),))
     return im, x0, y0, x0 + bw, y1
@@ -209,12 +211,15 @@ def stat_ring(value, label="", W=1920, H=1080, mmf=None, accent=None,
         s = Image.fromarray(a, "RGBA")
         im.alpha_composite(s, (cx - s.width // 2, cy - s.height // 2))
     if label:
+        _mut = _rgb(PK.tok(t, "color", "muted"), (175, 182, 196))
         lp = int(H * 0.034)
         hpx, lines = SL._fit(str(label), mmf, x1 - x0 - int(W * 0.02), lp,
                              int(lp * 0.6), 3)
         yy = cy + r + int(H * 0.04)
         for ln in lines:
-            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            # ⚠️ **ဂဏန်းအောက်က စာက ဒုတိယ အဆင့်** — ဖြူဖြူ ချည်း ထည့်လျှင်
+            #    အဆင့် မကွဲဘဲ ပြားသွားသည် ⇒ theme ရဲ့ `muted` သုံးသည်。
+            b = SL._text_png(ln, hpx, mmf, _mut)
             if b is None or b.shape[0] < 2:
                 continue
             s2 = Image.fromarray(b, "RGBA")
@@ -236,6 +241,7 @@ def check_list(items, W=1920, H=1080, mmf=None, accent=None, side="left",
     it = [str(x).strip() for x in (items or []) if str(x).strip()][:5]
     if not it:
         return None
+    _txt = _rgb(PK.tok(t, "color", "text"), (255, 255, 255))
     im, x0, y0, x1, y1 = _panel(W, H, side)
     d = ImageDraw.Draw(im)
     px = int(H * 0.040)
@@ -254,7 +260,7 @@ def check_list(items, W=1920, H=1080, mmf=None, accent=None, side="left",
                              int(px * 0.62), 2)
         ty = yy
         for ln in lines[:2]:
-            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            b = SL._text_png(ln, hpx, mmf, _txt)
             if b is None or b.shape[0] < 2:
                 continue
             s2 = Image.fromarray(b, "RGBA")
@@ -273,7 +279,9 @@ def compare_two(left, right, W=1920, H=1080, mmf=None, accent=None):
     t = _tok()
     mmf = mmf or PK.tok(t, "type", "display", default="MyanmarHeadOne")
     acc = _rgb(accent or PK.tok(t, "color", "accent"), (255, 224, 0))
-    bg = _rgb(PK.tok(t, "color", "cardFill"), (14, 16, 24))
+    # ⚠️ `cardFill` ဆိုသော token **မရှိပါ** — အမြဲ fallback ကျနေသည် ⇒
+    #    IKKI theme ရဲ့ `surface` (#151820) ကို သုံးသည်。
+    bg = _rgb(PK.tok(t, "color", "surface"), (21, 24, 32))
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     y0, y1 = int(H * 0.60), int(H * 0.74)
@@ -283,13 +291,14 @@ def compare_two(left, right, W=1920, H=1080, mmf=None, accent=None):
     mid = (x0 + x1) // 2
     d.line([(mid, y0 + int(H * 0.012)), (mid, y1 - int(H * 0.012))],
            fill=acc + (220,), width=max(2, int(H * 0.004)))
+    _txt2 = _rgb(PK.tok(t, "color", "text"), (255, 255, 255))
     px = int(H * 0.044)
     for txt, cx in ((left, (x0 + mid) // 2), (right, (mid + x1) // 2)):
         hpx, lines = SL._fit(str(txt or "").strip(), mmf,
                              (mid - x0) - int(W * 0.03), px, int(px * 0.6), 2)
         ty = (y0 + y1) // 2 - int(hpx * 0.6 * len(lines))
         for ln in lines[:2]:
-            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            b = SL._text_png(ln, hpx, mmf, _txt2)
             if b is None or b.shape[0] < 2:
                 continue
             s2 = Image.fromarray(b, "RGBA")
