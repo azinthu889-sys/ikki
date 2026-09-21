@@ -37,8 +37,24 @@ def strip(path, t0, t1, fps):
     return a[:k * W * H * 3].astype(np.float32).reshape(k, H, W, 3)
 
 
-def ink(fr, mode="gold"):
-    """frame တစ်ခုချင်းရဲ့ မင်ပမာဏ — ဂရပ်ဖစ် ရှိမရှိ အညွှန်း"""
+def ink(fr, mode="gold", lag=2):
+    """frame တစ်ခုချင်းရဲ့ မင်ပမာဏ — ဂရပ်ဖစ် ရှိမရှိ အညွှန်း
+
+    ⚠️ **ရှာတဲ့ signal နဲ့ တိုင်းတဲ့ signal တူရမည်** — v2/v5 ကို still-edge
+       နဲ့ ရှာပြီး `gold` နဲ့ တိုင်းလျှင် ဘာမှ မတွေ့ပါ (၂၀၂၆-၀၉-၂၁ ဖြစ်ခဲ့ ·
+       ၁၆ ခုမှ ၅ ခုသာ တိုင်းလို့ရ)。
+    `mode="edge"` — အနားပြင်း + အချိန်နဲ့ မရွေ့ (detector နဲ့ တစ်ထပ်တည်း)
+    """
+    if mode == "edge":
+        lum = (0.299 * fr[..., 0] + 0.587 * fr[..., 1]
+               + 0.114 * fr[..., 2]).astype(np.int16)
+        out = np.zeros(len(fr), np.float32)
+        for i in range(len(fr)):
+            j = max(0, i - lag)
+            e = np.zeros(lum[i].shape, bool)
+            e[:, :-1] = np.abs(np.diff(lum[i], axis=1)) > 28
+            out[i] = float((e & (np.abs(lum[i] - lum[j]) <= 5)).mean())
+        return out
     r, g, b = fr[..., 0], fr[..., 1], fr[..., 2]
     if mode == "gold":
         m = (r > 170) & (g > 140) & (b < 45) & (r - b > 150)
@@ -76,6 +92,8 @@ def phases(y, fps, lo=0.05, hi=0.95):
 
 
 def centroid(fr, mode="gold"):
+    if mode == "edge":
+        mode = "bright"
     """မင်ရဲ့ အလယ်မှတ် (x, y) အချိုး — ရွေ့လျားမှု ခွဲခြားရန်"""
     r, g, b = fr[..., 0], fr[..., 1], fr[..., 2]
     if mode == "gold":
