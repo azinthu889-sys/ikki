@@ -1259,6 +1259,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      #    ကိန်းသေ ရေးလျှင် ပုံစံတိုင်း တူသွားမည်。
                      sfx_on=rc.get("sfx_on"), sfx=rc.get("sfx", True),
                      sfx_per_min=rc.get("sfx_per_min"),
+                     # ⚠️ **ဖြတ်ပြီး အရှည်** — SFX budget ကို ဒါနဲ့ တွက်ရမည်
+                     #    (QC က ထွက်ဖိုင်ပေါ်မှာ တိုင်းသည်)。 ဖြစ်ရပ် အချိန်မှတ်က
+                     #    မူရင်း timeline အတိုင်း ကျန်သည် — `omap` က ပြောင်းမည်。
+                     out_dur=_outdur_guess(spans),
                      # MotionKit profile က raw template ID မဟုတ်ဘဲ
                      # manifest/safe-zone စစ်ပြီးသား visual language ဖြစ်သည်။
                      motionkit_profile=rc.get("motionkit_profile") or "premium",

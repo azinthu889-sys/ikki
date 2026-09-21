@@ -558,7 +558,7 @@ SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
           "latch": -17, "pop": -18, "click": -18, "impact": -14}
 
 
-def sfx_plan(events, dur, per_min, log=None, style=None):
+def sfx_plan(events, dur, per_min, log=None, style=None, out_dur=None):
     """`templateEvents` → `sfxEvents` · **ဂိတ်ဘောင်ထဲ** ကန့်သတ်သည်
 
     ⚠️ 「Layered sounds count as one sound moment if they share the same
@@ -589,7 +589,18 @@ def sfx_plan(events, dur, per_min, log=None, style=None):
         from core import sfxpol as _PL
     _pol = _PL.clamp(dict(per_min=per_min), style=style)
     gap = _pol["gap"]
-    cap = _PL.budget(_pol, dur)
+    # ⚠️ **budget ကို ဖြတ်ပြီး အရှည်နဲ့ တွက်ရမည်** — QC က ထွက်ဖိုင်ပေါ်မှာ
+    #    တိုင်းသည်。 ၂၀၂၆-၀၉-၂၁ j_1f9561de04b3: မူရင်း ၁၇၈.၇s နဲ့ တွက်၍
+    #    cue ၁၇ ခု ခွင့်ပြုခဲ့ရာ ဖြတ်ချက်က ၄၉% ဖယ်ပြီး ထွက် ၆၉.၃s သာ ဖြစ်သဖြင့်
+    #    **၆.၉၃/min** ဖြစ်ကာ ဂိတ် (≤၆.၀) ကျခဲ့သည် — ဂရပ်ဖစ်မှာ ဖြစ်ဖူးသော
+    #    「source vs cut time」အမှားမျိုးပင်。
+    #    ⚠️ ဖြစ်ရပ် အချိန်မှတ်တွေက **မူရင်း timeline** အတိုင်း ကျန်ရမည် —
+    #       `omap` က နောက်မှ ပြောင်းသည် ⇒ `dur` ကို မထိရ、budget သာ ပြောင်း。
+    _bd = float(out_dur) if (out_dur and float(out_dur) > 0) else float(dur)
+    cap = _PL.budget(_pol, _bd)
+    if log and out_dur and abs(_bd - float(dur)) > 1.0:
+        log(f"  SFX budget — ဖြတ်ပြီး {_bd:.0f}s နဲ့ တွက် "
+            f"(မူရင်း {float(dur):.0f}s မဟုတ်) ⇒ အများဆုံး {cap} ခု")
 
     # ⚠️ **အရေးကြီးဆုံးကို ရွေးရမည်** — အရင်က ရှေ့က cap ခုကို ပဲ ယူခဲ့သဖြင့်
     #    ဗီဒီယို နောက်ပိုင်းမှာ အသံ တိတ်ဆိတ်နေစေသည်。
@@ -900,7 +911,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     if o.get("sfx_on") is not False and o.get("sfx") is not False:
         p["sfxEvents"] = sfx_plan(p["templateEvents"], dur,
                                   float(o.get("sfx_per_min") or 1.5),
-                                  log=o.get("log"), style=o.get("style"))
+                                  log=o.get("log"), style=o.get("style"),
+                                  out_dur=o.get("out_dur"))
     p["motionKitProfile"] = profile
     return p
 
