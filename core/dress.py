@@ -796,3 +796,81 @@ def _wants_tag(name):
         want = True
     _TAGQ[name] = want
     return want
+
+
+# ══ template အမြင့် ↔ ရနိုင်သော နေရာ (Overlay audit P0) ════════════
+# ⚠️ တကယ့် headtop render မှာ ဂရပ်ဖစ် ၇ ခု ရွေးပြီး **၀–၃ ခုသာ** တပ်ဖြစ်ခဲ့သည် —
+#    စကားပြောသူက အပေါ် ၆၄% ဖုံးပြီး အောက်က စာတန်းက ယူထားလို့ **၆၁ px သာ**
+#    ကျန်သည်。 ကတ်တွေက ၅၂၈–၁၀၇၇ px မြင့်၍ တစ်ခုမှ မဝင်ပါ。
+# ⚠️ အရင်က **ဆောက်ပြီးမှ** သိရသဖြင့် အချိန် ကုန်ပြီး ဂရပ်ဖစ် မရှိတော့。
+#    ⇒ `tools/gfxsize.py` က အမြင့်ကို ကြိုတိုင်းထားပြီး ဒီမှာ ကြိုစစ်သည်。
+# ⚠️ **ဒီတွက်နည်းက placement နဲ့ အတူတူ ဖြစ်ရမည်** — မတူလျှင် ကြိုစစ်ချက်က
+#    အလကား (ရွေးပြီးမှ ပယ်ခံဦးမည်)。 ⇒ `_fits()` ကို နှစ်နေရာလုံး သုံးသည်。
+_SIZE = None
+
+
+def sizes(fmt="16:9"):
+    """template → တိုင်းထားသော အမြင့် (px · production ဘောင်အတိုင်း)"""
+    global _SIZE
+    if _SIZE is None:
+        _SIZE = {}
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "assets", f"gfx_size_{fmt.replace(':', 'x')}.json")
+        try:
+            import json as _j
+            with open(p, encoding="utf-8") as f:
+                _SIZE = {k: v for k, v in (_j.load(f).get("items") or {}).items()
+                         if "h" in v}
+        except (OSError, ValueError):
+            _SIZE = {}
+    return _SIZE
+
+
+def room(avoid, capy, H):
+    """ဂရပ်ဖစ် ချနိုင်သော **အမြင့်ဆုံး px** — `avoid` မရှိလျှင် `H`
+
+    ⚠️ placement (`track()`) ရဲ့ ကိန်းများနဲ့ **တစ်ထပ်တည်း** ဖြစ်ရမည်。
+    """
+    if not avoid:
+        return H
+    ay0, ay1 = avoid
+    TOP = int(H * 0.075)
+    above = ay0 - TOP - 8                      # ခေါင်းအထက်
+    below = (capy - 12 if capy else H - 12) - (ay1 + 16)
+    return max(0, above, below)
+
+
+def fits(kind, avoid, capy, H, fmt="16:9"):
+    """`kind` က နေရာ ဝင်လား — တိုင်းချက် မရှိလျှင် `True` (ကြိုမပယ်ရ)"""
+    it = sizes(fmt).get(kind)
+    if not it:
+        return True
+    return int(it["h"]) <= room(avoid, capy, H)
+
+
+def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
+    """ဝင်မဆံ့သော kind ကို **ဝင်ဆံ့သော အခြား template** နဲ့ လဲပေးသည်
+
+    ⚠️ ပယ်လိုက်တာထက် လဲတာက ကောင်းသည် — ဂရပ်ဖစ် မရှိလျှင် `gfx_share`
+       ဂိတ် ကျပြီး ဗီဒီယိုက ခြောက်သွေ့သည်。
+    ⚠️ **တူညီသော seed ⇒ တူညီသော အစားထိုး** (ပြန်ထုတ်လျှင် တူရန်)。
+    """
+    cap = room(avoid, capy, H)
+    sz = sizes(fmt)
+    if not sz:
+        return gfx, 0
+    pool = [k for k in _verified(seed) if k in sz and int(sz[k]["h"]) <= cap]
+    out, n, used = [], 0, set()
+    for i, g in enumerate(gfx):
+        k = g.get("kind")
+        if fits(k, avoid, capy, H, fmt):
+            out.append(g); used.add(k); continue
+        alt = next((c for c in pool if c not in used), None) \
+            or (pool[i % len(pool)] if pool else None)
+        if not alt:
+            out.append(g); continue
+        g2 = dict(g); g2["kind"] = alt; g2.pop("args", None)
+        used.add(alt); out.append(g2); n += 1
+        log and log(f"  ↺ {k} ({sz.get(k, {}).get('h', '?')}px) မဝင် ⇒ "
+                    f"{alt} ({sz[alt]['h']}px) · နေရာ {cap}px")
+    return out, n

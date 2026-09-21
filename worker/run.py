@@ -1335,10 +1335,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  ကတ် ရပ်ချိန် {_hold:.1f}s × {len(gfx)} ခု "
                     f"→ share ~{_hold*len(gfx)/_od:.3f} "
                     f"(ပစ်မှတ် {_sh[0]:.2f}–{_sh[1]:.2f} · ဖြတ်ပြီး {_od:.0f}s)")
+            # ⚠️ **နေရာ မဝင်သော template ကို ကြိုလဲရမည်** — ဆောက်ပြီးမှ
+            #    ပယ်လျှင် အချိန် ကုန်ပြီး ဂရပ်ဖစ် မရှိတော့。 ၁၂၀s headtop တစ်ခုမှာ
+            #    ၂ ခုက 「နေရာ မတည့်」နဲ့ ပယ်ခဲ့သည် (၂၀၂၆-၀၉-၂၁)。
+            _av = _avoid_band(src, TH, log)
+            gfx, _nsw = DR.swap_fit(gfx, _av, cap_top, TH["H"],
+                                    seed=rc.get("_seed") or "",
+                                    fmt=(job.get("fmt") or "16:9"), log=log)
+            if _nsw:
+                REPORT["gfx_swapped"] = _nsw
             gmov, ng = DR.track(gfx, None, os.path.join(work,"gx"), TH["W"], TH["H"],
                                 rc["fps"], T1, T2, (brand or {}).get("name","IKKI"),
                                 rc["label"], log,
-                                avoid=_avoid_band(src, TH, log),
+                                avoid=_av,
                                 capy=cap_top, hold=_hold)
             # ⚠️ ထုတ်ပြီးမှ **တကယ့် အရှည်နဲ့ ပြန်တိုင်း**ရမည် — `hold` က
             #    တိုအောင် မလုပ်နိုင်သဖြင့် ပစ်မှတ်ထက် ကျော်နိုင်သည်。
