@@ -908,6 +908,9 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     # the render pass, otherwise source labels (and cached-speed knowledge)
     # would be lost after the transcript is approved.
     if isinstance(plan.get("takes"), list): over["_take_map"] = plan["takes"]
+    try: reviewed_speed = round(float(plan.get("speech_speed") or 0), 2)
+    except (TypeError, ValueError): reviewed_speed = 0.0
+    if reviewed_speed in (1.03, 1.06): over["_speed_applied"] = reviewed_speed
     # ⚠️ `segs` က worker အတွက် (ချန်ထားသည်) · `segs_all` က **မထိရ** ·
     #    `keep_n` = ချန်ခဲ့သော နံပါတ် ⇒ ပြန်ဖွင့်လျှင် အရင် ဖျက်ချက် ပြန်မြင်ရ。
     _kn = sorted({int(k.get("i")) + 1 for k in keep

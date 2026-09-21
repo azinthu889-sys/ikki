@@ -56,6 +56,21 @@ PLAN = {
 }
 
 
+# ⚠️ **ထပ်ဆွဲရာမှာ ရှာစာ အတူတူ သုံးလို့ မရ** — အရင်တစ်ခေါက် ကျခဲ့တဲ့ အကြောင်းရင်းက
+#    ရှာစာကြောင့်ပါ。 cinematic_vlog က det 2.3 (ပစ်မှတ် 3.2) — မြူ/ကောင်းကင် လို
+#    ပြားနေတဲ့ ရုပ်တွေ ဆွဲမိသည် ⇒ **အသေးစိတ် များသော** ရုပ်ကို ရှာရမည်。
+#    knowledge က lum 22 (ပစ်မှတ် 60) — မှောင်သော ဖန်သားပြင်/ကုဒ် ⇒ **လင်းသော**
+#    အလုပ်ခွင်/စာသင်ခန်းကို ရှာရမည်。
+TOPUP = {
+ "cinematic_vlog": ["city street cinematic","forest path walking","market crowd",
+                    "waterfall close","train window day","neon street night"],
+ "headtop_motion": ["paint ink water","smoke swirl light","particles sparkle",
+                    "glass refraction","fabric waving","liquid gold"],
+ "knowledge":      ["bright office meeting","whiteboard presentation","students classroom bright",
+                    "notebook writing desk","team discussion table","library daylight"],
+}
+
+
 def _get(url, hdr=None):
     for k in range(4):
         try:
@@ -128,8 +143,11 @@ def main():
                          f"{os.readlink(OUT)}")
     os.makedirs(OUT, exist_ok=True)
     found = {}
+    topup = os.environ.get("IKKI_TOPUP") == "1"
     for st, (qs, want, orient) in PLAN.items():
         if only and st not in only: continue
+        if topup:
+            qs = TOPUP.get(st) or qs
         got = []; seen = set()
         for q in qs:
             if len(got) >= want: break

@@ -384,12 +384,28 @@ def _cap_stroke(rc, TH):
     return None
 
 
-def _fade(src, dst, a, b):
+# ⚠️ **ဘောင်အပြည့် B-roll က ဖြတ်ချက် ဖြစ်ရမည် — dissolve မဟုတ်**。
+#    ၂၀၂၆-၀၉-၂၁ တိုင်းချက် (reference ၄ ပုဒ် · ၂၀fps) —
+#      reference ရဲ့ ပြောင်းလဲမှု ကြာချိန် အလယ်တန်း **၀.၀၅s** (ဖရိမ်း ၁ ခု)
+#      IKKI ရဲ့                                   **၀.၁၅s** (၃ ဆ)
+#    ⇒ ပြောသူနဲ့ B-roll **နှစ်ခုလုံး တစ်ပြိုင်တည်း မြင်ရ** (double exposure)
+#      ဖြစ်ပြီး amateur ဆန်သည်。 Zin ကိုယ်တိုင် ပုံမှာ တွေ့ခဲ့သည်。
+# ⚠️ overlay ဂရပ်ဖစ် (ကတ်/စာသား) မှာတော့ fade **လိုသည်** — အဲဒါက
+#    ချက်ချင်း ပေါက်ကွဲလျှင် ပိုဆိုးသည် (၂၀၂၆-၀၉-၂၀ Zin: 「quality 0」)。
+#    ⇒ B-roll နဲ့ overlay ကို **ခွဲရမည်**。
+BROLL_FADE = 0.05     # reference အတိုင်း — ဖရိမ်း ၁–၂ ခု
+
+
+def _fade(src, dst, a, b, hard=False):
     """overlay input ကို fade တပ်ပြီး ပြန်ပေးသည် — `-itsoffset` သုံးထားသဖြင့်
     input ရဲ့ အချိန်မှတ်က main timeline နဲ့ တူသည် ⇒ `st` ကို တိုက်ရိုက် ပေးရသည်。"""
     d = max(0.1, float(b) - float(a))
-    fi = max(FADE_MIN, min(FADE_IN,  d * FADE_CAP))
-    fo = max(FADE_MIN, min(FADE_OUT, d * FADE_CAP))
+    if hard:
+        # ⚠️ ပေါက်ကွဲသံ မဖြစ်စေရန် ဖရိမ်း ၁–၂ ခု သာ ထားသည် — dissolve မဟုတ်
+        fi = fo = min(BROLL_FADE, d * 0.2)
+    else:
+        fi = max(FADE_MIN, min(FADE_IN,  d * FADE_CAP))
+        fo = max(FADE_MIN, min(FADE_OUT, d * FADE_CAP))
     if fi + fo > d: fi = fo = d / 2.0
     # ⚠️ fade-out ကို `enable` ပိတ်ချိန် **မတိုင်ခင် ပြီးအောင်** ထားရမည်。
     #    အတိအကျ `b` မှာ ဆုံးအောင် ထားလျှင် gate က alpha ၀ မရောက်ခင်
@@ -569,7 +585,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # allow-list strict while retaining source-take labels for review.
     take_map = over.pop("_take_map", None) or []
     over.pop("_sources", None)
-    over.pop("_speech_speed", None)
+    try: speech_speed = float(over.pop("_speech_speed", 1.0) or 1.0)
+    except (TypeError, ValueError): speech_speed = 1.0
+    over.pop("_speed_applied", None)
     # ⚠️ `_drop` က recipe ပြင်ချက် **မဟုတ်** — သုံးစွဲသူ ဖျက်ထားသော အချိန်
     #    အပိုင်းများ။ `RC.clean()` က မသိသော key ကို ဖြုတ်ပစ်သဖြင့် အရင် ခွဲထုတ်ရမည်。
     user_drop = over.pop("_drop", None) or []
@@ -987,6 +1005,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             spans=[[round(a, 2), round(b, 2)] for a, b in spans],
             flags=st.get("flag_list") or [],
             takes=take_map,
+            speech_speed=speech_speed,
             retakes=_rt,            # v1 (ယခု အလွတ်) — ယခင် ဒေတာနဲ့ လိုက်ဖက်ရန် ချန်
             clusters=_cl,           # v2 — အုပ်စု + ရွေးစရာ (ဖြတ်မှတ် ကြိုတွက်ပြီး)
             retake_off=_rt_off))    # ပိတ်ထားလျှင် သုံးစွဲသူကို ပြမည့် အကြောင်းရင်း
@@ -1225,7 +1244,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      sfx_per_min=rc.get("sfx_per_min"),
                      # ⚠️ **ပုံစံ နာမည်ကို ပေးရမည်** — တိုင်းထားသော SFX
                      #    မူဝါဒ (headtop ၆.၀/min) ကို id နဲ့ ရှာသည်。
-                     style=rc.get("_id")),
+                     style=rc.get("_id"),
+                     # ⚠️ **စည်းချက်** — ကွက်လပ် ရှည်လျှင် ဂရပ်ဖစ် ဖြည့်သည်
+                     gfx_gap_max=rc.get("gfx_gap_max") or 0,
+                     log=log),
                 video_id=job["id"], log=log)
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
@@ -2220,7 +2242,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ထားလျှင် စာတန်းကို ဖုံးသည်。 ဒါကြောင့် ဒီနေရာမှာ အရင် ထည့်သည်。
     for at, bp, bd, _t in (bmov or [])[:10]:
         ins += ["-itsoffset", f"{at:.2f}", "-i", bp]; n += 1
-        fc.append(_fade(f"{n}:v", f"bf{n}", at, at + bd))
+        # ⚠️ B-roll က **ဘောင်အပြည့်** ⇒ ဖြတ်ချက် (hard=True)
+        fc.append(_fade(f"{n}:v", f"bf{n}", at, at + bd, hard=True))
         fc.append(f"[{last}][bf{n}]overlay=0:0:eof_action=pass:"
                   f"enable='between(t,{at:.2f},{at+bd:.2f})'[v{n}]")
         last = f"v{n}"
@@ -3158,7 +3181,10 @@ def handle(d):
     # မူရင်း + proxy + ကြားဖြတ် ဖိုင်များ。 proxy ရှိပြီးသားဆို မူရင်း မလို。
     # ⚠️ **disk ၂ ခုကို သီးသန့် စစ်ရမည်** — ဖိုင်ကြီးက BIG မှာ · PNG တွေက
     #    Mac ထဲ scratch မှာ。 တစ်ခုတည်း စစ်လျှင် ကျန်တစ်ခု ပြည့်ပြီး ကျမည်。
-    _need_big = 0.0 if _have_px else (_sz * 1.25)          # မူရင်း + proxy
+    # Multi-take jobs temporarily need raw takes + joined timeline + proxy.
+    # Reserve for all three; starting with the single-source estimate would
+    # otherwise fail near the end of join on larger 4K projects.
+    _need_big = 0.0 if _have_px else (_sz * (2.75 if len(take_sources) > 1 else 1.25))
     _need_w   = max(2.0, (job.get("src_dur") or 600)/600.0*2.5)   # ကြားဖြတ် ဖိုင်
     _hb, _hw = free_gb(BIG), free_gb(SCRATCH)
     _same = os.stat(BIG).st_dev == os.stat(SCRATCH).st_dev
@@ -3258,9 +3284,12 @@ def handle(d):
     try: speech_speed = float((d.get("over") or {}).get("_speech_speed") or 1.0)
     except (TypeError, ValueError): speech_speed = 1.0
     if speech_speed not in (1.0, 1.03, 1.06): speech_speed = 1.0
+    try: speed_applied = float((d.get("over") or {}).get("_speed_applied") or 0.0)
+    except (TypeError, ValueError): speed_applied = 0.0
     if speech_speed != 1.0 and not _have_px:
         src = speed_source(jid, src, speech_speed, log=lambda x: print(x, flush=True))
-        take_map = scale_take_map(take_map, speech_speed)
+        if abs(speed_applied - speech_speed) > 0.001:
+            take_map = scale_take_map(take_map, speech_speed)
     out = os.path.join(SCRATCH, jid + ".mp4")
     def stage(n, name):
         req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})

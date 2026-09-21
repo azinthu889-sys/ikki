@@ -692,6 +692,63 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                                   float(o.get("sfx_per_min") or 1.5),
                                   log=o.get("log"), style=o.get("style"))
 
+    # ══ စည်းချက် ဖြည့်ခြင်း — **editing psychology** ══════════════════
+    # ⚠️ label classifier က ဝါကျ ၂၂ ကြောင်းကနေ ဂရပ်ဖစ် **၅ ခုသာ** ထုတ်သည်
+    #    (၂၃%) — အများစုက `plain` ကျသဖြင့်。 ဒါက reference ရဲ့ သိပ်သည်းမှုကို
+    #    မရောက်စေ。
+    # ⚠️ တိုင်းချက် (reference ၆ ပုဒ် · ၂၀၂၆-၀၉-၂၁) — မြင်ကွင်း ပြောင်းလဲမှု
+    #    ၉.၃–၁၄.၃/min ⇒ အကွာ **၄.၂–၆.၅s**。 IKKI က ၇.၅/min (၆၇%)。
+    # ⚠️ **pattern interrupt** — ၈s ထက် ပိုကြာစွာ ဘာမှ မပြောင်းလျှင် ကြည့်သူ
+    #    အာရုံ လွတ်သွားသည်。 ⇒ ကွက်လပ် ရှည်လျှင် အသုံးမချရသေးသော ဝါကျကနေ
+    #    ဖြည့်သည်。 **အဓိပ္ပာယ် ရှိသော template ရှိမှ** ဖြည့်သည် — မရှိလျှင်
+    #    မဖြည့်ပါ (အဓိပ္ပာယ်မဲ့ ဂရပ်ဖစ်ထက် ကွက်လပ်က ကောင်းသည်)。
+    _fill_gap = float(o.get("gfx_gap_max") or 0)
+    if _fill_gap > 0 and p["templateEvents"]:
+        _ex = [x for x in p["templateEvents"]
+               if (x.get("style") or {}).get("kind") != "pop"]
+        _at = sorted(float(x.get("startTime") or 0) for x in _ex)
+        _used_t = set(round(v, 1) for v in _at)
+        _added = 0
+        for i, s2 in enumerate(segs):
+            a2 = float(s2.get("start") or 0.0)
+            b2 = float(s2.get("end") or a2 + 1.0)
+            if dur and a2 > dur - 2.0:
+                continue
+            if round(a2, 1) in _used_t:
+                continue
+            # ⚠️ အနီးဆုံး ဂရပ်ဖစ်နဲ့ ဘယ်လောက် ကွာလဲ
+            _near = min((abs(a2 - t) for t in _at), default=1e9)
+            if _near < _fill_gap:
+                continue
+            _txt2 = (s2.get("text") or "").strip()
+            if len(_txt2) < 8:
+                continue
+            _lab2 = (labels[i] if i < len(labels) else "plain")
+            _cid2 = _pr2 = None
+            for _pid2 in _pack_ids(_lab2) or _pack_ids("section"):
+                if _full_frame(_pid2):
+                    continue
+                _pp2 = _pack_props(_pid2, _lab2, _txt2)
+                if _pp2 is not None:
+                    _cid2, _pr2 = _pid2, _pp2
+                    break
+            if not _cid2:
+                continue
+            n += 1
+            p["templateEvents"].append(dict(
+                id=f"fil{n:03d}", startTime=round(a2, 2),
+                endTime=round(min(b2, a2 + 3.2, dur if dur else a2 + 3.2), 2),
+                layer="template", type="template", motionKitTemplateId=_cid2,
+                props=_pr2, style=dict(kind=SEM.get(_lab2, "card"), lab=_lab2),
+                reason=f"စည်းချက် ဖြည့် — {_near:.0f}s ကွက်လပ်",
+                confidence=0.55))
+            _at.append(round(a2, 2)); _at.sort(); _used_t.add(round(a2, 1))
+            _added += 1
+        if _added and o.get("log"):
+            o["log"](f"  စည်းချက် ဖြည့် · ဂရပ်ဖစ် {_added} ခု ထပ်ထည့် "
+                     f"(ကွက်လပ် > {_fill_gap:.0f}s)")
+        p["templateEvents"].sort(key=lambda x: x.get("startTime") or 0)
+
     # ── punch-in — ၁၅s အတွင်း ၂ ခု · ၁.၀၈ ထက် မကျော် ──
     if en["punch"]:
         marks = [e["startTime"] for e in p["templateEvents"]]

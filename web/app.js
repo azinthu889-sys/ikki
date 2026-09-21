@@ -566,6 +566,12 @@ function start(input){
     alert(cur==='my'?'take ၄ ခုအထိသာ တစ်ခါတည်း ထည့်နိုင်ပါတယ်':'You can add up to four takes at once');
     return;
   }
+  if(files.length>1 && AUD){
+    alert(cur==='my'
+      ? 'take များစွာနဲ့ recorder အသံတစ်ဖိုင်ကို မညှိနိုင်သေးပါ။ recorder အသံကို ဖယ်ပြီး camera audio သုံးပါ၊ သို့မဟုတ် take တစ်ခုတည်း တင်ပါ။'
+      : 'A single recorder track cannot be aligned safely across multiple takes. Clear it, or upload one take only.');
+    return;
+  }
   // ⚠️ ပုံစံ မရွေးဘဲ မတင်ရ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်သည်
   //    (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆%)。 မရွေးလျှင် server က ပိတ်ထားမည်。
   if(!state.vfmt){
