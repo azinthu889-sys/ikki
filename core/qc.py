@@ -108,7 +108,17 @@ def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None):
         for t in ts:
             if not moments or t - moments[-1] > SFX_LAYER_W:
                 moments.append(t)
-        per = len(moments)/(m["dur"]/60.0)
+        # ⚠️ **အောက်ခြေကို ံ၀ စက္ကန့္ အနည်းဆုံး ထားရမည်**。 ၁၆s ကနေ
+        #    「မိနစ်လွှင် ဘယ်နှစ်ချက်」 ကို တွက်လွှင် ၁ ချက်ပင် ၃.၇၅/min
+        #    ဖြစ်သွားသည် ⇒ **၄၀s အောက် ဗီဒီယိုတိုင်းမှာ သုည သာ ဖြတ်နိုင်**
+        #    (တိုင်းပြီး တွေ့ · ၂၀၂၆-၀၉-၂၁)。 ZAE short ၃၀–၆၀s နဲ့ headtop
+        #    ၁၆s အားလုံး အကျုံး၀င်သဖြင့် SFX က သီအိုရီအရ SFX မဖြစ်နိုင်ခဲ့。
+        #    ⚠️ **ဂိတ် ကိန်း (၁.၅) ကို မလျှော့ပာ** — reference (REF-A ၁.၁ ·
+        #    REF-B ၀.၆) ကို မိနစ် အများအပြားကနေ တိုင်းထားသဖြင့် နမူနာ ၁၆s
+        #    ကို မိနစ်အဖြစ် **ချဲတွက်လို့ မရ**ခြင်း ဖြစ်သည်。
+        #    ⚠️ ထပ်ခွေမှုကို တားသော ဂိတ်က `sfx_spacing` (≥၈s) — **အတိအကျ
+        #    ကျန်နေသည်** ⇒ ၁၆s မှာ ဖြစ်ရပ် ၂ ခု ဆိုလျှင် ၂.၀/min ⇒ ကျမည်。
+        per = len(moments)/(max(60.0, m["dur"])/60.0)
         add("sfx_density", per <= SFX_MAX_PER_MIN, round(per,2),
             f"≤ {SFX_MAX_PER_MIN}/min")
         gaps = [round(b-a, 1) for a, b in zip(moments, moments[1:])]

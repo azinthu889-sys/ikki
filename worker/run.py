@@ -2010,7 +2010,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             sv = os.path.join(work, "sfx.mp4")
             _pre2 = cutv
-            _, nsfx = DR.mix(cutv, cues, sv, lambda r: _cue(SL, r, rc["theme"]), log)
+            _CUE_USED.clear()
+            _sd = rc.get("_seed") or job.get("id") or "ikki"
+            _, nsfx = DR.mix(cutv, cues, sv,
+                             lambda r, i=None: _cue(SL, r, rc["theme"], i, _sd, log), log)
+            REPORT["sfx_variants"] = len(set(_CUE_USED))
+            REPORT["sfx_banks"] = sorted({x.split("/")[0] for x in _CUE_USED})
             cutv = sv; _drop(_pre2); log(f"  SFX {nsfx} cue")
         except Exception as e:
             log(f"  ⚠️ SFX မရ: {e}")
@@ -2352,7 +2357,27 @@ def _subtract(spans, cuts):
 #    တစ်ခုတည်းမှ ဆင်းသက်စေသည် (`_M.as_gaps(MEAS[1], 0.20)`)。 အရင်က ဤနေရာက
 #    `band/threshold/gaps` ဖြင့် **သီးခြား** တွက်ခဲ့သဖြင့် cut နှင့် မြေပုံ ကွဲခဲ့သည်。
 
-def _cue(SL, role, th):
+_CUE_USED = []
+
+
+def _cue(SL, role, th, idx=None, seed="", log=None):
+    """role → wav 。 **variant pool ကို အရင် စမ်း**。
+
+    ⚠️ `sfxlib.ROLE` က role ၂၂ ခုလုံးကို **ဖိုင်တစ်ခုတည်း** နဲ့ ချိတ်ထားသည် —
+       ဖိုင် ၂၀၀ ကျော် ရှိပာလျက်。 ထို့ကြောင့် whoosh တစ်မျိုးတည်းကို
+       ဗီဒီယိုတိုင်း တိုင်း ထပ်ကာထပ်ကာ ကြားနေရသည် (P1 audit အချက် C)。
+    ⚠️ `idx` မပာလျှင် အရင်အတိုင်း — လမ်းကြောင်း ပြတ်မသွားစေရန်。
+    """
+    if idx is not None:
+        try:
+            import sfxpool as SP
+            p, it = SP.wav(role, seed or "ikki", idx, _CUE_USED, th=th, log=log)
+            if p:
+                _CUE_USED.append(it["id"])
+                return p
+            log and log(f"  ⚠️ SFX pool မရှိ: {role} — အရိုး ဖိုင်ကို ပြန်သုံးသည်")
+        except Exception as e:
+            log and log(f"  ⚠️ SFX pool မအောင် ({type(e).__name__}) — အရိုး ဖိုင်")
     try: return SL.cue(role, th)
     except Exception: return None
 
@@ -2677,6 +2702,11 @@ def write_report(jid, R):
       f"{_mk(v)}/min       [{_mk(w)}]" + _tick(ok))
     v, w, ok = _rv(g("checks"), "sfx_spacing")
     A(f"          အနီးဆုံး အကွာ {_mk(v)}s      [{_mk(w)}]" + _tick(ok))
+    # ⚠️ **variant ကွဲမကွဲ ပြရမည်** — role တစ်ခုလျှင် ဖိုင်တစ်ခုတည်း
+    #    ပြန်ဖြစ်လျှင် report ကနေ တိုက်ရိုက် မြင်ရမည် (audit အချက် C)。
+    if g("sfx_variants") is not None:
+        A(f"          asset ကွဲပြားမှု {_mk(g('sfx_variants'))} ဖိုင် / "
+          f"cue {_mk(g('sfx_n'))} · bank {', '.join(g('sfx_banks') or []) or '—'}")
     lv, lw, lok = _rv(g("checks"), "lufs")
     tv, tw, tok = _rv(g("checks"), "true_peak")
     A(f"          master {_mk(lv)} LUFS [{_mk(lw)}]{_tick(lok)} · "

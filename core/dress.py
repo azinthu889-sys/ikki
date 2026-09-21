@@ -222,7 +222,15 @@ def sfx(gfx, caps, rc):
     #    အသံ **တစ်ခု၏ အထပ်နှစ်ခု** ဖြစ်သည် (0.22s ကွာ)。 အရင်က စာရင်း
     #    ပြားပြားကနေ N ခုခြား ယူခဲ့သဖြင့် whoosh ကျန်ပြီး click ပျောက်တာမျိုး
     #    ဖြစ်နိုင်ခဲ့သည် — အသံက မပြည့်စုံဘဲ ထောက်နေမည်。
-    LAYER_W = 0.60
+    # ⚠️ ကိန်းများကို **ဒီမှာ မရေးတော့ပာ** — `qc.py` နဲ့ ထပ်နေလျှင်
+    #    တစ်ခု ပြင်ပြီး နောက်တစ်ခု မပြင်မိလျှင် generator နဲ့ gate ကွဲသွားပြီး
+    #    render ပြီးမှ ကျဘမ်း ဖြစ်သည် (တကန် ဖြစ်ခဲ့)。
+    try:
+        import sfxpol as _PL
+    except ImportError:
+        from core import sfxpol as _PL
+    _pol = _PL.for_recipe(rc)
+    LAYER_W = _pol["layer"]
     moments = []
     for c in out:
         if moments and c[0] - moments[-1][0] <= LAYER_W:
@@ -233,7 +241,7 @@ def sfx(gfx, caps, rc):
     # ⚠️ အသံနှစ်ခု **၈ စက္ကန့်အတွင်း မရှိရ** (playbook P3 · QC gate ကလည်း
     #    ဒီအတိုင်း စစ်သည်)。 generator က မလိုက်နာလျှင် render ပြီးမှ QC မှာ
     #    ကျဘမ်း ဖြစ်ပြီး အလုပ်အားလုံး အလကား ဖြစ်သည် (တကယ် ဖြစ်ခဲ့)。
-    MIN_GAP = 8.0
+    MIN_GAP = _pol["gap"]
     keep, last = [], None
     for at, layers in moments:
         if last is None or at - last >= MIN_GAP:
@@ -243,7 +251,9 @@ def sfx(gfx, caps, rc):
     #    နှုန်းထက် **ကျော်သွားစေနိုင်**သည်: ၁.၅/မိနစ် × ၇၇.၇s = ၁.၉၄ → ၂ ခု
     #    ⇒ တိုင်းလိုက်တော့ ၁.၅၄၅/မိနစ် ဖြစ်ကာ QC ဂိတ် (≤၁.၅) ကျခဲ့သည်
     #    (၂၀၂၆-၀၉-၂၀ j_f5bd998f5ca3)。 အောက်ဖြတ်လျှင် ဘယ်တော့မှ မကျော်ပါ。
-    cap = max(0, int(float(per) * dur / 60.0))
+    # ⚠️ `budget()` က အောက်ခြေ ံ၀s အနည်းဆုံး ထားသည် — မျှ မရှိလျှင်
+    #    ၄၀s အောက် ဗီဒီယိုတိုင်းမှာ SFX **သုည** ပဲ ထွက်သည် (တိုင်းပြီး တွေ့)。
+    cap = _PL.budget(dict(_pol, per_min=per), dur)
     if cap == 0: return []
     if len(keep) > cap:
         step = len(keep) / float(cap)
@@ -261,8 +271,17 @@ def mix(base, cues, out, cue_path, log=print):
     import subprocess
     ins=[]; fc=[]; k=0
     use=[]
-    for at, role, db in cues:
-        p = cue_path(role)
+    # ⚠️ `cue_path` ကို **(role, index)** နဲ့ ခော်သည် — index မပာလျှင်
+    #    variant selector က ခွဲပြားမှု မရပှိ ⇒ အသံ တစ်မျိုးတည်း ထပ်ကာထပ်ကာ
+    #    ကြားရမည် (၁၆ ငှစ်ကျိပ်မှာ whoosh တစ်မျိုးတည်း — တကန် ဖြစ်ခဲ့)。
+    #    ⚠️ ရှေ့ ပုံစံ (role တစ်ကြောင်းတည်း) ကိုလည်း ထက်ပံ့ပိုင်း ပြီးသား ထားသည်。
+    import inspect as _in
+    try:
+        _two = len(_in.signature(cue_path).parameters) >= 2
+    except (TypeError, ValueError):
+        _two = False
+    for _i, (at, role, db) in enumerate(cues):
+        p = cue_path(role, _i) if _two else cue_path(role)
         if p and os.path.exists(p): use.append((at,p,db))
     if not use:
         subprocess.run(["ffmpeg","-v","error","-y","-i",base,"-c","copy",out],check=True)
