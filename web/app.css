@@ -95,22 +95,23 @@ button{font-family:inherit}
 .main{padding:24px 26px 40px;min-width:0}
 
 /* ══ type ══ */
-/* ⚠️ **ခေါင်းစဉ် ဖောင့်** — မြန်မာစာမှာ `Noto Sans Myanmar` ရဲ့ ၇၀၀ က
-   stroke အထူ တစ်ပြေးညီ (monoline) ဖြစ်၍ ကြီးကြီး ပြလျှင် **ပုံတုံးနေ**သည်
-   (Zin ၂၀၂၆-၀၉-၂၁: 「ဒီဖောင့်ကြီးက ပုံတုံးနေတယ်」)。 `Noto Serif Myanmar` က
-   ထူ/ပါး ကွာဟမှု ရှိသဖြင့် ပရီမီယံ ဆန်သည် — နှိုင်းယှဉ်ပုံ ၅ မျိုး ကြည့်ပြီး
-   ရွေးထားသည် (Sans 700 · Serif 600 · Serif 500 · Sans 500 · Padauk 700)。
-   ⚠️ **စာကိုယ်မှာ မသုံးရ** — ၁၄.၅px serif က မြန်မာစာ ဖတ်ရ ခက်သည်
-      ⇒ `body`/`.my` က `Noto Sans Myanmar` အတိုင်း。
-   ⚠️ Latin က `Outfit` အတိုင်း ရှေ့ဆုံးမှာ ရှိသဖြင့် အင်္ဂလိပ် ခေါင်းစဉ် မပြောင်းပါ。 */
+/* ⚠️ **ခေါင်းစဉ် ဖောင့်** (Zin ရွေးချယ်ချက် · ၂၀၂၆-၀၉-၂၁)。 မြန်မာစာမှာ
+   ၇၀၀ က stroke အထူ တစ်ပြေးညီ (monoline) ဖြစ်၍ ကြီးကြီး ပြလျှင်
+   **ပုံတုံးနေ**သည် (「ဒီဖောင့်ကြီးက ပုံတုံးနေတယ်」)。
+   ⇒ နှိုင်းယှဉ်ပုံ ၅ မျိုး (Sans 700 · Serif 600 · Serif 500 · Sans 500 ·
+     Padauk 700) ကို browser မှာ တကယ် ကြည့်ပြီး Zin က **Sans 500 ·
+     line-height ၁.၆၂** ကို ရွေးသည် — ဖောင့် မပြောင်းဘဲ **အလေးချိန်
+     လျှော့ပြီး လိုင်း ကျယ်ပေး**တာ ပရီမီယံ ဆန်သည်。
+   ⚠️ Serif ကို **မသုံးရ** — စမ်းပြီး Zin ငြင်းထားသည် (ဒီဖိုင်ရဲ့ git log
+      761461b မှာ ရှိသည်)。 webfont လည်း ပြန်ဖယ်ထားသည် (payload)。
+   ⚠️ Latin က `Outfit` ရှေ့ဆုံးမှာ ရှိသဖြင့် အင်္ဂလိပ် ခေါင်းစဉ် မပြောင်းပါ。 */
 h1.t{font-size:clamp(24px,3.1vw,32px);font-weight:700;letter-spacing:-.01em;line-height:1.42}
 h1.hero{font-size:clamp(27px,4.2vw,46px);font-weight:700;letter-spacing:-.012em;line-height:1.38}
-h1.hero,h1.t{font-family:Outfit,"Noto Serif Myanmar","Noto Sans Myanmar",serif}
 /* ⚠️ မြန်မာစာမှာ **လိုင်းချင်း ကျယ်ပေးရမည်** — အထက်/အောက် သရတွေ
    ထပ်နေသဖြင့် ၁.၃၈ က ကပ်နေပြီး တစ်တုံးကြီးလို မြင်ရသည် (Zin ရဲ့ ပုံမှာ
    「ဗီဒီယိုတိုင်းမှာ」ရဲ့ သရက အပေါ်လိုင်းကို ထိနေသည်)。 အင်္ဂလိပ်မှာ
    ကျယ်လျှင် ပြန်ရိုးသွားသဖြင့် `lang` နဲ့ ခွဲသည်。 */
-:root[lang="my"] h1.hero{font-weight:600;line-height:1.62;letter-spacing:0}
+:root[lang="my"] h1.hero{font-weight:500;line-height:1.62;letter-spacing:0}
 :root[lang="my"] h1.t{font-weight:600;line-height:1.56;letter-spacing:0}
 .lede{font-size:14.5px;color:var(--tx2);line-height:1.72;max-width:58ch}
 .sech{display:flex;align-items:center;gap:12px;margin:32px 0 14px}
