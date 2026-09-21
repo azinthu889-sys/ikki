@@ -44,7 +44,27 @@ def ceil():
                 layer=float(getattr(Q, "SFX_LAYER_W", 0.60)))
 
 
-def clamp(p):
+# ⚠️ **တိုင်းထားသော profile** — ဤအထဲက per_min/gap ကသာ ပုံသေ ဂိတ်ကို
+#    ကျော်ခွင့်ရှိသည်。 `src` မှာ တိုင်းချက် မှတ်ထားရမည် — မှတ်မထားလျှင်
+#    「ဂိတ် လျှော့」သာ ဖြစ်ပြီး တိုင်းချက် မဟုတ်ပါ。
+# ⚠️ Zin: 「sound effect လဲတစ်ခုမှမတွေ့ရသေးဘူး」(၂၀၂၆-၀၉-၂၁) — ၇၂s render
+#    မှာ အသံဖြစ်ရပ် **၁ ခုတည်း** (၀.၈၃/min) ထွက်ခဲ့သည်。
+# ⚠️ reference ၈ ပုဒ် × ၂၄၀s တိုင်းချက် —
+#      သိပ်သည်းမှု ၆.၂၅ · ၆.၂၅ · ၆.၅၀ · ၇.၅၀ · ၈.၀၀ · ၈.၂၅ · ၈.၅၀ · ၈.၅၀/min
+#      အကွာ (n=၁၆၆) p10 ၁.၂ · p25 ၂.၂ · **အလယ် ၄.၇** · p75 ၉.၁ · p90 ၁၈.၉s
+#      ⇒ ပုံသေ ဂိတ် (≥၈s) က reference ကိုယ်တိုင်ရဲ့ **၇၀%** ကို ပယ်မည်
+#    ⇒ headtop/ref-talk ကို တိုင်းချက်အတိုင်း ဖွင့်သည် — အနိမ့်ဆုံး
+#      တိုင်းချက် (၆.၂၅) အောက် ၆.၀ နဲ့ p25 (၂.၂) အနီး ၂.၀ ဟု **ကွာလပ်
+#      ချန်ပြီး** ထားသည်。
+MEASURED = {
+    "headtop":  dict(per_min=6.0, gap=2.0,
+                     src="reference ၈ ပုဒ် — ၆.၂၅–၈.၅၀/min · အကွာ အလယ် ၄.၇s"),
+    "ref-talk": dict(per_min=6.0, gap=2.0,
+                     src="headtop နဲ့ တူညီသော reference"),
+}
+
+
+def clamp(p, style=None):
     """ပေါလစီကို ဂိတ်အတွင်း **အတင်း ထည့်**သည် — ဂိတ်ကို မလျှော့ပါ
 
     ⚠️ `per_min` က **အမြင့်ဆုံး** ⇒ `min()`。
@@ -53,8 +73,18 @@ def clamp(p):
     c = ceil()
     q = dict(DEF)
     q.update({k: v for k, v in (p or {}).items() if v is not None})
-    q["per_min"] = min(float(q["per_min"]), c["per_min"])
-    q["gap"] = max(float(q["gap"]), c["gap"])
+    m = MEASURED.get(style or "")
+    if m:
+        # ⚠️ တိုင်းထားသော profile — ကိုယ်ပိုင် ကိန်းကို သုံးသည်
+        q["per_min"] = float(m["per_min"])
+        q["gap"] = float(m["gap"])
+        q["src"] = m["src"]
+        q["measured"] = True
+    else:
+        # ⚠️ မတိုင်းရသေးသော profile — **ပုံသေ ဂိတ်ကို မကျော်ရ**
+        q["per_min"] = min(float(q["per_min"]), c["per_min"])
+        q["gap"] = max(float(q["gap"]), c["gap"])
+        q["measured"] = False
     q["layer"] = min(float(q.get("layer") or c["layer"]), c["layer"])
     return q
 
@@ -69,7 +99,7 @@ def policy(theme=None, style=None):
         p.update(POLICY[theme])
     if style and style in BY_STYLE:
         p.update(BY_STYLE[style])
-    return clamp(p)
+    return clamp(p, style=style)
 
 
 def budget(p, dur):
@@ -103,7 +133,8 @@ def for_recipe(rc):
     return clamp(dict(per_min=rc.get("sfx_per_min"),
                       gap=GAP.get(th), layer=None,
                       bright_floor=ZJL_FLOOR if th == "zjl" else 0,
-                      src=f"recipe sfx_per_min={rc.get('sfx_per_min')} · theme={th}"))
+                      src=f"recipe sfx_per_min={rc.get('sfx_per_min')} · theme={th}"),
+                 style=rc.get("_id") or rc.get("style"))
 
 
 ZJL_FLOOR = 900     # ⚠️ `sfxpool.ZJL_MIN_BRIGHT` နဲ့ တူရမည်

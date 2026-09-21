@@ -468,7 +468,7 @@ SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
           "latch": -17, "pop": -18, "click": -18, "impact": -14}
 
 
-def sfx_plan(events, dur, per_min, log=None):
+def sfx_plan(events, dur, per_min, log=None, style=None):
     """`templateEvents` → `sfxEvents` · **ဂိတ်ဘောင်ထဲ** ကန့်သတ်သည်
 
     ⚠️ 「Layered sounds count as one sound moment if they share the same
@@ -497,7 +497,7 @@ def sfx_plan(events, dur, per_min, log=None):
         import sfxpol as _PL
     except ImportError:
         from core import sfxpol as _PL
-    _pol = _PL.clamp(dict(per_min=per_min))
+    _pol = _PL.clamp(dict(per_min=per_min), style=style)
     gap = _pol["gap"]
     cap = _PL.budget(_pol, dur)
 
@@ -656,7 +656,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     else:
         p["sfxEvents"] = sfx_plan(p["templateEvents"], dur,
                                   float(o.get("sfx_per_min") or 1.5),
-                                  log=o.get("log"))
+                                  log=o.get("log"), style=o.get("style"))
 
     # ── punch-in — ၁၅s အတွင်း ၂ ခု · ၁.၀၈ ထက် မကျော် ──
     if en["punch"]:

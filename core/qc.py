@@ -39,7 +39,8 @@ def _probe(p):
     j = json.loads(o); s = j["streams"][0]
     return dict(w=s["width"], h=s["height"], dur=float(j["format"]["duration"]))
 
-def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None):
+def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
+        sfx_pol=None):
     """(ok, checks) — checks က UI ရဲ့ QC ကတ်တွေအတွက်"""
     m = _probe(out)
     I, tp = _lufs(out)
@@ -118,15 +119,23 @@ def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None):
         #    ကို မိနစ်အဖြစ် **ချဲတွက်လို့ မရ**ခြင်း ဖြစ်သည်。
         #    ⚠️ ထပ်ခွေမှုကို တားသော ဂိတ်က `sfx_spacing` (≥၈s) — **အတိအကျ
         #    ကျန်နေသည်** ⇒ ၁၆s မှာ ဖြစ်ရပ် ၂ ခု ဆိုလျှင် ၂.၀/min ⇒ ကျမည်。
+        # ⚠️ **ဂိတ်က profile အလိုက်** — အောက်က ပုံသေ。 headtop ရဲ
+        #    reference ၁ ပုဒ် (၂၄၀s စီ) တိုင်းရာ **၆.၂၅–၈.၅၀/min**
+        #    ရှိသည် — ပုံသေ ၁.၅ က **၅ ဆ တင်း**သဖြင့် ၁၂၀s render တစ်ခုမှာ
+        #    အသံ **တစ်ချက်တည်း** ပါပြီး Zin တစ်ချက်မှ မကြားရပါ (၂၀၂၆-၀၉-၂၁)。
+        #    ⚠️ ပုံသေကို **မလျှော့ပါ** — တိုင်းထားသော profile ကိုသာ
+        #       ကိုယ်ပိုင် ကိန်း ခွင့်ပြုသည် (`src` မှာ မှတ်ရမည်)。
+        _pol = sfx_pol or {}
+        _pm = float(_pol.get("per_min") or SFX_MAX_PER_MIN)
+        _gp = float(_pol.get("gap") or SFX_MIN_GAP)
         per = len(moments)/(max(60.0, m["dur"])/60.0)
-        add("sfx_density", per <= SFX_MAX_PER_MIN, round(per,2),
-            f"≤ {SFX_MAX_PER_MIN}/min")
+        add("sfx_density", per <= _pm, round(per,2), f"≤ {_pm}/min")
         gaps = [round(b-a, 1) for a, b in zip(moments, moments[1:])]
-        close = [g for g in gaps if g < SFX_MIN_GAP]
+        close = [g for g in gaps if g < _gp]
         # ⚠️ အရင်က မကျလျှင် "—" ပြသဖြင့် **မတိုင်းရသေးသလို** မြင်ရသည်。
         #    ⇒ တကယ့် အနီးဆုံး အကွာကို ပြသည် — ✓ က အဓိပ္ပာယ် ရှိစေရန်。
         add("sfx_spacing", not close,
-            (min(gaps) if gaps else "—"), f"≥ {SFX_MIN_GAP}s ခြား")
+            (min(gaps) if gaps else "—"), f"≥ {_gp}s ခြား")
         add("sfx_moments", True, len(moments), f"cue {len(ts)} → အသံဖြစ်ရပ်")
     ok = all(c["ok"] for c in C)
     return ok, C

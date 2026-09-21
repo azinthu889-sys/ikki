@@ -642,6 +642,10 @@ def clean(over):
 def apply(name, over):
     """recipe + ပြင်ချက် → တကယ် သုံးမည့် ဇယား"""
     r = get(name)
+    # ⚠️ **recipe နာမည်ကို ပါသွားစေရမည်** — `label` က ပြရန်သာ ("Headtop")
+    #    ဖြစ်ပြီး ပုံစံအလိုက် မူဝါဒ (SFX သိပ်သည်းမှု စသည်) က id နဲ့ ရှာသည်。
+    #    မပါလျှင် တိုင်းထားသော profile ကို ဘယ်တော့မှ မတွေ့ပါ。
+    r["_id"] = (name or "").strip() or "cinematic-vlog"
     o = clean(over)
     cn = o.pop("cut", None)
     if cn in CUTS:

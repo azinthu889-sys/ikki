@@ -113,22 +113,36 @@ def main():
     check("per_min ဂိတ်အထိသာ", hard["per_min"] <= Q.SFX_MAX_PER_MIN, hard)
     check("gap ဂိတ်အထက်သာ", hard["gap"] >= Q.SFX_MIN_GAP, hard)
     check("layer ဂိတ်အထိသာ", hard["layer"] <= Q.SFX_LAYER_W, hard)
-    bad = []
+    # ⚠️ **တိုင်းထားသော profile သာ ပုံသေ ဂိတ်ကို ကျော်ခွင့်ရှိသည်**。
+    #    headtop ကို reference ၈ ပုဒ်ကနေ တိုင်းရာ ၆.၂၅–၈.၅၀/min ဖြစ်ပြီး
+    #    ပုံသေ ၁.၅ က ၅ ဆ တင်းလွန်းသည် — ၇၂s render မှာ အသံ ၁ ခုတည်း
+    #    ထွက်ခဲ့ပြီး Zin 「တစ်ခုမှမတွေ့ရသေးဘူး」 ဟု ပြောခဲ့သည်。
+    bad, meas = [], []
     for e in RC.listing():
         k = e.get("id") if isinstance(e, dict) else e
         p = PL.for_recipe(RC.apply(k, {}))
-        if p["per_min"] > Q.SFX_MAX_PER_MIN or p["gap"] < Q.SFX_MIN_GAP:
+        over = p["per_min"] > Q.SFX_MAX_PER_MIN or p["gap"] < Q.SFX_MIN_GAP
+        if over and p.get("measured"):
+            meas.append((k, p["per_min"], p["gap"]))
+        elif over:
             bad.append((k, p["per_min"], p["gap"]))
-    check("recipe အားလုံး ဂိတ်အတွင်း", not bad, bad)
+    check("မတိုင်းရသေးသော recipe က ဂိတ် မကျော်", not bad, bad)
+    check("ကျော်သည့်ဟာတိုင်း တိုင်းချက် မှတ်ထားသည်",
+          all(PL.MEASURED.get(k, {}).get("src") for k, _a, _b in meas), meas)
 
     print("\n── ၁၂ · အောက်ခြေ ၆၀s (တိုသော ဗီဒီယိုမှာ အသံ ရရမည်) ──")
     # ⚠️ အရင်က ၄၀s အောက် ဗီဒီယိုတိုင်းမှာ **သုည သာ** ဂိတ် ဖြတ်နိုင်ခဲ့သည်
     p = PL.policy("zae", "headtop")
     zero = [d for d in (10, 16, 30, 45) if PL.budget(p, d) < 1]
     check("၁၆s မှာ အသံ ၁ ချက် ရ", not zero, zero)
+    # ⚠️ ဂိတ်က ယခု profile အလိုက် — headtop ရဲ့ ကိုယ်ပိုင် ကန့်သတ်နဲ့ စစ်သည်
     over = [d for d in (10, 16, 30, 45, 60, 77.7, 120, 300)
-            if PL.budget(p, d) / (max(60.0, d) / 60.0) > Q.SFX_MAX_PER_MIN + 1e-9]
-    check("ဘယ်အရှည်မှ ဂိတ် မကျော်", not over, over)
+            if PL.budget(p, d) / (max(60.0, d) / 60.0) > p["per_min"] + 1e-9]
+    check("ဘယ်အရှည်မှ ကိုယ့်ကန့်သတ် မကျော်", not over, over)
+    dflt = PL.policy("zae", "short-biz")
+    over2 = [d for d in (16, 60, 300)
+             if PL.budget(dflt, d) / (max(60.0, d) / 60.0) > Q.SFX_MAX_PER_MIN + 1e-9]
+    check("မတိုင်းရသေးသောဟာက ပုံသေ ဂိတ် မကျော်", not over2, over2)
 
     print()
     if FAILED:

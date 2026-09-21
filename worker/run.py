@@ -1201,7 +1201,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      # ⚠️ SFX မူဝါဒကို **recipe ကနေ** ယူရမည် — planner ထဲ
                      #    ကိန်းသေ ရေးလျှင် ပုံစံတိုင်း တူသွားမည်。
                      sfx_on=rc.get("sfx_on"), sfx=rc.get("sfx", True),
-                     sfx_per_min=rc.get("sfx_per_min")),
+                     sfx_per_min=rc.get("sfx_per_min"),
+                     # ⚠️ **ပုံစံ နာမည်ကို ပေးရမည်** — တိုင်းထားသော SFX
+                     #    မူဝါဒ (headtop ၆.၀/min) ကို id နဲ့ ရှာသည်。
+                     style=rc.get("_id")),
                 video_id=job["id"], log=log)
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
@@ -2413,7 +2416,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
             sfx_n=nsfx if "nsfx" in dir() else None)
     except Exception as _e:
         log(f"  ⚠️ report ကိန်း စုမရ: {type(_e).__name__}: {_e}")
-    ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards,
+    # ⚠️ **QC ဂိတ်ကို profile နဲ့ တွဲပေးရမည်** — headtop မှာ ပုံသေ
+    #    ၁.၅/min ထားလျှင် ၁၂၀s ဗီဒီယိုမှာ အသံ ၁ ချက်ပဲ ထွက်မည်。
+    try:
+        import sfxpol as _PL2
+        _qpol = _PL2.for_recipe(rc)
+    except Exception:
+        _qpol = None
+    ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
                         share=rc.get("gfx_share"))
     log("  QC · " + QC.summary(checks))
