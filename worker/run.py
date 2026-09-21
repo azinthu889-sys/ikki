@@ -396,6 +396,29 @@ def _cap_stroke(rc, TH):
 BROLL_FADE = 0.05     # reference အတိုင်း — ဖရိမ်း ၁–၂ ခု
 
 
+def _fade_out(src, dst, a, b, d=0.18):
+    """**ထွက်ချိန်သာ** fade တပ်သည် — ဝင်ချိန်ကို မထိပါ。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၁ တိုင်းချက် (`core/motmeas.py`) — keyword pop clip တွေရဲ့
+       `card_out` က **၀.၀၀s** ဖြစ်သည် (ပစ်မှတ် ၀.၂၀၀s [၀.၁၃၃–၀.၂၆၇])。
+       template မှာ ထွက်ချိန် မရှိဘဲ compositor မှာလည်း fade မတပ်သဖြင့်
+       pop က **ချက်ချင်း ပျောက်**သည် — 「ချက်ချင်း ပေါ် ချက်ချင်း ပျောက်」
+       က Zin ရဲ့ 「quality 0」ဆိုသော တုံ့ပြန်ချက်ရဲ့ အကြောင်းရင်း。
+    ⚠️ **ဝင်ချိန်မှာ fade မတပ်ရ** — template ရဲ့ ကိုယ်ပိုင် ဝင်ချိန်
+       (တိုင်းချက် ၀.၃–၀.၆s · ဘောင်အတွင်း ✓) နဲ့ နှစ်ထပ် ဖြစ်မည်。
+    ⚠️ `enable` ပိတ်ချိန် မတိုင်ခင် ပြီးအောင် ထားရမည် (`_fade` ရဲ့ TAIL နည်းတူ)。
+    """
+    dur = max(0.1, float(b) - float(a))
+    # ⚠️ **အောက်သို့ ဖြတ်ရမည်** — `{:.2f}` က ၀.၁၃၅ ကို ၀.၁၄ လုပ်ပြီး
+    #    ကန့်သတ်ချက် (အရှည်ရဲ့ ၄၅%) ကို ကျော်နိုင်သည် (test က ဖမ်းမိ)。
+    import math as _m
+    d = max(0.06, min(float(d), dur * 0.45))
+    d = _m.floor(d * 100.0) / 100.0
+    st_out = max(float(a) + 0.02, float(b) - d - 0.10)
+    return (f"[{src}]format=yuva420p,"
+            f"fade=t=out:st={st_out:.2f}:d={d:.2f}:alpha=1[{dst}]")
+
+
 def _fade(src, dst, a, b, hard=False):
     """overlay input ကို fade တပ်ပြီး ပြန်ပေးသည် — `-itsoffset` သုံးထားသဖြင့်
     input ရဲ့ အချိန်မှတ်က main timeline နဲ့ တူသည် ⇒ `st` ကို တိုက်ရိုက် ပေးရသည်。"""
@@ -2507,10 +2530,34 @@ def render(job, brand, src, out, stage, log=print, over=None):
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass"
                   f":enable='between(t,{at:.2f},{at + d:.2f})'[v{n}]")
         last = f"v{n}"
+    # ⚠️ **ထွက်ချိန် မရှိတဲ့ clip ကိုပဲ fade တပ်ရမည်** — ကတ်တချို့မှာ
+    #    template ရဲ့ ကိုယ်ပိုင် ထွက်ချိန် ရှိပြီးသား (တိုင်းချက်:
+    #    `ht_outline_title` ၀.၁၆၇s ✓) ⇒ ထပ်တပ်လျှင် နှစ်ထပ် ဖြစ်မည်。
+    #    ⇒ clip တစ်ခုချင်း တိုင်းပြီး ၀.၁၀s အောက်ဆိုမှ တပ်သည်。
+    try:
+        import motmeas as _MM2
+    except Exception:
+        _MM2 = None
+    _nfo = 0
     for at, mov, d, dx, _t in (pmov or [])[:10]:
         ins += ["-itsoffset", f"{at:.2f}", "-i", mov]; n += 1
-        fc.append(f"[{last}][{n}:v]overlay={dx}:0:eof_action=pass[v{n}]")
+        _need = False
+        if _MM2 is not None:
+            try:
+                _m2 = _MM2.measure(mov)
+                _need = bool(_m2 and (_m2.get("out_s") or 0.0) < 0.10)
+            except Exception:
+                _need = False
+        if _need:
+            fc.append(_fade_out(f"{n}:v", f"pf{n}", at, at + d))
+            fc.append(f"[{last}][pf{n}]overlay={dx}:0:eof_action=pass[v{n}]")
+            _nfo += 1
+        else:
+            fc.append(f"[{last}][{n}:v]overlay={dx}:0:eof_action=pass[v{n}]")
         last = f"v{n}"
+    if _nfo:
+        log(f"  ↘ pop {_nfo} ခု ထွက်ချိန် မရှိ၍ fade တပ်ပြီး "
+            f"(ပစ်မှတ် ၀.၂၀၀s)")
     # ── ⑧ ဘရန်း logo ────────────────────────────────────────
     # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် **ဖျောက်**ရသည် — ဂရပ်ဖစ်တွေက အပေါ်မှာ ချထားပြီး
     #    logo နဲ့ ထပ်သည်。 gmov ရဲ့ ကွက်လပ်တွေမှာသာ ပြသည်。
@@ -2716,6 +2763,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
         _qpol = _PL2.for_recipe(rc)
     except Exception:
         _qpol = None
+    # ⚠️ **လှုပ်ရှားမှုကို တိုင်းရမည်** — report မှာ 「မတိုင်းရသေး」ဟု
+    #    hardcode ခဲ့သဖြင့် ကတ် **ဘယ်လို** ပေါ်တာ ဘယ်တော့မှ မသိရခဲ့。
+    #    ⚠️ ထွက်ဖိုင်ပေါ် မဟုတ်ဘဲ **overlay clip** ကနေ တိုင်းသည် — ဗီဒီယိုပေါ်
+    #       တင်ပြီးလျှင် ရုပ်နဲ့ ရောပြီး alpha ကို ခွဲ၍ မရတော့ပါ。
+    try:
+        import motmeas as _MM
+        _movs = ([x[1] for x in (gmov or [])] +
+                 [x[1] for x in (pmov or [])] +
+                 [p_ for p_, _a, _b, _l in (slides or [])
+                  if str(p_).lower().endswith(".mov")])
+        REPORT["motion"] = _MM.summary(_movs, log=log)
+    except Exception as _me:
+        log(f"  ⚠️ လှုပ်ရှားမှု မတိုင်းနိုင်: {type(_me).__name__}: {_me}")
     ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
                         share=rc.get("gfx_share"))
@@ -3233,8 +3293,23 @@ def write_report(jid, R):
     v, w, ok = _rv(g("checks"), "caption_zone")
     A(f"          baseline {_mk(v)}")
     A("")
-    A(f"MOTION    card_in — မတိုင်းရသေး · card_out — မတိုင်းရသေး · "
-      f"easing — မတိုင်းရသေး")
+    mo = g("motion")
+    if not mo:
+        A("MOTION    မတိုင်းရသေး — overlay clip မရှိ")
+    else:
+        # ⚠️ ပစ်မှတ်က `packs/headtop-premium/tokens.json` (reference ၂ ပုဒ် ·
+        #    ဖြစ်ရပ် ၂၁ ခုကနေ တိုင်းယူထား) — enter ၀.၄၆၇ [p25 ၀.၂၃၃–p75 ၀.၇၃၃]
+        #    · exit ၀.၂၀၀ [၀.၁၃၃–၀.၂၆၇] · easing က **spec သာ**。
+        _in, _out, _ez = mo.get("in_s"), mo.get("out_s"), mo.get("ease")
+        _iok = (_in is not None and 0.233 <= _in <= 0.733)
+        _ook = (_out is not None and 0.133 <= _out <= 0.267)
+        A(f"MOTION    clip {_mk(mo.get('n'))} ခု တိုင်း · "
+          f"ဝင် {_mk(_in)}s [၀.၂၃၃–၀.၇၃၃]{_tick(_iok)} · "
+          f"ထွက် {_mk(_out)}s [၀.၁၃၃–၀.၂၆၇]{_tick(_ook)}")
+        A(f"          ease {_mk(_ez)} · spec {_mk(mo.get('spec_ease'))} "
+          f"(၀ = မျဉ်းဖြောင့် · အပေါင် = ease-out)"
+          + ("  ⚠️ စက်ဆန်" if (_ez is not None and _ez < 0.30) else ""))
+        A(f"          ရပ်ချိန် {_mk(mo.get('hold_s'))}s")
     A("")
     v, w, ok = _rv(g("checks"), "sfx_density")
     mv, _mw, _mo = _rv(g("checks"), "sfx_moments")
