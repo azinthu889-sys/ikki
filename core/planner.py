@@ -114,6 +114,32 @@ PROFILE_PREFER = {
 }
 
 
+# ⚠️ **template ပြန်ပြန် ပေါ်တာကို တားရမည်** (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。
+#    ဝါကျ ၁၀ ကြောင်းနဲ့ plan ပြေးကြည့်တော့ event ၈ ခု ရပေမယ့် template
+#    **၃ မျိုးပဲ** ဖြစ်ပြီး `ht_stat_ring` က **၄ ခါ** ပေါ်ခဲ့သည် —
+#    candidate order က ပုံသေ ဖြစ်ပြီး `last_id` တစ်ခုပဲ ရှောင်သဖြင့်
+#    label တူတိုင်း **ထိပ်ဆုံး တစ်ခုတည်း** ကို ပြန်ပြန် ယူသည်。
+#    ⇒ SFX pool (`sfxpool.NOREPEAT=6`) နည်းတူ ဝင်းဒိုး + seed နဲ့ လှည့်သည်。
+# ⚠️ **ဦးစားပေး အစီအစဉ်ကို မပျက်စေရ** — မသုံးရသေးတာများကို ရှေ့တင်ရုံသာ
+#    (အဲဒီအုပ်စု အတွင်းမှာ verified best-of order အတိုင်း ကျန်သည်)。
+NOREPEAT = 6
+
+
+def _rotate(cands, used, seed="", k=NOREPEAT):
+    """မသုံးရသေးသော candidate များကို ရှေ့တင်သည် — seed နဲ့ လှည့်။"""
+    if not cands:
+        return []
+    recent = set(list(used)[-k:])
+    fresh = [c for c in cands if c not in recent]
+    stale = [c for c in cands if c in recent]
+    if fresh and seed:
+        # ⚠️ ဗီဒီယိုအလိုက် ကွဲပြားစေရန် — တူညီသော seed ⇒ တူညီသော ရလဒ်
+        import hashlib
+        h = int.from_bytes(hashlib.sha1(str(seed).encode()).digest()[:4], "big")
+        fresh = fresh[h % len(fresh):] + fresh[:h % len(fresh)]
+    return fresh + stale
+
+
 def _profile_candidates(label, profile, last_id=None):
     """Profile + semantic label → allowed template IDs.
 
@@ -681,6 +707,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     last_change = -99.0
     _ff_used = False        # ⚠️ ဘောင်အပြည့် ကတ် — ဗီဒီယိုတစ်ပုဒ်လျှင် တစ်ခါသာ
     last_id = None
+    _used_tpl = []          # ⚠️ ရွေးပြီးသား template — ပြန်ပြန် မပေါ်စေရန်
 
     for i, s in enumerate(segs):
         a = float(s.get("start") or 0.0)
@@ -742,9 +769,22 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         # Premium profile ကသာ Headtop pack ကို ဦးစားပေးသည်။ Clean/Bold/
         # Explainer တို့မှာ user ရွေးထားသော explicit MotionKit family ကိုသာ
         # သုံးစေ၍ profile select က render ထဲ အမှန်တကယ် သက်ရောက်စေသည်။
-        for _pid in (_pack_ids(lab) if profile == "premium" else []):
+        # ⚠️ **pack က အမြဲ အရင် အောင်လျှင် တစ်ခုတည်း ပြန်ပြန် ပေါ်သည်**
+        #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက်) — `PACK_INTENT` ရဲ့ label အများစုမှာ
+        #    pack template **၁ ခုပဲ** ရှိသည် (`number` → `ht_stat_ring`)。
+        #    ဝါကျ ၄ ကြောင်း `number` ဆိုလျှင် ၄ ခုလုံး တူညီသည် —
+        #    catalog မှာ ၃ ခု ရှိပါလျက် ဘယ်တော့မှ မရောက်ခဲ့。
+        #    ⇒ အဆင့် ၃ ဆင့်: ① pack (ကြာသေးတာ ကျော်) ② catalog
+        #      ③ pack (ကျော်ခဲ့တာ ပြန်ယူ — ဂရပ်ဖစ် မပျောက်စေရန်)
+        _recent = set(_used_tpl[-NOREPEAT:])
+        _pack_c = (_rotate(_pack_ids(lab), _used_tpl, video_id)
+                   if profile == "premium" else [])
+        _stale = []
+        for _pid in _pack_c:
             if _full_frame(_pid) and (lab != "hook" or _ff_used):
                 continue
+            if _pid in _recent:
+                _stale.append(_pid); continue      # ကြာသေး ⇒ catalog ကို အခွင့်ပေး
             _pp = _pack_props(_pid, lab, txt)
             if _pp is not None:
                 cid, pr = _pid, _pp
@@ -752,11 +792,21 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                     _ff_used = True
                 break
         if not cid:
-            cands = _profile_candidates(lab, profile, last_id)
+            cands = _rotate(_profile_candidates(lab, profile, last_id),
+                            _used_tpl, video_id)
             for c in cands:
                 pr = fill(c, lab, txt)
                 if pr is not None:
                     cid = c
+                    break
+        if not cid:
+            # ⚠️ **ဂရပ်ဖစ် မပျောက်စေရ** — ကွဲပြားမှုထက် ရှိတာက ကောင်းသည်
+            for _pid in _stale:
+                _pp = _pack_props(_pid, lab, txt)
+                if _pp is not None:
+                    cid, pr = _pid, _pp
+                    if _full_frame(_pid):
+                        _ff_used = True
                     break
         if not cid:
             continue
@@ -779,6 +829,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             reason=f"「{lab}」အမျိုးအစား — {txt[:28]}",
             confidence=0.72))
         last_change, last_id = a, cid
+        _used_tpl.append(cid)
 
     # ── SFX setting ──────────────────────────────────────────────
     # Actual cue generation ကို keyword-pop / rhythm-fill ပြီးမှ အောက်ဆုံးမှာ
@@ -822,7 +873,12 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                 continue
             _lab2 = (labels[i] if i < len(labels) else "plain")
             _cid2 = _pr2 = None
-            _pack_fill = ((_pack_ids(_lab2) or _pack_ids("section"))
+            # ⚠️ **ဒီလမ်းကြောင်းကိုပါ လှည့်ရမည်** — ၂၀၂၆-၀၉-၂၁: အပေါ်က
+            #    ၂ နေရာ လှည့်ပြီးမှ တိုင်းကြည့်တော့ `ht_stat_ring` က ၄ ခါ
+            #    ပေါ်နေဆဲ ဖြစ်ခဲ့သည် — event အများစုက **ဒီ gap-fill** ကနေ
+            #    လာသဖြင့်。 (တိုင်းပြီးမှ တွေ့ — code ဖတ်ရုံနဲ့ မရ)
+            _pack_fill = (_rotate(_pack_ids(_lab2) or _pack_ids("section"),
+                                  _used_tpl, video_id)
                           if profile == "premium" else [])
             for _pid2 in _pack_fill:
                 if _full_frame(_pid2):
@@ -834,8 +890,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             if not _cid2:
                 # Non-pack profile တွေအတွက်လည်း cadence fill ရှိရမည်၊ ဒါပေမယ့်
                 # profile ပြင်ပ template ဆီ တိတ်တဆိတ် ပြန်မကျစေရ။
-                for _cid_try in (_profile_candidates(_lab2, profile)
-                                 + _profile_candidates("section", profile)):
+                for _cid_try in _rotate(
+                        _profile_candidates(_lab2, profile)
+                        + _profile_candidates("section", profile),
+                        _used_tpl, video_id):
                     _pr_try = fill(_cid_try, _lab2, _txt2)
                     if _pr_try is not None:
                         _cid2, _pr2 = _cid_try, _pr_try
@@ -853,6 +911,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                 reason=f"စည်းချက် ဖြည့် — {_near:.0f}s ကွက်လပ်",
                 confidence=0.55))
             _at.append(round(a2, 2)); _at.sort(); _used_t.add(round(a2, 1))
+            _used_tpl.append(_cid2)
             _added += 1
         if _added and o.get("log"):
             o["log"](f"  စည်းချက် ဖြည့် · ဂရပ်ဖစ် {_added} ခု ထပ်ထည့် "
