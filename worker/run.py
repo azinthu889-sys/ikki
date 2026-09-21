@@ -505,6 +505,15 @@ def faceband(src, W, H, log=print, n=6):
 
 
 
+
+def _outdur_guess(spans):
+    """ဖြတ်ပြီး ထွက်မည့် အရှည် — span ပေါင်းလဒ်"""
+    try:
+        return float(sum(b - a for a, b in (spans or [])))
+    except Exception:
+        return 0.0
+
+
 def _pop_ink(mov, work, idx):
     """pop clip ရဲ့ **တကယ့် အလျားလိုက် နယ်နိမိတ်** `(x0, x1)` — မရလျှင် None
 
@@ -1297,6 +1306,61 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ⇒ အရေအတွက် တိုးတာ မဟုတ်、**မျက်နှာပြင် အပြည့်** ပြရမည်。
     slides = []
     pmov = []          # keyword pop — (at, mov, dur, dx, စာသား)
+    rmov = []          # ဘေးဘောင် စာရင်း — (at, png, dur)
+    # ══ ဘေးဘောင် စာရင်း (progress rail) ═══════════════════════════
+    # ⚠️ reference `HJ0K1yAuGLw` ကနေ တိုင်းယူထားသည် (`docs/HEADTALK_STYLE.md` §၅)。
+    #    ပုံစံက **မိနစ်ချီ ဆက်ပေါ်**ပြီး item တစ်ခုချင်း အခြေအနေ ပြောင်းသည် —
+    #    IKKI ရဲ့ 「ပြ → ဖယ်」နဲ့ လုံးဝ ကွဲသည် ⇒ `gfx_share` နဲ့ မရောရ。
+    # ⚠️ **plan ထဲ မထည့်သေးပါ** — `plan_schema` က template ID မဖြစ်မနေ
+    #    လိုသဖြင့် ဒီအတွက် schema ချဲ့ရမည်။ v1 မှာ worker က တိုက်ရိုက်
+    #    တွက်သည် (segs ရှိပြီးသား)။ ⇒ UI ကနေ ပြင်လို့ မရသေး。
+    if rc.get("plan") and segs:
+        try:
+            import rail as RL
+            _r = RL.find(segs)
+            if _r:
+                _ai, _head, _n = _r
+                _st = RL.starts(segs, _ai + 1, _n)
+                _acc = rc.get("accent") or TH.get("GOLD") or "#FFE000"
+                _work_r = os.path.join(work, "rail"); os.makedirs(_work_r, exist_ok=True)
+                # ⚠️ item ရဲ့ **ခေါင်းစဉ်** = အဲဒီဝါကျရဲ့ အတိုချုံး。
+                #    မရှိလျှင် နံပါတ် ပြသည် (reference ရဲ့ ပထမ အခြေအနေ)。
+                _lab = {}
+                for _k, _j in _st.items():
+                    _t = " ".join((segs[_j].get("text") or "").split())
+                    # ⚠️ 「နံပါတ် ၁」ရှေ့ဆက် **ဖယ်ရမည်** — pill တိုင်းမှာ
+                    #    ပါနေလျှင် နေရာ ကုန်ပြီး အဓိပ္ပာယ် မရှိပါ。
+                    _lab[_k] = (RL.cut_at_space(RL._head(RL._strip_mark(_t)), 28)
+                                or RL._mm(_k))
+                _states = []
+                _marks = sorted(_st.items())
+                for _idx, (_k, _j) in enumerate(_marks):
+                    _a = omap(float(segs[_j].get("start") or 0), snap=True)
+                    if _a is None:
+                        continue
+                    _nx = None
+                    if _idx + 1 < len(_marks):
+                        _nx = omap(float(segs[_marks[_idx + 1][1]].get("start") or 0),
+                                   snap=True)
+                    _b = _nx if _nx and _nx > _a else min(_a + 12.0, _outdur_guess(spans))
+                    if _b - _a < 1.0:
+                        continue
+                    _items = [(_lab[_m] if _m <= _k and _m in _lab else RL._mm(_m))
+                              for _m in range(1, _n + 1)]
+                    _states.append((_a, _b, _items, _k - 1,
+                                    tuple(range(0, _k - 1))))
+                for _i2, (_a, _b, _items, _act, _done) in enumerate(_states):
+                    _png = os.path.join(_work_r, f"r{_i2:02d}.png")
+                    RL.panel(_head, _items, active=_act, done=_done,
+                             W=TH["W"], H=TH["H"], accent=_acc,
+                             mmf=rc["mmf"]).save(_png)
+                    rmov.append((round(_a, 2), _png, round(_b - _a, 2)))
+                if rmov:
+                    log(f"  ဘေးဘောင် စာရင်း ·「{_head}」· item {_n} · "
+                        f"အခြေအနေ {len(rmov)} ခု · "
+                        f"{rmov[0][0]:.1f}–{rmov[-1][0] + rmov[-1][2]:.1f}s")
+        except Exception as _re2:
+            log(f"  ⚠️ ဘေးဘောင် စာရင်း မရ: {type(_re2).__name__}: {_re2}")
     # ══ Headtop — ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်သည် ═══════
     # ⚠️ ထပ်တင်လို့ မရပါ。 ပြောသူက ဘောင်ရဲ့ ၆၄% (မျက်နှာဇုန် ၀–၆၉၆px) ယူပြီး
     #    စာတန်းက ၇၀% (၇၅၇px) ကနေ စသဖြင့် ကျန်နေရာက **၆၁px = ၅.၆% ·H** သာ。
@@ -1972,6 +2036,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    `overlay=dx:0` နဲ့ ရွှေ့သည်。 alpha ဖြစ်၍ ဘေးက ကွက်လပ် မမြင်ရပါ。
     # ⚠️ စာတန်း **ပြီးမှ** ထပ်ရမည် — pop က အပေါ်ဆုံး အလွှာ ဖြစ်သင့်သည်
     #    (reference မှာ pop က ပြောသူရော နောက်ခံရော ဖုံးသည်)。
+    # ══ ဘေးဘောင် စာရင်း — **အောက်ဆုံး အလွှာ** (စာတန်း/pop ရဲ့ အောက်) ══
+    # ⚠️ PNG အငြိမ် ⇒ `loop=1` နဲ့ ထည့်ပြီး `enable=` နဲ့ ဝင်းဒိုး ကန့်သတ်သည်。
+    #    .mov မဟုတ်၍ itsoffset မလုပ်နိုင်ပါ。
+    for at, png, d in (rmov or [])[:8]:
+        ins += ["-loop", "1", "-t", f"{d:.2f}", "-i", png]; n += 1
+        fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass"
+                  f":enable='between(t,{at:.2f},{at + d:.2f})'[v{n}]")
+        last = f"v{n}"
     for at, mov, d, dx, _t in (pmov or [])[:10]:
         ins += ["-itsoffset", f"{at:.2f}", "-i", mov]; n += 1
         fc.append(f"[{last}][{n}:v]overlay={dx}:0:eof_action=pass[v{n}]")
