@@ -539,6 +539,18 @@ def _pop_ink(mov, work, idx):
         except OSError: pass
 
 
+def _vbr(w, h, fps=30):
+    """အရွယ်အလိုက် bitrate — `"24M"` ပုံစံ
+
+    ⚠️ အရင်က အရွယ်တိုင်း **16M အဖြစ် ဖြစ်ခဲ့သည်**。 1080p အတွက် များပြီး
+       4K (ပိုက်ဆယ် ၄ ဆ) အတွက် **လုံးဝ မလောက်** — block artifact ထွက်မည်。
+       ⇒ pixel/စက္ကန့် နှုန်းနဲ့ တွက်သည် (၁၀၈၀p30 ≈ ၁၆M အဆင့် ထိန်း)。
+    """
+    px = float(w) * float(h) * max(1.0, float(fps or 30))
+    mb = px * 16.0 / (1920.0 * 1080.0 * 30.0)
+    return f"{max(8, min(60, int(round(mb))))}M"
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -583,6 +595,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
     if jf:
         if FN.ok(jf): rc["mmf"] = jf
         else: log(f"  ⚠️ ဖောင့် '{jf}' စာရင်းထဲ မရှိ — ပုံသေ သုံးသည်")
+    # ⚠️ **render မစမီ motionkit ရဲ scratch ကို ရှင်းရမည်**。 template တစ်ခု
+    #    ဆောက်တိုင်း PNG ၆၀–၂၀၀ ထွက်ပြီး ဘယ်သူမှ မဖျက်ခဲ့— ၂၀၂၆-၀၉-၂၁ မှာ
+    #    **၁၁ GB** စုမိပြီး Mac ရဲ disk ပြည့်ကာ render တွေ ကျခဲ့သည်。
+    try:
+        import gfxcat as _GC
+        _GC.gc_work(log=log)
+    except Exception as _e:
+        log(f"  ⚠️ motionkit work/ မရှင်းနိုင် ({type(_e).__name__})")
     m  = probe(src)
     stage(1, "ingest")
     log(f"  {m['w']}×{m['h']} · {m['fps']:.0f}fps · {m['dur']:.1f}s · {rc['label']} · ဖောင့် {rc['mmf']}")
@@ -594,8 +614,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    encoder မပွင့်ဘူး (တကယ် ဖြစ်ခဲ့ · exit 187)。
     #    ⇒ အရွယ်ကို python နဲ့ တွက်ပြီး **ချုံ့ရုံသာ** လုပ်သည်。
     import theme as _th; _th.use(rc["theme"]); _TH = _th.t()
-    LONG = 2560                      # long edge ကန့်သတ် — 4K ရဲ့ ၂/၃
+    # ⚠️ **proxy က ထွက်အရည်အသွေးကို ကန့်သတ်သည်** — `src = px` ဖြစ်၍ pipeline
+    #    တစ်ခုလုံးက proxy ပေါ်မှာ ပြေးသည်。 LONG=2560 တစ်ခုတည်း ထားလျှင်
+    #    သုံးစွဲသူက **4K ရွေးထားသည့်တိုင် 2560 ကနေ ချဲထွက်**မည် — အတု 4K。
+    #    ⇒ ပစ်မှတ် format ရဲ အရွယ်ကို ကြည့်ပြီး ကန့်သတ်ကို တင်သည်。
+    # ⚠️ videotoolbox ရဲ အကျယ် ကန့်သတ်က **4096** — 3840 ဝင်သည်。
+    _fk = (job.get("fmt") or "").strip()
+    _fd = FM.FORMATS.get(_fk) or {}
+    LONG = max(2560, int(_fd.get("W") or 0), int(_fd.get("H") or 0))
+    LONG = min(LONG, 3840)           # videotoolbox 4096 အောက်
     heavy = (m["w"]*m["h"]*max(1,m["fps"])) > (1920*1080*30)*1.6
+    if LONG > 2560:
+        log(f"  4K ထွက်ရန် ({_fk}) ⇒ proxy ကန့်သတ် {LONG} "
+            f"(ပုံသေ 2560 မဟုတ်)")
     if heavy and max(m["w"], m["h"]) > LONG:
         sc = LONG/float(max(m["w"], m["h"]))
         pw = int(m["w"]*sc)//2*2; ph = int(m["h"]*sc)//2*2
@@ -604,7 +635,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         px = os.path.join(BIG, job["id"] + "_px.mp4"); t_px = time.time()
         subprocess.run(["ffmpeg","-v","error","-y","-i",src,
             "-vf",f"scale={pw}:{ph}","-r",str(rc["fps"]),
-            "-c:v","h264_videotoolbox","-b:v","16M",
+            "-c:v","h264_videotoolbox","-b:v",_vbr(pw, ph, rc["fps"]),
             "-c:a","aac","-b:a","192k",px],check=True)
         log(f"  proxy {m['w']}×{m['h']}@{m['fps']:.0f} → {pw}×{ph}@{rc['fps']} · {time.time()-t_px:.0f}s")
         src = px; m = probe(src)
@@ -1982,7 +2013,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  ⚠️ အပိုင်းလိုက် grade မရ ({type(_e).__name__}: {_e})")
         if _sg:
             ff(["ffmpeg", "-v", "error", "-y", "-i", cutv, "-vf", _sg,
-                "-c:v", "h264_videotoolbox", "-b:v", "16M", "-c:a", "copy", gv])
+                "-c:v", "h264_videotoolbox",
+                "-b:v", _vbr(_TH["W"], _TH["H"], rc["fps"]), "-c:a", "copy", gv])
             cutv = gv
             log(f"  grade · အပိုင်းလိုက် {len(_segs)} ပိုင်း")
         else:

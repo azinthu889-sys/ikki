@@ -161,3 +161,74 @@ def call(entry, args, dur):
     finally:
         try: os.chdir(cwd)
         except Exception: pass
+
+
+# ══ motionkit work/ ရှင်းလင်းချက် ═══════════════════════════════════
+# ⚠️ template တစ်ခု ဆောက်တိုင်း PNG ၆၀–၂၀၀ ထွက်ပြီး `motionkit/work/<sub>`
+#    ထဲ **ကျန်ခဲ့**သည် — ဘယ်သူမှ မဖျက်ပါ。 ၂၀၂၆-၀၉-၂၁ မှာ **၁၁ GB**
+#    စုမိပြီး Mac ရဲ့ disk ပြည့်သွားကာ render တွေ ကျခဲ့သည်
+#    (`prem` ဖိုလ်ဒါ တစ်ခုတည်းက ၈.၁ GB)。
+# ⚠️ IKKI ရဲ့ scratch leak နဲ့ **အတူတူ ပြဿနာ** — တစ်ခါ ဖျက်ရုံနဲ့ မလုံလောက်、
+#    ပြန်စုမိမည် ⇒ render စတိုင်း အလိုအလျောက် ရှင်းရမည်。
+# ⚠️ **ယခု ပြေးနေသော render ကို မဖျက်မိစေရန်** — သတ်မှတ်ချိန်ထက်
+#    အသစ်သော ဖိုလ်ဒါကို မထိပါ。
+WORK_MAX_GB = 2.0
+WORK_AGE_H = 6.0
+
+
+def _dsize(d):
+    n = 0
+    for dp, _dn, fn in os.walk(d):
+        for f in fn:
+            try:
+                n += os.path.getsize(os.path.join(dp, f))
+            except OSError:
+                pass
+    return n
+
+
+def gc_work(max_gb=WORK_MAX_GB, age_h=WORK_AGE_H, log=None):
+    """motionkit ရဲ့ `work/` ကို ရှင်းသည် — `(ဖျက်ပြီး ဖိုလ်ဒါ, ပြန်ရ bytes)`
+
+    ၁။ `age_h` ထက် ဟောင်းသော ဖိုလ်ဒါ — အကုန် ဖျက်
+    ၂။ ကျန်တာက `max_gb` ကျော်နေလျှင် — **အဟောင်းဆုံးကနေ** ဖျက်
+    """
+    import shutil
+    import time
+    root = os.path.join(MK, "work")
+    if not os.path.isdir(root):
+        return 0, 0
+    now = time.time()
+    subs = []
+    for nm in os.listdir(root):
+        p = os.path.join(root, nm)
+        if not os.path.isdir(p):
+            continue
+        try:
+            subs.append([p, os.path.getmtime(p), _dsize(p)])
+        except OSError:
+            pass
+    killed = freed = 0
+    keep = []
+    for p, mt, sz in subs:
+        if (now - mt) / 3600.0 > age_h:
+            try:
+                shutil.rmtree(p); killed += 1; freed += sz
+            except OSError:
+                keep.append([p, mt, sz])
+        else:
+            keep.append([p, mt, sz])
+    keep.sort(key=lambda x: x[1])                 # အဟောင်းဆုံး ရှေ့
+    left = sum(x[2] for x in keep)
+    cap = max_gb * (1 << 30)
+    for p, _mt, sz in keep:
+        if left <= cap:
+            break
+        try:
+            shutil.rmtree(p); killed += 1; freed += sz; left -= sz
+        except OSError:
+            pass
+    if log and killed:
+        log(f"  motionkit work/ ရှင်း · ဖိုလ်ဒါ {killed} ခု · "
+            f"{freed/(1<<30):.2f} GB ပြန်ရ")
+    return killed, freed
