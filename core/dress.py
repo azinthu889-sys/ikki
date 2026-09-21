@@ -1018,21 +1018,71 @@ def _call_template(fn, kind, tag, args):
 _SIZE = None
 
 
+def _fmt_hw(fmt):
+    """format ရဲ့ `(W, H)` — မသိလျှင် `(1920, 1080)`"""
+    try:
+        try:
+            import formats as _FM
+        except ImportError:
+            from core import formats as _FM
+        f = _FM.FORMATS.get(fmt) or {}
+        return int(f.get("W") or 1920), int(f.get("H") or 1080)
+    except Exception:
+        return 1920, 1080
+
+
 def sizes(fmt="16:9"):
-    """template → တိုင်းထားသော အမြင့် (px · production ဘောင်အတိုင်း)"""
+    """template → တိုင်းထားသော အမြင့် (px · `fmt` ရဲ့ ဘောင်အတိုင်း)
+
+    ⚠️ **format အလိုက် cache လုပ်ရမည်** — အရင်က global တစ်ခုတည်း ဖြစ်သဖြင့်
+       worker က job ဆက်တိုက် လုပ်ရာမှာ **ပထမ format ရဲ့ ဒေတာက ကျန်တာ
+       အားလုံးကို လွှမ်း**ခဲ့သည် (worker က ရှည်ရှည် ပြေးသည် · ၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+    ⚠️ ဖိုင် မရှိလျှင် **အချိုး တူသော** format ကနေ `h_pct` နဲ့ ပြန်တွက်သည် —
+       `4K16:9` က `16:9` နဲ့ အချိုး တူသဖြင့် ထပ်တိုင်းစရာ မလိုပါ。
+       ⚠️ အချိုး **မတူ**လျှင် ပြန်မသုံးရ — layout ကွဲသည် (၉:၁၆ က ၁၆:၉ ရဲ့
+          အမြင့်နဲ့ မတူ) ⇒ ဗလာ ပြန်ပေးပြီး `fits()` က ကြိုမပယ်ပါ。
+    """
     global _SIZE
     if _SIZE is None:
         _SIZE = {}
-        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                         "assets", f"gfx_size_{fmt.replace(':', 'x')}.json")
+    if fmt in _SIZE:
+        return _SIZE[fmt]
+    import json as _j
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "assets")
+
+    def _load(tag):
         try:
-            import json as _j
-            with open(p, encoding="utf-8") as f:
-                _SIZE = {k: v for k, v in (_j.load(f).get("items") or {}).items()
-                         if "h" in v}
+            with open(os.path.join(base, f"gfx_size_{tag}.json"), encoding="utf-8") as f:
+                d = _j.load(f)
+            return d, {k: v for k, v in (d.get("items") or {}).items() if "h" in v}
         except (OSError, ValueError):
-            _SIZE = {}
-    return _SIZE
+            return None, None
+
+    _d, it = _load(fmt.replace(":", "x"))
+    if it:
+        _SIZE[fmt] = it
+        return it
+    # ── အချိုး တူသော format ကနေ ──
+    W, H = _fmt_hw(fmt)
+    ar = W / float(H or 1)
+    out = {}
+    try:
+        import glob as _g
+        for q in _g.glob(os.path.join(base, "gfx_size_*.json")):
+            tag = os.path.basename(q)[len("gfx_size_"):-len(".json")]
+            f2 = tag.replace("x", ":")
+            W2, H2 = _fmt_hw(f2)
+            if H2 and abs(W2 / float(H2) - ar) < 0.01:
+                _d2, it2 = _load(tag)
+                if it2:
+                    out = {k: dict(v, h=int(round(float(v.get("h_pct") or 0) * H)))
+                           for k, v in it2.items() if v.get("h_pct")}
+                    break
+    except Exception:
+        out = {}
+    _SIZE[fmt] = out
+    return out
 
 
 def side_room(avoid, W):

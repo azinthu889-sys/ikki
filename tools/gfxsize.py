@@ -102,7 +102,11 @@ def main(argv):
         idx.setdefault(e["fn"], e["id"])
     ids = [(f, idx[f]) for f in fns if f in idx]
     if want:
-        ids = [(f, i) for f, i in ids if any(w in f for w in want)]
+        # ⚠️ **fn နာမည် ရော id ရော လက်ခံရမည်** — `insert.insert_label` လို
+        #    id ပေးလျှင် `w in f` (fn သာ) က မတိုက်ဘဲ **၀ ခု** ဖြစ်ပြီး
+        #    ဗလာဖိုင် ရေးမိသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+        ids = [(f, i) for f, i in ids
+               if any(w == f or w == i or w in f or w in i for w in want)]
     out, t0 = {}, time.time()
     print(f"── template {len(ids)} ခု တိုင်းသည် ──")
     for k, (fn, eid) in enumerate(ids):
