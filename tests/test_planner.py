@@ -152,8 +152,18 @@ def main():
     print("\n── ၃ခ · keyword pop (တိုင်းထားသော စတိုင်) ──")
     pops = _pops(p)
     check("pop ထွက်သည်", len(pops) >= 1, len(pops))
-    check("အားလုံး kinetic.word_pop",
-          all(x["motionKitTemplateId"] == "kinetic.word_pop" for x in pops))
+    # ⚠️ ယခင်က `kinetic.word_pop` **တစ်ခုတည်း** ဟု စစ်ခဲ့သည် — အဲဒါက
+    #    hardcode ဖြစ်ခဲ့သဖြင့် pop အားလုံး တူတူ ဖြစ်ခဲ့သည် (တိုင်းချက်:
+    #    ဝါကျ ၁၀ ကြောင်းမှာ ၃ ခါ)。 ယခု `assets/pop_ok.txt` (တစ်ခုချင်း
+    #    ဆောက်ပြီး တိုင်းထားသော ၂၁ ခု) ကနေ လှည့်သည် ⇒ **pop family
+    #    အတွင်း ရှိရမည်** ဟုသာ စစ်သည် (တကယ့် ရည်ရွယ်ချက်)。
+    import planner as _PLmod
+    _ok = set(_PLmod._pops())
+    check("pop အားလုံး တိုင်းထားသော pool ထဲက",
+          all(x["motionKitTemplateId"] in _ok for x in pops),
+          sorted({x["motionKitTemplateId"] for x in pops}))
+    check("pop pool က ၁၀ ခု ကျော်",
+          len(_ok) >= 10, len(_ok))
     ds = [x["endTime"] - x["startTime"] for x in pops]
     check("ကြာချိန် ၂.၈–၅.၂s (တိုင်းထားသော p25–p75)",
           all(2.79 <= d <= 5.21 for d in ds), [round(d, 1) for d in ds])

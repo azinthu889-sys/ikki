@@ -50,10 +50,28 @@ def _plan(vid="t1"):
 class TplVar(unittest.TestCase):
 
     def test_variety(self):
-        """ကွဲပြားမှု ၅ မျိုး အနည်းဆုံး (ပြင်မတိုင်ခင် ၃ ဖြစ်ခဲ့)"""
+        """ကွဲပြားမှု ၇ မျိုး အနည်းဆုံး (၃ → ၆ → ၈ ဖြစ်လာသည်)"""
         ids = _plan()
-        self.assertGreaterEqual(len(set(ids)), 5,
+        self.assertGreaterEqual(len(set(ids)), 7,
                                 f"ကွဲပြား {len(set(ids))} မျိုးသာ: {ids}")
+
+    def test_pop_pool_verified(self):
+        """⚠️ pop က `word_pop` တစ်ခုတည်း hardcode ခဲ့သည် ⇒ pop အားလုံး တူတူ。
+        `assets/pop_ok.txt` က တစ်ခုချင်း ဆောက်ပြီး တိုင်းထားသော စာရင်း。"""
+        pops = PL._pops()
+        self.assertGreaterEqual(len(pops), 10, f"pop pool {len(pops)} ခုသာ")
+        self.assertIn("kinetic.word_pop", pops)
+        # exit animation · အဓိပ္ပာယ် ပြောင်းတာ မပါရ
+        for bad in ("pop_out", "blur_out", "wipe_out", "stagger_out",
+                    "strike_in", "quote_marks"):
+            self.assertFalse(any(bad in x for x in pops),
+                             f"{bad} ပါနေသည် — popcheck က ပယ်ထားသည်")
+
+    def test_no_template_twice(self):
+        """template တစ်ခုတည်း ၂ ခါထက် မပိုရ"""
+        ids = _plan()
+        top, n = Counter(ids).most_common(1)[0]
+        self.assertLessEqual(n, 2, f"{top} က {n} ခါ: {ids}")
 
     def test_no_card_four_times(self):
         """ကတ် တစ်ခုတည်း ၃ ခါထက် မပိုရ (`ht_stat_ring` ၄ ခါ ဖြစ်ခဲ့)"""

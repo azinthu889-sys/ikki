@@ -1,0 +1,24 @@
+# keyword pop — တစ်ခုချင်း ဆောက်ပြီး တိုင်းထားသည် (tools/popcheck.py)
+# မြန်မာ「အရေးကြီး」· size 131 · ဘောင် 1920x1080
+# အောင် 21/35
+kinetic.blur_in  # 16.9%H 430px
+kinetic.cascade  # 16.9%H 430px
+kinetic.drop_in  # 16.9%H 430px
+kinetic.flicker  # 16.9%H 430px
+kinetic.focus  # 18.3%H 448px
+kinetic.slide_alt  # 16.9%H 430px
+kinetic.spotlight  # 16.9%H 430px
+kinetic.sweep  # 17.6%H 480px
+kinetic.tighten  # 16.9%H 430px
+kinetic.typewriter  # 18.1%H 444px
+kinetic.underline  # 18.2%H 446px
+kinetic.wave  # 16.9%H 430px
+kinetic.wipe  # 18.1%H 444px
+kinetic.word_pop  # 16.9%H 430px
+kinetic.zoom_out  # 16.9%H 430px
+kinetic2.gravity  # 18.1%H 446px
+kinetic2.karaoke  # 18.7%H 452px
+kinetic2.letter_pop  # 18.2%H 446px
+kinetic2.shadow_split  # 18.2%H 446px
+kinetic2.type_cursor  # 16.9%H 449px
+typo.word_cascade  # 16.7%H 429px

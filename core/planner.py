@@ -124,6 +124,36 @@ PROFILE_PREFER = {
 #    (အဲဒီအုပ်စု အတွင်းမှာ verified best-of order အတိုင်း ကျန်သည်)。
 NOREPEAT = 6
 
+# ⚠️ **keyword pop က `kinetic.word_pop` တစ်ခုတည်း hardcode ခဲ့သည်** ⇒ pop
+#    အားလုံး တူတူ (တိုင်းချက်: ဝါကျ ၁၀ ကြောင်းမှာ ၃ ခါ)。 props ပုံစံ
+#    (`text`/`size`/`y`/`fill`) တူတာ ၃၅ ခု ရှိပြီး `tools/popcheck.py` က
+#    တစ်ခုချင်း ဆောက်ပြီး တိုင်းရာ **၂၁ ခု** အောင်သည် —
+#      exit animation ၄ (နောက်ဆုံး frame ဗလာ) · ဘောင်ကျော် ၁ · `fill`
+#      မလက်ခံ ၃ · အမြင့် စံနဲ့ ၂၄–၃၁% ကွာ ၄ · အဓိပ္ပာယ် ပြောင်း ၂ ⇒ ပယ်。
+#    ⚠️ `assets/pop_ok.txt` မရှိလျှင် `word_pop` တစ်ခုတည်း — ယခင်အတိုင်း。
+_POPS = None
+
+
+def _pops():
+    """တိုင်းထားပြီးသော keyword pop template များ — `assets/pop_ok.txt`"""
+    global _POPS
+    if _POPS is not None:
+        return _POPS
+    out = []
+    try:
+        import os as _o
+        q = _o.path.join(_o.path.dirname(_o.path.dirname(_o.path.abspath(__file__))),
+                         "assets", "pop_ok.txt")
+        with open(q, encoding="utf-8") as f:
+            for ln in f:
+                ln = ln.split("#")[0].strip()
+                if ln and "." in ln:
+                    out.append(ln)
+    except OSError:
+        out = []
+    _POPS = out or ["kinetic.word_pop"]
+    return _POPS
+
 
 def _rotate(cands, used, seed="", k=NOREPEAT):
     """မသုံးရသေးသော candidate များကို ရှေ့တင်သည် — seed နဲ့ လှည့်။"""
@@ -990,10 +1020,15 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         if spot is None:
             continue
         n += 1
+        # ⚠️ **pop ကိုပါ လှည့်ရမည်** — `_used_tpl` မျှသုံးသဖြင့် ကတ်နဲ့ pop
+        #    အချင်းချင်းလည်း ထပ်မနေပါ。
+        _pop_c = _rotate(_pops(), _used_tpl, video_id)
+        _pop_tid = _pop_c[0] if _pop_c else "kinetic.word_pop"
+        _used_tpl.append(_pop_tid)
         p["templateEvents"].append(dict(
             id=f"pop{n:03d}", startTime=round(a, 2), endTime=round(end, 2),
             layer="template", type="template",
-            motionKitTemplateId="kinetic.word_pop",
+            motionKitTemplateId=_pop_tid,
             props=dict(text=kw, size=int(round(_PC.TEXT_H * 1080)),
                        dur=round(end - a, 2), fill=PS.ACCENT),
             # ⚠️ `style` က **renderer အတွက်** — template မှာ x မရှိသဖြင့်
