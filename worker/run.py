@@ -1053,6 +1053,30 @@ def render(job, brand, src, out, stage, log=print, over=None):
             acc += b - a
         return None                                # အဆုံး ကျော်သွားပြီ
 
+    def omap_window(a, b, min_d=0.60):
+        """Source-time window ကို output timeline သို့ **တစ်ခါတည်း** ပြောင်းသည်。
+
+        Start တစ်ခုတည်းကို `omap()` ပြောင်းပြီး source duration ကို ပြန်ပေါင်း
+        လိုက်လျှင်၊ window အတွင်းက ဖယ်ထားသော silence ပမာဏအတိုင်း graphic/card
+        က စကားပြီးသွားပြီးမှ ဆက်ကပ်နေသည်။  `j_1f9561de04b3` မှာ timing လွဲခဲ့
+        သော အကြောင်းရင်းထဲက တစ်ခုဖြစ်သည်။  End ကိုပါ အတူ map လုပ်ရမည်။
+
+        `snap=True` က removed gap ၏ output boundary ကို ပြန်ပေးသောကြောင့် event
+        ကို မရှိတော့သော silence ပေါ် မဆွဲထားဘဲ၊ စကားကျန်နေသည့် အချိန်တိတိပေါ်သာ
+        ထားနိုင်သည်။  Output ထဲ exposure `min_d` မပြည့်လျှင် မပြရ — artificial
+        minimum hold ဖြင့် နောက်ဝါကျပေါ် ဆက်တင်မိတာထက် ပိုလုံခြုံသည်。
+        """
+        try:
+            a, b = float(a), float(b)
+        except (TypeError, ValueError):
+            return None
+        if b <= a:
+            return None
+        oa, ob = omap(a, snap=True), omap(b, snap=True)
+        if oa is None or ob is None or ob - oa < float(min_d):
+            return None
+        return round(oa, 3), round(ob, 3)
+
     # ── ④ စာတန်း · ⑤ ဂရပ်ဖစ် ───────────────────────────────
     # ⚠️ brand (အရောင်/ဖောင့်) နှင့် format (အရွယ်/safe zone) ကို **ခွဲ**သည်。
     #    ⇒ "ZAE style နဲ့ TikTok 9:16" လို တွဲကို လုပ်လို့ရသည်。
@@ -1430,9 +1454,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    ကျသွားသော ဂရပ်ဖစ်ကို ဖယ်သည် (အဲဒီစကား ဗီဒီယိုထဲ မရှိတော့)。
         _n0 = len(gfx); _mapped = []
         for g in gfx:
-            _t = omap(float(g.get("at") or 0), snap=True)
-            if _t is None: continue
-            g = dict(g); g["at"] = round(_t, 2); _mapped.append(g)
+            _a = float(g.get("at") or 0)
+            _hold0 = float(g.get("hold") or 0)
+            _win = omap_window(_a, _a + _hold0)
+            if _win is None:
+                continue
+            _t, _end = _win
+            g = dict(g)
+            g["at"] = round(_t, 2)
+            # `dress.track()` အတွက် hold ကိုလည်း output time အတိုင်း ပြန်ပေးရမည်။
+            # Source hold ကို ချန်ထားလျှင် cut လုပ်ထားသော pause ပေါ်မှာ card/SFX
+            # ကို ဆက်ထားမိသည်။
+            g["hold"] = round(_end - _t, 2)
+            _mapped.append(g)
         gfx = _mapped
         if _n0 != len(gfx):
             log(f"  ဂရပ်ဖစ် {_n0 - len(gfx)} ခု ဗီဒီယို အဆုံးကျော်၍ ဖယ်သည်")
@@ -1586,11 +1620,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             for _i, _ev in enumerate(sorted(_cut_ev,
                                             key=lambda x: x.get("startTime") or 0)):
                 _cid = _ev.get("motionKitTemplateId")
-                _a0 = omap(float(_ev.get("startTime") or 0), snap=True)
-                if _a0 is None:
+                _win = omap_window(float(_ev.get("startTime") or 0),
+                                   float(_ev.get("endTime") or 0), min_d=1.0)
+                if _win is None:
                     continue
-                _b0 = _a0 + max(1.5, min(4.5,
-                                float(_ev.get("endTime") or 0) - float(_ev.get("startTime") or 0)))
+                _a0, _b0 = _win
                 _head = (_ev.get("props") or {}).get("q") \
                     or (_ev.get("props") or {}).get("text") \
                     or (_ev.get("props") or {}).get("title") \
@@ -1622,11 +1656,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             for _i, _ev in enumerate([x for x in _PLAN["templateEvents"]
                                       if (x.get("style") or {}).get("kind") == "pop"]):
                 _st = _ev.get("style") or {}
-                _a0 = omap(float(_ev.get("startTime") or 0), snap=True)
-                if _a0 is None:
+                _win = omap_window(float(_ev.get("startTime") or 0),
+                                   float(_ev.get("endTime") or 0), min_d=1.0)
+                if _win is None:
                     continue
-                _d = max(1.2, min(5.2, float(_ev.get("endTime") or 0)
-                                  - float(_ev.get("startTime") or 0)))
+                _a0, _b0 = _win
+                _d = _b0 - _a0
                 _pr = dict(_ev.get("props") or {})
                 # ⚠️ **တိုင်းထားသော ပြောင်းလဲမှု ၂ ခု** (၂၀၂၆-၀၉-၂၁ · y=216/486/756
                 #    သုံးမျိုးနဲ့ စမ်းပြီး) —
@@ -2190,7 +2225,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
         log("  ⓘ SFX ပိတ်ထားသည် (recipe) — အသံ ထည့်မည် မဟုတ်ပါ")
         cues = []
     else:
-        cues = DR.sfx(gfx, caps, rc)
+        # Headtop plan က visual event တိုင်းအတွက် semantic SFX role ကို
+        # သတ်မှတ်ပြီးသား ဖြစ်သည်။ Legacy `DR.sfx()` ကိုလည်း ပေါင်းလိုက်လျှင်
+        # တစ် graphic အတွက် generic whoosh/click နဲ့ semantic cue နှစ်စုံဝင်၍
+        # timing မတူသော အသံထပ်ဖြစ်သည်။ Plan မရှိသော style များသာ legacy ကိုသုံး။
+        cues = [] if _PLAN else DR.sfx(gfx, caps, rc)
     # ══ plan ရဲ့ sfxEvents — **semantic** လမ်းကြောင်း ═══════════════
     # ⚠️ schema မှာ ရှိပြီး planner က မထုတ်、worker က မခေါ်ခဲ့ပါ ⇒
     #    semantic sound design က **လုံးဝ မဖြစ်ခဲ့**ပါ (၂၀၂၆-၀၉-၂၁)。
@@ -3576,10 +3615,6 @@ def main(once=False):
             print(f"⚠️  {e}", flush=True)
         time.sleep(POLL)
 
-if __name__ == "__main__":
-    main("--once" in sys.argv)
-
-
 def subject_x(src, W, H, log=print, n=6):
     """ပြောသူရဲ့ **ဘေးတိုက် အလယ်** (၀–၁) — မရလျှင် `None`
 
@@ -3680,3 +3715,10 @@ def subject_box(src, W, H, log=print, n=8):
     log and log(f"  ပြောသူ ဘောင် x {x0:.2f}–{x1:.2f} · y {y0:.2f}–{y1:.2f} "
                 f"· လွတ်နေရာ ဘယ် {int(x0*W)}px · ညာ {int((1-x1)*W)}px")
     return (x0, x1, y0, y1)
+
+
+# Keep this at the actual end of the module.  When the file is executed as a
+# worker, `main()` starts its blocking job loop; an entrypoint placed before
+# helpers below it means those helpers are never defined in that process.
+if __name__ == "__main__":
+    main("--once" in sys.argv)
