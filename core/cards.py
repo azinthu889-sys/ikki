@@ -159,3 +159,140 @@ def halo_for(video, t, W, H, cx, cy, box=0.30):
     lum = float(np.frombuffer(r.stdout[:256], np.uint8).mean())
     # ⚠️ အလင်း ၁၂၀ အထက် ⇒ အပြည့် · ၆၀ အောက် ⇒ မလို
     return round(max(0.0, min(1.0, (lum - 60.0) / 60.0)), 2)
+
+
+# ══ ပြောသူပေါ် တင်နိုင်သော infographic (audit P1) ══════════════════
+# ⚠️ Zin: 「Infographic နည်းနေတယ်」(၂၀၂၆-၀၉-၂၁)。 တိုင်းကြည့်ရာ အရေအတွက်က
+#    ၄.၂/min ဖြစ်ပြီး reference ရဲ့ ဂရပ်ဖစ် နှုန်း (v4 median ၁၅s ⇒ ၄/min)
+#    နဲ့ ကိုက်သည် — ပြဿနာက **အမျိုးအစား**。 ၅ ခုထဲ ၃ ခုက keyword pop
+#    (အဝါ စာသား သက်သက်) ဖြစ်ပြီး တကယ့် infographic မဟုတ်ပါ。
+# ⚠️ headtop framing မှာ ကျန်နေရာက ၃၃px သာ ⇒ **ဘေးဘက် ကပ်ပြီး
+#    အတွင်း တစ်ပိုင်း ပွင့်လင်း** ဖြစ်မှ ပြောသူ မြင်နေရမည်。
+SIDE_W = 0.34           # ဘေးဘောင် အကျယ် (ဘောင်ရဲ့ အချိုး)
+SCRIM_A = 0.72          # နောက်ခံ မှိန်မှု — စာဖတ်လို့ရပြီး ပြောသူ မြင်ရဆဲ
+
+
+def _panel(W, H, side="left", w=SIDE_W, a=SCRIM_A, pad=0.045):
+    """ဘေးဘက် မှိန်သော အကွက် — `(im, x0, y0, x1, y1)`
+
+    ⚠️ **ဘောင်အပြည့် မဖုံးရ** — ပြောသူက အလယ်/တစ်ဖက်မှာ ရှိသည်。
+    """
+    from PIL import Image, ImageDraw
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    bw = int(W * w)
+    x0 = int(W * pad) if side == "left" else W - bw - int(W * pad)
+    y0, y1 = int(H * 0.20), int(H * 0.78)
+    t = _tok()
+    bg = _rgb(PK.tok(t, "color", "cardFill"), (14, 16, 24))
+    d.rounded_rectangle([x0, y0, x0 + bw, y1], radius=int(H * 0.022),
+                        fill=bg + (int(255 * a),))
+    return im, x0, y0, x0 + bw, y1
+
+
+def stat_ring(value, label="", W=1920, H=1080, mmf=None, accent=None,
+              side="right"):
+    """ဂဏန်း တစ်ခု + ရွှေကွင်း — `number` အတွက် · ဘေးဘက် ကပ်"""
+    from PIL import Image, ImageDraw
+    t = _tok()
+    mmf = mmf or PK.tok(t, "type", "display", default="MyanmarHeadOne")
+    acc = _rgb(accent or PK.tok(t, "color", "accent"), (255, 224, 0))
+    im, x0, y0, x1, y1 = _panel(W, H, side, w=0.26)
+    d = ImageDraw.Draw(im)
+    cx, cy = (x0 + x1) // 2, int(y0 + (y1 - y0) * 0.40)
+    r = int(min(x1 - x0, y1 - y0) * 0.30)
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=acc + (255,),
+              width=max(3, int(H * 0.007)))
+    px = int(r * 0.85)
+    a = SL._text_png(str(value or "")[:5], px, mmf, acc)
+    if a is not None and a.shape[0] > 1:
+        s = Image.fromarray(a, "RGBA")
+        im.alpha_composite(s, (cx - s.width // 2, cy - s.height // 2))
+    if label:
+        lp = int(H * 0.034)
+        hpx, lines = SL._fit(str(label), mmf, x1 - x0 - int(W * 0.02), lp,
+                             int(lp * 0.6), 3)
+        yy = cy + r + int(H * 0.04)
+        for ln in lines:
+            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            if b is None or b.shape[0] < 2:
+                continue
+            s2 = Image.fromarray(b, "RGBA")
+            im.alpha_composite(s2, ((x0 + x1) // 2 - s2.width // 2, yy))
+            yy += int(hpx * 1.25)
+    return im
+
+
+def check_list(items, W=1920, H=1080, mmf=None, accent=None, side="left",
+               tick=True):
+    """စာရင်း — ရွှေ အမှတ်အသားနဲ့ · `checklist`/`steps` အတွက်
+
+    ⚠️ **၅ ခုထက် မပိုရ** — ဖတ်ချိန် မလောက်ဘဲ ဖုံးသွားမည်。
+    """
+    from PIL import Image, ImageDraw
+    t = _tok()
+    mmf = mmf or PK.tok(t, "type", "display", default="MyanmarHeadOne")
+    acc = _rgb(accent or PK.tok(t, "color", "accent"), (255, 224, 0))
+    it = [str(x).strip() for x in (items or []) if str(x).strip()][:5]
+    if not it:
+        return None
+    im, x0, y0, x1, y1 = _panel(W, H, side)
+    d = ImageDraw.Draw(im)
+    px = int(H * 0.040)
+    pad = int(W * 0.018)
+    yy = y0 + int((y1 - y0 - len(it) * px * 1.9) / 2)
+    for s in it:
+        m = int(px * 0.34)
+        if tick:
+            d.line([(x0 + pad, yy + px * 0.58), (x0 + pad + m * 0.6, yy + px * 0.86),
+                    (x0 + pad + m * 1.6, yy + px * 0.22)],
+                   fill=acc + (255,), width=max(3, int(px * 0.13)))
+        else:
+            d.ellipse([x0 + pad, yy + px * 0.35, x0 + pad + m, yy + px * 0.35 + m],
+                      fill=acc + (255,))
+        hpx, lines = SL._fit(s, mmf, x1 - x0 - pad * 2 - m * 2, px,
+                             int(px * 0.62), 2)
+        ty = yy
+        for ln in lines[:2]:
+            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            if b is None or b.shape[0] < 2:
+                continue
+            s2 = Image.fromarray(b, "RGBA")
+            im.alpha_composite(s2, (x0 + pad + int(m * 2.2), ty))
+            ty += int(hpx * 1.18)
+        yy = ty + int(px * 0.7)
+    return im
+
+
+def compare_two(left, right, W=1920, H=1080, mmf=None, accent=None):
+    """နှိုင်းယှဉ်ချက် ၂ ခု — အောက်ခြေမှာ · `compare` အတွက်
+
+    ⚠️ မျက်နှာဇုန် (အပေါ် ၆၄%) ကို ရှောင်ပြီး **အောက်ပိုင်း** မှာသာ。
+    """
+    from PIL import Image, ImageDraw
+    t = _tok()
+    mmf = mmf or PK.tok(t, "type", "display", default="MyanmarHeadOne")
+    acc = _rgb(accent or PK.tok(t, "color", "accent"), (255, 224, 0))
+    bg = _rgb(PK.tok(t, "color", "cardFill"), (14, 16, 24))
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    y0, y1 = int(H * 0.60), int(H * 0.74)
+    x0, x1 = int(W * 0.08), int(W * 0.92)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=int(H * 0.018),
+                        fill=bg + (int(255 * SCRIM_A),))
+    mid = (x0 + x1) // 2
+    d.line([(mid, y0 + int(H * 0.012)), (mid, y1 - int(H * 0.012))],
+           fill=acc + (220,), width=max(2, int(H * 0.004)))
+    px = int(H * 0.044)
+    for txt, cx in ((left, (x0 + mid) // 2), (right, (mid + x1) // 2)):
+        hpx, lines = SL._fit(str(txt or "").strip(), mmf,
+                             (mid - x0) - int(W * 0.03), px, int(px * 0.6), 2)
+        ty = (y0 + y1) // 2 - int(hpx * 0.6 * len(lines))
+        for ln in lines[:2]:
+            b = SL._text_png(ln, hpx, mmf, (255, 255, 255))
+            if b is None or b.shape[0] < 2:
+                continue
+            s2 = Image.fromarray(b, "RGBA")
+            im.alpha_composite(s2, (cx - s2.width // 2, ty))
+            ty += int(hpx * 1.2)
+    return im

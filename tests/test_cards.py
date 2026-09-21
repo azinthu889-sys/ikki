@@ -29,7 +29,12 @@ def check(name, cond, detail=""):
 
 def main():
     print("── ၁ · manifest ──")
-    check("selectable ၂ ခု", len(PK.selectable()) == 2, PK.selectable())
+    # ⚠️ အရေအတွက်ကို **ကိန်းသေ မရေးရ** — template ထပ်ထည့်တိုင်း test ကျမည်。
+    #    「အားလုံး manifest မှန်」 ကိုသာ စစ်ရမည် (ဒါက တကယ့် ဂိတ်)。
+    check("selectable ≥ ၂ ခု", len(PK.selectable()) >= 2, PK.selectable())
+    _bad = [t["id"] for t in (PK.load()[0].get("templates") or [])
+            if PK.check_manifest(t)]
+    check("manifest မပြည့်စုံတာ မရှိ", not _bad, _bad)
     for tid in PK.selectable():
         m = PK.template(tid)
         check(f"{tid.split('.')[-1]} manifest မှန်", m is not None)

@@ -308,7 +308,9 @@ def fill(cid, label, text):
 
 # ⚠️ semantic label → pack intent。 pack က `title`/`statement`/`chapter`/
 #    `hook`/`emphasis`/`section` ကို လက်ခံသည် — FAMILY label နဲ့ မတူ ⇒ ချိတ်ရမည်。
-PACK_INTENT = {"hook": "hook", "section": "section", "fact": "statement"}
+PACK_INTENT = {"hook": "hook", "section": "section", "fact": "statement",
+               "number": "number", "checklist": "checklist",
+               "steps": "steps", "compare": "compare"}
 
 
 def _pack_ids(lab):
@@ -357,13 +359,29 @@ def _pack_props(tid, lab, txt):
             from core import pack as _PK
         t = _PK.template(tid) or {}
         out = {}
+        two = split2(txt)
         for k, spec in (t.get("props") or {}).items():
-            if spec.get("type") != "text":
-                continue
-            mx = int(spec.get("maxChars") or 40)
             if not spec.get("required"):
                 continue
-            v = _short(txt, mx)
+            mx = int(spec.get("maxChars") or 40)
+            if spec.get("type") == "list":
+                # ⚠️ စာရင်း — ဝါကျကို ခွဲသည်。 ၂ ခုအောက် ဆိုလျှင်
+                #    စာရင်း မဖြစ်သေး ⇒ ဤ template ကို မသုံးရ。
+                it = [x for x in (two or []) if x][:int(spec.get("maxItems") or 5)]
+                if len(it) < 2:
+                    return None
+                out[k] = [_short(x, mx) for x in it]
+                continue
+            if spec.get("type") != "text":
+                continue
+            # ⚠️ `left`/`right` က **နှစ်ပိုင်း ခွဲ**ရမည် — တစ်ခုတည်း ထည့်လျှင်
+            #    နှိုင်းယှဉ်ချက် မဖြစ်ပါ。
+            if k in ("left", "right"):
+                if len(two) < 2:
+                    return None
+                v = _short(two[0] if k == "left" else two[1], mx)
+            else:
+                v = _short(txt, mx)
             if not v:
                 return None
             out[k] = v

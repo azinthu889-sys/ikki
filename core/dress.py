@@ -1127,7 +1127,10 @@ def duck_cues(cues, wav, sfx_db=None, log=None):
 #    enter ၀.၄၆၇ · exit ၀.၂၀၀ · fade+scale (reference ၂ ပုဒ် · ဖြစ်ရပ် ၂၁
 #    ခုကနေ တိုင်းယူ)。 ကိုယ်ပိုင် ကိန်း ထည့်လျှင် pack က အလကား ဖြစ်သည်。
 PACK_FN = {"headtop.ht_concept_card": "concept_card",
-           "headtop.ht_outline_title": "outline_title"}
+           "headtop.ht_outline_title": "outline_title",
+           "headtop.ht_stat_ring": "stat_ring",
+           "headtop.ht_check_list": "check_list",
+           "headtop.ht_compare_two": "compare_two"}
 
 
 _PRIMS = {}
@@ -1222,11 +1225,22 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
         if fn == "concept_card":
             base = CD.concept_card(props.get("head") or "", props.get("sub") or "",
                                    W=W, H=H, mmf=mmf)
+        elif fn == "stat_ring":
+            base = CD.stat_ring(props.get("value") or "", props.get("label") or "",
+                                W=W, H=H, mmf=mmf)
+        elif fn == "check_list":
+            base = CD.check_list(props.get("items") or [], W=W, H=H, mmf=mmf)
+        elif fn == "compare_two":
+            base = CD.compare_two(props.get("left") or "", props.get("right") or "",
+                                  W=W, H=H, mmf=mmf)
         else:
             base = CD.outline_title(props.get("text") or "", W=W, H=H, mmf=mmf,
                                     cx=float(props.get("cx", 0.5)),
                                     cy=float(props.get("cy", 0.5)),
                                     halo=float(props.get("halo", 0.0)))
+        if base is None:
+            log and log(f"  ⚠️ pack {tid} — အကြောင်းအရာ မလောက်၍ မဆောက်ပါ")
+            return None
     except Exception as e:
         log and log(f"  ⚠️ pack {tid} ဆောက်မရ: {type(e).__name__}: {e}")
         return None
