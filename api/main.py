@@ -975,13 +975,14 @@ async def w_claim(req: Request, authorization: str = Header(None)):
     source_uploads = [u] if u else []
     try:
         jo = json.loads(chk.get("over") or "{}")
-        if isinstance(jo, dict):
-            over.update(jo)
-            for sid in (jo.get("_sources") or []):
-                su = db.one("SELECT * FROM uploads WHERE id=?", sid)
-                if not su: raise HTTPException(400, "multi-take source မရှိ")
-                source_uploads.append(su)
-    except Exception: pass
+    except Exception:
+        jo = {}
+    if isinstance(jo, dict):
+        over.update(jo)
+        for sid in (jo.get("_sources") or []):
+            su = db.one("SELECT * FROM uploads WHERE id=?", sid)
+            if not su: raise HTTPException(400, "multi-take source မရှိ")
+            source_uploads.append(su)
     return {"job": chk, "upload": u, "sources": source_uploads,
             "brand": b, "stages": STAGES, "over": over}
 

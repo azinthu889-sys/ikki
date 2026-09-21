@@ -451,7 +451,10 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    `at`/`kind` သာ ပေးသည် ⇒ စာသား ဗလာ ဖြစ်ပြီး အနားသတ်
             #    **ဗလာ ကွက်** ထွက်မည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
             #    ⇒ legacy လမ်းကြောင်းနဲ့ တူညီစွာ brand/label ကနေ ဖြည့်သည်。
-            _pp = dict(g.get("props") or {})
+            # ⚠️ `execute.to_gfx()` က plan ရဲ့ props ကို **`args`** ထဲ ထည့်သည်
+            #    (`props` မဟုတ်) ⇒ နှစ်ခုလုံး ကြည့်ရမည်。 မကြည့်လျှင်
+            #    「စာသား မရှိ」ဟု ထင်ပြီး ကျော်မိသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+            _pp = dict(g.get("props") or g.get("args") or {})
             if not _pp:
                 _pp = _pack_fill(g["kind"], g.get("text"))
             if not _pp:

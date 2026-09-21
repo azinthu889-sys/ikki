@@ -762,9 +762,11 @@ function done(j){
     $('txbox').hidden=false;
     $('tx').innerHTML=segs.map(function(sg,i){
       var mm=Math.floor(sg.start/60), ss=('0'+Math.floor(sg.start%60)).slice(-2);
+      var src=sg.source ? '<small class="pill" style="margin-left:6px;font-size:10px">'+
+        String(sg.source).replace(/</g,'&lt;')+'</small>' : '';
       return '<div class="row" data-i="'+i+'"><span class="tc">'+mm+':'+ss+'</span>'+
         '<span class="tx my" contenteditable="true" data-ed="'+i+'" spellcheck="false">'+
-          String(sg.text||'').replace(/</g,'&lt;')+'</span>'+
+          String(sg.text||'').replace(/</g,'&lt;')+'</span>'+src+
         '<span class="rt"><span class="pill p-ac tflag" hidden></span>'+
         '<button class="iact" data-del="'+i+'" aria-label="Delete">✕</button></span></div>';
     }).join('');

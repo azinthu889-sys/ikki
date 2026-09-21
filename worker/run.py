@@ -565,6 +565,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ ပုံစံ ပြင်ချက် (Style စာမျက်နှာက) ကို ထည့်သည် — API က ဘောင်စစ်
     #    ပြီးသား ဖြစ်ပေမယ့် worker မှာလည်း **ထပ်စစ်**သည် (RC.apply ထဲ)。
     over = dict(over or {})
+    # Pipeline-only controls are not recipe overrides.  Keep the recipe
+    # allow-list strict while retaining source-take labels for review.
+    take_map = over.pop("_take_map", None) or []
+    over.pop("_sources", None)
+    over.pop("_speech_speed", None)
     # ⚠️ `_drop` က recipe ပြင်ချက် **မဟုတ်** — သုံးစွဲသူ ဖျက်ထားသော အချိန်
     #    အပိုင်းများ။ `RC.clean()` က မသိသော key ကို ဖြုတ်ပစ်သဖြင့် အရင် ခွဲထုတ်ရမည်。
     user_drop = over.pop("_drop", None) or []
@@ -702,6 +707,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    f"တွဲ {ASR.STAT.get('bias_pairs')} ခုသာ ရ၍ **အတည် မပြုရသေးသော** "
                    f"ကိန်း {ASR.STAT.get('bias_s')}s ကို သုံးသည်")
                 + f" · snap {ASR.STAT.get('snapped','—')}/{ASR.STAT.get('reach','—')} ရနိုင်")
+
+    # Source labels are metadata only.  The engine never assumes which Raw 1 /
+    # Raw 2 attempt is better; the user sees it in the transcript and decides.
+    if take_map:
+        for sg in segs:
+            try: mid = (float(sg.get("start", 0)) + float(sg.get("end", 0))) / 2.0
+            except (TypeError, ValueError): continue
+            for tk in take_map:
+                try: inside = float(tk.get("start", 0)) <= mid <= float(tk.get("end", 0)) + 0.04
+                except (TypeError, ValueError): inside = False
+                if inside:
+                    sg["take"] = int(tk.get("take") or 0) or None
+                    sg["source"] = str(tk.get("source") or f"Take {sg.get('take')}")
+                    break
 
     # ── glossary ထွက်စာလုံး — **ဆိုးကျိုးကို မမြင်ရဘဲ မထားရ** (render report) ──
     try:
@@ -967,6 +986,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             removed=round(float(m["dur"]) - _kept, 2),
             spans=[[round(a, 2), round(b, 2)] for a, b in spans],
             flags=st.get("flag_list") or [],
+            takes=take_map,
             retakes=_rt,            # v1 (ယခု အလွတ်) — ယခင် ဒေတာနဲ့ လိုက်ဖက်ရန် ချန်
             clusters=_cl,           # v2 — အုပ်စု + ရွေးစရာ (ဖြတ်မှတ် ကြိုတွက်ပြီး)
             retake_off=_rt_off))    # ပိတ်ထားလျှင် သုံးစွဲသူကို ပြမည့် အကြောင်းရင်း
@@ -1053,6 +1073,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
 
     # ── ④ စာတန်း — ဖြတ်ပြီးအချိန်သို့ ပြန်တွက်ပြီး alpha track ဆောက် ──
     stage(4, "captions")
+    _side_ok = False        # ⚠️ plan မရှိလျှင်လည်း အောက်မှာ သုံးသည် — ကြိုသတ်မှတ်
     capv = None; caps = []; csize = 0; cband = 0; cap_top = TH["H"]
     if segs:
         cap_top = TH["H"]        # ⚠️ ပုံသေ — စာတန်း မဆောက်မိလျှင်ပါ လုံခြုံရန်
@@ -1211,7 +1232,34 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ထပ်တင်အဖြစ် တစ်ခါ ကြိုးစားပြီး 「နေရာ မတည့်」နဲ့ ကျမည်
             #    (ကျန်နေရာ ၅.၆% ·H သာ) — ပြီးမှ ဖြတ်ပြောင်းအဖြစ် ထပ်လုပ်သည်。
             #    ⇒ အလုပ် နှစ်ခါ လုပ်ပြီး log ရှုပ်သည် (၂၀၂၆-၀၉-၂၁ တွေ့)。
+            # ⚠️ **ဘေးနေရာ ရှိလျှင် ဖုံးစရာ မလို**。 ဤဆုံးဖြတ်ချက်ကို ရေးချိန်က
+            #    ကျန်နေရာ ၃၃px သာ ဟု ယူဆခဲ့သဖြင့် plan ရဲ့ template တွေကို
+            #    「ပြောသူကို ဖုံးပြီး ကတ် ပြ」 ဆီ ပို့ခဲ့သည်。 ယခု ပြောသူရဲ့
+            #    ဘေးတိုက် နယ်ကို တိုင်းပြီး **၈၂၄px လွတ်နေ**ကြောင်း တွေ့သဖြင့်
+            #    overlay အဖြစ် ချနိုင်သည် — reference လုပ်ထားတာ အဲဒါ。
             gfx = []
+            _side_ok = False
+            try:
+                _sb0 = subject_box(src, TH["W"], TH["H"], log)
+                _av0 = _avoid_band(src, TH, log=lambda *a: None)
+                if _sb0 and _av0:
+                    _av0 = (_av0[0], _av0[1], float(_sb0[0]), float(_sb0[1]))
+                    _srm = DR.side_room(_av0, TH["W"])
+                    if _srm >= int(TH["W"] * 0.22):
+                        # ⚠️ **keyword pop ကို ဒီထဲ မထည့်ရ** — အဲဒါတွေက
+                        #    ပြောသူပေါ် တိုက်ရိုက် ချရသော အလေးထားချက် ဖြစ်ပြီး
+                        #    သီးသန့် အကိုင်းက ကိုင်သည်。 ထည့်လျှင် `word_pop`
+                        #    က args မကိုက်ဘဲ ကျသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+                        _pops = {e.get("id") for e in _PLAN["templateEvents"]
+                                 if (e.get("style") or {}).get("kind") == "pop"}
+                        _gp = [g for g in EX.to_gfx(_PLAN, log=None)
+                               if (g.get("kind") or "") and g.get("_eid") not in _pops]
+                        if _gp:
+                            gfx = _gp; _side_ok = True
+                            log(f"  ↔ ဘေးနေရာ {_srm}px ⇒ ဂရပ်ဖစ် {len(gfx)} ခုကို "
+                                f"**ဖုံးမဲ့အစား ဘေးမှာ** ချသည်")
+            except Exception as _se0:
+                log(f"  ⚠️ ဘေးနေရာ မစစ်နိုင် ({type(_se0).__name__}: {_se0})")
             _sm = EX.summary(_PLAN)
             log(f"  plan · template {_sm['templates']} · စာတန်း {_sm['captions']}"
                 f" · သတိပေး {_sm['warnings']} (အတည်ပြုရန် {_sm['critical']})")
@@ -1464,7 +1512,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    template တွေက ၅၀၇–၁၀၇၉px ရှိ၍ ၄ ခုလုံး 「နေရာ မတည့်」နဲ့ ပယ်ခံခဲ့သည်
     #    (၂၀၂၆-၀၉-၂၁ j_d651c2ef2292 — ဂရပ်ဖစ် တပ်ပြီး ၀ ခု)。
     #    ⇒ reference လိုပဲ **ပြောသူကို ဖုံးပြီး** ကတ် ပြရသည် (Zin အတည်ပြု)。
-    if _PLAN and _PLAN.get("templateEvents"):
+    if _PLAN and _PLAN.get("templateEvents") and not _side_ok:
         try:
             import slide as SL2
             import dress as _DR
@@ -2336,6 +2384,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
         a0, b0 = float(x["start"]), float(x["end"])
         oa, ob = _omap(a0), _omap(b0)
         e = dict(text=x["text"], start=round(a0, 2), end=round(b0, 2))
+        for _k in ("source", "take"):
+            if x.get(_k) is not None: e[_k] = x[_k]
         if oa is not None and ob is not None and ob > oa:
             e["o0"] = round(oa, 2); e["o1"] = round(ob, 2)
         # ⚠️ **စကားလုံး အချိန်မှတ်ကို သယ်ရမည်** — ဒီမှာ ကျန်ခဲ့လျှင်
@@ -2672,6 +2722,131 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
     return dest
 
 
+def fetch_take(jid, n, dest, on_progress=None):
+    """Fetch additional multi-take source `n` (the primary is still `src`)."""
+    route = f"/api/w/src/{jid}/take/{int(n)}"
+    r = urllib.request.Request(API + route)
+    r.add_header("Authorization", "Bearer " + TOKEN)
+    with urllib.request.urlopen(r, timeout=60) as f0:
+        ct = (f0.headers.get("Content-Type") or "")
+        if "json" in ct:
+            meta = json.loads(f0.read())
+            local = meta.get("local")
+            if local:
+                if not os.path.exists(local):
+                    raise RuntimeError(f"စက်ထဲက take {n + 1} ဖိုင် ပျောက်နေသည်: {local}")
+                return local
+            url = meta.get("url")
+            if url: r = urllib.request.Request(url)
+    t0 = time.time(); got = 0; nxt = 10
+    with urllib.request.urlopen(r, timeout=180) as f:
+        total = int(f.headers.get("Content-Length") or 0)
+        with open(dest, "wb") as o:
+            while True:
+                chunk = f.read(1 << 20)
+                if not chunk: break
+                o.write(chunk); got += len(chunk)
+                pc = int(got * 100 / total) if total else 0
+                if total and pc >= nxt:
+                    if on_progress:
+                        on_progress(pc, got / 1e6, got / 1e6 / max(0.1, time.time() - t0))
+                    nxt = pc - pc % 10 + 10
+    return dest
+
+
+def _take_map_read(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            rows = json.load(f)
+        return rows if isinstance(rows, list) else []
+    except Exception:
+        return []
+
+
+def _take_map_write(path, rows):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def join_takes(jid, paths, take_rows, log=print):
+    """Normalize up to four recordings into one review-safe timeline.
+
+    We do not pretend to know which take is best.  Joining gives the user one
+    transcript where every line retains a take label; repeated attempts can
+    then be compared in the Script Editor before anything is deleted.
+    """
+    out = os.path.join(BIG, jid + "_takes.mp4")
+    map_path = os.path.join(BIG, jid + "_takes.json")
+    cached = _take_map_read(map_path)
+    if os.path.exists(out) and os.path.getsize(out) > (1 << 20) and cached:
+        log(f"  ♻️ take timeline ရှိပြီးသား — {len(cached)} takes")
+        return out, cached
+    if len(paths) < 2:
+        return paths[0], []
+    base = probe(paths[0])
+    W, H = int(base["w"]) // 2 * 2, int(base["h"]) // 2 * 2
+    fps = max(1.0, float(base["fps"]))
+    args = ["ffmpeg", "-v", "error", "-y"]
+    for p in paths: args += ["-i", p]
+    fc = []
+    for i in range(len(paths)):
+        # Letterbox/pillarbox different framing rather than crop a user's face.
+        fc.append(f"[{i}:v]fps={fps:.6f},scale={W}:{H}:force_original_aspect_ratio=decrease,"
+                  f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[v{i}]")
+        fc.append(f"[{i}:a]aresample=48000,aformat=sample_rates=48000:channel_layouts=stereo[a{i}]")
+    chain = "".join(f"[v{i}][a{i}]" for i in range(len(paths)))
+    fc.append(f"{chain}concat=n={len(paths)}:v=1:a=1[v][a]")
+    ff(args + ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
+               "-c:v", "h264_videotoolbox", "-b:v", _vbr(W, H, fps),
+               "-c:a", "aac", "-b:a", "192k", out], "take များ ပေါင်းခြင်း")
+    # Use the actual joined duration for the final edge; codec/frame rounding
+    # should never leave a transcript line apparently beyond the video.
+    end = 0.0; rows = []
+    for i, p in enumerate(paths):
+        dur = max(0.0, float(probe(p)["dur"]))
+        meta = take_rows[i] if i < len(take_rows) else {}
+        rows.append(dict(take=i + 1, source=str(meta.get("name") or f"Take {i + 1}"),
+                         start=round(end, 3), end=round(end + dur, 3)))
+        end += dur
+    try: rows[-1]["end"] = round(float(probe(out)["dur"]), 3)
+    except Exception: pass
+    _take_map_write(map_path, rows)
+    log(f"  ✓ take {len(paths)} ခုကို review timeline တစ်ခုဖြစ်အောင် ပေါင်းသည်")
+    return out, rows
+
+
+def scale_take_map(rows, speed):
+    if not rows or speed == 1.0: return rows
+    out = []
+    for r in rows:
+        x = dict(r)
+        x["start"] = round(float(x.get("start") or 0) / speed, 3)
+        x["end"] = round(float(x.get("end") or 0) / speed, 3)
+        out.append(x)
+    return out
+
+
+def speed_source(jid, src, speed, log=print):
+    """Retimes camera video *before* ASR so captions/SFX share one timeline."""
+    if abs(float(speed) - 1.0) < 0.001: return src
+    out = os.path.join(BIG, jid + f"_speed_{float(speed):.2f}.mp4")
+    if os.path.exists(out) and os.path.getsize(out) > (1 << 20):
+        log(f"  ♻️ {speed:.2f}× speech-speed source ရှိပြီးသား")
+        return out
+    m = probe(src)
+    # atempo changes tempo while preserving pitch.  Applying it before ASR and
+    # before motion/SFX planning prevents the familiar subtitle/SFX drift.
+    ff(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex",
+        f"[0:v]setpts=PTS/{float(speed):.2f}[v];[0:a]atempo={float(speed):.2f}[a]",
+        "-map", "[v]", "-map", "[a]", "-c:v", "h264_videotoolbox",
+        "-b:v", _vbr(m["w"], m["h"], m["fps"]), "-c:a", "aac", "-b:a", "192k", out],
+       "speech speed ပြောင်းခြင်း")
+    log(f"  ✓ စကားပြောအရှိန် {speed:.2f}× · pitch မပြောင်း")
+    return out
+
+
 
 def _drop(*paths):
     """မလိုတော့သော intermediate ကို ဖျက်သည်。
@@ -2976,7 +3151,8 @@ def handle(d):
     #    ကြာချိန် တူပေမယ့် နေရာ ၄ ဆ လိုသည်。 ကြာချိန်နဲ့ တွက်ခဲ့သဖြင့်
     #    ၃.၀ GB လိုတယ် ဟု ဆုံးဖြတ်ပြီး စလိုက်ရာ ၉၀% မှာ ENOSPC နဲ့ ကျခဲ့သည်
     #    (j_dd56e503c95c · ၂၀၂၆-၀၉-၁၉)。 ⇒ **မူရင်း ဖိုင် အရွယ်**ကနေ တွက်။
-    _sz = float((d.get("upload") or {}).get("size") or 0) / (1024**3)
+    take_sources = [x for x in (d.get("sources") or [d.get("upload")]) if x]
+    _sz = sum(float(x.get("size") or 0) for x in take_sources) / (1024**3)
     _pxr = os.path.join(BIG, jid + "_px.mp4")
     _have_px = os.path.exists(_pxr) and os.path.getsize(_pxr) > 1 << 20
     # မူရင်း + proxy + ကြားဖြတ် ဖိုင်များ。 proxy ရှိပြီးသားဆို မူရင်း မလို。
@@ -3011,15 +3187,36 @@ def handle(d):
     # ⚠️ **retry မှာ proxy ရှိပြီးသားဆို ပြန်သုံးရမည်**。 အရင်က retry တိုင်း
     #    ၄.၅ GB ကို အစကနေ ပြန်ဆွဲချ (၆၃၀s) ပြီး proxy ကို ပြန်လုပ် (၃၀၆s)
     #    နေခဲ့သည် — နှစ်ခုလုံး လုပ်ပြီးသား ဖြစ်ပါလျက် (၂၀၂၆-၀၉-၁၉)。
+    # `take_map` is cached with the joined timeline.  On the post-review pass
+    # it is also sent back in `over`, so a proxy retry never loses provenance.
+    take_map = list((d.get("over") or {}).get("_take_map") or [])
     if _have_px:
         src = _pxr
         print(f"  ♻️  proxy ရှိပြီးသား — ဆွဲချ/ချုံ့ ကျော်သွားသည် "
               f"({os.path.getsize(_pxr)/1e6:.0f} MB)", flush=True)
+    elif len(take_sources) > 1:
+        joined = os.path.join(BIG, jid + "_takes.mp4")
+        joined_map = os.path.join(BIG, jid + "_takes.json")
+        cached = _take_map_read(joined_map)
+        if os.path.exists(joined) and os.path.getsize(joined) > (1 << 20) and cached:
+            src, take_map = joined, cached
+            print(f"  ♻️  take timeline ရှိပြီးသား — {len(take_map)} takes", flush=True)
+        else:
+            paths = []
+            for n in range(len(take_sources)):
+                dest = os.path.join(BIG, f"{jid}_take{n + 1}.mp4")
+                cb = lambda pc, mb, sp, n=n: req(
+                    f"/api/w/{jid}/stage",
+                    {"stage":0,"name":f"take {n + 1}/{len(take_sources)} · {pc}% ({mb:.0f} MB)",
+                     "minutes":(time.time()-t0)/60})
+                if n == 0: got = fetch_src(jid, dest, cb)
+                else: got = fetch_take(jid, n, dest, cb)
+                paths.append(got or dest)
+            src, take_map = join_takes(jid, paths, take_sources,
+                                       log=lambda x: print(x, flush=True))
     else:
         # ⚠️ `fetch_src` ရဲ့ **ပြန်ပေးချက်ကို ယူရမည်** — ဖိုင်က ဤစက်ထဲ ရှိပြီးသားဆို
-        #    ဆွဲချစရာ မလိုဘဲ **အဲဒီ လမ်းကြောင်း**ကို ပြန်ပေးသည်。 မယူလျှင်
-        #    ရေးမထားသော destination ကို ဆက်သုံးပြီး
-        #    「No such file or directory: …_src.mp4」 ဖြစ်သည် (၂၀၂၆-၀၉-၂၀)。
+        #    ဆွဲချစရာ မလိုဘဲ **အဲဒီ လမ်းကြောင်း**ကို ပြန်ပေးသည်。
         src = fetch_src(jid, src, lambda pc, mb, sp:
                   req(f"/api/w/{jid}/stage",
                       {"stage":0,"name":f"ဆွဲချ {pc}% ({mb:.0f} MB · {sp:.1f} MB/s)",
@@ -3029,11 +3226,15 @@ def handle(d):
     # ⚠️ ကင်မရာ mic က −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည်。
     #    offset ကို **တိုင်းရမည်** — ဂိတ် မအောင်လျှင် **မပေါင်းဘဲ ဆက်သွား**
     #    (မှားညှိလျှင် အသံနဲ့ ပုံ လွဲပြီး ဗီဒီယို တစ်ခုလုံး ပျက်သည်)。
-    try:
-        a2 = os.path.join(SCRATCH, jid + "_aud")
-        fetch_src(jid, a2, path="src2")
-    except Exception:
-        a2 = None
+    a2 = None
+    if len(take_sources) == 1:
+        try:
+            a2 = os.path.join(SCRATCH, jid + "_aud")
+            fetch_src(jid, a2, path="src2")
+        except Exception:
+            a2 = None
+    else:
+        print("  ⓘ multi-take project — recorder audio မပေါင်းပါ", flush=True)
     if a2 and os.path.exists(a2) and os.path.getsize(a2) > 4096:
         try:
             import dual as DU   # core က line 20 မှာ path ထဲ ရှိပြီးသား
@@ -3051,6 +3252,15 @@ def handle(d):
         finally:
             try: os.remove(a2)
             except Exception: pass
+    # Retiming happens after any camera/recorder audio mux but before ASR,
+    # cutting, captions, graphics and SFX.  Thus every downstream timestamp
+    # is in the same (possibly sped-up) timeline.
+    try: speech_speed = float((d.get("over") or {}).get("_speech_speed") or 1.0)
+    except (TypeError, ValueError): speech_speed = 1.0
+    if speech_speed not in (1.0, 1.03, 1.06): speech_speed = 1.0
+    if speech_speed != 1.0 and not _have_px:
+        src = speed_source(jid, src, speech_speed, log=lambda x: print(x, flush=True))
+        take_map = scale_take_map(take_map, speech_speed)
     out = os.path.join(SCRATCH, jid + ".mp4")
     def stage(n, name):
         req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})
@@ -3064,11 +3274,13 @@ def handle(d):
         if _gg is not None: _gg.tally_reset()
     except Exception: pass
     _failed = False
+    render_over = dict(d.get("over") or {})
+    if take_map: render_over["_take_map"] = take_map
     try:
         try:
             m, mo, st, ncap = render(job, brand, src, out, stage,
                                      log=lambda s: print(s, flush=True),
-                                     over=d.get('over') or {})
+                                     over=render_over)
         except ReviewStop as rs:
             # ⚠️ ကျဘမ်း **မဟုတ်** — သုံးစွဲသူ အတည်ပြုရန် ရပ်လိုက်တာ。
             #    `fail` ကို မခေါ်ရ、မိနစ်လည်း မရေတွက်ရ (ဗီဒီယို မထွက်သေး)。
