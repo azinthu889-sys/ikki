@@ -1242,6 +1242,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      #    ကိန်းသေ ရေးလျှင် ပုံစံတိုင်း တူသွားမည်。
                      sfx_on=rc.get("sfx_on"), sfx=rc.get("sfx", True),
                      sfx_per_min=rc.get("sfx_per_min"),
+                     # MotionKit profile က raw template ID မဟုတ်ဘဲ
+                     # manifest/safe-zone စစ်ပြီးသား visual language ဖြစ်သည်။
+                     motionkit_profile=rc.get("motionkit_profile") or "premium",
                      # ⚠️ **ပုံစံ နာမည်ကို ပေးရမည်** — တိုင်းထားသော SFX
                      #    မူဝါဒ (headtop ၆.၀/min) ကို id နဲ့ ရှာသည်。
                      style=rc.get("_id"),
@@ -1891,7 +1894,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
     nb = int(rc.get("broll") or 0)
     if nb and caps:
         try:
-            hits = BR.match(caps, nb, log=log)
+            hits = BR.match(caps, nb, log=log, strict=bool(rc.get("broll_strict")))
             for si, clip, sc in hits:
                 c = caps[si]
                 # ⚠️ အရှည်ကို recipe က ကန့်သတ် — ၃.၂s ပုံသေက ZAE အတွက်
@@ -1930,7 +1933,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ anchor (စာတန်းကြောင်း) ပေါ်မှာပဲ ချလျှင် ခွင့်ပြုချက် မကုန် —
             #    စာတန်း ၉ ကြောင်းပဲ ရှိသဖြင့် ၃၆s ထဲ ၁၇s ပဲ သုံးနိုင်ခဲ့သည်
             #    (reference က ၆၂%)。 ⇒ **ကျန်ကွက်လပ်တွေကို ဖြည့်ရမည်**。
-            if spent < BUD * 0.85:
+            # Premium talking-head မှာ budget ပြည့်အောင် context မဆိုင်သော stock
+            # (ဥပမာ finance talk ထဲ road shot) ဖြည့်လိုက်တာက visual မရှိတာထက်
+            # ပိုဆိုးသည်။ strict profile က exact transcript match ရသလောက်သာ သုံးသည်။
+            if spent < BUD * 0.85 and not rc.get("broll_strict"):
                 total = sum(y - x for x, y in spans)
                 usedp = {b[1] for b in bmov}
                 pool = [c for c in (BR.load().get("clips") or [])
@@ -1993,6 +1999,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     spent += d; t += d + GAP; pi += 1; added += 1
                 bmov.sort(key=lambda x: x[0])
                 if added: log(f"  B-roll · ကွက်လပ် ဖြည့် {added} ခု")
+            elif spent < BUD * 0.85 and rc.get("broll_strict"):
+                log("  B-roll · strict semantic mode — budget ဖြည့်ရန် မဆိုင်သော clip မထည့်")
             if bmov: log(f"  B-roll စုစုပေါင်း {spent:.1f}s / ခွင့်ပြု {BUD:.1f}s")
             for at,_,d,tag in bmov: log(f"  B-roll {at:6.2f}s · {d:.1f}s · {tag}")
             log(f"  B-roll {len(bmov)} ခု တပ်ပြီး")
@@ -2020,7 +2028,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
             if _cur > 1.0 and (_b - _a) >= 0.80:
                 _zooms[_i] = _cur; _nz += 1
         if _nz: log(f"  ဖြတ်ဆက် ဖုံး — span {_nz}/{len(spans)} ကို {_pz:.2f}× punch-in")
-    SP.spans(src, spans, cutv, os.path.join(work,"sp"), fps=rc["fps"], zooms=_zooms,
+    # Plan က punch-in ကို event အဖြစ် ရေးပေးထားသော်လည်း span တစ်ခုကို crop
+    # တစ်မျိုးသာချနိုင်သည်။ အောက်က adapter က event start/end မှာ source span
+    # ကို ခွဲ၍ no-cut talking head မှာပါ motion တကယ်ပေါ်စေသည်။
+    _render_spans = spans
+    if _PLAN and _PLAN.get("cameraReframes"):
+        try:
+            import execute as EX3
+            _render_spans, _zooms = EX3.reframe_spans(_PLAN, spans, _zooms, log=log)
+        except Exception as _reframe_e:
+            log(f"  ⚠️ plan punch မချနိုင် ({type(_reframe_e).__name__}) — cut framing သာ")
+            _render_spans = spans
+    SP.spans(src, _render_spans, cutv, os.path.join(work,"sp"), fps=rc["fps"], zooms=_zooms,
              **({"fade": _fd/2.0} if _fd > 0 else {}))
     # ⚠️ ဖြတ်ချက် မရှိသော ဗီဒီယိုမှာ `_zooms` က ဘာမှ မလုပ်နိုင် ⇒ ရုပ်က
     #    လုံးဝ မလှုပ်ဘဲ ဖြစ်သည်。 ⇒ ဆက်တိုက် ချောမွေ့သော zoom ထည့်သည်。

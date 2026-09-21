@@ -92,6 +92,21 @@ def main():
     check("zoom ၁.၀ ကို ကျော်သည်", 2 not in z)
     check("timeline ပြင် ကျော်သည်", len(z) == 2)
 
+    print("\n── ၃ခ · plan punch ကို render span အဖြစ် ခွဲသည် ──")
+    p2 = PS.empty("v1")
+    p2["cameraReframes"] = [
+        ev("rp1", 3.0, 5.0, "reframe", "reframe", props={"zoom": 1.06}),
+        ev("rp2", 15.0, 17.0, "reframe", "reframe", props={"zoom": 1.08}),
+    ]
+    rs, rz = EX.reframe_spans(p2, spans, {0: 1.10})
+    check("reframe က source span ကို start/end မှာ ခွဲသည်",
+          rs == [(0.0, 3.0), (3.0, 5.0), (5.0, 10.0),
+                 (12.0, 15.0), (15.0, 17.0), (17.0, 22.0), (30.0, 45.0)], rs)
+    check("ခွဲလည်း output အရှည် မပြောင်း",
+          abs(sum(b-a for a,b in rs) - sum(b-a for a,b in spans)) < 1e-6)
+    check("ရှိပြီးသား cut punch နဲ့ plan punch ကို နှစ်ခါ crop မလုပ်",
+          rz.get(1) == 1.10 and rz.get(4) == 1.08, rz)
+
     print("\n── ၄ · SFX ──")
     p["sfxEvents"] = [
         ev("s1", 1.0, 1.2, "sfx", "sfx", props={"role": "click", "db": -20}),

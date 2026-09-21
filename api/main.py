@@ -655,6 +655,10 @@ def styles(authorization: str = Header(None)):
                  if isinstance(v, tuple) and v and v[0] == "bool")
     return {"styles": RC.listing(), "over": over,
             "choices": _ch, "bools": _bl,
+            # UI က profile အမည်/အဓိပ္ပာယ်ကို code ထဲ ပြန်မရေးရ။ MotionKit
+            # template family အသစ် ထပ်ထည့်လျှင် API ရင်းမြစ်တစ်နေရာပဲ ပြင်ရမည်။
+            "motionkit_profiles": [dict(id=k, **v)
+                                   for k, v in RC.MOTIONKIT_PROFILES.items()],
             "cuts": [{"id": k, "my": v[0], "en": v[1]} for k, v in RC.CUT_LABEL.items()],
             "lufs": [{"v": k, "my": v[0], "en": v[1]} for k, v in RC.LUFS.items()],
             "music": RC.MUSIC, "captions": RC.CAPSTYLE, "latin": RC.LATIN}

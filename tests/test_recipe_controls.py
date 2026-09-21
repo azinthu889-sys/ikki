@@ -82,6 +82,23 @@ def main():
     check("plan မဟုတ်သော ပုံစံက plan=False",
           [x for x in R.listing() if x["id"] == "knowledge"][0]["plan"] is False)
 
+    print("\n── ၇ · Talking Head Motion Edit က MotionKit plan ကို တကယ်သုံးသည် ──")
+    talk = R.get("headtop")
+    check("headtop = plan-driven", talk.get("plan") is True, talk.get("plan"))
+    check("semantic B-roll only", talk.get("broll_strict") is True, talk.get("broll_strict"))
+    visible = {x["id"]: x for x in R.listing()}
+    check("duplicate ref-talk ကို UI မှာ မပြ", "ref-talk" not in visible, visible)
+    check("Talking Head Motion Edit တစ်မျိုးတည်း ပြ", visible["headtop"]["label"] == "Talking Head Motion Edit",
+          visible["headtop"]["label"])
+    check("အဟောင်း ref-talk job ကို ဖတ်နိုင်သေး", R.get("ref-talk")["label"] == "Talking Head Motion Edit",
+          R.get("ref-talk")["label"])
+    for profile in R.MOTIONKIT_PROFILES:
+        got = R.clean({"motionkit_profile": profile}).get("motionkit_profile")
+        check(f"MotionKit profile {profile} လက်ခံ", got == profile, got)
+    bad_profile = R.clean({"motionkit_profile": "any-raw-template"})
+    check("raw template ID ကို profile အဖြစ် မလက်ခံ", "motionkit_profile" not in bad_profile,
+          bad_profile)
+
     print()
     if FAILED:
         print(f"  ✗ ကျသည် {len(FAILED)}: {FAILED}")

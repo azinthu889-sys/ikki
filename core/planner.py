@@ -62,6 +62,66 @@ PREFER = {
     "hook":      ["prem4.big_question", "prem4.stop_scroll", "titles3.opening_bars"],
 }
 
+# ── MotionKit visual language ─────────────────────────────────────
+#
+# User ကို raw template ID ၄၇၉ ခုလုံး မရွေးခိုင်းပါ။ Template တချို့က rows,
+# map point စတဲ့ structured data လိုပြီး၊ တချို့က face safe-zone မရှိသဖြင့်
+# talking-head ပေါ် တင်လို့မရပါ။ ဒီ mapping က profile တစ်ခုစီအတွက် render
+# လုပ်နိုင်ပြီးသား (manifest-verified) template ကိုသာ ရွေးစေသည်။
+# `premium` က လက်ရှိ best-of set + Headtop pack ကို သုံးသည်။ အခြား mode များ
+# က explicit family ဖြစ်လို့ user ရွေးလိုက်သော visual language တကယ်ကွာသည်။
+PROFILE_PREFER = {
+    "clean": {
+        "hook": ["titles3.opening_bars", "prem4.big_question"],
+        "section": ["titles3.minimal_third", "titles.topic_bar"],
+        "fact": ["callouts.underline_call", "callouts.line_call"],
+        "number": ["odo.big_stat"],
+        "steps": ["infogfx.steps"],
+        "checklist": ["infogfx.checklist"],
+        "compare": ["infogfx.big_number"],
+        "location": ["prem7.location_tag"],
+        "warning": ["callouts.underline_call"],
+    },
+    "bold": {
+        "hook": ["prem4.stop_scroll", "prem4.big_question"],
+        "section": ["titles.chapter", "titles.topic_bar"],
+        "fact": ["callouts.box_call", "callouts.underline_call"],
+        "number": ["odo.count_up", "odo.big_stat"],
+        "steps": ["infogfx.checklist", "infogfx.steps"],
+        "checklist": ["infogfx.checklist"],
+        "compare": ["infogfx.big_number"],
+        "location": ["prem7.note_card", "prem7.location_tag"],
+        "warning": ["callouts.box_call"],
+    },
+    "explainer": {
+        "hook": ["prem4.big_question", "titles3.opening_bars"],
+        "section": ["titles.chapter", "titles.topic_bar"],
+        "fact": ["callouts.line_call"],
+        "number": ["odo.big_stat", "odo.percent_ring"],
+        "steps": ["infogfx.steps", "infogfx.checklist"],
+        "checklist": ["infogfx.checklist"],
+        "compare": ["infogfx.big_number"],
+        "location": ["prem7.note_card"],
+        "warning": ["callouts.box_call"],
+    },
+}
+
+
+def _profile_candidates(label, profile, last_id=None):
+    """Profile + semantic label → allowed template IDs.
+
+    `premium` ကို special-case လုပ်ထားသည်: Headtop pack ကိုပါ သုံးပြီး
+    ယခင် verified best-of order ကို မပြောင်းစေပါ။ အခြား profile မှာတော့
+    user ရွေးထားသော visual language ကို ဖျက်ပစ်မိမည်မဟုတ်အောင် explicit
+    candidate list ကနေသာ ရွေးသည်။
+    """
+    prof = PROFILE_PREFER.get(str(profile or "premium"))
+    cands = (prof or {}).get(label)
+    if not cands:
+        fam = FAMILY.get(label)
+        cands = PREFER.get(label) or (MF.HEADTOP.get(fam) if fam else []) or []
+    return [c for c in cands if c != last_id]
+
 # ── စွမ်းအင် အဆင့် ──────────────────────────────────────────
 # `gap` — မြင်ကွင်း ပြောင်းမှု ကြားကာလ ပစ်မှတ် (စက္ကန့်)
 ENERGY = {
@@ -580,6 +640,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     """အညွှန်း → plan (ကုဒ်က တည်ဆောက်သည်、AI မဟုတ်)"""
     o = dict(opts or {})
     en = ENERGY.get(o.get("energy") or "standard", ENERGY["standard"])
+    profile = str(o.get("motionkit_profile") or "premium")
     gap = float(o.get("changeGap") or en["gap"])
     fps = int(o.get("fps") or 30)
 
@@ -645,7 +706,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         #    ထပ်ခါထပ်ခါ သုံးလျှင် talking-head က slideshow ဖြစ်ပြီး
         #    ပြောသူနဲ့ ဆက်သွယ်မှု ပြတ်သည် (pack.json မှတ်ချက်)。
         #    ဖွင့်ချက် (`hook`) မှာသာ ခွင့်ပြုသည်。
-        for _pid in _pack_ids(lab):
+        # Premium profile ကသာ Headtop pack ကို ဦးစားပေးသည်။ Clean/Bold/
+        # Explainer တို့မှာ user ရွေးထားသော explicit MotionKit family ကိုသာ
+        # သုံးစေ၍ profile select က render ထဲ အမှန်တကယ် သက်ရောက်စေသည်။
+        for _pid in (_pack_ids(lab) if profile == "premium" else []):
             if _full_frame(_pid) and (lab != "hook" or _ff_used):
                 continue
             _pp = _pack_props(_pid, lab, txt)
@@ -655,8 +719,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                     _ff_used = True
                 break
         if not cid:
-            cands = [c for c in (PREFER.get(lab) or MF.HEADTOP.get(fam) or [])
-                     if c != last_id]
+            cands = _profile_candidates(lab, profile, last_id)
             for c in cands:
                 pr = fill(c, lab, txt)
                 if pr is not None:
@@ -678,19 +741,14 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             confidence=0.72))
         last_change, last_id = a, cid
 
-    # ── SFX — **ဂရပ်ဖစ် ဖြစ်ရပ်ပေါ်မှာသာ** ──
-    # ⚠️ schema မှာ `sfxEvents` ရှိပါလျက် planner က **တစ်ခါမှ မထုတ်ခဲ့ပါ**
-    #    ⇒ `execute.to_sfx()` က အမြဲ ဗလာ ပြန်ခဲ့သည် (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
-    # ⚠️ ပိတ်ထားလျှင် **အကြောင်းရင်း ချန်ရမည်** — 「Do not hide disabled
-    #    SFX settings」。 `qualityWarnings` ထဲ ထည့်သည်。
+    # ── SFX setting ──────────────────────────────────────────────
+    # Actual cue generation ကို keyword-pop / rhythm-fill ပြီးမှ အောက်ဆုံးမှာ
+    # လုပ်သည်။ ဒီနေရာမှာလုပ်မိလျှင် နောက်မှ ထည့်သော visual events အတွက်
+    # SFX မပါဘဲ ကျန်သွားသည်။
     if o.get("sfx_on") is False or o.get("sfx") is False:
         p["qualityWarnings"].append(dict(
             code="sfx_off", eventId=None,
             message="ဤပုံစံမှာ SFX ပိတ်ထားသည် — ဆက်တင်ကနေ ပြန်ဖွင့်နိုင်သည်"))
-    else:
-        p["sfxEvents"] = sfx_plan(p["templateEvents"], dur,
-                                  float(o.get("sfx_per_min") or 1.5),
-                                  log=o.get("log"), style=o.get("style"))
 
     # ══ စည်းချက် ဖြည့်ခြင်း — **editing psychology** ══════════════════
     # ⚠️ label classifier က ဝါကျ ၂၂ ကြောင်းကနေ ဂရပ်ဖစ် **၅ ခုသာ** ထုတ်သည်
@@ -725,13 +783,24 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                 continue
             _lab2 = (labels[i] if i < len(labels) else "plain")
             _cid2 = _pr2 = None
-            for _pid2 in _pack_ids(_lab2) or _pack_ids("section"):
+            _pack_fill = ((_pack_ids(_lab2) or _pack_ids("section"))
+                          if profile == "premium" else [])
+            for _pid2 in _pack_fill:
                 if _full_frame(_pid2):
                     continue
                 _pp2 = _pack_props(_pid2, _lab2, _txt2)
                 if _pp2 is not None:
                     _cid2, _pr2 = _pid2, _pp2
                     break
+            if not _cid2:
+                # Non-pack profile တွေအတွက်လည်း cadence fill ရှိရမည်၊ ဒါပေမယ့်
+                # profile ပြင်ပ template ဆီ တိတ်တဆိတ် ပြန်မကျစေရ။
+                for _cid_try in (_profile_candidates(_lab2, profile)
+                                 + _profile_candidates("section", profile)):
+                    _pr_try = fill(_cid_try, _lab2, _txt2)
+                    if _pr_try is not None:
+                        _cid2, _pr2 = _cid_try, _pr_try
+                        break
             if not _cid2:
                 continue
             n += 1
@@ -825,6 +894,14 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             confidence=0.66))
         last_pop = a
 
+    # SFX ကို **နောက်ဆုံး** template event စာရင်းကနေ ဆောက်ရမည်။ အရင် code က
+    # initial cards ပေါ်သာ cue တင်ပြီး gap-fill / keyword pop တွေ အသံမပါခဲ့လို့
+    # output က motion graphic ဖြစ်ပါလျက် silent slideshow လိုခံစားရသည်။
+    if o.get("sfx_on") is not False and o.get("sfx") is not False:
+        p["sfxEvents"] = sfx_plan(p["templateEvents"], dur,
+                                  float(o.get("sfx_per_min") or 1.5),
+                                  log=o.get("log"), style=o.get("style"))
+    p["motionKitProfile"] = profile
     return p
 
 

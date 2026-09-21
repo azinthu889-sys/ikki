@@ -318,9 +318,10 @@ MPROMPT = """မြန်မာဗီဒီယိုတစ်ခု၏ စာတ
 - **မကိုက်လျှင် မတွဲရ** — အလွတ် array ပြန်ပေးလို့ ရသည်။ မဆိုင်တဲ့ရုပ်
   ထည့်လိုက်ရင် ဗီဒီယိုတစ်ခုလုံး ယုတ်လျော့သွားသည်
 - ရုပ်တစ်ခုကို တစ်ခါသာ သုံးရမည်
+- `confidence` ကို ၀–၁ အတွင်း အမှန်တကယ်ကိုက်ညီမှုအတိုင်း ပေးရမည်
 - JSON array ကိုသာ ပြန်ပါ
 
-ပုံစံ: [{"line": 3, "clip": "c07", "why": "ကားပြောနေ"}, ...]
+ပုံစံ: [{"line": 3, "clip": "c07", "confidence": 0.92, "why": "ကားပြောနေ"}, ...]
 
 ရုပ်ကြမ်း စာရင်း:
 %s
@@ -328,8 +329,12 @@ MPROMPT = """မြန်မာဗီဒီယိုတစ်ခု၏ စာတ
 စာတမ်း:
 %s"""
 
-def match(segs, want, used=None, log=print):
-    """Gemini ဖြင့် စာကြောင်း↔ရုပ် တွဲသည်。 မရလျှင် pick() (lexical) ကို ပြန်သုံးသည်。
+def match(segs, want, used=None, log=print, strict=False):
+    """Gemini ဖြင့် စာကြောင်း↔ရုပ် တွဲသည်。
+
+    `strict=True` (premium talking head) မှာ LLM semantic match ကိုသာ လက်ခံသည်။
+    Transcript နဲ့မဆိုင်သော stock ကို budget ပြည့်ရန် မထည့်ခြင်းက clip နည်းသွားတာ
+    ထက် ပိုကောင်းသည်။ Legacy styles မှာသာ lexical fallback ကို ဆက်ထားသည်。
 
     ⚠️ Gemini ပြန်ပေးသော clip id ကို **ရှိမရှိ စစ်ရမည်** — ဖန်လာလျှင်
        မဆိုင်တဲ့ရုပ် ဝင်သွားမည်。 ဒါက ပထမက Gemini မမေးဘဲ ထားခဲ့တဲ့ အကြောင်းရင်း；
@@ -343,6 +348,9 @@ def match(segs, want, used=None, log=print):
     db = load(); clips = db.get("clips") or []
     used = set(used or [])
     av = [c for c in clips if c["path"] not in used]
+    # Semantic မှန်နေလည်း အမှောင်/ဗလာ clip က premium မဖြစ်နိုင်။ match path
+    # က အရင် screen() မဖြတ်ခဲ့လို့ generic-fill နဲ့ မတူသော quality gate ဖြစ်နေခဲ့သည်။
+    av = screen(av, log=log)
     if not av or want <= 0 or not segs: return []
 
     ids = {}
@@ -375,7 +383,13 @@ def match(segs, want, used=None, log=print):
                 if cid not in ids: bad += 1; continue      # ⚠️ ဖန်လာတာ ဖြုတ်
                 if not (0 <= n < len(segs)): bad += 1; continue
                 if cid in seen or n in {o[0] for o in out}: continue
-                seen.add(cid); out.append((n, ids[cid], 9))
+                # Prompt က confidence မပေးလျှင် legacy matching ကို မပျက်စေရန် 0.9
+                # လို့ယူသည်။ New prompt/strict pipeline က low-confidence ကို ပယ်သည်။
+                try: conf = float(x.get("confidence", 0.9))
+                except (TypeError, ValueError): conf = 0.0
+                if strict and conf < 0.80:
+                    continue
+                seen.add(cid); out.append((n, ids[cid], round(conf * 10, 2)))
             if bad: log(f"  B-roll · Gemini id မှား {bad} ခု ဖြုတ်ပြီး")
             if out:
                 G.tally("broll", True)
@@ -394,6 +408,9 @@ def match(segs, want, used=None, log=print):
     # ⚠️ Gemini မရလျှင် စာလုံးတူမှုဖြင့် ဖြည့်သည် — ဒါပေမဲ့ **အမှတ် နိမ့်တာကို
     #    မယူရ**。 ၃ နဲ့ ယူတော့ "ROLEX နာရီ" · "Hakone ကားလမ်း" တို့ ဂျပန်စာ
     #    သင်တန်း ဗီဒီယိုထဲ ဝင်လာခဲ့သည် (Zin ၂၀၂၆-၀၉-၁၇)。 ⇒ ၆ သို့ တင်。
+    if strict:
+        log("  B-roll · strict semantic match မရ — lexical fallback မသုံး")
+        return []
     lex = pick(segs, want, used, min_score=6)
     if lex: log(f"  B-roll · စာလုံးတူမှုဖြင့် {len(lex)} ခု (Gemini မရ)")
     return lex

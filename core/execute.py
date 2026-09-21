@@ -146,6 +146,75 @@ def to_zooms(plan, spans, log=None):
     return zooms
 
 
+def reframe_spans(plan, spans, base_zooms=None, min_piece=0.20, log=None):
+    """Plan ၏ source-time reframes ကို render လုပ်နိုင်သော span များအဖြစ် ခွဲသည်。
+
+    `spans.spans()` က clip တစ်ခုလုံးအတွက် crop တစ်ခုသာ ချနိုင်သည်။ အရင်က
+    `cameraReframes` ကို plan ထဲ ထုတ်ထားပေမယ့် span မခွဲခဲ့လို့ no-cut talking
+    head တစ်ပုဒ်မှာ punch-in **လုံးဝမပေါ်**ခဲ့။ Plan အချိန်က source timeline
+    ဖြစ်သောကြောင့် source spans ပေါ်မှာပဲ split လုပ်သည်; output duration မပြောင်း။
+
+    `base_zooms` က silence cut ကို ဖုံးရန်ရှိပြီးသား wide/punch alternation ဖြစ်သည်။
+    Plan punch နဲ့ တိုက်လျှင် အကြီးဆုံး zoom ကိုသာ ယူသည် — နှစ်ခါ crop မလုပ်ရ။
+    """
+    base = dict(base_zooms or {})
+    events = []
+    for ev in sorted((plan or {}).get("cameraReframes") or [],
+                     key=lambda x: x.get("startTime") or 0):
+        try:
+            a = float(ev.get("startTime") or 0.0)
+            b = float(ev.get("endTime") or a)
+            z = float((ev.get("props") or {}).get("zoom") or 1.0)
+        except (TypeError, ValueError):
+            continue
+        if b - a < min_piece or z <= 1.001:
+            continue
+        events.append((a, b, max(1.0, min(PS.MAX_PUNCH, z))))
+    if not events:
+        return list(spans or []), base
+
+    out, zooms, split_n = [], {}, 0
+    for src_i, item in enumerate(spans or []):
+        try:
+            lo, hi = float(item[0]), float(item[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if hi - lo <= 0.05:
+            continue
+        local = [(max(lo, a), min(hi, b), z) for a, b, z in events
+                 if b > lo + min_piece and a < hi - min_piece]
+        marks = [lo, hi]
+        for a, b, _z in local:
+            if lo + min_piece < a < hi - min_piece: marks.append(a)
+            if lo + min_piece < b < hi - min_piece: marks.append(b)
+        marks = sorted(set(round(x, 4) for x in marks))
+        for a, b in zip(marks, marks[1:]):
+            if b - a <= 0.05:
+                continue
+            idx = len(out); out.append((a, b))
+            mid = (a + b) / 2.0
+            zv = base.get(src_i, 1.0)
+            if isinstance(zv, dict): zv = zv.get("zoom", 1.0)
+            try: zv = float(zv or 1.0)
+            except (TypeError, ValueError): zv = 1.0
+            for ea, eb, ez in local:
+                if ea <= mid < eb:
+                    zv = max(zv, ez)
+            if zv > 1.001:
+                # Plan event ကိုယ်တိုင်က PS.MAX_PUNCH အောက် ချပြီးသား။
+                # `base_zooms` ကတော့ silence cut ကို ဖုံးရန် existing 1.10×
+                # framing ဖြစ်နိုင်သည် — plan adapter က အဲဒါကို 1.08× သို့
+                # လျှော့မိလျှင် cut quality ကျသွားမည်။ spans._punch() ရဲ့
+                # hard ceiling 1.25× အောက်မှာသာ ထားသည်။
+                zooms[idx] = min(1.25, zv)
+            if len(marks) > 2:
+                split_n += 1
+    if log:
+        log(f"  execute · plan punch {len(events)} ခု ⇒ span {split_n} ခု ခွဲ · "
+            f"crop {len(zooms)} ခု")
+    return out, zooms
+
+
 def to_sfx(plan, log=None):
     """`sfxEvents` → `[(အချိန်, role, dB)]`
 

@@ -97,6 +97,15 @@ R = {
     #    ဒါက ပိုင်ရှင်ရဲ့ ဆုံးဖြတ်ချက် ဖြစ်သည်。
     #    ⚠️ ZJL ရဲ့ GOLD နဲ့ တူညီသည် — ကွဲပြားမှုက နောက်ခံ (#0A0A0A vs
     #       #101014) နဲ့ ဖောင့် (MasterpieceUniRound vs MyanmarYinmar)。
+    # Talking Head ကလည်း Headtop နည်းတူ plan-driven ဖြစ်ရမည်။ အရင်က ဒီ style
+    # တစ်ခုတည်းက generic renderer လမ်းကြောင်းကနေ ထွက်ခဲ့၍ AI plan ရဲ့
+    # template / semantic SFX / punch-in မည်သည့်အရာမှ final render မရောက်ခဲ့။
+    # `plan` ဟာ UI မှာ edit plan ပြရန်လည်း အခြေခံဖြစ်သည်။
+    plan=True, energy="standard", motion="normal", broll_freq="normal",
+    sfx_on=True, autocut=True, shot_grade=True, motionkit_profile="premium",
+    # အကြောင်းအရာနဲ့ မချိတ်ထားသော stock ကို budget ပြည့်စေရန် မထည့်ရ။
+    # Premium talking-head မှာ B-roll နည်းနည်းနည်းသော်လည်း မှန်ရမည်။
+    broll_strict=True,
     cap_typo=0.22, accent="#22D3C5", insert_per_min=2.5, zoom_amt=0.055,
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      keep_pause=0.20, min_sil=0.32,
@@ -149,16 +158,19 @@ R = {
  #    ၆၄% က ၂s အောက် · စာသား ၄၆% (အပေါ် ၃၄% · အောက် ၁၄% သာ)
  #    ⚠️ ကတ်နဲ့ဆို ၁၆၃ ခု လိုမည် — **မရနိုင်**。 ⇒ ဤ style ရဲ့ လက္ခဏာက
  #      **ဖြတ်ချက် တင်းမှု** ဖြစ်သည် ⇒ `keep_pause`/`min_sil` ကို တင်းထားသည်。
-# ⚠️ **Headtop** — Zin ရဲ့ ၂၀၂၆-၀၉-၂၀ spec。 ref-talk နဲ့ ကွာတာက
-#    「worker က ဆုံးဖြတ်」မဟုတ်ဘဲ **plan ကို အကောင်အထည်ဖော်**ခြင်း ဖြစ်သည်
-#    ⇒ event တိုင်း သုံးစွဲသူ ပြင်နိုင်သည်。
+# ⚠️ **Talking Head Motion Edit** — Zin ရဲ့ ၂၀၂၆-၀၉-၂၀ spec。
+#    UI မှာ ယခင် `Headtop` + `Talking Head Motion Edit` ကို တစ်မျိုးတည်း
+#    ပေါင်းထားသော canonical recipe ဖြစ်သည်။ plan ကို အကောင်အထည်ဖော်၍ event
+#    တိုင်း သုံးစွဲသူ ပြင်နိုင်သည်။ `ref-talk` ကို အဟောင်း jobs မပျက်စေရန်သာ
+#    R ထဲထားပြီး UI ကနေ ဖျောက်ထားသည်。
 # ⚠️ စာတန်း ကိန်းများကို reference (KCN4-2hyUBM) ကနေ တိုင်းယူထားသည် —
 #    ပေါ်ချိန် ၇၂% · အမြင့် အလယ်တန်း ၃.၆%·H (p75 ၅.၇%) · အလယ် y ၇၂%。
 #    ⚠️ `cap_base` ကို **အောက်ခြေမှ ၇–၉%** ဟု spec မှာ သတ်မှတ်ထားသဖြင့်
 #       ၀.၉၂ (= အောက်ခြေမှ ၈%) ထားသည် — QC `cap_max` ၀.၉၃ အောက်。
  "headtop": dict( gfx_gap_max=6.0,
-     label="Headtop", theme="ikki", fps=30,
+     label="Talking Head Motion Edit", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
+     motionkit_profile="premium", broll_strict=True,
      keep_pause=0.20, min_sil=0.32,
      captions="accent", cap_pct=0.050, cap_base=0.92, cap_max=0.93,
      cap_cover=0.85, cap_typo=0.0,
@@ -335,10 +347,13 @@ DEF = dict(
            #    အတိမ်အနက်ကို reference ကနေ **မတိုင်းရသေးပါ**、ဘောင်အတွင်း
            #    (≤၁.၂၅×) ဒီဇိုင်း ရွေးချယ်မှု ဖြစ်သည်。
            zoom_amt=0.0,
-           # ── Headtop ရဲ့ ထိန်းချုပ်ချက် (Zin ၂၀၂၆-၀၉-၂၀ spec) ──
+           # ── plan-driven Talking Head / Headtop ထိန်းချုပ်ချက် ──
            # ⚠️ `plan=True` ဆိုမှ plan လမ်းကြောင်း သုံးသည် ⇒ ကျန် ပုံစံ ၁၀ ခု
            #    ယခင်အတိုင်း — worker က ဆုံးဖြတ်နေဆဲ。 တစ်ပြိုင်နက် မပြောင်းရ。
            plan=False,              # plan-driven render သုံးမလား
+           # MotionKit ထဲက template အားလုံးကို raw ID နဲ့ မပေးရ။ shot-safe-zone,
+           # required props နဲ့ renderer support ကို စစ်ပြီးသော profile ပဲ ရွေးစေသည်။
+           motionkit_profile="premium",
            energy=None,             # minimal · standard · dynamic
            broll_freq=None,         # B-roll ဘယ်လောက် မကြာခဏ
            motion=None,             # ရုပ် လှုပ်ရှားမှု ပြင်းအား
@@ -362,11 +377,12 @@ DEF = dict(
 # ⚠️ **ပေါင်းထားသော ပုံစံများ** (၂၀၂၆-၀၉-၂၀ · Zin)。
 #    `ref-slides` → Knowledge Sharing ရဲ့ slide "ထူထူ"
 #    `ref-fast`   → Talking Head Motion Edit ရဲ့ pace "မြန်"
-#    ⚠️ အဟောင်း ၂ ခုကို **R ထဲ ချန်ထားရမည်** — ရှိပြီးသား job တွေရဲ့
+#    `ref-talk`   → Talking Head Motion Edit နဲ့ UI ပေါ်မှာ ပေါင်းပြီးသား
+#    ⚠️ အဟောင်း ၃ ခုကို **R ထဲ ချန်ထားရမည်** — ရှိပြီးသား job တွေရဲ့
 #       `recipe` ကော်လံမှာ အဲဒီနာမည် ရေးထားပြီး၊ ဖျက်လျှင် `get()` က
 #       `cinematic-vlog` သို့ ပြန်ဆုတ်ကာ **ပုံစံ တိတ်တဆိတ် ပြောင်း**မည်。
 #       ⇒ `_hidden` နဲ့ UI ကနေသာ ဖယ်သည်。
-HIDDEN = {"ref-slides", "ref-fast"}
+HIDDEN = {"ref-talk", "ref-slides", "ref-fast"}
 
 # slide ပမာဏ — Knowledge Sharing
 # ⚠️ `card_max_s` ကို **ဖယ်ထားသည်**。 ဂိတ်ဆီ မရောက်ဘဲ (run.py:1609 က `pass`)
@@ -511,6 +527,25 @@ LATIN = ["Figtree", "Figtree-Bold", "Figtree-Black", "Manrope", "ArchivoBlack",
          "Outfit-Bold", "Outfit-Black"]
 CAPSTYLE = ["zae", "big", "plain", "light", "karaoke", "accent"]
 
+# MotionKit ကတ် ၄၇၉ ခုလုံးကို planner ဆီ တိုက်ရိုက်ဖွင့်ပေးလျှင် required props
+# မကိုက်ခြင်း၊ မျက်နှာပေါ်ဖုံးခြင်း၊ style မညီခြင်း ဖြစ်နိုင်သည်။ User က မိမိ
+# brand အတွက် ရွေးချယ်နိုင်ရမည်၊ renderer ကတော့ စစ်ပြီးသား template family ကိုသာ
+# သုံးရမည်။ အောက်က preset တစ်ခုကို Style settings မှာ သိမ်းနိုင်သည်။
+MOTIONKIT_PROFILES = {
+    "premium": dict(my="Premium balanced", en="Premium balanced",
+                    detail_my="hook · callout · data · cinematic motion ကို မျှတစွာ",
+                    detail_en="Balanced hook, callout, data and motion"),
+    "clean": dict(my="Clean brand", en="Clean brand",
+                  detail_my="သန့်ရှင်း၊ brand/business အတွက် motion နည်းနည်း",
+                  detail_en="Restrained, brand-safe visual language"),
+    "bold": dict(my="Bold creator", en="Bold creator",
+                 detail_my="hook၊ number နဲ့ emphasis ကို ပိုပြတ်သားစေ",
+                 detail_en="Stronger hooks, numbers and emphasis"),
+    "explainer": dict(my="Explainer", en="Explainer",
+                      detail_my="steps · checklist · fact ကို ဦးစားပေး",
+                      detail_en="Prioritises steps, checklists and facts"),
+}
+
 # ⚠️ **`NATURAL` ကို ဒီဖိုင်ထဲမှာပဲ သတ်မှတ်ရမည်**。 `core/grade.py` ထဲ ထားပြီး
 #    `get()` က import လုပ်ခဲ့ရာ **server မှာ `/api/styles` တစ်ခုလုံး ပျက်**ခဲ့သည်
 #    (၂၀၂၆-၀၉-၂၀)。 Docker image ထဲ `core/` ရဲ့ ၆ ဖိုင်သာ ပါပြီး `grade.py`
@@ -582,6 +617,7 @@ BOUNDS = dict(
  energy   = ("choice", ["minimal", "standard", "dynamic"]),
  broll_freq = ("choice", ["low", "normal", "high"]),
  motion   = ("choice", ["low", "normal", "high"]),
+ motionkit_profile = ("choice", list(MOTIONKIT_PROFILES)),
  sfx_on   = ("bool",),
  autocut  = ("bool",),
  review   = ("bool",),
@@ -689,6 +725,7 @@ def listing():
                         #    ⇒ ဒီမှာ မထုတ်ပေးလျှင် `sopen()` က ပြစရာ မရှိပါ。
                         plan=bool(r.get("plan")),
                         energy=r.get("energy"), motion=r.get("motion"),
+                        motionkit_profile=r.get("motionkit_profile") or "premium",
                         sfx_on=r.get("sfx_on"), autocut=r.get("autocut"),
                         review=r.get("review"),
                         broll_freq=r.get("broll_freq"),

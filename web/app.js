@@ -24,18 +24,15 @@ var STYLES={creator:[
      ⚠️ အောက်က ၃ ခုက **reference ၃ ပုဒ် တိုင်းပြီး** ဆောက်ထားသည်
         (`assets/calib/ref_hype_2026.json`) — ပုံစံ ၃ မျိုး ကွဲသဖြင့်
         ပျမ်းမျှ မယူဘဲ သီးသန့် ခွဲထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。 */
-  /* ⚠️ **Headtop** — plan-driven。 ကျန်ပုံစံတွေက worker က ဆုံးဖြတ်ပြီး
-        ဒီတစ်ခုကတော့ **AI plan ကို အကောင်အထည်ဖော်**သည် ⇒ event တိုင်း
-        သုံးစွဲသူ ပြင်နိုင်သည် (Zin ၂၀၂၆-၀၉-၂၀ spec)。 */
-  /* ⚠️ ၇ ခုမြောက်က **နမူနာပုံ ဘယ်ဟာ သုံးမလဲ** — `prev/headtop.jpg` မရှိသေး၍
-        `ref-talk` ကို ချေးသည်。 မထည့်လျှင် ပုံ ပျက်နေသည် (၂၀၂၆-၀၉-၂၁ တွေ့)。 */
-  ["headtop","Headtop · Motion Edit","စာတန်း ဖတ်လွယ် · အဓိပ္ပာယ်အလိုက် ဂရပ်ဖစ် · ပြင်လို့ရ",
-   "Readable captions · semantic graphics · editable","MasterpieceUniRound","plan","ref-talk"],
+  /* ⚠️ Headtop + Talking Head Motion Edit က user အတွက် ရွေးချယ်မှုနှစ်ခု
+        ဖြစ်ခဲ့သည်။ အခု `headtop` canonical recipe တစ်ခုတည်းက AI plan,
+        semantic graphics, SFX နဲ့ transcript editing ကို အကုန်ထမ်းသည်။
+        `ref-talk` recipe က အဟောင်း render မပျက်စေရန် backend ထဲသာ ကျန်သည်။ */
+  ["headtop","Talking Head Motion Edit","စာတန်း ဖတ်လွယ် · အဓိပ္ပာယ်လိုက် motion · SFX · ပြင်လို့ရ",
+   "Readable captions · semantic motion · SFX · editable","MasterpieceUniRound","plan"],
   /* ⚠️ "Fast Cut" ကို ဤပုံစံထဲ **ပေါင်းထားသည်** (Zin ၂၀၂၆-၀၉-၂၀) —
         ကွာတာက ဖြတ်နှုန်းတစ်ခုတည်း ဖြစ်၍ ပုံစံ သီးသန့် မလို。
         ပုံစံ ဆက်တင်ထဲက 「အရှိန်」 ကနေ မြန်/ပုံမှန် ရွေးပါ。 */
-  ["ref-talk","Talking Head Motion Edit","စာသား ၃၅% · အောက်တန်း အခြေခံ · အရှိန် ရွေးလို့ရ",
-   "Text 35% · lower-third led · pace selectable","MasterpieceUniRound","ref 1+3"],
   /* ⚠️ "· ZAE" ကို ဖယ်ထားသည် — brand စာရင်းမှာ **ZAE ဟု နာမည်ပေးထားသော
      သီးသန့် brand** ရှိပြီး (id b_94ad…) ဤ style ရဲ့ theme `zae` နှင့် မတူ。
      နာမည် တူနေသဖြင့် ဘယ်ဟာ ရွေးမှန်း မသိရခဲ့သည်。 */
@@ -2375,7 +2372,7 @@ function sopen(id){
   h+=row('lufs', cur==='my'?'အသံအဆင့်':'Loudness','',
       sel('lufs',SMETA.lufs.map(function(l){return [l.v, cur==='my'?l.my:l.en]}),
           (o.lufs!==undefined?o.lufs:st.lufs)), st.lufs);
-  /* ══ Headtop — plan လမ်းကြောင်းရဲ့ ထိန်းချုပ်ချက်များ ═══════════
+  /* ══ plan-driven Talking Head / Headtop ထိန်းချုပ်ချက်များ ═══════
      ⚠️ ဒါတွေက `recipes.BOUNDS` မှာ **စစ်ပြီးသား** ဖြစ်ပါလျက် UI မှာ
         မပါခဲ့သဖြင့် သုံးစွဲသူ ပြင်လို့ မရခဲ့ပါ (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
      ⚠️ ရွေးစရာ စာရင်းကို **server ကပေးတဲ့ `choices` ကနေသာ** ယူသည် —
@@ -2397,7 +2394,15 @@ function sopen(id){
       st[key]?'on':'off');
   }
   if(st.plan){
-    h+='<div class="sef sef-h"><b>'+(cur==='my'?'Headtop · AI အစီအစဉ်':'Headtop · AI plan')+'</b></div>';
+    h+='<div class="sef sef-h"><b>'+esc(st.label)+' · '+(cur==='my'?'AI motion အစီအစဉ်':'AI motion plan')+'</b></div>';
+    var MP=(SMETA&&SMETA.motionkit_profiles)||[];
+    if(MP.length){
+      var mpv=(o.motionkit_profile!==undefined?o.motionkit_profile:(st.motionkit_profile||'premium'));
+      h+=row('motionkit_profile', cur==='my'?'MotionKit ပုံစံ':'MotionKit visual language',
+        cur==='my'?'ရွေးထားသော profile က စစ်ပြီးသား template များကိုသာ render လုပ်သည်':'Renders only curated, shot-safe templates from the selected profile',
+        sel('motionkit_profile',MP.map(function(p){return [p.id,cur==='my'?p.my:p.en]}),mpv),
+        ((MP.filter(function(p){return p.id===(st.motionkit_profile||'premium')})[0]||{}))[cur==='my'?'my':'en']||'premium');
+    }
     h+=chrow('energy', cur==='my'?'စွမ်းအင်':'Energy',
         cur==='my'?'ဂရပ်ဖစ် ဘယ်လောက် မကြာခဏ ပြမလဲ':'How often a visual change lands',
         {minimal:['နည်းနည်း','Minimal'],standard:['ပုံမှန်','Standard'],dynamic:['များများ','Dynamic']});
