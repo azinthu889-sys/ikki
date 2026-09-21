@@ -43,7 +43,11 @@ def main():
             (("color", "pillFill"), "measured"),
             (("color", "marker"), "measured"),
             (("color", "accent"), "brand"),
-            (("motion", "enter"), "spec"),
+            (("motion", "enter"), "measured"),
+            (("motion", "exit"), "measured"),
+            (("motion", "hold"), "measured"),
+            (("motion", "micro"), "spec"),
+            (("motion", "settle"), "spec"),
             (("safeZones", "top"), "spec")):
         got = PK.src(t, *keys)
         check(f"{'.'.join(keys)} ⇒ {want}", got == want, got)
@@ -54,9 +58,29 @@ def main():
                        (("size", "pillWidth"), 0.304),
                        (("size", "pillPitch"), 0.1315),
                        (("density", "gfxPerMin"), 1.76),
-                       (("density", "gfxCoverage"), 0.178)):
+                       (("density", "gfxCoverage"), 0.178),
+                       # ⚠️ Step 1 တိုင်းချက် (ဗီဒီယို ၂ · ဖြစ်ရပ် ၂၁)
+                       (("motion", "enter"), 0.467),
+                       (("motion", "exit"), 0.200),
+                       (("motion", "hold"), 1.800)):
         check(f"{'.'.join(keys)} = {want}",
               abs(PK.tok(t, *keys) - want) < 1e-9, PK.tok(t, *keys))
+
+    print("\n── ၃ခ · spec နဲ့ ကွာသွားတာ မှတ်ထားရမည် ──")
+    # ⚠️ spec က enter ၀.၂၈ ဟု ဆိုခဲ့သည် — တိုင်းတော့ ၀.၄၆၇ (+၆၇%)。
+    #    **ဘယ်ကနေ ပြောင်းလဲ ချန်ထားရမည်** — မဟုတ်လျှင် နောက်တစ်ယောက်က
+    #    spec ကိန်းကို ပြန်သွင်းမည်。
+    m = t["motion"]["enter"]
+    check("enter မှာ မူလ spec ကိန်း ချန်ထားသည်",
+          abs(m.get("was_spec", 0) - 0.28) < 1e-9, m.get("was_spec"))
+    check("enter မှာ နမူနာ အရေအတွက် ပါသည်", m.get("n", 0) >= 20, m.get("n"))
+    check("enter မှာ ဖြန့်ကျက် ပါသည်", "p25" in (m.get("spread") or ""), m.get("spread"))
+    # ⚠️ `hold` က spec ရဲ့ `settle` နဲ့ **မတူ** — ရောလျှင် ၁၀ ဆ မှားမည်
+    check("hold ≠ settle ဟု မှတ်ထားသည်",
+          "settle" in (t["motion"]["hold"].get("note") or ""),
+          t["motion"]["hold"].get("note"))
+    check("ရွေ့လျားမှု ပုံစံ တိုင်းထားသည်",
+          PK.tok(t, "motion", "dominant") == "fade_scale")
 
     print("\n── ၄ · ပိတ်ထားသော density ──")
     # ⚠️ spec က Headtop ၄–၈/မိနစ် ဆိုသည် · ဂိတ်က ၁.၅ ⇒ **မဖွင့်ရသေး**
