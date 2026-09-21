@@ -119,9 +119,28 @@ def main():
         check(f"{nm} ⇒ ဖမ်းမိသည်", bool(PK.check_manifest(m)), PK.check_manifest(m))
 
     print("\n── ၆ · planner ရွေးခွင့် ──")
-    # ⚠️ template မဆောက်ရသေး ⇒ ဗလာ ဖြစ်ရမည် (အမှား မဟုတ်ပါ)
-    check("verify မပြီးသေး ⇒ ရွေးစရာ မရှိ", PK.selectable() == [],
-          PK.selectable())
+    # ⚠️ **manifest မှန်မှသာ** ရွေးခွင့် (spec §5) — pack.json ထဲ
+    #    ရှိရုံနဲ့ မလုံလောက်ပါ。
+    sel = PK.selectable()
+    check("selectable က ID စာရင်း ပြန်ပေးသည်",
+          all(isinstance(x, str) for x in sel), sel)
+    check("မှတ်ပုံတင်ထားသော template အားလုံး ပါသည်",
+          len(sel) == len(p.get("templates") or []), (len(sel), len(p["templates"])))
+    for tid in sel:
+        check(f"{tid} manifest မှန်", PK.template(tid) is not None)
+    # ⚠️ မမှန်သော manifest ⇒ **ရွေးခွင့် မပေးရ**
+    import copy
+    bad = copy.deepcopy(p)
+    bad["templates"] = [{"id": "x.bad"}]
+    saved = PK.load
+    PK.load = lambda pack="headtop-premium": (bad, t)
+    try:
+        check("မမှန်သော manifest ⇒ ရွေးခွင့် မရ", PK.selectable() == [],
+              PK.selectable())
+        check("မမှန်သော ID ⇒ template() None", PK.template("x.bad") is None)
+    finally:
+        PK.load = saved
+    check("မရှိသော intent ⇒ ဗလာ", PK.by_intent("__nope__") == [])
 
     print("\n── ၇ · တားမြစ်ချက် ──")
     b = (p.get("banned") or {}).get("effects") or []
