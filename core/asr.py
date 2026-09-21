@@ -883,6 +883,59 @@ def _place(lines, meas, cfg=None):
     return res
 
 
+def align_provided(lines, meas, cfg=None):
+    """User-edited transcript ကို အသံ timeline နဲ့ ပြန်ညှိသည်。
+
+    User ပြင်ထားသော `text` က authoritative ဖြစ်သည်။ သို့သော် Script Editor
+    က job ကို re-render ပို့သောအခါ `start`/`end` ဟာ ASR ၏ အကြမ်းအချိန်ကို
+    그대로 ပြန်သုံးနိုင်သည်။ အဲဒီအချိန်ကို လုံးဝ မညှိဘဲ ASR ကိုသာ skip လုပ်လျှင်
+    cut ပြီးနောက် caption, graphic နဲ့ SFX အားလုံး စကားထက် လွဲနိုင်သည်。
+
+    `_place()` ရဲ့ speech-onset alignment ကို ပြန်သုံးပြီး text/အပို metadata
+    မပျောက်အောင် ထိန်းထားသည်။ Alignment က segment များကို ပေါင်းရန် လိုလာလျှင်
+    user စာသားကို မပြောင်းဘဲ original timing ကို ပြန်ပေးသည် — စာသားပျောက်ခြင်း
+    ထက် timing တိကျမှုနည်းတာက ပိုလုံခြုံသည်。
+    """
+    raw = []
+    for line in lines or []:
+        if not isinstance(line, dict):
+            return list(lines or [])
+        text = str(line.get("text") or line.get("fix") or "").strip()
+        try:
+            start, end = float(line["start"]), float(line["end"])
+        except (KeyError, TypeError, ValueError):
+            return list(lines or [])
+        if not text or end <= start:
+            return list(lines or [])
+        item = dict(line)
+        item["text"] = text
+        item["start"], item["end"] = start, end
+        raw.append(item)
+    if not raw:
+        return []
+
+    placed = _place(raw, meas, cfg=cfg)
+    if (len(placed) != len(raw)
+            or [x.get("text") for x in placed] != [x.get("text") for x in raw]):
+        # `_place()` ရဲ့ CPS guard က line ပေါင်းစရာလိုတယ်ဆိုလျှင် user edit ကို
+        # မထိရ။ Caller က timing source ကို report မှာ သိနိုင်ရန် raw ကိုပဲပြန်သည်。
+        return raw
+
+    # UI identity/selection metadata ကို ပြန်သယ်သည်။ `_place()` က text/timing
+    # fields အသစ် ဆောက်သဖြင့် ဒီ metadata မပြန်ထည့်လျှင် re-render ပြီးနောက်
+    # user ရဲ့ row identity ပျောက်နိုင်သည်。
+    reserved = {"text", "start", "end", "words", "words_conf", "timing_src", "place"}
+    out = []
+    for src, dst in zip(raw, placed):
+        e = dict(dst)
+        for key, value in src.items():
+            if key not in reserved:
+                e[key] = value
+        e["timing_src"] = "provided_" + str(e.get("timing_src") or "segment")
+        out.append(e)
+    return out
+
+
 def japanese(wav, log=print):
     """ဂျပန်/အင်္ဂလိပ် — whisper.cpp (realtime ၄.၈၈ ဆ · တိုင်းပြီး)"""
     mdl = os.path.expanduser("~/.cache/whisper/ggml-large-v3-turbo.bin")
