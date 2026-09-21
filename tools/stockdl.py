@@ -51,6 +51,19 @@ PLAN = {
                      "retail shelf","star rating graphic","studio product"], 24, "land"),
  "business_short": (["vertical business","vertical office","vertical phone call",
                      "vertical handshake","vertical presentation","vertical laptop"], 24, "port"),
+ # ⚠️ animation ဆန်သော stock — motion graphics · 3D render · particle ·
+ #    gradient loop。 ၎င်းတို့က သဘာဝအားဖြင့် **အသေးစိတ် နည်း**သဖြင့်
+ #    `QDET 3.2` စစ်ချက် ကျတတ်သည် (headtop_motion မှာ ၇၇% ကျခဲ့)。
+ #    ⇒ နောက်ခံ/insert အဖြစ်သာ သုံးရန် — B-roll စစ်ချက်နဲ့ မတိုင်းရ。
+ "animation":      (["abstract animation loop","motion graphics background",
+                     "3d render animation","particles animation","geometric animation",
+                     "gradient animation loop","liquid animation","digital background loop",
+                     "neon animation","wave animation loop","low poly animation",
+                     "hologram interface","network connection animation","cyber background"],
+                    48, "land"),
+ "animation_v":    (["vertical abstract animation","vertical motion graphics",
+                     "vertical particles","vertical gradient loop","vertical neon",
+                     "vertical 3d render"], 20, "port"),
  "course":         (["classroom students","online learning","notebook writing",
                      "lecture hall","study desk","graduation"], 28, "land"),
 }
@@ -65,7 +78,9 @@ TOPUP = {
  "cinematic_vlog": ["city street cinematic","forest path walking","market crowd",
                     "waterfall close","train window day","neon street night"],
  "headtop_motion": ["paint ink water","smoke swirl light","particles sparkle",
-                    "glass refraction","fabric waving","liquid gold"],
+                    "glass refraction","fabric waving","liquid gold",
+                    "3d abstract shapes","kaleidoscope pattern","fluid art",
+                    "light rays motion","crystal refraction","holographic foil"],
  "knowledge":      ["bright office meeting","whiteboard presentation","students classroom bright",
                     "notebook writing desk","team discussion table","library daylight"],
 }
@@ -97,8 +112,23 @@ def pexels(q, n, orient):
         fs = [f for f in v.get("video_files", [])
               if f.get("file_type") == "video/mp4" and f.get("width") and f.get("link")]
         if not fs: continue
-        # ⚠️ ၄K/uhd ယူလျှင် ဖိုင် ၁၀၀ MB ကျော် — B-roll အတွက် မလို。 ~1080p ရွေးသည်
-        fs.sort(key=lambda f: abs((f.get("height") or 0)-1080))
+        # ⚠️ အမြင့်နဲ့ပဲ ရွေးလျှင် **၆၇၁ MB** ဖိုင် ဆွဲမိသည် (1080p ဖြစ်လျက် bitrate မြင့်)。
+        # ⚠️ ဒါပေမဲ့ အရွယ်နဲ့ပဲ ကန့်သတ်လျှင် **960×540 · 640×360** အထိ ကျသွားသည်
+        #    (တကယ် ဖြစ်ခဲ့) — 1080p timeline အတွက် သုံးမရ。
+        #    ⇒ **အမြင့် ≥720 ဖြစ်တာထဲက** အရွယ် ၄၀MB အောက် · 1080 နဲ့ အနီးဆုံး。
+        #    ၄၀MB အောက် မရှိလျှင် ထိုအုပ်စုထဲက အသေးဆုံး (၁၂၀MB ကျော်ရင် ကျော်)。
+        CAP, HARD = 40e6, 120e6
+        good = [f for f in fs if 720 <= (f.get("height") or 0) <= 1440]
+        if not good: good = fs
+        small = [f for f in good if (f.get("size") or 0) and f["size"] <= CAP]
+        if small:
+            small.sort(key=lambda f: abs((f.get("height") or 0)-1080))
+            fs = small
+        else:
+            good.sort(key=lambda f: (f.get("size") or 1e12))
+            if not good or (good[0].get("size") or 1e12) > HARD:
+                continue                      # ⚠️ ကြီးလွန်းလျှင် ဤ clip ကို လုံးဝ ကျော်
+            fs = good
         out.append(dict(src="pexels", id=v["id"], url=fs[0]["link"], dur=v.get("duration"),
                         w=fs[0].get("width"), h=fs[0].get("height"),
                         by=(v.get("user") or {}).get("name"), page=v.get("url")))
