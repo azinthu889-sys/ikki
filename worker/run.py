@@ -2078,6 +2078,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             sv = os.path.join(work, "sfx.mp4")
             _pre2 = cutv
+            # ⚠️ **စကားကို မဖုံးစေရ** — cue တိုင်းကို ပုံသေ dB နဲ့ ထပ်ခဲ့သည်。
+            #    တကယ့် ဖြတ်ထားသော အသံ (`cutv`) ကနေ စကားသံ အားကို တိုင်းပြီး
+            #    စကားအောက် ၆ dB တွင် ထားသည်。 ⚠️ အချိန်ကို မရွှေ့ရ — ဂရပ်ဖစ်နဲ့ တွဲနေသည်。
+            try:
+                _dw = os.path.join(work, "_duck.wav")
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", cutv,
+                                "-vn", "-ac", "1", "-ar", "16000", _dw], check=True)
+                cues, _nd = DR.duck_cues(cues, _dw, log=log)
+                if _nd:
+                    REPORT["sfx_ducked"] = _nd
+                    log(f"  SFX {_nd}/{len(cues)} ခု စကားပေါ် ကျရွေ့၍ လျှော့သည်")
+                os.path.exists(_dw) and os.remove(_dw)
+            except Exception as _de:
+                log(f"  ⚠️ SFX duck မရ ({type(_de).__name__}) — မလျှော့ဘဲ ဆက်သည်")
             _CUE_USED.clear()
             _sd = rc.get("_seed") or job.get("id") or "ikki"
             _, nsfx = DR.mix(cutv, cues, sv,

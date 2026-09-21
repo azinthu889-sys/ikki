@@ -874,3 +874,79 @@ def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
         log and log(f"  ↺ {k} ({sz.get(k, {}).get('h', '?')}px) မဝင် ⇒ "
                     f"{alt} ({sz[alt]['h']}px) · နေရာ {cap}px")
     return out, n
+
+
+# ══ SFX က စကားကို မဖုံးစေရန် (SFX audit P0) ═══════════════════════
+# ⚠️ `mix()` က cue တိုင်းကို **ပုံသေ dB** နဲ့ ထပ်သည် — စကားပြောနေချိန်လား
+#    တိတ်နေချိန်လား မကြည့်ပါ。 စကားပေါ် whoosh တစ်ချက် ကျယ်ကျယ် ဝင်လျှင်
+#    စကားလုံး ပျောက်သည် (「no SFX masks a protected speech onset」)。
+# ⚠️ **အချိန်ကို မရွှေ့ရ** — cue က ဂရပ်ဖစ်နဲ့ တွဲနေသည်。 အသံကိုသာ လျှော့သည်。
+# ⚠️ playbook — 「SFX ကို သတိထားမိလောက်အောင် ကြားရရင် ၆ dB ကျယ်နေပြီ」
+#    ⇒ စကားပေါ်မှာ SFX က စကားအောက် ၆ dB ရှိရမည်。
+DUCK_MARGIN = 6.0        # စကားအောက် ဘယ်နှစ် dB ထားမလဲ
+DUCK_MAX = 12.0          # ဒီထက် ပို မလျှော့ရ — လျှော့လွန်းလျှင် မကြားရတော့
+DUCK_WIN = 0.40          # cue ပတ်လည် ဘယ်လောက် တိုင်းမလဲ (s)
+
+
+def speech_db(wav, at, win=DUCK_WIN):
+    """`at` ပတ်လည် ရဲ့ စကားသံ အား (dBFS) — မတိုင်းရလျှင် `None`"""
+    import subprocess
+    if not wav or not os.path.exists(wav):
+        return None
+    try:
+        import numpy as _np
+    except ImportError:
+        return None
+    r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0.0, at-win/2):.3f}",
+                        "-t", f"{win:.3f}", "-i", wav, "-ac", "1", "-ar", "16000",
+                        "-f", "f32le", "-"], capture_output=True)
+    x = _np.frombuffer(r.stdout, "<f4").astype(_np.float64)
+    if not len(x):
+        return None
+    return float(20 * _np.log10(max(1e-6, _np.sqrt((x ** 2).mean()))))
+
+
+def _asset_db(role):
+    """role ရဲ့ asset အား (dB) — catalog ကနေ · မရလျှင် −၁၆"""
+    try:
+        try:
+            import sfxpool as _SP
+        except ImportError:
+            from core import sfxpool as _SP
+        fam = _SP.MAP.get(role, (role, None, 0))[0]
+        return float(_SP.target(fam))
+    except Exception:
+        return -16.0
+
+
+def duck_cues(cues, wav, sfx_db=None, log=None):
+    """စကားပေါ် ကျသော cue များကို လျှော့သည် — `([cue], လျှော့ခဲ့တာ)`
+
+    `sfx_db` — `{role: အသံ အား dB}` (catalog ကနေ)。 မပါလျှင် cue ရဲ့
+               ကိုယ်ပိုင် dB ကို အသုံးပြုသည်。
+    """
+    if not cues or not wav:
+        return cues, 0
+    out, n = [], 0
+    for c in cues:
+        at, role, db = (list(c) + [None, None, None])[:3]
+        sp = speech_db(wav, float(at))
+        if sp is None or sp < -45.0:          # တိတ်နေသည် ⇒ မထိ
+            out.append(c); continue
+        # ⚠️ **cue ရဲ့ `db` က အား မဟုတ် — လျှော့ချက်**。 asset ကို role
+        #    မိသားစုရဲ့ ပစ်မှတ် အား (catalog ကနေ တိုင်းထား · ဥပမာ whoosh
+        #    −၁၅.၃ dB) သို့ normalise ထားပြီးမှ `db` နဲ့ လျှော့သည် ⇒
+        #    တကယ့် အား = ပစ်မှတ် + db。 ဒါကို မတွက်ဘဲ `db` ကို အားလို့
+        #    ယူမိလျှင် **cue တိုင်း လျှော့ခံရ**ပြီး SFX မကြားရတော့ပါ
+        #    (ပထမ ရေးဆွဲချက်မှာ ၅/၅ လျှော့ခဲ့သည် — ၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+        lv = float(db or -16) + float((sfx_db or {}).get(role, _asset_db(role)))
+        want = sp - DUCK_MARGIN
+        if lv <= want:
+            out.append(c); continue
+        cut = min(DUCK_MAX, lv - want)
+        out.append((at, role, int(round(float(db) - cut))))
+        n += 1
+        log and log(f"    ↓ SFX {at:6.2f}s {role:11} {db:+d} → "
+                    f"{int(round(float(db)-cut)):+d} dB "
+                    f"(စကား {sp:.0f} dB — ဖုံးမည် ဖြစ်၍)")
+    return out, n

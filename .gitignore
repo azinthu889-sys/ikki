@@ -28,6 +28,9 @@ scratch/
 #    broll ထည့်လိုက်ပေမယ့် ဖိုင် ၂ ခုသာ ဝင်သွားသည်)。
 !assets/broll/**
 !assets/music/**
+# ⚠️ Choose a style card များအတွက် အတို motion stock previews — production UI asset。
+!web/prev/stock/
+!web/prev/stock/*.mp4
 work/
 
 # ⚠️ ကိုယ်ရေးကိုယ်တာ ဖိုင်နာမည်များ ပါသည် — PUBLIC repo ထဲ မတင်ရ

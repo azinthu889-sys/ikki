@@ -51,7 +51,19 @@ var STYLES={creator:[
   ["short-biz","Business Short","CTA · ဆက်သွယ်ရန် ကတ်",
    "CTA · contact card","Archivo Black","9:16"]],
  edu:[["course","Course","အခန်းလိုက် · အနားယူချိန် ချန်",
-   "Chaptered · keeps the pauses","Padauk Book Bold","16:9"]]};
+  "Chaptered · keeps the pauses","Padauk Book Bold","16:9"]]};
+
+/* Style card က poster graphic မဟုတ်ဘဲ အသံမပါတဲ့ stock motion clip ကို သုံးသည်။
+   /web/prev/stock/ အောက်က 3-second, 720×540 previews တွေက card မြန်နှုန်းကို
+   မထိခိုက်ဘဲ style direction ကို တကယ်မြင်စေသည်။ */
+var STYLE_PREVIEW={
+  'cinematic-vlog':'stock/cinematic-vlog', 'vlog':'stock/vlog',
+  'podcast':'stock/podcast', 'knowledge':'stock/knowledge',
+  'headtop':'stock/headtop', 'ref-talk':'stock/ref-talk',
+  'short-video':'stock/short-video', 'promotional':'stock/promotional',
+  'brand-review':'stock/brand-review', 'short-biz':'stock/short-biz',
+  'course':'stock/course'
+};
 
 /* ⚠️ Zin ၂၀၂၆-၀၉-၂၀ (က): 「style ရွေးလိုက်တာနဲ့ brand + size အလိုလို ကိုက်」
    ⇒ ရွေးချယ်မှု ၃ ခု → ၁ ခု。 style တိုင်းမှာ `theme` ရှိပြီးသား ဖြစ်၍
@@ -244,7 +256,7 @@ function paintStyles(){
     h+='<div class="sgal-h">'+esc(CATN[c][0])+'</div>';
     STYLES[c].forEach(function(t){
       var id=t[0];
-      var preview=t[6]||id;
+      var preview=STYLE_PREVIEW[id]||t[6]||id;
       h+='<button type="button" class="scard" data-sv="'+esc(id)+'"'
        + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
        + '<span class="thumb">'
