@@ -32,7 +32,7 @@ def ev(i, at, kind="card"):
     return dict(id=f"t{i}", startTime=at, endTime=at + 3.0,
                 layer="template", type="template",
                 motionKitTemplateId="prem4.big_question", props={},
-                style=dict(kind=kind) if kind == "pop" else {},
+                style=dict(kind=kind),
                 reason="t", confidence=0.7)
 
 
@@ -91,6 +91,54 @@ def main():
     check("confidence ပါသည်", all(0 < e.get("confidence", 0) <= 1 for e in out))
     check("မူလ ဖြစ်ရပ် ချိတ်ထားသည်",
           all(e["props"].get("event") for e in out))
+
+    print("\n── ၈ · semantic role (P2) ──")
+    # ⚠️ `SFX_ROLE` ထဲ hook/number/warning မြေပုံ ရှိပါလျက် planner က
+    #    **အားလုံးကို `card`** ဟု သတ်မှတ်ခဲ့သဖြင့် တစ်ခါမှ အလုပ်မလုပ်ခဲ့。
+    for k, want in (("hook", "riser_soft"), ("warning", "whoosh_in"),
+                    ("number", "swipe"), ("card", "whoosh_in")):
+        e1 = PL.sfx_plan([ev(0, 20.0, kind=k)], 90.0, 1.5)
+        roles = [x["props"]["role"] for x in e1]
+        check(f"{k} ⇒ {want}", want in roles, roles)
+    check("SEM မြေပုံက FAMILY label အားလုံး ဖုံး",
+          set(PL.FAMILY) <= set(PL.SEM), set(PL.FAMILY) - set(PL.SEM))
+
+    print("\n── ၉ · အကွာက ပေါလစီကနေ (ဂိတ် ၈s · ၄၀s မဟုတ်) ──")
+    # ⚠️ အရင်က `gap = max(8, 60/per_min)` ⇒ ၁.၅/min မှာ **၄၀s** ဖြစ်ကာ
+    #    ဂိတ်ထက် ၅ ဆ တင်းခဲ့သည် — အကွာနဲ့ နှုန်းက ဂိတ် နှစ်ခု、တစ်ခုထဲ မတွက်ရ。
+    import sfxpol as SPL
+    many = [ev(i, 4.0 + i * 10.0, kind="card") for i in range(28)]
+    o9 = PL.sfx_plan(many, 300.0, 1.5)
+    ts = sorted({round(x["startTime"], 2) for x in o9})
+    mom = []
+    for t in ts:
+        if not mom or t - mom[-1] > 0.6:
+            mom.append(t)
+    gaps = [round(b - a, 1) for a, b in zip(mom, mom[1:])]
+    check("အနီးဆုံး အကွာ ≥ ၈s", not gaps or min(gaps) >= 8.0, gaps)
+    check("၄၀s အတင်း မခွာ (၁၀–၃၉s ဖြစ်နိုင်ရမည်)",
+          not gaps or min(gaps) < 40.0, gaps)
+    per = len(mom) / (max(60.0, 300.0) / 60.0)
+    check("နှုန်း ဂိတ်အတွင်း", per <= 1.5 + 1e-9, per)
+
+    print("\n── ၁၀ · အရေးကြီးတာ ရွေးသည် ──")
+    # ⚠️ အရင်က ရှေ့က cap ခုကို ပဲ ယူခဲ့သဖြင့် ဗီဒီယို နောက်ပိုင်း တိတ်ခဲ့သည်
+    mix = ([ev(i, 5.0 + i * 9.0, kind="card") for i in range(6)]
+           + [ev(90, 100.0, kind="hook"), ev(91, 200.0, kind="warning")])
+    o10 = PL.sfx_plan(mix, 300.0, 1.5)
+    kinds = {x["style"]["kind"] for x in o10}
+    check("hook ပါလာသည်", "hook" in kinds, kinds)
+    check("warning ပါလာသည်", "warning" in kinds, kinds)
+    last = max((x["startTime"] for x in o10), default=0)
+    check("နောက်ပိုင်း မတိတ် (>၁၅၀s မှာ ရှိ)", last > 150.0, last)
+
+    print("\n── ၁၁ · တိုသော ဗီဒီယိုမှာ အသံ ရ ──")
+    o11 = PL.sfx_plan([ev(0, 6.0), ev(1, 12.0)], 16.0, 1.5)
+    check("၁၆s ⇒ အသံ ရှိသည်", len(o11) > 0, o11)
+    mom11 = sorted({round(x["startTime"], 1) for x in o11})
+    check("၁၆s ⇒ ဖြစ်ရပ် ၁ ခုသာ",
+          len([t for i, t in enumerate(mom11)
+               if i == 0 or t - mom11[i - 1] > 0.6]) == 1, mom11)
 
     print()
     if FAILED:

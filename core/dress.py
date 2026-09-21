@@ -11,7 +11,7 @@
 """
 import os
 
-def pick(rc, dur, sil, segs):
+def pick(rc, dur, sil, segs, log=None):
     """(when, kind) စာရင်း — ဂရပ်ဖစ် ဘယ်အချိန် ဘယ်ဟာ ချမလဲ。"""
     want = int(rc.get("gfx") or 0)
     if want <= 0 or dur < 12: return []

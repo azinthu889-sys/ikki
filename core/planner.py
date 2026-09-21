@@ -390,6 +390,13 @@ SFX_ROLE = {
     "warning": ("whoosh_in", "impact"),    # သတိပေးချက်
     "hook":    ("riser_soft", "latch"),    # ဖွင့်ချက်
 }
+# ⚠️ `FAMILY` ရဲ label → SFX အမျိုးအစား。 မြေပုံ မရှိလျှင် အားလုံး `card`
+#    ဖြစ်ပြီး အသံ တစ်မျိုးတည်း ထွက်မည် — အော်အိုက် မရှိတော့。
+# ⚠️ အောင့်မြဲမှု အဆင့် — နေရာ တစ်ခုထဲ ဖြစ်ရပ် ၂ ခု ပြိုလျှင် ဘယ်ဟာ ယူမလဲ
+SFX_RANK = {"hook": 5, "warning": 4, "number": 3, "card": 2, "pop": 1}
+SEM = {"hook": "hook", "number": "number", "warning": "warning",
+       "fact": "warning", "section": "card", "steps": "card",
+       "checklist": "card", "compare": "card", "location": "card"}
 SFX_LEAD = 0.18        # ရှေ့သံက ရုပ်ထက် ဘယ်လောက် စောလဲ
 SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
           "latch": -17, "pop": -18, "click": -18, "impact": -14}
@@ -408,7 +415,7 @@ def sfx_plan(events, dur, per_min, log=None):
     moments = []
     for e in sorted(events, key=lambda x: x.get("startTime") or 0):
         st = (e.get("style") or {}).get("kind")
-        kind = "pop" if st == "pop" else "card"
+        kind = st if st in SFX_ROLE else "card"
         lead, main = SFX_ROLE.get(kind) or (None, None)
         if not main:
             continue
@@ -416,16 +423,31 @@ def sfx_plan(events, dur, per_min, log=None):
         moments.append((at, kind, lead, main, e.get("id")))
     if not moments:
         return []
-    # ⚠️ **အနည်းဆုံး ကွာဟချက်** — ဂိတ်က ၈s ⇒ အဲဒီအထက် ထားရမည်
-    gap = max(8.0, (60.0 / per_min) if per_min else 8.0)
-    keep, last = [], -99.0
-    for m in moments:
-        if m[0] - last >= gap:
-            keep.append(m); last = m[0]
-    # ⚠️ မိနစ်နှုန်း ဂိတ်ကိုပါ လေးစားရမည် (ခွင့်ပြုချက် = floor)
-    cap = int((dur / 60.0) * per_min) if per_min else len(keep)
-    if cap < len(keep):
-        keep = keep[:max(0, cap)]
+    # ⚠️ အရင်က `gap = max(8, 60/per_min)` — ၁.၅/min ဆိုလျှင် **၄၀s**
+    #    ဖြစ်သွားပြီး ဂိတ်ထက် ၅ ဆ တင်းခဲ့သည်。 အကွာနဲ့ နှုန်းက
+    #    **ဂိတ် နှစ်ခု** — တစ်ခုထဲ နောက်တစ်ခုကို ထည့်မတွက်ရ。
+    #    ⇒ အကွာက ပေါလစီက · အရေအတွက်က budget · ဖြန့်ကျကျမှုက bucket。
+    try:
+        import sfxpol as _PL
+    except ImportError:
+        from core import sfxpol as _PL
+    _pol = _PL.clamp(dict(per_min=per_min))
+    gap = _pol["gap"]
+    cap = _PL.budget(_pol, dur)
+
+    # ⚠️ **အရေးကြီးဆုံးကို ရွေးရမည်** — အရင်က ရှေ့က cap ခုကို ပဲ ယူခဲ့သဖြင့်
+    #    ဗီဒီယို နောက်ပိုင်းမှာ အသံ တိတ်ဆိတ်နေစေသည်。
+    # ⚠️ ဗုတ်ထဲ ခွဲပြီး တစ်ပိုင်းစီ ယူတာကိုလည်း စွန့်လွတ်ခဲ့ပြီ (၂၀၂၆-၀၉-၂၁) —
+    #    အကွာက ဗုတ်အကျယ် (dur/cap) ဖြစ်သွားပြီး ဂိတ်ရဲ ၈s က အလကာ。
+    #    ⇒ **အရေးပါမှု အစစ်** · အကွာ ၆s ကြီးမှ လက်ခံ · cap ထိ — ဗီဒီယိုရဲ
+    #      အရေးကြီးတဲ့ အချိန်တွေက ကိုယ်တိုင် ပျံ့နှံ့နေသဖြင့် ပျံ့နှံ့သွားမည်。
+    keep = []
+    for m in sorted(moments, key=lambda x: (-SFX_RANK.get(x[1], 0), x[0])):
+        if len(keep) >= cap:
+            break
+        if all(abs(m[0] - k[0]) >= gap for k in keep):
+            keep.append(m)
+    keep.sort(key=lambda m: m[0])
     out, n = [], 0
     for at, kind, lead, main, eid in keep:
         for role, off in ((lead, -SFX_LEAD), (main, 0.0)):
@@ -527,7 +549,11 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             id=f"tpl{n:03d}", startTime=a,
             endTime=min(b, a + 3.2, dur if dur else a + 3.2),
             layer="template", type="template", motionKitTemplateId=cid,
-            props=pr, style={},
+            # ⚠️ **semantic label ကို ပါသွားစေရမည်**。 အရင်က `style={}` ဖြစ်နေသဖြင့်
+            #    `sfx_plan` က ဖြစ်ရပ် **အားလုံးကို `card`** ဟု သတ်မှတ်ခဲ့သည် —
+            #    `SFX_ROLE` ထဲက warning/number/hook မြေပုံက ရှိပါလျက်
+            #    **တစ်ခါမှ အလုပ်မလုပ်ခဲ့ပါ** (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
+            props=pr, style=dict(kind=SEM.get(lab, "card"), lab=lab),
             reason=f"「{lab}」အမျိုးအစား — {txt[:28]}",
             confidence=0.72))
         last_change, last_id = a, cid

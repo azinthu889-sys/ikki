@@ -1244,7 +1244,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         gfx.sort(key=lambda g: g["at"])
     if not gfx:
         # ⚠️ `_sil_of()` ဖယ်ပြီး **မျှသုံး မြေပုံ**ကနေ ဆင်းသက်စေသည်
-        gfx = DR.pick(rc, m["dur"], _M.as_gaps(MEAS[1], 0.20), segs)   # ပြန်ဆုတ်လမ်း
+        gfx = DR.pick(rc, m["dur"], _M.as_gaps(MEAS[1], 0.20), segs, log)   # ပြန်ဆုတ်လမ်း
         if gfx: log("  ⚠️ အကြောင်းအရာ မရ — တိတ်ဆိတ်မှုပေါ် ချထားသည်")
     gmov = []
     if gfx:
