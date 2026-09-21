@@ -276,3 +276,32 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
         log and log(f"  ⚠️ SFX {role} ဖြတ်မရ: {(r.stderr or '')[:90]}")
         return None, None
     return p, it
+
+
+# ⚠️ **cue အချိန်က 「အသံ ကျယ်သည့် အချိန်」 ဖြစ်ရမည်** — ဖိုင် အစ မဟုတ်。
+#    riser က ဖိုင်ရဲ့ ၅၀% (p90 ၈၇%) မှာ ကျယ်သည် ⇒ cue အစား ထည့်လျှင်
+#    ဂရပ်ဖစ် လာချိန်က ၁.၇s နောက်ကျမှ အသံ ရောက်သည် (တကယ် တိုင်းတွေ့)。
+#    ⇒ `peak_t` စောပြီး ထည့်သည် ⇒ အသံ ကျယ်ချိန်က ဖြစ်ရပ်နဲ့ ကိုက်။
+#    ⚠️ transient (impact ၇% · shutter ၄%) မှာ ဤတန်ဖိုး သုညနီးပါး ⇒ ဘာမှ
+#       မပြောင်း。 riser/latch/swipe မှာသာ အဓိပ္ပာယ် ရှိသည်。
+# ⚠️ ကန့်သတ်ကို ၁.၂s ထားခဲ့ရာ riser (peak_t ၁.၄၈s) က ၀.၁၆s လွဲခဲ့သည်。
+#    riser ဆိုတာက ဖြစ်ရပ်ဆီ တက်ᄁက်ပြီး **ဝင်ရောက်**တာ — စောတာက သဘာဝတိ。
+#    `peak_t` က ဖိုင်အရှည်ကို မကျော်နိုင်သဖြင့် role အလိုက် ကန့်သတ်ပြီးသား
+#    (DUR_MAX) ⇒ ဒီကိန်းက အမြင့်ဆုံး riser အရှည်ပဲ。
+LEAD_MAX = 3.20
+
+
+def lead(it):
+    """variant တစ်ခုအတွက် **စောသင့်သော အချိန်** s — cue က landing ဖြစ်ရန်"""
+    if not it:
+        return 0.0
+    pt = it.get("peak_t")
+    if pt is None:
+        return 0.0
+    return max(0.0, min(LEAD_MAX, float(pt)))
+
+
+def cue(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
+    """`(path, lead, item)` — mix ဆင့်အတွက် တစ်ခုတည်း ခေါ်ရန်"""
+    p, it = wav(role, seed, idx, used, th=th, ship=ship, log=log)
+    return p, lead(it), it

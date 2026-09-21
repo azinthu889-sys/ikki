@@ -130,9 +130,16 @@ def measure(path):
     _w = max(1, int(sr * 0.3))
     if len(m) <= _w:
         loud = float(np.sqrt((m.astype(np.float64) ** 2).mean()))
+        peak_t = float(int(np.argmax(np.abs(m))) / sr)
     else:
         _c = np.cumsum(np.concatenate(([0.0], m.astype(np.float64) ** 2)))
-        loud = float(np.sqrt(((_c[_w:] - _c[:-_w]) / _w).max()))
+        _e = (_c[_w:] - _c[:-_w]) / _w
+        loud = float(np.sqrt(_e.max()))
+        # ⚠️ **အသံ က ဘယ်အချိန်မှာ ဆိုက်မိတ်လဲ**。 riser က နောက်ဆုံးမှ ကျယ်သည် —
+        #    ဂရပ်ဖစ် လာချိန်က cue အစား ထည့်လျှင် ၁.၇s နောက်ကျမှ ကျယ်သည်
+        #    (တကန် တိုင်းတွေ့ · ၂၀၂၆-၀၉-၂၁)。 ⇒ အသံ ကျယ်ချိန်ကို မှတ်ထားသည် —
+        #    `sfxpool.lead()` က ဒီကို သုံးပြီး **အချိန်ကိုက်အောင် အစား ထည့်**သည်。
+        peak_t = float((int(np.argmax(_e)) + _w / 2.0) / sr)
     rms = float(np.sqrt((m ** 2).mean()))
     # ⚠️ brightness — spectral centroid (Hz)。 「တောက်」「မှိန်」ခွဲရန်
     k = min(len(m), 1 << 15)
@@ -146,6 +153,7 @@ def measure(path):
                 peak_db=round(20 * np.log10(max(1e-6, peak)), 1),
                 peak_mid_db=round(20 * np.log10(max(1e-6, peak_mid)), 1),
                 loud_db=round(20 * np.log10(max(1e-6, loud)), 1),
+                peak_t=round(peak_t, 3),
                 rms_db=round(20 * np.log10(max(1e-6, rms)), 1),
                 brightness=int(cen), width=round(min(2.0, width), 3),
                 impact=round(imp, 3))

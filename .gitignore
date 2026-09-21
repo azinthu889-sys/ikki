@@ -29,3 +29,6 @@ scratch/
 !assets/broll/**
 !assets/music/**
 work/
+
+# ⚠️ ကိုယ်ရေးကိုယ်တာ ဖိုင်နာမည်များ ပါသည် — PUBLIC repo ထဲ မတင်ရ
+tools/clean_dup_downloads.sh

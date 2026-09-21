@@ -91,7 +91,22 @@ def main():
             if not (SP.path(x) and os.path.exists(SP.path(x)))]
     check("လမ်းကြောင်း အားလုံး ရှိ", not miss, miss[:3])
 
-    print("\n── ၁၀ · ပေါလစီက **ဂိတ်ကို မလျှော့** ──")
+    print("\n── ၁၀ · lead (အသံ ကျယ်ချိန်က ဖြစ်ရပ်နဲ့ ကိုက်ရမည်) ──")
+    # ⚠️ riser ကို cue အစား ထည့်လျှင် ၁.၇s နောက်ကျမှ အသံ ရောက်ခဲ့သည်
+    #    (တကယ် တိုင်းတွေ့ · ၂၀၂၆-၀၉-၂၁) ⇒ `peak_t` စောပြီး ထည့်ရမည်。
+    bad = [x["id"] for r in SP.MAP for x in SP.role_pool(r)
+           if x.get("peak_t") is None]
+    check("variant တိုင်းမှာ peak_t ရှိ", not bad, bad[:3])
+    # transient က ~၀ · riser က ရှည် — ဒါက **တိုင်းချက်** ဖြစ်မှ အဓိပ္ပာယ် ရှိ
+    lc = sorted(SP.lead(x) for x in SP.role_pool("click"))
+    lr = sorted(SP.lead(x) for x in SP.role_pool("riser_soft"))
+    check("click ရဲ့ lead ≈ 0", lc[len(lc) // 2] <= 0.06, lc[len(lc) // 2])
+    check("riser ရဲ့ lead > 0.5s", lr[len(lr) // 2] > 0.5, lr[len(lr) // 2])
+    bad = [(r, round(SP.lead(x), 2)) for r in SP.MAP for x in SP.role_pool(r)
+           if SP.lead(x) > x["dur"] + 1e-6]
+    check("lead က ဖိုင်အရှည် မကျော်", not bad, bad[:3])
+
+    print("\n── ၁၁ · ပေါလစီက **ဂိတ်ကို မလျှော့** ──")
     # ⚠️ ဒါက Zin ရဲ့ စည်းကမ်း — 「ဂိတ် မလျှော့ရ」。 ပေါလစီထဲ ဘာရေးထားပါစေ
     #    `clamp()` က ဂိတ်အတွင်း ထည့်ရမည်。
     hard = PL.clamp(dict(per_min=8.0, gap=1.0, layer=5.0))
@@ -106,7 +121,7 @@ def main():
             bad.append((k, p["per_min"], p["gap"]))
     check("recipe အားလုံး ဂိတ်အတွင်း", not bad, bad)
 
-    print("\n── ၁၁ · အောက်ခြေ ၆၀s (တိုသော ဗီဒီယိုမှာ အသံ ရရမည်) ──")
+    print("\n── ၁၂ · အောက်ခြေ ၆၀s (တိုသော ဗီဒီယိုမှာ အသံ ရရမည်) ──")
     # ⚠️ အရင်က ၄၀s အောက် ဗီဒီယိုတိုင်းမှာ **သုည သာ** ဂိတ် ဖြတ်နိုင်ခဲ့သည်
     p = PL.policy("zae", "headtop")
     zero = [d for d in (10, 16, 30, 45) if PL.budget(p, d) < 1]

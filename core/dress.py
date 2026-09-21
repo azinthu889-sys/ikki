@@ -281,12 +281,25 @@ def mix(base, cues, out, cue_path, log=print):
     except (TypeError, ValueError):
         _two = False
     for _i, (at, role, db) in enumerate(cues):
-        p = cue_path(role, _i) if _two else cue_path(role)
-        if p and os.path.exists(p): use.append((at,p,db))
+        r = cue_path(role, _i) if _two else cue_path(role)
+        # ⚠️ callback က `(path, lead)` ပြန်ပေးနိုင်သည် — `lead` က အသံ ကျယ်ချိန်
+        #    ကို ဖြစ်ရပ်နဲ့ ကိုက်စေရန် စောထည့်ရမည့် ပမာန。 riser ကို cue အစား
+        #    ထည့်လျှင် ၁.၇s နောက်ကျမှ အသံ အကျယ်ဆုံး ရောက်သည်。
+        #    ⚠️ အောက်က သုည်အောက် မရောက်ရ — adelay က အနျက်ကို မလုပ်နိုင်。
+        _ld = 0.0
+        if isinstance(r, (tuple, list)):
+            p = r[0]
+            _ld = float(r[1] or 0.0) if len(r) > 1 else 0.0
+        else:
+            p = r
+        if p and os.path.exists(p):
+            use.append((max(0.0, float(at) - _ld), p, db))
     if not use:
         subprocess.run(["ffmpeg","-v","error","-y","-i",base,"-c","copy",out],check=True)
         return out, 0
-    use = use[:60]                      # ⚠️ ကန့်သတ် — ၆၀ ထက် ပို မလို
+    # ⚠️ lead ကြောင့်် အစီအစစ်ဉ် ပြောင်းနိုင်သည် ⇒ အချိန်အလိုက် ပြန်စီသည်
+    use.sort(key=lambda x: x[0])
+    use = use[:60]                      # ⚠️ ကန့်သတ် — ၆၀ ထက် ပို မလို
     for i,(at,p,db) in enumerate(use):
         ins += ["-i",p]; ms=int(at*1000)
         fc.append(f"[{i+1}:a]aformat=sample_rates=48000:channel_layouts=stereo,"

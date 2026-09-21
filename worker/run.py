@@ -2371,10 +2371,12 @@ def _cue(SL, role, th, idx=None, seed="", log=None):
     if idx is not None:
         try:
             import sfxpool as SP
-            p, it = SP.wav(role, seed or "ikki", idx, _CUE_USED, th=th, log=log)
+            p, ld, it = SP.cue(role, seed or "ikki", idx, _CUE_USED, th=th, log=log)
             if p:
                 _CUE_USED.append(it["id"])
-                return p
+                # ⚠️ `(path, lead)` ပြန်ပေးသည် — mix က အသံ ကျယ်ချိန်ကို
+                #    ဖြစ်ရပ်နဲ့ ကိုက်စေရန် စောထည့်မည်。
+                return p, ld
             log and log(f"  ⚠️ SFX pool မရှိ: {role} — အရိုး ဖိုင်ကို ပြန်သုံးသည်")
         except Exception as e:
             log and log(f"  ⚠️ SFX pool မအောင် ({type(e).__name__}) — အရိုး ဖိုင်")
