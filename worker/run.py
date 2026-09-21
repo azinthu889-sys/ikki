@@ -567,6 +567,23 @@ def _vbr(w, h, fps=30):
     return f"{max(8, min(60, int(round(mb))))}M"
 
 
+def _pxname(jid, speed=1.0):
+    """proxy ဖိုင်ရဲ့ လမ်းကြောင်း — **အရှိန် အလိုက် ကွဲပြားရမည်**。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၁: နာမည် တစ်ခုတည်း (`{jid}_px.mp4`) ဖြစ်သဖြင့် ၁.၀၀× နဲ့
+       ထုတ်ပြီးသား proxy ရှိနေလျှင် သုံးစွဲသူက ပြန်ပြင်ပြီး ၁.၀၃× ရွေးလိုက်ရာ
+       `_have_px` က `True` ဖြစ်ကာ **retiming ကို တိတ်တဆိတ် ကျော်**သည် —
+       ရွေးထားတာက ၁.၀၃× ဖြစ်ပါလျက် ၁.၀၀× ထွက်မည်。 သုံးစွဲသူ ဘယ်တော့မှ
+       မသိရ (「တိတ်တဆိတ် မကျရ」)。
+    ⚠️ အတည်ပြုပြီး ပြန်ထုတ်ချိန်မှာတော့ proxy က **အဲဒီအရှိန်နဲ့** ဆောက်ထားပြီး
+       ဖြစ်၍ နာမည် ကိုက်သည် ⇒ ထပ်မြှင့်မိခြင်း (double speed) မဖြစ်ပါ。
+    """
+    try: s = float(speed or 1.0)
+    except (TypeError, ValueError): s = 1.0
+    tag = "" if abs(s - 1.0) < 0.001 else "_s%d" % int(round(s * 100))
+    return os.path.join(BIG, "%s_px%s.mp4" % (jid, tag))
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -655,7 +672,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         pw = int(m["w"]*sc)//2*2; ph = int(m["h"]*sc)//2*2
         # ⚠️ proxy ကို **work/ ထဲ မထားရ** — retry မှာ ပြန်သုံးလို့ရအောင်
         #    scratch ရဲ့ အပြင်မှာ ထားသည် (`handle()` က ရှာသည်)。
-        px = os.path.join(BIG, job["id"] + "_px.mp4"); t_px = time.time()
+        px = _pxname(job["id"], speech_speed); t_px = time.time()
         subprocess.run(["ffmpeg","-v","error","-y","-i",src,
             "-vf",f"scale={pw}:{ph}","-r",str(rc["fps"]),
             "-c:v","h264_videotoolbox","-b:v",_vbr(pw, ph, rc["fps"]),
@@ -3195,7 +3212,13 @@ def handle(d):
     #    (j_dd56e503c95c · ၂၀၂၆-၀၉-၁၉)。 ⇒ **မူရင်း ဖိုင် အရွယ်**ကနေ တွက်။
     take_sources = [x for x in (d.get("sources") or [d.get("upload")]) if x]
     _sz = sum(float(x.get("size") or 0) for x in take_sources) / (1024**3)
-    _pxr = os.path.join(BIG, jid + "_px.mp4")
+    # ⚠️ **အရှိန်ကို ဒီမှာတင် ဖတ်ရမည်** — proxy ရဲ့ နာမည်က အရှိန်ပေါ်
+    #    မူတည်သဖြင့် (`_pxname`) အောက်မှာ ဖတ်လျှင် မှားသော ဖိုင်ကို
+    #    「ရှိပြီးသား」ဟု မှတ်မည်。
+    try: speech_speed = float((d.get("over") or {}).get("_speech_speed") or 1.0)
+    except (TypeError, ValueError): speech_speed = 1.0
+    if speech_speed not in (1.0, 1.03, 1.06): speech_speed = 1.0
+    _pxr = _pxname(jid, speech_speed)
     _have_px = os.path.exists(_pxr) and os.path.getsize(_pxr) > 1 << 20
     # မူရင်း + proxy + ကြားဖြတ် ဖိုင်များ。 proxy ရှိပြီးသားဆို မူရင်း မလို。
     # ⚠️ **disk ၂ ခုကို သီးသန့် စစ်ရမည်** — ဖိုင်ကြီးက BIG မှာ · PNG တွေက
@@ -3300,15 +3323,18 @@ def handle(d):
     # Retiming happens after any camera/recorder audio mux but before ASR,
     # cutting, captions, graphics and SFX.  Thus every downstream timestamp
     # is in the same (possibly sped-up) timeline.
-    try: speech_speed = float((d.get("over") or {}).get("_speech_speed") or 1.0)
-    except (TypeError, ValueError): speech_speed = 1.0
-    if speech_speed not in (1.0, 1.03, 1.06): speech_speed = 1.0
     try: speed_applied = float((d.get("over") or {}).get("_speed_applied") or 0.0)
     except (TypeError, ValueError): speed_applied = 0.0
     if speech_speed != 1.0 and not _have_px:
         src = speed_source(jid, src, speech_speed, log=lambda x: print(x, flush=True))
         if abs(speed_applied - speech_speed) > 0.001:
             take_map = scale_take_map(take_map, speech_speed)
+    elif speech_speed != 1.0:
+        # ⚠️ **ကျော်တာကို ပြရမည်** — proxy က အဲဒီအရှိန်နဲ့ ဆောက်ထားပြီး ဖြစ်၍
+        #    ထပ်မြှင့်စရာ မလိုပါ。 log မပြလျှင် 「အရှိန် အလုပ်မလုပ်ဘူး」ဟု
+        #    ထင်စရာ ဖြစ်မည် (`_pxname` ရဲ့ မှတ်ချက် ကြည့်)。
+        print(f"  ♻️ {speech_speed:.2f}× proxy ရှိပြီးသား — retiming ထပ်မလုပ်ပါ "
+              f"(ထပ်မြှင့်မိခြင်း မဖြစ်စေရန်)", flush=True)
     out = os.path.join(SCRATCH, jid + ".mp4")
     def stage(n, name):
         req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})
@@ -3366,7 +3392,7 @@ def handle(d):
             try:
                 _s0 = os.path.join(BIG, jid + "_src.mp4")
                 if os.path.exists(_s0) and os.path.exists(
-                        os.path.join(BIG, jid + "_px.mp4")):
+                        _pxname(jid, speech_speed)):
                     os.remove(_s0)
                     print("  🧹 မူရင်း ဖျက် — proxy ချန်ထားသည် (retry မြန်ရန်)", flush=True)
             except OSError: pass
