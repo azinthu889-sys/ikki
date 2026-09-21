@@ -350,6 +350,12 @@ SCHEMA_OK = [True]        # model က မထောက်ပံ့လျှင်
 ASR_GAP = float(os.environ.get("IKKI_ASR_GAP", "0.3"))
 FALLBACK = os.environ.get("IKKI_GEMINI_MODEL_FALLBACK", "gemini-flash-lite-latest")
 _FELL = [False]
+# ⚠️ **ဗလာ တုံ့ပြန်ချက်ရဲ့ အကြောင်းရင်း** — 200 ပြန်ပေမယ့် စာသား မပါတာ
+#    လမ်းကြောင်း ၂ မျိုး ရှိသည် (candidates ဗလာ · content ဗလာ)。 ဒါကို
+#    မမှတ်လျှင် နောက်ဆုံး အမှားစာသားက 「chunk အလွတ်」ပဲ ပြပြီး ဘာလို့လဲ
+#    ဘယ်တော့မှ မသိရ (၂၀၂၆-၀၉-၂၁: `gemini-flash-latest` က thinking နဲ့
+#    output budget ကုန်ပြီး `finishReason=MAX_TOKENS` · content {} ပြန်သည်)。
+_EMPTY_WHY = [""]
 
 def _call(b64, mime="audio/ogg", tries=4, schema=None, model=None, gloss_ok=True):
     url = G.endpoint(model or MODEL)
@@ -369,8 +375,26 @@ def _call(b64, mime="audio/ogg", tries=4, schema=None, model=None, gloss_ok=True
             with urllib.request.urlopen(r, timeout=180) as f:
                 d = json.loads(f.read())
             c = d.get("candidates") or []
-            if not c: return ""
-            return "".join(p.get("text","") for p in c[0]["content"]["parts"]).strip()
+            if not c:
+                _w = ("candidates ဗလာ · promptFeedback="
+                      + str(d.get("promptFeedback") or "မရှိ")[:100])
+                _EMPTY_WHY[0] = _w
+                G.log_fail("asr", i + 1, tries, 200, _w)
+                return ""
+            _parts = ((c[0].get("content") or {}).get("parts")) or []
+            if not _parts:
+                # ⚠️ **thinking model က output budget ကုန်စေနိုင်သည်**。
+                #    `finishReason=MAX_TOKENS` + content {} ဆိုလျှင် ပြန်ကြိုးစားလည်း
+                #    တူတူ ဖြစ်မည် — model ပြောင်းရမည်。 ⇒ retry မကုန်စေဘဲ ထုတ်。
+                _fr = str(c[0].get("finishReason") or "?")
+                _w = (f"content ဗလာ · finishReason={_fr} · model="
+                      f"{model or MODEL}")
+                if _fr == "MAX_TOKENS":
+                    _w += " — thinking နဲ့ output budget ကုန်သည် ⇒ model ပြောင်းပါ"
+                _EMPTY_WHY[0] = _w
+                G.log_fail("asr", i + 1, tries, 200, _w)
+                return ""
+            return "".join(p.get("text","") for p in _parts).strip()
         except urllib.error.HTTPError as e:
             raw = e.read().decode("utf-8","replace")
             # schema ကို မထောက်ပံ့လျှင် တစ်ခါတည်း ပိတ်ပြီး JSON prompt နဲ့ ဆက်သွား
@@ -568,10 +592,11 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
             raise RuntimeError(
                 f"Gemini ရဲ့ quota ကုန်နေပါသည် — စာသား ထုတ်လို့ မရပါ။ "
                 f"ခဏ စောင့်ပြီး ပြန်လုပ်ပါ (model {MODEL})။")
+        _w2 = _why or _EMPTY_WHY[0]
         raise RuntimeError(
             f"ASR chunk {n_empty}/{n_try} ခု အလွတ် — စာသား မပြည့်စုံပါ "
             f"(model {MODEL})။ ဒီအတိုင်း ဆက်လုပ်လျှင် စာတန်း ပြုတ်မည်။"
-            + (f" အကြောင်းရင်း: {_why[:120]}" if _why else ""))
+            + (f" အကြောင်းရင်း: {_w2[:160]}" if _w2 else ""))
     if not out:
         raise RuntimeError(f"ASR က စာသား လုံးဝ မရပါ (model {MODEL})")
     log(f"  ASR · အချိန်ပါ ဝါကျ {TIMED[0]} ခု / chunk {TIMED[1]}/{len(marks)-1} · "
