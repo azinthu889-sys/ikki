@@ -2016,6 +2016,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
                              lambda r, i=None: _cue(SL, r, rc["theme"], i, _sd, log), log)
             REPORT["sfx_variants"] = len(set(_CUE_USED))
             REPORT["sfx_banks"] = sorted({x.split("/")[0] for x in _CUE_USED})
+            REPORT["sfx_assets"] = list(_CUE_USED)
+            # ⚠️ **ဖြေရှင်းချက်ကို မှတ်တမ်းတင်ရမည်** (spec §6 — 「record the exact
+            #    resolved asset in a render manifest for reproducibility」)。
+            #    မပြလျှင် variant ကွဲမကွဲ ပြန်စစ်လို့ မရပါ。
+            for _t, _r, _d in cues[:12]:
+                log(f"    SFX {_t:6.2f}s {_r:11} {_d:+d}dB")
+            if _CUE_USED:
+                log("    asset · " + " · ".join(_CUE_USED[:8]))
             cutv = sv; _drop(_pre2); log(f"  SFX {nsfx} cue")
         except Exception as e:
             log(f"  ⚠️ SFX မရ: {e}")
