@@ -398,6 +398,12 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    အများစု ကျဘမ်း ဖြစ်မည်。
             a = g.get("args") or (ARGS[g["kind"]](brand, label)
                                   if g["kind"] in ARGS else _cargs(g["kind"], brand, label))
+            if not a:
+                # ⚠️ **မှန်းဆ မဖြည့်ရ** — ကျော်သွားတာကို အကြောင်းရင်းနဲ့ ပြသည်
+                LAST["no_args"] = LAST.get("no_args", 0) + 1
+                log(f"  ⊘ argument မဖြည့်နိုင်: {g['kind']} @ {g.get('at', 0):.1f}s "
+                    f"(ဂဏန်း/စာရင်း param လိုသည်)")
+                continue
             # ⚠️ titles/titles2 ရဲ့ template တွေက ပထမ param အဖြစ် `tag`
             #    ယူသည်၊ typo · kinetic · callouts တွေက **မယူ**。 tag ကို
             #    အားလုံးမှာ ရှေ့က ထည့်လျှင် argument တစ်နေရာစီ ရွေ့သွားပြီး
@@ -708,13 +714,21 @@ def _cargs(kind, brand, label):
             for e in GC.catalog(): _CIDX[e["fn"]] = e
         except Exception:
             _CIDX = {}
+    # ⚠️ အရင်က ဖြည််မရရင် `(brand,)` သာ ပြန်ပေးခဲ့သည် — ဒါက
+    #    **ဂဏန်း param ထဲ စာသား ထည့်လိုက်ခြင်း**。 `kinetic2.count_roll` က
+    #    `val` (number) လိုသည် ⇒ `f"{val:,}"` မှာ
+    #    「Cannot specify ',' with 's'」 ဖြစ်ပြီး ဂရပ်ဖစ် ပျောက်သည်
+    #    (၂၀၂၆-၀၉-၂၁ render မှာ တကယ် ဖြစ်ခဲ့)。
+    #    ⇒ **ဖြည််လို့မရလျှင် `None`** — အဲဒီ template ကို မသုံးတော့ပါ。
+    #    (`gfxcat.fill` ကိုယ်တိုင်လည်း 「ဖြည့်လို့မရတဲ့ param တွေ့ဆို ရပ်ရမည်」 ဆိုပြီးသား)
     e = _CIDX.get(kind)
-    if not e: return (brand,)
+    if not e:
+        return None
     try:
         import gfxcat as GC
-        return GC.fill(e, brand, label) or (brand,)
+        return GC.fill(e, brand, label)
     except Exception:
-        return (brand,)
+        return None
 
 
 _FNC = {}
