@@ -836,7 +836,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
             raise RuntimeError(f"ဖြတ်ချက် {st['in_speech']} ခု စကားထဲ ကျနေသည် — မထုတ်ပါ")
         # ── ချောင်းဆိုးသံ · ဖြည့်စကား = အလိုအလျောက် ဖြတ်ခွင့်ရှိ ──
         #    ပြန်စ · ထပ်နေတာ = **ညွှန်ပြရုံ** (သင် အတည်ပြုမှ)
-        auto, flags = CL.plan(wav, segs)
+        # ⚠️ **ပုံသေက review-first** — recipe က `auto_clean` ဖွင့််မှ
+        #    အလိုအလျောက် ဖြတ်သည် (Zin: 「user အတည်ပြုမှဖျက်ပေး」)。
+        auto, flags = CL.plan(wav, segs, auto_ok=bool(rc.get("auto_clean")))
         # ⚠️ ZJL စည်းမျဉ်း ⑧ — **စာလုံး ဖြတ်မိတာက ချောင်းကျန်တာထက် ဆိုးသည်**。
         #    ချောင်း/ဖြည့်စကား ဖြတ်ချက်တွေက CUT.plan ရဲ့ "စကားထဲ မဖြတ်ရ"
         #    စစ်ချက်ကို **ကျော်သွားခဲ့သည်** — QC မှာ cut_in_speech=0 ပြပေမယ့်

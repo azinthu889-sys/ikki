@@ -125,13 +125,35 @@ def repeats(segs, window=12):
                     break
     return out
 
-def plan(wav, segs, do_cough=True, do_filler=True):
-    """(auto_cuts, flags) — auto ကိုသာ ဖြတ်၊ flags ကို သင် အတည်ပြုမှ。"""
+def plan(wav, segs, do_cough=True, do_filler=True, auto_ok=False):
+    """(auto_cuts, flags) — auto ကိုသာ ဖြတ်၊ flags ကို သင် အတည်ပြုမှ。
+
+    ⚠️ **`auto_ok` ပုံသေက `False`** — ချောင်းဆိုးသံ/ဖြည့်စကားကိုပါ
+       **ညွှန်ပြရုံ** ဖြစ်စေသည်。 အကြောင်းရင်း ၂ ခု —
+       ၁။ Zin ရဲ့ စည်းကမ်း: 「user အတည်ပြုမှဖျက်ပေး။ script editor မှာပဲ
+          အနီပြထား」 ⇒ အလိုအလျောက် ဖျက်ခြင်းက ဆန့်ကျင်သည်。
+       ၂။ `coughs()` က **အမြင့်ဘန်း ရုတ်တရက် တက်မှု** ကိုသာ ရှာသည် —
+          ချောင်းဆိုးသံလား · စ/ဆ သံလား · ကီးဘုတ်လား **မခွဲနိုင်ပါ**。
+          precision ကို label ထားသော benchmark နဲ့ မတိုင်းရသေး
+          (audit P0: 「review-first pending benchmarks」)。
+       ⇒ benchmark အောင်မှ recipe က `auto_ok=True` ဖွင့်နိုင်သည်。
+    ⚠️ ညွှန်ပြချက် ဖြစ်သွားသော်လည်း **ရှာတာကို မရပ်ရ** — မရှာလျှင်
+       သုံးစွဲသူ ကိုယ်တိုင် ရှာရမည် ဖြစ်ပြီး editor က အလကား ဖြစ်သည်。
+    """
     auto=[]; flags=[]
-    if do_cough:  auto += coughs(wav)
-    if do_filler: auto += fillers(segs)
+    found=[]
+    if do_cough:  found += coughs(wav)
+    if do_filler: found += fillers(segs)
+    if auto_ok:
+        auto += found
+    else:
+        for c in found:
+            c = dict(c); c["auto"] = False
+            c.setdefault("note", "အတည်ပြုပါ — detector ရဲ့ တိကျမှု မတိုင်းရသေး")
+            flags.append(c)
     flags += restarts(segs) + repeats(segs)
     auto.sort(key=lambda c: c["at"])
+    flags.sort(key=lambda c: c.get("at", 0))
     return auto, flags
 
 

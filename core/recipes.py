@@ -310,7 +310,11 @@ R = {
     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.02, vign=0.25, sfx_per_min=0.5),
 }
-DEF = dict(cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
+DEF = dict(
+    # ⚠️ **ပုံသေ ပိတ်** — ချောင်းဆိုးသံ/ဖြည့်စကားကို ညွှန်ပြရုံ。
+    #    `coughs()` က အမြင့်ဘန်း တက်မှုကိုသာ ရှာ၍ စ/ဆ သံ · ကီးဘုတ်နဲ့
+    #    မခွဲနိုင်ပါ — precision မတိုင်းရသေး。 benchmark အောင်မှ ဖွင့်ရမည်。
+    auto_clean=False,cap_pct=None, cap_base=None, stroke=None, stroke_w=0.0,
            cap_cover=None, cap_accent=None, broll_pct=0.30, broll_max=3.2,
            sfx=True, cap_typo=0.0, sat=None, vign=None, cbal=True, grade=True,
            # ⚠️ ဖြတ်ဆက်ကို ဖုံးရန် punch-in (၁.၀ = ပိတ်)。 `spans.PUNCH` က ပုံသေ。
