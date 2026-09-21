@@ -150,6 +150,14 @@ def init():
         c.execute("UPDATE jobs SET acct='a_default' WHERE acct IS NULL")
     except sqlite3.OperationalError:
         pass
+    # ⚠️ **brand ရဲ့ `acct` ဗလာတာကို ပြေစေရမည်** — `/api/brands` က
+    #    `WHERE acct=?` နဲ့ စစ်သဖြင့် NULL/ဗလာ တစ်ခုက kit ကို **ပျောက်**စေသည်。
+    #    ဒေတာ မဖျက်ပါ — `a_default` (ပိုင်ရှင်) ဆီ ပြောင်းရုံသာ。
+    try:
+        c.execute("UPDATE brands SET acct='a_default'"
+                  " WHERE acct IS NULL OR TRIM(acct)=''")
+    except sqlite3.OperationalError:
+        pass
     # ⚠️ ငွေလွှဲ တောင်းဆိုချက် — KBZPay / Wave / CB Pay。 **card gateway မဟုတ်**
     #    ⇒ server က ငွေရပြီးမပြီး **မသိနိုင်**。 သုံးစွဲသူက ငွေလွှဲပြီး ငွေလွှဲနံပါတ်
     #    ရိုက်ထည့် → ပိုင်ရှင်က bank app ထဲ စစ်ပြီးမှ အတည်ပြုမှ မိနစ် တက်သည်。
@@ -189,10 +197,15 @@ def init():
                        colors=["#0B1B33","#16304C","#F5C543","#4FA8DC","#E5484D"],
                        mmf="MyanmarHeadOne", latin="Figtree-Black", jp="HiraginoSans-W7",
                        top=300, bot=940)):
-            c.execute("INSERT INTO brands(id,name,aspect,colors,mmf,latin,jp,top,bot,created)"
-                      " VALUES(?,?,?,?,?,?,?,?,?,?)",
+            # ⚠️ **`acct` ပါ ထည့်ရမည်** — ဤ ၂ ခုက ပိုင်ရှင်ရဲ့ သီးသန့် preset
+            #    ဖြစ်ပြီး `a_default` ရဲ့ ဟာ。 မထည့်လျှင် NULL ဖြစ်ကာ
+            #    `/api/brands` (`WHERE acct=?`) မှာ **ပျောက်**မည် — DB အသစ်မှာ
+            #    ALTER-TABLE migration က မပြေးသဖြင့် (column ရှိပြီးသား)。
+            c.execute("INSERT INTO brands(id,name,aspect,colors,mmf,latin,jp,top,bot,acct,created)"
+                      " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                       (b["id"],b["name"],b["aspect"],json.dumps(b["colors"]),
-                       b["mmf"],b["latin"],b["jp"],b["top"],b["bot"],time.time()))
+                       b["mmf"],b["latin"],b["jp"],b["top"],b["bot"],
+                       "a_default",time.time()))
     ym = time.strftime("%Y-%m")
     c.execute("INSERT OR IGNORE INTO usage(ym,minutes,quota) VALUES(?,0,300)", (ym,))
     c.commit(); c.close()

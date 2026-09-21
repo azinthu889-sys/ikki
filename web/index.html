@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0A0A">
-<link rel="stylesheet" href="/app.css?v=1789986077">
+<link rel="stylesheet" href="/app.css?v=1789998663">
 </head>
 <body>
 
@@ -76,13 +76,27 @@
         </div>
 
         <section class="setup-section project-brand" aria-labelledby="brandstep">
-          <div class="setup-head"><span>01</span><div><p class="eyebrow" data-my="YOUR VISUAL SYSTEM" data-en="YOUR VISUAL SYSTEM">YOUR VISUAL SYSTEM</p>
-            <h2 id="brandstep" data-my="ဘရန်းကို အရင်တည်ဆောက်ပါ" data-en="Start with your brand">ဘရန်းကို အရင်တည်ဆောက်ပါ</h2></div></div>
-          <p class="lede" data-my="Logo, colour, font ကို တစ်ခါသတ်မှတ်ထားရင် caption နဲ့ graphic တွေမှာ အလိုအလျောက်လိုက်သုံးမယ်။"
-            data-en="Set your logo, colour and type once; captions and graphics will carry them forward.">Logo, colour, font ကို တစ်ခါသတ်မှတ်ထားရင် caption နဲ့ graphic တွေမှာ အလိုအလျောက်လိုက်သုံးမယ်။</p>
+          <div class="setup-head"><span>01</span><div><p class="eyebrow" data-my="EDITING SYSTEM" data-en="EDITING SYSTEM">EDITING SYSTEM</p>
+            <h2 id="brandstep" data-my="ဘယ်စနစ်နဲ့ တည်းဖြတ်မလဲ" data-en="Choose your editing system">ဘယ်စနစ်နဲ့ တည်းဖြတ်မလဲ</h2></div></div>
+          <p class="lede" data-my="ပုံစံ (edit direction) ကို နောက်အဆင့်မှာ ရွေးပါမယ်။ ဒီအဆင့်မှာ အရောင်/ဖောင့်/logo ကို AI ကို အပ်မလား ကိုယ်ပိုင် brand သုံးမလား ဆုံးဖြတ်ပါ။"
+            data-en="You pick the edit direction in the next step. Here you choose whether AI applies its own visual system or your saved brand kit.">ပုံစံ (edit direction) ကို နောက်အဆင့်မှာ ရွေးပါမယ်။ ဒီအဆင့်မှာ အရောင်/ဖောင့်/logo ကို AI ကို အပ်မလား ကိုယ်ပိုင် brand သုံးမလား ဆုံးဖြတ်ပါ။</p>
+          <!-- ⚠️ **ရွေးချယ်မှု ၂ ခု** — ယခင်က brand ကို အရင် တောင်းခဲ့သဖြင့်
+               account အသစ်တိုင်း ပိုင်ရှင်ရဲ့ preset (ZIN JAPAN LIFE ·
+               Zin Apex Education) ကို မြင်ပြီး ရှုပ်ခဲ့သည်。 -->
+          <div class="mode-pick" id="modepick" role="group" aria-labelledby="brandstep">
+            <button type="button" class="mode" data-mode="smart" aria-pressed="true">
+              <b data-my="✦ IKKI Smart Edit" data-en="✦ IKKI Smart Edit">✦ IKKI Smart Edit</b>
+              <span data-my="AI お任せ · အကြံပြု" data-en="AI お任せ · Recommended">AI お任せ · အကြံပြု</span></button>
+            <button type="button" class="mode" data-mode="brand" aria-pressed="false">
+              <b data-my="ကိုယ်ပိုင် brand သုံးမယ်" data-en="Use my brand">ကိုယ်ပိုင် brand သုံးမယ်</b>
+              <span data-my="Logo · အရောင် · ဖောင့်" data-en="Logo · colour · font">Logo · အရောင် · ဖောင့်</span></button>
+          </div>
           <div id="projectbrand" class="brand-pulse" aria-live="polite"></div>
           <div class="reference-note"><span>✦</span><p><b data-my="ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?" data-en="Want to use your own video style?">ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?</b><br><span data-my="Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။" data-en="Reference-video style analysis is not connected to the engine yet. Once connected, it will learn timing, captions and motion from a sample video.">Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။</span></p></div>
-          <button class="btn" data-go="v-sty" data-my="Brand Studio ဖွင့်မယ် →" data-en="Open Brand Studio →">Brand Studio ဖွင့်မယ် →</button>
+          <!-- ⚠️ **CTA တစ်ခုတည်း** — mode အလိုက် စာသား/အလုပ် ပြောင်းသည်。
+               အရင်က static 「Brand Studio ဖွင့်မယ်」က Smart Edit မှာလည်း
+               ပေါ်နေသဖြင့် 「brand ဆောက်ရမယ်」ဟု အထင်မှား ဖြစ်ခဲ့သည်。 -->
+          <button class="btn" id="brandcta" data-my="ပုံစံ ရွေးရန် →" data-en="Choose a style →">ပုံစံ ရွေးရန် →</button>
         </section>
 
         <!-- ⚠️ ဗီဒီယို ပုံစံ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်ကြောင်း
@@ -566,6 +580,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1789982582"></script>
+<script src="/app.js?v=1789998902"></script>
 </body>
 </html>

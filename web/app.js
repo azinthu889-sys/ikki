@@ -84,7 +84,12 @@ function styleDefaults(){
   var want=STHEME[state.style];
   if(!want) return false;
   var hit=false;
-  if(!state.ovrBrand && state.brand!==want){ state.brand=want; hit=true; }
+  /* ⚠️ **Smart Edit မှာ style က brand ကို မရွေးရ** — အရင်က style
+     ပြောင်းတိုင်း `zjl`/`zae` (ပိုင်ရှင်ရဲ့ preset) ကို **တိတ်တဆိတ်**
+     ရွေးခဲ့သည်。 Smart Edit ရဲ့ ထွက် brand က အမြဲ `ikki` ဖြစ်ရမည်。 */
+  if(isSmart()){
+    if(state.brand!==SMART){ state.brand=SMART; hit=true; }
+  } else if(!state.ovrBrand && state.brand!==want){ state.brand=want; hit=true; }
   var ws=SSIZE[state.style]||'';
   if(!state.ovrFmt && state.fmt!==ws){ state.fmt=ws; hit=true; }  // ws ဗလာ ⇒ brand native
   return hit;
@@ -96,15 +101,29 @@ var FMTS=[];
 /* ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ် တန်း edit လုပ်လို့ရအောင်」
    ⇒ ရွေးချယ်မှုကို **မှတ်ထား**သည် — နောက်ဗီဒီယိုမှာ အစကနေ ပြန်ရွေးစရာ မလို。 */
 var SKEY='ikki_prefs';
-var state={style:'short-video', family:'', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
+/* ⚠️ **SMART = ပုံသေ mode** (Zin ၂၀၂၆-၀၉-၂၁ spec)。 `ikki` က
+   customer brand **မဟုတ်ဘဲ** neutral system mode — logo/watermark မထည့်ပါ。
+   အရင်က ပုံသေက `zae` (ပိုင်ရှင်ရဲ့ preset) ဖြစ်ခဲ့သဖြင့် account အသစ်တိုင်း
+   သူတစ်ပါးရဲ့ brand နဲ့ စခဲ့သည်。 */
+var SMART='ikki';
+var state={style:'short-video', family:'', mode:'smart', brand:SMART, font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
   ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
-  ['style','brand','font','fmt','cap','vfmt','speed'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+  ['style','brand','font','fmt','cap','vfmt','speed','mode'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+  /* ⚠️ **ရှိပြီးသား သုံးစွဲသူရဲ့ ရွေးချယ်မှုကို မလွှမ်းရ** — `mode` မသိမ်းဘဲ
+     `brand` သိမ်းထားသူက Smart Edit ဆီ ရုတ်တရက် ပြောင်းသွားလျှင် သူ့ brand
+     ပျောက်သွားသလို ခံစားမည် ⇒ `ikki` မဟုတ်လျှင် 「ကိုယ်ပိုင် brand」ဟု
+     **တစ်ခါ** ခန့်မှန်းသည်。 */
+  if(_p.mode==null) state.mode = (_p.brand && _p.brand!==SMART) ? 'brand' : 'smart';
 }catch(e){}
 function savePrefs(){
   try{ localStorage.setItem(SKEY, JSON.stringify({style:state.style,brand:state.brand,
-    font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt,speed:state.speed})) }catch(e){}
+    font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt,speed:state.speed,
+    mode:state.mode})) }catch(e){}
 }
+/* ကိုယ်ပိုင် kit များသာ — `is_system` (IKKI Smart Edit) ကို ဖယ်သည် */
+function ownKits(){ return (BRANDS||[]).filter(function(b){ return !b.is_system }) }
+function isSmart(){ return state.mode!=='brand' }
 
 /* ── API ── */
 function askToken(){
@@ -207,9 +226,52 @@ function paintAdv(){
   el.textContent='— '+((bn&&bn.name)||state.brand)+' · '+sz
     + (state.ovrBrand||state.ovrFmt ? ' (ကိုယ်တိုင် ရွေးထား)' : '');
 }
+function paintModes(){
+  [].forEach.call(document.querySelectorAll('#modepick .mode'),function(m){
+    m.setAttribute('aria-pressed', m.getAttribute('data-mode')===state.mode?'true':'false');
+  });
+  /* ⚠️ CTA **တစ်ခုတည်း** — mode အလိုက် စာသား/အလုပ် ပြောင်းသည် */
+  var c=$('brandcta'); if(!c) return;
+  var my=(cur==='my');
+  if(isSmart()){
+    c.textContent = my?'ပုံစံ ရွေးရန် →':'Choose a style →';
+    c.setAttribute('data-go','v-new');
+  } else if(!ownKits().length){
+    c.textContent = my?'ပထမ brand ဆောက်မယ် →':'Create your first brand →';
+    c.setAttribute('data-go','v-sty');
+  } else {
+    c.textContent = my?'Brand Studio ဖွင့်မယ် →':'Open Brand Studio →';
+    c.setAttribute('data-go','v-sty');
+  }
+}
 function paintProjectBrand(){
   var el=$('projectbrand'); if(!el) return;
-  var brand=BRANDS.filter(function(b){return b.id===state.brand})[0]||BRANDS[0];
+  paintModes();
+  var my=(cur==='my');
+  /* ── ✦ IKKI Smart Edit ── */
+  if(isSmart()){
+    var sysb=(BRANDS||[]).filter(function(b){return b.is_system})[0];
+    var cs=(sysb&&sysb.colors||['#0A0A0A','#101418','#FFE000','#5B9BD5','#E8102A']).slice(0,5);
+    el.innerHTML='<div class="brand-summary smart">'
+      +'<div class="brand-mark">✦</div>'
+      +'<div class="brand-detail"><span class="eyebrow">AI お任せ</span>'
+      +'<b>'+esc((sysb&&sysb.name)||'IKKI Smart Edit')+'</b>'
+      +'<small>'+esc(my?((sysb&&sysb.my)||'AI က ပရီမီယံ ပုံစံကို သင် ရွေးထားသော edit direction အပေါ် အသုံးချပါမယ်။ IKKI logo မထည့်ပါ။')
+                      :((sysb&&sysb.en)||'AI applies a premium visual system to the edit direction you pick. No IKKI logo is added.'))+'</small></div>'
+      +'<div class="brand-swatches">'+cs.map(function(c){return '<i style="background:'+esc(c)+'"></i>'}).join('')+'</div></div>';
+    return;
+  }
+  /* ── ကိုယ်ပိုင် brand ── */
+  var kits=ownKits();
+  if(!kits.length){
+    el.innerHTML='<div class="brand-empty">'
+      +'<b>'+esc(my?'ကိုယ်ပိုင် brand မရှိသေးပါ':'No brand kit yet')+'</b>'
+      +'<span>'+esc(my?'Logo · အရောင် · ဖောင့် တစ်ခါ သတ်မှတ်ထားရင် edit တိုင်းမှာ လိုက်သုံးပါမယ်။'
+                      :'Set your logo, colour and type once and every edit will carry them.')+'</span></div>';
+    return;
+  }
+  var brand=kits.filter(function(b){return b.id===state.brand})[0]||kits[0];
+  if(brand.id!==state.brand){ state.brand=brand.id; savePrefs() }
   if(!brand){
     el.innerHTML='<span class="brand-loading">'+(cur==='my'?'ဘရန်းကို ဖွင့်နေသည်…':'Loading your brand…')+'</span>';
     return;
@@ -221,7 +283,7 @@ function paintProjectBrand(){
     +'<div class="brand-detail"><span class="eyebrow">'+(cur==='my'?'ACTIVE BRAND':'ACTIVE BRAND')+'</span>'
     +'<b>'+esc(brand.name)+'</b><small>'+esc(brand.mmf||'')+' · '+esc(brand.aspect||'')+'</small></div>'
     +'<div class="brand-swatches">'+colors.map(function(color){return '<i style="background:'+esc(color)+'"></i>'}).join('')+'</div></div>'
-    +'<div class="brand-quick">'+BRANDS.map(function(b){return '<button class="bp" data-b="'+esc(b.id)+'"'
+    +'<div class="brand-quick">'+kits.map(function(b){return '<button class="bp" data-b="'+esc(b.id)+'"'
       +(b.id===state.brand?' aria-pressed="true"':'')+'>'+esc(b.name)+'</button>'}).join('')+'</div>';
 }
 function paintStyles(){
@@ -327,13 +389,16 @@ function loadMeta(){
        သုံးစွဲသူ brand ကို **တစ်ခါမှ ကိုယ်တိုင် မရွေးဖူး** (style ကနေ အလိုလို)。
        ⇒ နာမည်ရှည် မလို · ဘယ်ဟာက ပုံသေလဲ **အမှတ်အသား** သာ လိုသည်。 */
     var _dflt=(typeof STHEME!=='undefined')?STHEME[state.style]:null;
-    $('brandpick').innerHTML=d.brands.map(function(b){
+    /* ⚠️ **ကိုယ်ပိုင် kit များသာ** — `ikki` (Smart Edit) က ပြင်လို့မရသော
+       system mode ဖြစ်သဖြင့် chip/Brand Studio ကတ် အဖြစ် မပြရ。 */
+    var _own=ownKits();
+    $('brandpick').innerHTML=_own.map(function(b){
       return '<button class="chip bp" data-b="'+b.id+'"'+(b.id===state.brand?' aria-pressed="true"':'')+'>'+
         b.name+(b.id===_dflt?'<em class="dflt">'+(cur==='my'?'ပုံသေ':'default')+'</em>':'')+'<small>'+(b.colors||[]).slice(0,4).map(function(c){
           return '<i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px;background:'+c+'"></i>'
         }).join('')+'</small></button>';
     }).join('');
-    var k=$('kits'); if(k) k.innerHTML=d.brands.map(function(b){
+    var k=$('kits'); if(k) k.innerHTML=_own.map(function(b){
       return '<div class="card"'+(b.id===state.brand?' style="outline:2px solid var(--ac)"':'')+'>'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:13px">'+
         '<b style="font-size:18px;font-weight:700;letter-spacing:-.03em">'+b.name+'</b>'+
@@ -1031,6 +1096,23 @@ document.addEventListener('click',function(e){
   }
   var ff=e.target.closest&&e.target.closest('[data-font]');
   if(ff){ state.font=ff.getAttribute('data-font'); loadMeta(); }
+  /* ── ✦ Smart Edit ↔ ကိုယ်ပိုင် brand ── */
+  var md=e.target.closest&&e.target.closest('#modepick .mode');
+  if(md){
+    state.mode=md.getAttribute('data-mode');
+    if(isSmart()){
+      /* ⚠️ Smart Edit ရဲ့ ထွက် brand က **အမြဲ `ikki`** ဖြစ်ရမည် */
+      state.brand=SMART; state.ovrBrand=false;
+    } else {
+      var _k=ownKits();
+      state.brand=(_k.filter(function(x){return x.id===state.brand})[0]||_k[0]||{}).id||SMART;
+      state.ovrBrand=!!_k.length;
+    }
+    /* ⚠️ **ရွေးလိုက်တာ ချက်ချင်း မြင်ရရမည်** — `paintModes()` ကို
+       `loadMeta()` (network) ပြီးမှ ခေါ်လျှင် ကွန်ရက် နှေးရင်/ကျရင်
+       ခလုတ်က တုံ့ပြန်မှု မပြဘဲ ဖြစ်သည် (offline စမ်းစဉ် ဖမ်းမိ)。 */
+    savePrefs(); paintModes(); paintProjectBrand(); loadMeta(); return;
+  }
   var b=e.target.closest&&e.target.closest('.bp');
   if(b){state.brand=b.getAttribute('data-b'); state.ovrBrand=true;
     [].forEach.call(document.querySelectorAll('.bp'),function(o){o.setAttribute('aria-pressed',o===b?'true':'false')});
@@ -2086,7 +2168,11 @@ $('qclear').onclick=function(){$('q').value='';
 
 /* ── စတင် ── */
 var t=localStorage.getItem('ikki_theme'); if(t) document.documentElement.setAttribute('data-theme',t);
-orderProjectFlow(); lang(cur); paintStyles(); loadMeta(); loadJobs(); scene('s-ready');
+/* ⚠️ **ကတ်ကို ချက်ချင်း ဆွဲရမည်** — `loadMeta()` (network) ပြီးမှ ဆွဲလျှင်
+   ပထမ load မှာ ကွက်လပ် ဖြစ်ပြီး ကွန်ရက် ကျလျှင် ထာဝရ ဗလာ ဖြစ်သည်
+   (offline စမ်းစဉ် ဖမ်းမိ)。 Smart Edit မှာ ဒေတာ မလိုပါ。 */
+orderProjectFlow(); lang(cur); paintStyles(); paintProjectBrand();
+loadMeta(); loadJobs(); scene('s-ready');
 
 
 /* ══ AI အစီအစဉ် — ဖတ်ရုံ ══════════════════════════════════
@@ -2228,7 +2314,8 @@ function bopen(b){
     return '<option value="'+f.key+'"'+(f.key===editing.aspect?' selected':'')+'>'+
       f.key+' · '+f.w+'×'+f.h+'</option>' }).join('');
   // ⚠️ house brand ၂ ခုကို မဖျက်ရ — recipe တွေက ရည်ညွှန်းသည်
-  $('bedel').hidden = neu || editing.id==='zae' || editing.id==='zjl';
+  $('bedel').hidden = neu || editing.id===SMART
+                     || editing.id==='zae' || editing.id==='zjl';
   $('bedit').hidden = false;
   $('bedit').scrollIntoView({behavior:'smooth', block:'center'});
 }
@@ -2245,15 +2332,30 @@ var bs=$('besave'); if(bs) bs.onclick=function(){
   if(editing.id) body.id=editing.id;
   bs.disabled=true;
   api('/brands',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-    .then(function(){ bs.disabled=false; bclose(); loadMeta() })
+    .then(function(r){
+      bs.disabled=false; bclose();
+      /* ⚠️ **ဆောက်လိုက်တာနဲ့ တန်း active ဖြစ်ရမည်** — မဟုတ်လျှင်
+         「ဆောက်ပြီးသား ဒါပေမယ့် ဘာမှ မပြောင်း」ဟု ခံစားမည်。 */
+      var nid=(r&&r.id)||body.id;
+      if(nid){ state.brand=nid; state.mode='brand'; state.ovrBrand=true; savePrefs() }
+      loadMeta();
+    })
     .catch(function(){ bs.disabled=false });
 };
 var bd=$('bedel'); if(bd) bd.onclick=function(){
   if(!editing||!editing.id) return;
   // ⚠️ `confirm()` မမှီခို (တိတ်တဆိတ် false ပြန်သည်) — နှစ်ဆင့် နှိပ်ခိုင်းသည်
   if(!confirmTwo(bd, cur==='my'?'တကယ် ဖျက်မှာလား? နောက်တစ်ခါ နှိပ်ပါ':'Delete? Click again')) return;
-  api('/brands/'+editing.id,{method:'DELETE'}).then(function(){
-    if(state.brand===editing.id) state.brand='zae';
+  var _gone=editing.id;
+  api('/brands/'+_gone,{method:'DELETE'}).then(function(){
+    /* ⚠️ **Smart Edit ဆီ ပြန်ကျရမည်** — အရင်က `zae` (ပိုင်ရှင်ရဲ့ preset)
+       ဆီ ကျခဲ့သည် ⇒ သူတစ်ပါးရဲ့ brand နဲ့ ဆက်ထွက်မိမည်。 */
+    if(state.brand===_gone){
+      var _left=ownKits().filter(function(x){return x.id!==_gone});
+      if(_left.length){ state.brand=_left[0].id; state.mode='brand' }
+      else { state.brand=SMART; state.mode='smart'; state.ovrBrand=false }
+      savePrefs();
+    }
     bclose(); loadMeta();
   }).catch(function(){});
 };

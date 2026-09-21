@@ -620,11 +620,53 @@ async def set_settings(req: Request, authorization: str = Header(None)):
                str(k)[:40], str(v)[:200], str(v)[:200])
     return {"ok": True}
 
+# ══ IKKI Smart Edit — **virtual system profile** ══════════════════
+# ⚠️ ဒါက customer ရဲ့ brand kit **မဟုတ်ပါ** — ရေးမှတ်ထားသော row မဟုတ်ဘဲ
+#    「AI お任せ」ပုံသေ mode ဖြစ်သည်。 logo/watermark **မထည့်ပါ** —
+#    ထွက်ဗီဒီယိုပေါ် IKKI နာမည် မပေါ်ရ。
+# ⚠️ `ZIN JAPAN LIFE` · `Zin Apex Education` က **ပိုင်ရှင်ရဲ့ သီးသန့် preset**
+#    ဖြစ်သည် ⇒ account အသစ်တိုင်းကို ပြခွင့် မရှိ (ယခင်က `OR id IN
+#    ('zae','zjl')` နဲ့ အားလုံးကို ပြခဲ့သည်)。
+# ⚠️ palette က `motionkit/theme.py` ရဲ့ `ikki` theme ကနေ — နှစ်နေရာ
+#    ရေးထားလျှင် တစ်ဖက် ပြောင်းပြီး တစ်ဖက် ကျန်မည်。
+SYS_BRAND_ID = "ikki"
+SYS_BRAND = dict(
+    id=SYS_BRAND_ID, name="IKKI Smart Edit", is_system=True,
+    aspect="16:9",
+    colors=["#0A0A0A", "#101418", "#FFE000", "#5B9BD5", "#E8102A"],
+    mmf="MasterpieceUniRound", latin="Figtree-Black", jp="HiraginoSans-W7",
+    top=170, bot=830, logo=None,
+    my="AI က ပရီမီယံ ပုံစံကို သင် ရွေးထားသော edit direction အပေါ် "
+       "အသုံးချပါမယ်။ IKKI logo မထည့်ပါ။",
+    en="AI applies a premium visual system to the edit direction you pick. "
+       "No IKKI logo is added.")
+
+
+def _sys_brand():
+    """virtual profile ရဲ့ copy — ခေါ်သူက ပြင်လျှင် မူရင်း မပျက်စေရန်"""
+    return dict(SYS_BRAND)
+
+
+def _guard_sys(bid):
+    """`ikki` ကို ပြင်/ဖျက်/logo တင် **မရ** — system mode ဖြစ်သည်"""
+    if str(bid or "").strip() == SYS_BRAND_ID:
+        raise HTTPException(
+            400, "IKKI Smart Edit က စနစ် mode ဖြစ်သည် — ပြင်/ဖျက်လို့ မရပါ။ "
+                 "ကိုယ်ပိုင် brand ဆောက်ပါ။")
+
+
 @app.post("/api/brands")
 async def brand_new(req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     b = await req.json()
     bid = (b.get("id") or db.nid("b_"))[:24]
+    _guard_sys(bid)
+    # ⚠️ **account တစ်ခုက အခြားတစ်ခုရဲ့ kit ကို မပြင်ရ** — `ON CONFLICT
+    #    DO UPDATE` က id တူရုံနဲ့ လွှမ်းသဖြင့် id ကို မှန်းဆ ပေးလိုက်လျှင်
+    #    သူတစ်ပါးရဲ့ brand ကို ပြင်လိုက်နိုင်သည်。
+    _own = db.one("SELECT acct FROM brands WHERE id=?", bid)
+    if _own and (_own.get("acct") or "") != aid(authorization):
+        raise HTTPException(403, "ဤ brand သည် သင့်အကောင့်၏ မဟုတ်ပါ")
     db.run("INSERT INTO brands(id,name,aspect,colors,mmf,latin,jp,top,bot,acct,created)"
            " VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET"
            " name=?,aspect=?,colors=?,mmf=?,latin=?,jp=?,top=?,bot=?",
@@ -642,11 +684,14 @@ async def brand_new(req: Request, authorization: str = Header(None)):
 @app.get("/api/brands")
 def brands(authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    # ⚠️ house brand (zae · zjl) က အားလုံးအတွက် — recipe တွေက ရည်ညွှန်းထားသည်
-    bs = db.rows("SELECT * FROM brands WHERE acct=? OR id IN ('zae','zjl')",
-                 aid(authorization))
-    for b in bs: b["colors"] = json.loads(b["colors"])
-    return {"brands": bs}
+    # ⚠️ **IKKI Smart Edit ရှေ့ဆုံး · ပြီးမှ ကိုယ်ပိုင် kit များ**。
+    #    ယခင်က `OR id IN ('zae','zjl')` နဲ့ ပိုင်ရှင်ရဲ့ သီးသန့် preset ၂ ခုကို
+    #    **account အသစ်တိုင်း** မြင်ခဲ့သည် — အဲဒါ ပိုင်ရှင်ရဲ့ ဟာ ဖြစ်သည်。
+    bs = db.rows("SELECT * FROM brands WHERE acct=?", aid(authorization))
+    for b in bs:
+        b["colors"] = json.loads(b["colors"])
+        b["is_system"] = False
+    return {"brands": [_sys_brand()] + bs}
 
 @app.get("/api/styles")
 def styles(authorization: str = Header(None)):
@@ -708,9 +753,12 @@ def formats(authorization: str = Header(None)):
 @app.delete("/api/brands/{bid}")
 def brand_del(bid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    # ⚠️ house brand ၂ ခုကို မဖျက်ရ — recipe တွေက သူတို့ကို ရည်ညွှန်းသည်
-    if bid in ("zae", "zjl"): raise HTTPException(400, "house brand ကို မဖျက်ရ")
-    db.run("DELETE FROM brands WHERE id=?", bid)
+    _guard_sys(bid)
+    # ⚠️ house preset ၂ ခုကို မဖျက်ရ — recipe တွေက သူတို့ကို ရည်ညွှန်းသည်
+    if bid in ("zae", "zjl"):
+        raise HTTPException(400, "house preset ကို မဖျက်ရ")
+    # ⚠️ **ကိုယ်ပိုင် kit ကိုသာ ဖျက်ခွင့်ရှိသည်**
+    db.run("DELETE FROM brands WHERE id=? AND acct=?", bid, aid(authorization))
     return {"ok": True}
 
 # ⚠️ ဖောင့်က Mac worker ပေါ်မှာ ရှိသည် — VPS မှာ မရှိသဖြင့် စာရင်းက ပုံသေ。
@@ -1708,8 +1756,17 @@ async def brand_logo_put(bid: str, file: UploadFile = File(...),
 
     `apply=1` ဆိုလျှင် ထုတ်လိုက်တဲ့ အရောင်ကို brand ထဲ **တန်းသွင်း**သည် —
     ထွက်လာမယ့် ဗီဒီယိုက သူ့ theme အတိုင်း ဖြစ်စေရန်。
+
+    ⚠️ `ikki` (Smart Edit) မှာ logo **မတင်ရ** — အဲဒါက neutral system mode
+       ဖြစ်ပြီး ထွက်ဗီဒီယိုပေါ် IKKI နာမည် မပေါ်ရ。
     """
     auth(authorization, UTOKEN)
+    _guard_sys(bid)
+    _own = db.one("SELECT acct FROM brands WHERE id=?", bid)
+    if not _own:
+        raise HTTPException(404, "brand မရှိ")
+    if (_own.get("acct") or "") != aid(authorization):
+        raise HTTPException(403, "ဤ brand သည် သင့်အကောင့်၏ မဟုတ်ပါ")
     if not db.one("SELECT id FROM brands WHERE id=?", bid):
         raise HTTPException(404, "ဘရန်း မတွေ့")
     raw = await file.read()
@@ -1751,9 +1808,15 @@ def brand_logo_get(bid: str, authorization: str = Header(None), t: str = ""):
 @app.delete("/api/brands/{bid}/logo")
 def brand_logo_del(bid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
+    _guard_sys(bid)
+    # ⚠️ **ကိုယ်ပိုင် kit ကိုသာ** — အခြား account ရဲ့ logo ကို မဖျက်ရ
+    _own = db.one("SELECT acct FROM brands WHERE id=?", bid)
+    if _own and (_own.get("acct") or "") != aid(authorization):
+        raise HTTPException(403, "ဤ brand သည် သင့်အကောင့်၏ မဟုတ်ပါ")
     p = os.path.join(LOGO, f"{bid}.png")
     if os.path.exists(p): os.unlink(p)
-    db.run("UPDATE brands SET logo=NULL WHERE id=?", bid)
+    db.run("UPDATE brands SET logo=NULL WHERE id=? AND acct=?",
+           bid, aid(authorization))
     return {"ok": True}
 
 
