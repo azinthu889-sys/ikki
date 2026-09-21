@@ -2040,7 +2040,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ PNG အငြိမ် ⇒ `loop=1` နဲ့ ထည့်ပြီး `enable=` နဲ့ ဝင်းဒိုး ကန့်သတ်သည်。
     #    .mov မဟုတ်၍ itsoffset မလုပ်နိုင်ပါ。
     for at, png, d in (rmov or [])[:8]:
-        ins += ["-loop", "1", "-t", f"{d:.2f}", "-i", png]; n += 1
+        # ⚠️ `-t` က input ကို **၀s ကနေ** ကန့်သတ်သည် — `-t d` ပေးလျှင်
+        #    ဝင်းဒိုး စချိန် (၃၄.၅s) ရောက်တော့ frame ကုန်နေပြီး
+        #    `eof_action=pass` ကြောင့် **ဘာမှ မပေါ်**ပါ (ffmpeg နဲ့ စမ်းပြီး
+        #    အတည်ပြု ၂၀၂၆-၀၉-၂၁: `-t 6` မပေါ် · `-t 16` ပေါ်)。
+        #    ⇒ ဝင်းဒိုး **အဆုံးအထိ** ဖုံးရမည်。
+        ins += ["-loop", "1", "-t", f"{at + d + 0.5:.2f}", "-i", png]; n += 1
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass"
                   f":enable='between(t,{at:.2f},{at + d:.2f})'[v{n}]")
         last = f"v{n}"
