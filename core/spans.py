@@ -35,17 +35,30 @@ def _dim(src):
         return 0, 0
 
 
-def _punch(z, w, h, y=PUNCH_Y):
+def _punch(z, w, h, y=PUNCH_Y, x=0.5):
     """z ဆ punch-in အတွက် ffmpeg filter — မလိုလျှင် None
+
+    `x` — ဘေးတိုက် ချိန်မှတ် (၀ = ဘယ်စွန်း · ၀.၅ = အလယ် · ၁ = ညာစွန်း)
 
     ⚠️ **scale ကို `iw*z` နဲ့ မရေးရ** — crop ပြီးနောက် ပိုင်းစား အကြွင်းကြောင့်
        ၁၉၂၀ က ၁၉၁၉ ဖြစ်သွားသည် (တကယ် တိုင်း၍ တွေ့)。 span တစ်ခုချင်း အရွယ်
        မတူလျှင် concat က ပျက်မည် ⇒ မူရင်း အရွယ်ကို **ကိန်းသေနဲ့** ပေးရသည်。
+    ⚠️ **ဘေးတိုက် ရွှေ့ခြင်းက ဂရပ်ဖစ် နေရာ ရရှိရေးရဲ့ အဓိက နည်းလမ်း**。
+       ပြောသူက ဘောင်ရဲ့ အပေါ် ၆၄% ယူပြီး စာတန်းက အောက် ၃၀% ယူသဖြင့်
+       ကျန်နေရာက **၃၃px** သာ ဖြစ်သည် (၂၀၂၆-၀၉-၂၁ တိုင်းချက် · template
+       ၂၄၃ ခုထဲက တစ်ခုမှ မဝင်)。 ပြောသူကို ဘေးတွန်းလျှင် ကျန်တစ်ဖက်မှာ
+       ဘောင်ရဲ့ **တစ်ဝက်နီးပါး** ရသည် — reference တွေ လုပ်ထားတာ အဲဒါ。
     """
-    if not z or abs(z - 1.0) < 1e-3 or w <= 0 or h <= 0: return None
-    z = max(1.0, min(1.25, float(z)))
+    if (not z or abs(z - 1.0) < 1e-3) and abs(float(x) - 0.5) < 1e-3:
+        return None
+    if w <= 0 or h <= 0:
+        return None
+    z = max(1.0, min(1.25, float(z or 1.0)))
     cw, ch = int(w / z) // 2 * 2, int(h / z) // 2 * 2
-    return (f"crop={cw}:{ch}:{(w - cw) // 2}:{int((h - ch) * y)},scale={w}:{h}")
+    # ⚠️ ဘောင်ပြင်ပ မထွက်ရ — ကျန်နေရာအတွင်းသာ ရွှေ့သည်
+    ox = int(round((w - cw) * max(0.0, min(1.0, float(x)))))
+    ox = max(0, min(w - cw, ox)) // 2 * 2
+    return (f"crop={cw}:{ch}:{ox}:{int((h - ch) * y)},scale={w}:{h}")
 
 
 def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
@@ -57,7 +70,13 @@ def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
         d=b-a
         if d <= 0.05: continue
         p=os.path.join(work, f"s{i:04d}.mp4")
-        vf = _punch((zooms or {}).get(i), _w, _h)
+        # ⚠️ zoom တန်ဖိုးက ကိန်းတစ်ခု (ယခင်) **သို့မဟုတ်** dict (zoom+x+y)
+        _zv = (zooms or {}).get(i)
+        if isinstance(_zv, dict):
+            vf = _punch(_zv.get("zoom"), _w, _h,
+                        y=_zv.get("y", PUNCH_Y), x=_zv.get("x", 0.5))
+        else:
+            vf = _punch(_zv, _w, _h)
         cmd = ["ffmpeg","-v","error","-y",
             "-ss",f"{a:.3f}","-i",src,"-t",f"{d:.3f}",
             "-af",f"afade=t=in:st=0:d={fade:.4f},afade=t=out:st={max(0,d-fade):.3f}:d={fade:.4f}"]

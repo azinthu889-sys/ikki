@@ -1355,9 +1355,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ပယ်လျှင် အချိန် ကုန်ပြီး ဂရပ်ဖစ် မရှိတော့。 ၁၂၀s headtop တစ်ခုမှာ
             #    ၂ ခုက 「နေရာ မတည့်」နဲ့ ပယ်ခဲ့သည် (၂၀၂၆-၀၉-၂၁)。
             _av = _avoid_band(src, TH, log)
+            # ⚠️ **ဘောင်အကျယ်လုံး ပိတ်ခြင်းက ပြဿနာရဲ့ အမြစ်**。 ပြောသူရဲ့
+            #    ဘေးတိုက် နယ်ကိုပါ တိုင်းပြီး box အဖြစ် ပေးလျှင် ဘေးမှာ
+            #    ၈၂၄px လွတ်နေသည် ⇒ template ၀/၂၄၃ ကနေ ၂၀၆/၂၄၃ ဝင်သည်。
+            try:
+                _sb = subject_box(src, TH["W"], TH["H"], log)
+                if _sb and _av:
+                    _av = (_av[0], _av[1], float(_sb[0]), float(_sb[1]))
+            except Exception as _be:
+                log(f"  ⚠️ ပြောသူ ဘောင် မတိုင်းရ ({type(_be).__name__})")
             gfx, _nsw = DR.swap_fit(gfx, _av, cap_top, TH["H"],
                                     seed=rc.get("_seed") or "",
-                                    fmt=(job.get("fmt") or "16:9"), log=log)
+                                    fmt=(job.get("fmt") or "16:9"), log=log,
+                                    W=TH["W"])
             if _nsw:
                 REPORT["gfx_swapped"] = _nsw
             gmov, ng = DR.track(gfx, None, os.path.join(work,"gx"), TH["W"], TH["H"],
@@ -3266,3 +3276,105 @@ def main(once=False):
 
 if __name__ == "__main__":
     main("--once" in sys.argv)
+
+
+def subject_x(src, W, H, log=print, n=6):
+    """ပြောသူရဲ့ **ဘေးတိုက် အလယ်** (၀–၁) — မရလျှင် `None`
+
+    ⚠️ `faceband()` က ဒေါင်လိုက် (y) ကိုသာ ပြန်ပေးသည် ⇒ 「ဘယ်ဘက်ကို
+       တွန်းမလဲ」 မသိပါ。 ဘေးတိုက် ရွှေ့ခြင်းက ဂရပ်ဖစ် နေရာ ရရှိရေးရဲ့
+       အဓိက နည်းလမ်း ဖြစ်၍ ဒီကိန်း လိုသည်。
+    ⚠️ တိုင်းနည်းက `faceband()` နဲ့ **အတူတူ** (အသား ရောင် mask) —
+       မတူလျှင် တစ်ခုက မျက်နှာဟု ဆိုပြီး နောက်တစ်ခုက မဆိုဘဲ ကွဲမည်。
+    """
+    import numpy as np
+    from PIL import Image
+    d = probe(src)["dur"]
+    xs = []
+    for i in range(n):
+        t = d * (i + 0.5) / n
+        q = os.path.join(os.path.dirname(src), f"_sx{i}.png")
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}",
+                            "-i", src, "-frames:v", "1", "-vf",
+                            f"crop='min(iw,ih*{W}/{H})':ih,scale=480:-1", q],
+                           check=True)
+            a = np.asarray(Image.open(q).convert("RGB")).astype(np.int32)
+        except Exception:
+            continue
+        finally:
+            try: os.path.exists(q) and os.remove(q)
+            except OSError: pass
+        h, w = a.shape[:2]
+        R, G, B = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+        mk = (R > 95) & (G > 45) & (B > 25) & (R > G + 12) & (G > B) \
+            & ((R - B) > 18) & (R < 250)
+        mk[int(h * 0.62):] = False
+        col = mk.sum(axis=0)
+        if col.sum() < w * 2:
+            continue
+        # ⚠️ အလယ်မှတ်ကို **အလေးချိန်နဲ့** တွက်သည် — အများဆုံး column တစ်ခု
+        #    ယူလျှင် လက်/နောက်ခံ အသားရောင်က ဆွဲသွားနိုင်သည်。
+        xs.append(float((col * np.arange(w)).sum() / max(1, col.sum()) / w))
+    if not xs:
+        return None
+    xs.sort()
+    cx = xs[len(xs) // 2]
+    log and log(f"  ပြောသူ ဘေးတိုက် အလယ် {cx:.2f} "
+                f"({'ဘယ်' if cx < 0.45 else ('ညာ' if cx > 0.55 else 'အလယ်')})")
+    return cx
+
+
+def subject_box(src, W, H, log=print, n=8):
+    """ပြောသူရဲ့ **ဘောင်** `(x0, x1, y0, y1)` — ၀–၁ အချိုး · မရလျှင် `None`
+
+    ⚠️ **ဒါက ဂရပ်ဖစ် နေရာ ပြဿနာရဲ့ အဖြေ**。 `faceband()` က ဒေါင်လိုက်
+       အပိုင်း (y) ကိုသာ ပြန်ပေးသဖြင့် placement က **ဘောင်အကျယ်လုံး**ကို
+       ပိတ်ခဲ့သည် ⇒ ကျန်နေရာ ၃၃px。
+       တကယ်တော့ ပြောသူက အကျယ်ရဲ့ ၅၇% သာ ယူပြီး ဘယ်ဘက်မှာ
+       **၈၂၄ × ၆၉၆ px** လွတ်နေသည် (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。
+       ⇒ box အဖြစ် ပြန်ပေးလျှင် ဘောင် ပြန်ချိန်စရာ မလိုဘဲ နေရာ ရသည်。
+    ⚠️ တိုင်းနည်းက `faceband()` နဲ့ **အတူတူ** ဖြစ်ရမည်。
+    """
+    import numpy as np
+    from PIL import Image
+    d = probe(src)["dur"]
+    bx, by = [], []
+    for i in range(n):
+        t = d * (i + 0.5) / n
+        q = os.path.join(os.path.dirname(src), f"_sb{i}.png")
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}",
+                            "-i", src, "-frames:v", "1", "-vf",
+                            f"crop='min(iw,ih*{W}/{H})':ih,scale=480:-1", q],
+                           check=True)
+            a = np.asarray(Image.open(q).convert("RGB")).astype(np.int32)
+        except Exception:
+            continue
+        finally:
+            try: os.path.exists(q) and os.remove(q)
+            except OSError: pass
+        h, w = a.shape[:2]
+        R, G, B = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+        mk = (R > 95) & (G > 45) & (B > 25) & (R > G + 12) & (G > B) \
+            & ((R - B) > 18) & (R < 250)
+        mk[int(h * 0.62):] = False
+        col = mk.sum(axis=0)
+        row = mk.sum(axis=1)
+        if col.sum() < w * 2:
+            continue
+        # ⚠️ **အားနည်းသော column ကို ဖယ်ရမည်** — နောက်ခံ သစ်သား/နံရံက
+        #    အသားရောင် mask ထဲ ဝင်တတ်ပြီး ဘောင်ကို အကျယ်လုံး ဆွဲသွားမည်。
+        cx = np.nonzero(col > max(2, col.max() * 0.12))[0]
+        ry = np.nonzero(row > w * 0.02)[0]
+        if len(cx) < 4 or len(ry) < 8:
+            continue
+        bx.append((cx.min() / w, cx.max() / w))
+        by.append((ry.min() / h, ry.max() / h))
+    if not bx:
+        return None
+    x0 = min(v[0] for v in bx); x1 = max(v[1] for v in bx)
+    y0 = min(v[0] for v in by); y1 = max(v[1] for v in by)
+    log and log(f"  ပြောသူ ဘောင် x {x0:.2f}–{x1:.2f} · y {y0:.2f}–{y1:.2f} "
+                f"· လွတ်နေရာ ဘယ် {int(x0*W)}px · ညာ {int((1-x1)*W)}px")
+    return (x0, x1, y0, y1)

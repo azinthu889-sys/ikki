@@ -104,6 +104,21 @@
           data-my="«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။"
           data-en="For “talking to camera” we look for retakes and show them (nothing is cut — you choose).">«ကင်မရာကို ပြောတာ» ဆိုရင် ပြန်စထားတဲ့ အပိုင်းတွေကို ရှာပြပါမယ် (စက်က မဖြတ်ပါ — သင် ရွေးမှ ဖြတ်ပါတယ်)။</p>
 
+        <!-- Speed is deliberately opt-in.  A global "make it faster" default is
+             wrong for education, business, emotional delivery and podcasts. -->
+        <div style="margin:0 0 14px">
+          <label for="speed" style="display:block;font-size:13.5px;font-weight:650;margin:0 0 5px"
+            data-my="စကားပြော အရှိန်" data-en="Speaking pace">စကားပြော အရှိန်</label>
+          <select id="speed" style="max-width:330px">
+            <option value="1.00" data-my="မမြန်ပါ · မူရင်းအရှိန် (အကြံပြု)" data-en="Natural · original pace (recommended)">မမြန်ပါ · မူရင်းအရှိန် (အကြံပြု)</option>
+            <option value="1.03" data-my="နည်းနည်းသွက် · 1.03×" data-en="Slightly brisk · 1.03×">နည်းနည်းသွက် · 1.03×</option>
+            <option value="1.06" data-my="သွက် · 1.06×" data-en="Brisk · 1.06×">သွက် · 1.06×</option>
+          </select>
+          <p style="font-size:12px;color:var(--tx2);margin:5px 0 0"
+             data-my="ရွေးမှသာ အသံ pitch မပြောင်းဘဲ စကား၊ စာတန်း၊ SFX အားလုံးကို အချိန်ပြန်ညှိပါမယ်။"
+             data-en="Only when selected, speech, captions and SFX are retimed together without changing voice pitch.">ရွေးမှသာ အသံ pitch မပြောင်းဘဲ စကား၊ စာတန်း၊ SFX အားလုံးကို အချိန်ပြန်ညှိပါမယ်။</p>
+        </div>
+
                 <!-- ⚠️ dual-system — ကင်မရာ mic က −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည်
              (၂၀၂၆-၀၉-၁၉ တိုင်းချက်)。 recorder အသံ တင်လျှင် အလိုအလျောက် ချိန်ညှိပြီး
              ပေါင်းသည် — **ဂိတ် မအောင်လျှင် မပေါင်းဘဲ ပြောပြသည်**。 -->
@@ -130,9 +145,9 @@
               <!-- ⚠️ ၂၀ GB ဟု မရေးရ — server ဘက် ကန့်သတ်ချက် မပြောင်းပါ、worker ရဲ့
                    disk guard က ဗီဒီယိုအရွယ်နဲ့ အချိုးကျ နေရာ တောင်းသည်。 စမ်းပြီး
                    အတည်ပြုထားသော ကိန်း = ၈ GB (၂၀၂၆-၀၉-၂၁)。 -->
-              <p data-my="MP4 · MOV · 4K · 8 GB အထိ" data-en="MP4 · MOV · 4K · up to 8 GB">MP4 · MOV · 4K · 8 GB အထိ</p></div>
+              <p data-my="MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)" data-en="MP4 · MOV · 4K · up to 4 takes (8 GB each)">MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)</p></div>
           </button>
-          <input type="file" id="file" accept="video/*" hidden>
+          <input type="file" id="file" accept="video/*" multiple hidden>
         </div>
         </section>
 

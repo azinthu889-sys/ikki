@@ -87,6 +87,11 @@ def shape_of(tid):
     return _SHAPE_OF.get(tid)
 
 # ── argument ဖြည့်ခြင်း ──────────────────────────────────────
+# အကြောင်းအရာ ကိန်း — နာမည်အလိုက် သင့်တော်သော တန်ဖိုး
+NUMFILL = {"start": 3, "count": 6, "secs": 10, "sec": 10,
+           "h": 0, "m": 1, "s": 30, "n": 3, "steps": 3, "total": 100}
+
+
 def fill(entry, text, sub="", pct=None, shape=None):
     """template တစ်ခုအတွက် positional argument tuple。
 
@@ -136,13 +141,35 @@ def fill(entry, text, sub="", pct=None, shape=None):
         if req and p.get("default") is not None:
             args.append(p["default"])
             continue
+        # ⚠️ `required=false` ဖြစ်ပြီး **default ရှိ**သော `auto` မဟုတ်သော param —
+        #    default ကို ထည့်လိုက်ခြင်းက မထည့်တာနဲ့ **အတူတူ**ပါပဲ (positional)。
+        #    မထည့်ဘဲ `break` လုပ်လျှင် နောက်က param တွေ မရောက်တော့ဘဲ args ဗလာ
+        #    ဖြစ်ကာ template က IKKI ဆီ မရောက် (countdown · odo.timer — တကယ်)。
+        if not p.get("auto") and p.get("default") is not None:
+            args.append(p["default"])
+            continue
         if req and ty == "number" and pct is not None:
             args.append(pct)
+            continue
+        # ⚠️ **အကြောင်းအရာ ကိန်း** (start · h · m · s · secs · count) က `auto` မဟုတ်、
+        #    house style နဲ့ မဆိုင် — ဖြည့်လို့ ရသည်。 မဖြည့်လျှင် `fill()` က None
+        #    ပြန်ပြီး template က IKKI ဆီ **လုံးဝ မရောက်** (countdown · odo.timer
+        #    · typo2.orbit_dots — တိုင်းပြီး ၅ ခု)。
+        #    `auto` ကိန်း (size · y · fill · maxtrack) ကိုတော့ အပေါ်မှာ ရပ်ပြီးသား。
+        if req and ty in ("int", "number"):
+            args.append(NUMFILL.get(nm, pct if pct is not None else 3))
             continue
         break
     while args and args[-1] == "":
         args.pop()
-    return tuple(args) if args else None
+    if args: return tuple(args)
+    # ⚠️ ပထမ param ကိုက် `dur`/`auto` ဆိုလျှင် **positional argument မလိုပါ** —
+    #    `None` ပြန်လျှင် ခေါ်သူက "မရ" ဟု ယူပြီး template ကို ပစ်ပယ်သည်
+    #    (motionfx · typo2.orbit_dots လို ၃ ခု — တကယ်)。 ⇒ `()` ပြန်ရမည်。
+    ps = entry.get("params") or []
+    if ps and (ps[0].get("name") == "dur" or ps[0].get("auto")):
+        return ()
+    return None
 
 
 def call(entry, args, dur):

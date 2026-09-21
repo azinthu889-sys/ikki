@@ -99,14 +99,14 @@ var FMTS=[];
 /* ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ် တန်း edit လုပ်လို့ရအောင်」
    ⇒ ရွေးချယ်မှုကို **မှတ်ထား**သည် — နောက်ဗီဒီယိုမှာ အစကနေ ပြန်ရွေးစရာ မလို。 */
 var SKEY='ikki_prefs';
-var state={style:'short-video', family:'', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', job:null, poll:null, up:null,
+var state={style:'short-video', family:'', brand:'zae', font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
   ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
-  ['style','brand','font','fmt','cap','vfmt'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+  ['style','brand','font','fmt','cap','vfmt','speed'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
 }catch(e){}
 function savePrefs(){
   try{ localStorage.setItem(SKEY, JSON.stringify({style:state.style,brand:state.brand,
-    font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt})) }catch(e){}
+    font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt,speed:state.speed})) }catch(e){}
 }
 
 /* ── API ── */
@@ -555,7 +555,17 @@ function upload(f){
   }
 }
 
-function start(f){
+function start(input){
+  // A project may contain several camera takes.  Keep their order: the worker
+  // builds one review timeline and labels every transcript line by its source.
+  var files=Array.isArray(input) ? input : (input && typeof input.length==='number' && !input.name
+    ? [].slice.call(input) : [input]);
+  files=files.filter(Boolean);
+  if(!files.length) return;
+  if(files.length>4){
+    alert(cur==='my'?'take ၄ ခုအထိသာ တစ်ခါတည်း ထည့်နိုင်ပါတယ်':'You can add up to four takes at once');
+    return;
+  }
   // ⚠️ ပုံစံ မရွေးဘဲ မတင်ရ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်သည်
   //    (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆%)。 မရွေးလျှင် server က ပိတ်ထားမည်。
   if(!state.vfmt){
@@ -563,16 +573,24 @@ function start(f){
     var vb=$('vfmtbox'); if(vb&&vb.scrollIntoView) vb.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
-  upload(f).then(function(d){
-    // ⚠️ အသံ ရှိလျှင် **ဗီဒီယို ပြီးမှ** တင်သည် — တစ်ပြိုင်တည်း တင်လျှင်
-    //    လိုင်း မျှပြီး နှစ်ခုလုံး နှေးသည်。
-    if(!AUD) return {upload_id:d.upload_id, audio:null};
-    return upload(AUD).then(function(a){ return {upload_id:d.upload_id, audio:a.upload_id} });
+  // Upload takes serially: it gives the user honest progress and prevents a
+  // laptop/network from being saturated by several large 4K uploads at once.
+  var ids=[], at=0;
+  function nextTake(){
+    if(at>=files.length) return Promise.resolve(ids);
+    return upload(files[at++]).then(function(d){ ids.push(d.upload_id); return nextTake(); });
+  }
+  nextTake().then(function(videoIds){
+    // ⚠️ dual-system audio has one timeline only.  The API explicitly rejects
+    // it with multi-take projects instead of silently aligning it to take one.
+    if(!AUD) return {upload_ids:videoIds, audio:null};
+    return upload(AUD).then(function(a){ return {upload_ids:videoIds, audio:a.upload_id} });
   }).then(function(d){
     return api('/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({upload_id:d.upload_id,audio_upload_id:d.audio||'',
+      body:JSON.stringify({upload_id:d.upload_ids[0],source_upload_ids:d.upload_ids,
+                           audio_upload_id:d.audio||'',speech_speed:state.speed,
                            recipe:state.style,brand_id:state.brand,fmt:state.fmt,cap:state.cap,
-                           font:state.font,title:f.name,vfmt:state.vfmt})});
+                           font:state.font,title:files[0].name,vfmt:state.vfmt})});
   }).then(function(j){ savePrefs(); watch(j.job_id) })
     .catch(function(e){ if(String(e.message)!=='cancelled'&&String(e.message)!=='quota') fail(e.message) });
 }
@@ -1041,7 +1059,9 @@ $('thm').onclick=function(){
 };
 $('priv').onclick=function(){go('v-acc');setTimeout(function(){$('privacy').scrollIntoView({behavior:'smooth'})},120)};
 $('drop').onclick=function(){$('file').click()};
-$('file').onchange=function(){ if(this.files[0]) start(this.files[0]) };
+$('file').onchange=function(){ if(this.files[0]) start([].slice.call(this.files)) };
+var speedpick=$('speed');
+if(speedpick){ speedpick.value=state.speed||'1.00'; speedpick.onchange=function(){ state.speed=this.value||'1.00'; savePrefs(); }; }
 $('again').onclick=function(){scene('s-ready'); loadJobs()};
 var fr=$('fontreset'); if(fr) fr.onclick=function(){state.font=''; loadMeta()};
 var fmr=$('fmtreset'); if(fmr) fmr.onclick=function(){state.fmt=''; state.ovrFmt=false; loadMeta()};
@@ -2056,7 +2076,7 @@ $('qclear').onclick=function(){$('q').value='';
   paintJobs()};
 ['dragover','drop'].forEach(function(ev){
   document.addEventListener(ev,function(e){e.preventDefault();
-    if(ev==='drop'&&e.dataTransfer.files[0]) start(e.dataTransfer.files[0])});
+    if(ev==='drop'&&e.dataTransfer.files[0]) start([].slice.call(e.dataTransfer.files))});
 });
 
 /* ── စတင် ── */

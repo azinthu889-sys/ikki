@@ -270,9 +270,31 @@ def up_abort(uid: str, authorization: str = Header(None)):
 async def job_new(req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     b = await req.json()
-    u = db.one("SELECT * FROM uploads WHERE id=?", b.get("upload_id"))
-    if not u: raise HTTPException(400, "upload မရှိ")
-    if not u["done"]: raise HTTPException(400, "upload မပြီးသေး")
+    # A recording often has several good takes. Treat them as one project, not
+    # unrelated uploads: the worker joins them before transcription and keeps
+    # the source-take provenance in the transcript.
+    raw_sources = b.get("source_upload_ids")
+    if raw_sources is None:
+        source_ids = [str(b.get("upload_id") or "").strip()]
+    elif isinstance(raw_sources, list):
+        source_ids = [str(x or "").strip() for x in raw_sources]
+    else:
+        raise HTTPException(400, "source_upload_ids က စာရင်းဖြစ်ရမည်")
+    source_ids = [x for x in source_ids if x]
+    if not source_ids or len(source_ids) > 4:
+        raise HTTPException(400, "source video ၁ ခုမှ ၄ ခုအထိသာ ထည့်နိုင်သည်")
+    if len(set(source_ids)) != len(source_ids):
+        raise HTTPException(400, "တူညီသော source video ကို နှစ်ခါ ထည့်ထားသည်")
+    stated = str(b.get("upload_id") or "").strip()
+    if stated and stated != source_ids[0]:
+        raise HTTPException(400, "ပထမ source video မကိုက်")
+    sources = []
+    for sid in source_ids:
+        su = db.one("SELECT * FROM uploads WHERE id=?", sid)
+        if not su: raise HTTPException(400, "source upload မရှိ")
+        if not su["done"]: raise HTTPException(400, "source upload မပြီးသေး")
+        sources.append(su)
+    u = sources[0]
     ym = time.strftime("%Y-%m")
     q = db.one("SELECT * FROM usage WHERE ym=?", ym) or {"minutes":0,"quota":300}
     if q["minutes"] >= q["quota"]:
@@ -308,7 +330,22 @@ async def job_new(req: Request, authorization: str = Header(None)):
         a = db.one("SELECT * FROM uploads WHERE id=?", au)
         if not a: raise HTTPException(400, "အသံ upload မရှိ")
         if not a["done"]: raise HTTPException(400, "အသံ upload မပြီးသေး")
+        # One external recorder track cannot be safely aligned against several
+        # takes. Refuse clearly instead of silently using it on take one only.
+        if len(sources) > 1:
+            raise HTTPException(400, "take များစွာနဲ့ recorder အသံတစ်ဖိုင်ကို မပေါင်းနိုင်သေးပါ — take တစ်ခုတည်းသုံးပါ၊ သို့မဟုတ် camera audio ကိုသုံးပါ")
         over["_audio"] = au
+    if len(sources) > 1:
+        # The primary source remains in jobs.upload_id for old jobs/routes;
+        # only additional takes live in the job-local override.
+        over["_sources"] = source_ids[1:]
+    # Speed is opt-in. These small pitch-preserving values deliberately keep
+    # the default at 1.00× for business, education and calmer delivery.
+    try: speech_speed = round(float(b.get("speech_speed", 1.0)), 2)
+    except (TypeError, ValueError): speech_speed = 1.0
+    if speech_speed not in (1.0, 1.03, 1.06):
+        raise HTTPException(400, "စကားပြောအရှိန် 1.00×၊ 1.03× သို့မဟုတ် 1.06× သာ ရွေးနိုင်သည်")
+    if speech_speed != 1.0: over["_speech_speed"] = speech_speed
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
            "mode,vfmt,over,acct,created) VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?)",
            # ⚠️ ပုံသေ brand က **`"zjl"`** ဟု ရေးထားခဲ့သည် — IKKI ထုတ်ကုန်မှာ
@@ -319,7 +356,8 @@ async def job_new(req: Request, authorization: str = Header(None)):
            b.get("recipe","cinematic-vlog"), (b.get("font") or "")[:48], fmt, cap,
            mode, vfmt, json.dumps(over, ensure_ascii=False) if over else None,
            aid(authorization), time.time())
-    return {"job_id": jid, "mode": mode, "vfmt": vfmt, "audio": bool(au)}
+    return {"job_id": jid, "mode": mode, "vfmt": vfmt, "audio": bool(au),
+            "sources": len(sources), "speech_speed": speech_speed}
 
 @app.get("/api/jobs")
 def job_list(authorization: str = Header(None)):
@@ -431,6 +469,10 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
         if t.replace(" ","") not in o["text"].replace(" ",""):
             raise HTTPException(400, f"စာလုံး အသစ် ပါနေသည်: {t[:30]}")
         e = dict(text=t, start=o["start"], end=o["end"])
+        # Source provenance is not editable, but preserving it keeps Script
+        # Editor labels correct after approval and the second worker pass.
+        for _k in ("source", "take"):
+            if o.get(_k) is not None: e[_k] = o[_k]
         fx = (k.get("fix") or "").strip()
         if fx and fx != t:
             if len(fx) > len(t) * 3 + 40:
@@ -858,6 +900,10 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
         a, bb = float(a), float(bb)
         if bb - a > 0.02: exact.append([a, bb])
     if exact: over["_drop_exact"] = exact
+    # The initial worker stores the take map in its review plan. Persist it for
+    # the render pass, otherwise source labels (and cached-speed knowledge)
+    # would be lost after the transcript is approved.
+    if isinstance(plan.get("takes"), list): over["_take_map"] = plan["takes"]
     # ⚠️ `segs` က worker အတွက် (ချန်ထားသည်) · `segs_all` က **မထိရ** ·
     #    `keep_n` = ချန်ခဲ့သော နံပါတ် ⇒ ပြန်ဖွင့်လျှင် အရင် ဖျက်ချက် ပြန်မြင်ရ。
     _kn = sorted({int(k.get("i")) + 1 for k in keep
@@ -926,11 +972,18 @@ async def w_claim(req: Request, authorization: str = Header(None)):
     over = json.loads((ov or {}).get("data") or "{}")
     # ⚠️ job တစ်ခုချင်းရဲ့ ပြင်ချက်က style ရဲ့ ပြင်ချက်ကို **ဖုံးရမည်** —
     #    သုံးစွဲသူက ဒီဗီဒီယိုတစ်ခုတည်းအတွက် ပြောင်းတာမို့。
+    source_uploads = [u] if u else []
     try:
         jo = json.loads(chk.get("over") or "{}")
-        if isinstance(jo, dict): over.update(jo)
+        if isinstance(jo, dict):
+            over.update(jo)
+            for sid in (jo.get("_sources") or []):
+                su = db.one("SELECT * FROM uploads WHERE id=?", sid)
+                if not su: raise HTTPException(400, "multi-take source မရှိ")
+                source_uploads.append(su)
     except Exception: pass
-    return {"job": chk, "upload": u, "brand": b, "stages": STAGES, "over": over}
+    return {"job": chk, "upload": u, "sources": source_uploads,
+            "brand": b, "stages": STAGES, "over": over}
 
 @app.get("/api/w/src2/{jid}")
 def w_src2(jid: str, authorization: str = Header(None)):
@@ -975,6 +1028,27 @@ def w_src(jid: str, authorization: str = Header(None), url: int = 0):
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
     if not u["path"] or not os.path.exists(u["path"]): raise HTTPException(404, "no source")
+    return FileResponse(u["path"])
+
+
+@app.get("/api/w/src/{jid}/take/{n}")
+def w_src_take(jid: str, n: int, authorization: str = Header(None)):
+    """Additional camera take for a multi-take project (zero-based index)."""
+    auth(authorization, WTOKEN)
+    if n < 1: raise HTTPException(400, "additional take က 1 ကနေစသည်")
+    j = db.one("SELECT * FROM jobs WHERE id=?", jid)
+    try: over = json.loads((j or {}).get("over") or "{}") or {}
+    except Exception: over = {}
+    ids = over.get("_sources") or []
+    if n > len(ids): raise HTTPException(404, "no take")
+    u = db.one("SELECT * FROM uploads WHERE id=?", ids[n - 1])
+    if not u: raise HTTPException(404, "no take")
+    if u.get("local"):
+        return {"local": u["path"], "size": u["size"]}
+    if u.get("key") and ST.on():
+        return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
+    if not u.get("path") or not os.path.exists(u["path"]):
+        raise HTTPException(404, "no take")
     return FileResponse(u["path"])
 
 @app.post("/api/w/{jid}/puturl")

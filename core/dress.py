@@ -521,7 +521,39 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    ⇒ element တစ်ခုလုံးကို **ဒေါင်လိုက် ရွှေ့**သည် (alpha overlay
         #      ဖြစ်၍ ရွှေ့လို့ ရသည်)。 N5 က ဂရပ်ဖစ်ကို ခေါင်းအထက်
         #      နံရံဗလာမှာ ချသည် ⇒ အပေါ်ကို ဦးစားပေး。
-        dy = 0
+        dy = dx = 0
+        # ⚠️ **ဘေးနေရာ ရှိလျှင် အဲဒီကို ရွှေ့သည်** — ဒါက အဓိက ဖြေရှင်းချက်。
+        #    ပြောသူက အကျယ်ရဲ့ ၅၇% သာ ယူပြီး ကျန်တစ်ဖက်မှာ ၈၂၄px လွတ်နေသည်
+        #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。 ဒေါင်လိုက်သာ ရွှေ့နေလျှင် ၃၃px သာ
+        #    ရပြီး template ၂၄၃ ခုထဲက တစ်ခုမှ မဝင်ပါ ⇒ ဘေးကို ရွှေ့လျှင်
+        #    **၂၀၆/၂၄၃ ဝင်**သည်。
+        _sr = side_room(avoid, W)
+        if avoid and _sr >= int(W * 0.22) and not _over_subject(g.get("kind")):
+            _ay0, _ay1, _x0, _x1 = _box(avoid)
+            _y0b, _y1b = _ybox(el, H)
+            _iw = 0
+            try:
+                import numpy as _np
+                from PIL import Image as _Im
+                _a0 = _np.asarray(_Im.open(el["anim"][-1][0]).convert("RGBA"))[:, :, 3]
+                _xs = _np.nonzero(_a0.max(axis=0) > 8)[0]
+                _iw = int(_xs.max() - _xs.min()) if len(_xs) else 0
+                _ix0 = int(_xs.min()) + el["anim"][-1][1] if len(_xs) else 0
+            except Exception:
+                _iw, _ix0 = 0, 0
+            if _iw and _iw <= _sr:
+                # ဘယ်/ညာ — ကျယ်တဲ့ဘက်
+                if _x0 * W >= (1.0 - _x1) * W:
+                    _tx = int((_x0 * W - _iw) / 2)           # ဘယ်ဘက် အလယ်
+                else:
+                    _tx = int(_x1 * W + ((1.0 - _x1) * W - _iw) / 2)
+                dx = _tx - _ix0
+                # ဒေါင်လိုက် — စာတန်းအထက် အလယ်
+                _band = (capy - 12 if capy else H - 12) - int(H * 0.075)
+                dy = int(H * 0.075) + (_band - (_y1b - _y0b)) // 2 - _y0b
+                log(f"  ↔ {g['kind']} — ဘေးနေရာ {_sr}px သို့ ရွှေ့ "
+                    f"(dx={dx} dy={dy})")
+                avoid = None                                  # ဇုန် စစ်ချက် မလို
         # ⚠️ **အနားသတ်သာ template က မျက်နှာပေါ် တင်လို့ရသည်**。 pack ရဲ့
         #    `safeZones.subject: true` က 「အတွင်း ပွင့်လင်း ⇒ ပြောသူ
         #    မြင်နေရသည်」 ဟု ဆိုလိုသည် (pack.json မှတ်ချက်)。 ဒါကို
@@ -564,12 +596,12 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             if os.path.exists(dst): continue
             try: os.link(p, dst)
             except OSError: _sh.copyfile(p, dst)
-        ax, ay = el["anim"][0][1], el["anim"][0][2] + dy
+        ax, ay = el["anim"][0][1] + dx, el["anim"][0][2] + dy
         ins=["-framerate",str(fps),"-i",seq]
         fc=[f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[b0]"]; last="b0"; n=0
         for p,x,y,d in el["statics"]:
             ins += ["-loop","1","-i",p]; n+=1
-            fc.append(f"[{last}][{n}:v]overlay={x}:{y+dy}:enable='gte(t,{d:.2f})'[b{n}]")
+            fc.append(f"[{last}][{n}:v]overlay={x+dx}:{y+dy}:enable='gte(t,{d:.2f})'[b{n}]")
             last=f"b{n}"
         y0, y1 = _ybox(el, H); y0 += dy; y1 += dy
         mov = os.path.join(work, f"g{i}.mov")
@@ -598,8 +630,8 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             if _r is not None and os.environ.get("IKKI_GFX_V2", "1") != "0":
                 try:
                     el2 = dict(el)
-                    el2["anim"] = [(p_, x_, y_ + dy) for (p_, x_, y_) in el["anim"]]
-                    el2["statics"] = [(p_, x_, y_ + dy, d_) for (p_, x_, y_, d_) in el.get("statics", [])]
+                    el2["anim"] = [(p_, x_ + dx, y_ + dy) for (p_, x_, y_) in el["anim"]]
+                    el2["statics"] = [(p_, x_ + dx, y_ + dy, d_) for (p_, x_, y_, d_) in el.get("statics", [])]
                     base_mov = mov.replace(".mov", "_v2.mov")
                     # ⚠️ `src_fps` က **အပေါ်က `hifps(60)` နဲ့ တွဲနေသည်** —
                     #    builder ကို ၆၀ နဲ့ ဆောက်ခိုင်းထားသဖြင့် ဒီမှာလည်း ၆၀。
@@ -970,21 +1002,50 @@ def sizes(fmt="16:9"):
     return _SIZE
 
 
-def room(avoid, capy, H):
+def side_room(avoid, W):
+    """ပြောသူရဲ့ **ဘေးမှာ** ကျန်သော အကျယ် px — box မဟုတ်လျှင် ၀
+
+    ⚠️ **ဒါက နေရာ ပြဿနာရဲ့ အဖြေ**。 `avoid` က ဒေါင်လိုက် band သာ
+       ဖြစ်ခဲ့သဖြင့် placement က ဘောင်အကျယ်လုံး ပိတ်ခဲ့ပြီး ကျန်နေရာ
+       **၃၃px** သာ ရခဲ့သည်。 တကယ်တော့ ပြောသူက အကျယ်ရဲ့ ၅၇% သာ ယူပြီး
+       ဘယ်ဘက်မှာ **၈၂၄px** လွတ်နေသည် (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。
+    """
+    if not avoid or len(avoid) < 4 or not W:
+        return 0
+    _y0, _y1, x0, x1 = _box(avoid)
+    return int(max(0.0, x0, 1.0 - x1) * W)
+
+
+def _box(avoid):
+    """`avoid` ကို `(y0, y1, x0, x1)` အဖြစ် ဖြေသည် — band ဆိုလျှင် x = ၀–၁"""
+    if not avoid:
+        return (0, 0, 0.0, 1.0)
+    a = list(avoid)
+    if len(a) >= 4:
+        return (a[0], a[1], float(a[2]), float(a[3]))
+    return (a[0], a[1], 0.0, 1.0)
+
+
+def room(avoid, capy, H, W=0):
     """ဂရပ်ဖစ် ချနိုင်သော **အမြင့်ဆုံး px** — `avoid` မရှိလျှင် `H`
 
     ⚠️ placement (`track()`) ရဲ့ ကိန်းများနဲ့ **တစ်ထပ်တည်း** ဖြစ်ရမည်。
+    ⚠️ `avoid` က ၄ လုံး (box) ဆိုပြီး ဘေးမှာ နေရာ ကျယ်ကျယ် ကျန်လျှင်
+       **ဒေါင်လိုက် ကန့်သတ်ချက် မရှိတော့** — ဘေးမှာ ချလို့ရသည်。
     """
     if not avoid:
         return H
-    ay0, ay1 = avoid
+    ay0, ay1, _x0, _x1 = _box(avoid)
+    if W and side_room(avoid, W) >= int(W * 0.22):
+        # ⚠️ ဘေးနေရာ လုံလောက်လျှင် အမြင့် အပြည့် သုံးနိုင်သည်
+        return max(0, (capy - 12 if capy else H - 12) - int(H * 0.075))
     TOP = int(H * 0.075)
     above = ay0 - TOP - 8                      # ခေါင်းအထက်
     below = (capy - 12 if capy else H - 12) - (ay1 + 16)
     return max(0, above, below)
 
 
-def fits(kind, avoid, capy, H, fmt="16:9"):
+def fits(kind, avoid, capy, H, fmt="16:9", W=0):
     """`kind` က နေရာ ဝင်လား — တိုင်းချက် မရှိလျှင် `True` (ကြိုမပယ်ရ)
 
     ⚠️ **ပြောသူပေါ် တင်ခွင့်ရှိသော template ကို အမြင့်နဲ့ မပယ်ရ** —
@@ -995,17 +1056,17 @@ def fits(kind, avoid, capy, H, fmt="16:9"):
     it = sizes(fmt).get(kind)
     if not it:
         return True
-    return int(it["h"]) <= room(avoid, capy, H)
+    return int(it["h"]) <= room(avoid, capy, H, W)
 
 
-def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
+def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None, W=0):
     """ဝင်မဆံ့သော kind ကို **ဝင်ဆံ့သော အခြား template** နဲ့ လဲပေးသည်
 
     ⚠️ ပယ်လိုက်တာထက် လဲတာက ကောင်းသည် — ဂရပ်ဖစ် မရှိလျှင် `gfx_share`
        ဂိတ် ကျပြီး ဗီဒီယိုက ခြောက်သွေ့သည်。
     ⚠️ **တူညီသော seed ⇒ တူညီသော အစားထိုး** (ပြန်ထုတ်လျှင် တူရန်)。
     """
-    cap = room(avoid, capy, H)
+    cap = room(avoid, capy, H, W)
     sz = sizes(fmt)
     if not sz:
         return gfx, 0
@@ -1020,7 +1081,7 @@ def swap_fit(gfx, avoid, capy, H, seed="", fmt="16:9", log=None):
     out, n, used = [], 0, set()
     for i, g in enumerate(gfx):
         k = g.get("kind")
-        if fits(k, avoid, capy, H, fmt):
+        if fits(k, avoid, capy, H, fmt, W):
             out.append(g); used.add(k); continue
         alt = next((c for c in pool if c not in used), None) \
             or (pool[i % len(pool)] if pool else None)
