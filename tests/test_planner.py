@@ -70,6 +70,11 @@ def main():
           all(PL._has_digit(SEGS[i]["text"]) for i in nums),
           [SEGS[i]["text"][:20] for i in nums])
     check("ပထမဝါကျက hook", labs[0] == "hook")
+    screen_labs = PL._heuristic([
+        seg(0, 3, "ဒီနေ့ အရေးကြီးတဲ့အချက်ကို ပြမယ်"),
+        seg(3.2, 6.0, "IKKI app dashboard screen ကိုပြမယ်"),
+    ])
+    check("app / screen ကို UI label ခွဲသည်", screen_labs[1] == "screen", screen_labs)
 
     print("\n── ၃ · build (standard) ──")
     p = PL.build(SEGS, labs, DUR, dict(energy="standard"), "v1")
@@ -85,6 +90,28 @@ def main():
                           if (x.get("style") or {}).get("kind") == "pop"]
     def _gfx(q): return [x for x in q["templateEvents"]
                          if (x.get("style") or {}).get("kind") != "pop"]
+
+    # The first segment is always intentionally hook. Verify `screen` through
+    # an explicit planner label, as the AI classifier can emit it directly.
+    ui = PL.build([seg(0.0, 3.2, "IKKI app dashboard ကိုပြမယ်")], ["screen"],
+                  4.0, dict(energy="standard"), "ui1")
+    ok_ui, err_ui, _ = PS.validate(ui, MF, duration=4.0)
+    ui_ev = _gfx(ui)
+    check("UI plan schema အောင်သည်", ok_ui, err_ui[:2])
+    check("UI event က browser template ရွေးသည်",
+          bool(ui_ev) and ui_ev[0]["motionKitTemplateId"] == "brows.window_open", ui_ev)
+    check("UI event ကို full-stage အဖြစ် route လုပ်သည်",
+          bool(ui_ev) and ui_ev[0]["style"].get("layout") == "full", ui_ev)
+    ui_after_hook = PL.build([
+        seg(0.0, 2.7, "ဒီနေ့ အရေးကြီးတဲ့အချက်ကို ပြမယ်"),
+        seg(3.2, 6.2, "IKKI app dashboard screen ကိုပြမယ်"),
+    ], ["hook", "screen"], 7.0, dict(energy="standard"), "ui2")
+    ui_after_events = _gfx(ui_after_hook)
+    check("hook နောက် UI reveal ကို pacing gap ကြောင့် မပျောက်",
+          any((x.get("style") or {}).get("lab") == "screen"
+              for x in ui_after_events), ui_after_events)
+    check("full-stage UI နဲ့ keyword pop မထပ်",
+          not _pops(ui_after_hook), _pops(ui_after_hook))
     tids = [x["motionKitTemplateId"] for x in _gfx(p)]
     # ⚠️ template က motionkit catalog **သို့မဟုတ်** verify ပြီးသား pack
     #    ကနေ လာနိုင်သည် — catalog တစ်ခုတည်းနဲ့ စစ်လျှင် pack template

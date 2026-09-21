@@ -519,9 +519,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             _r = _r2()
             if _r is not None:
                 with _r.hifps(60):
-                    el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
+                    el = _call_template(fn, g["kind"], f"g{i}", a)
             else:
-                el = fn(f"g{i}", *a) if _wants_tag(g["kind"]) else fn(*a)
+                el = _call_template(fn, g["kind"], f"g{i}", a)
         except _PackDone:
             pass
         except Exception as e:
@@ -853,7 +853,7 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
             if template and props is not None:
                 # ⚠️ plan ရဲ့ props ကို **အတိအကျ** ပေးသည် — manifest နဲ့
                 #    စစ်ပြီးသား ဖြစ်၍ မှန်းဆ မလုပ်ရ。
-                el = fn("sl", **props)
+                el = _call_template(fn, template, "sl", props)
             elif layout == "bullets":
                 el = fn("sl", head, its or [brand], eyebrow=brand)
             elif layout == "bignum":
@@ -985,6 +985,26 @@ def _wants_tag(name):
         want = True
     _TAGQ[name] = want
     return want
+
+
+def _call_template(fn, kind, tag, args):
+    """MotionKit builder ကို signature မှန်မှန်နဲ့ ခေါ်သည်。
+
+    Planner က manifest-validated props ကို ``dict`` အဖြစ် ပို့သည်။ Python မှာ
+    ``fn(*props)`` ဟုခေါ်လျှင် value မဟုတ်ဘဲ key (`title`, `dur` စသည်) များကို
+    positional argument အဖြစ် ဖြန့်ပေးသွားသည်။ အဲဒါကြောင့် Browser / Phone /
+    Callout template တွေက plan ထဲ ရှိပေမယ့် render မှာ တိတ်တဆိတ် ပျောက်ခဲ့သည်။
+    Dict ကို keyword argument၊ အဟောင်း positional recipe ကို positional အဖြစ်သာ
+    ခေါ်ရမည်။
+    """
+    wants_tag = _wants_tag(kind)
+    if isinstance(args, dict):
+        return fn(tag, **args) if wants_tag else fn(**args)
+    if args is None:
+        args = ()
+    elif not isinstance(args, (tuple, list)):
+        args = (args,)
+    return fn(tag, *args) if wants_tag else fn(*args)
 
 
 # ══ template အမြင့် ↔ ရနိုင်သော နေရာ (Overlay audit P0) ════════════

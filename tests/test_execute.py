@@ -53,6 +53,17 @@ def main():
     check("event id ပြန်ချိတ်ရန် ပါသည်",
           [x["_eid"] for x in g] == ["t1", "t2", "t3"])
 
+    # Planner can mark a wide UI mockup as full-stage. execute must preserve
+    # the event id so worker can split it from regular side overlays.
+    p_ui = PS.empty("ui1")
+    p_ui["templateEvents"] = [
+        ev("ui1", 8.0, 11.0, "template", "template",
+           motionKitTemplateId="brows.window_open", props={"title": "IKKI app"},
+           style={"kind": "ui", "layout": "full"}),
+    ]
+    ug = EX.to_gfx(p_ui)
+    check("UI event id ကို renderer အထိ ထိန်းသည်", ug[0]["_eid"] == "ui1", ug)
+
     print("\n── ၂ · စာတန်း ──")
     p["captions"] = [
         ev("c1", 1.0, 3.0, "caption", "caption",

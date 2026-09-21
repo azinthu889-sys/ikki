@@ -1110,6 +1110,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ── ④ စာတန်း — ဖြတ်ပြီးအချိန်သို့ ပြန်တွက်ပြီး alpha track ဆောက် ──
     stage(4, "captions")
     _side_ok = False        # ⚠️ plan မရှိလျှင်လည်း အောက်မှာ သုံးသည် — ကြိုသတ်မှတ်
+    # Browser / phone / product mockup က side overlay မဟုတ်ဘဲ full-stage
+    # alpha event ဖြစ်သည်။ Side room ရှိတယ်ဆိုပြီး wide UI ကို မတော်တဆ
+    # side-safe-zone စစ်ပြီး ပယ်မိခြင်း မရှိစေရန် event id ကို ကြိုစုသည်။
+    _full_plan_ids = set()
     capv = None; caps = []; csize = 0; cband = 0; cap_top = TH["H"]
     if segs:
         cap_top = TH["H"]        # ⚠️ ပုံသေ — စာတန်း မဆောက်မိလျှင်ပါ လုံခြုံရန်
@@ -1298,8 +1302,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         #    က args မကိုက်ဘဲ ကျသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
                         _pops = {e.get("id") for e in _PLAN["templateEvents"]
                                  if (e.get("style") or {}).get("kind") == "pop"}
+                        _full_plan_ids = {
+                            e.get("id") for e in _PLAN["templateEvents"]
+                            if (e.get("style") or {}).get("layout") == "full"
+                        }
                         _gp = [g for g in EX.to_gfx(_PLAN, log=None)
-                               if (g.get("kind") or "") and g.get("_eid") not in _pops]
+                               if (g.get("kind") or "")
+                               and g.get("_eid") not in _pops
+                               and g.get("_eid") not in _full_plan_ids]
                         if _gp:
                             gfx = _gp; _side_ok = True
                             log(f"  ↔ ဘေးနေရာ {_srm}px ⇒ ဂရပ်ဖစ် {len(gfx)} ခုကို "
@@ -1558,7 +1568,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    template တွေက ၅၀၇–၁၀၇၉px ရှိ၍ ၄ ခုလုံး 「နေရာ မတည့်」နဲ့ ပယ်ခံခဲ့သည်
     #    (၂၀၂၆-၀၉-၂၁ j_d651c2ef2292 — ဂရပ်ဖစ် တပ်ပြီး ၀ ခု)。
     #    ⇒ reference လိုပဲ **ပြောသူကို ဖုံးပြီး** ကတ် ပြရသည် (Zin အတည်ပြု)。
-    if _PLAN and _PLAN.get("templateEvents") and not _side_ok:
+    if (_PLAN and _PLAN.get("templateEvents")
+            and (not _side_ok or _full_plan_ids)):
         try:
             import slide as SL2
             import dress as _DR
@@ -1570,7 +1581,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ဘောင်အပြည့် ဖြတ်ပြောင်း မဟုတ်ပါ。 မခွဲလျှင် စကားလုံးတစ်လုံးအတွက်
             #    ဗီဒီယိုတစ်ခုလုံး ဖုံးသွားမည် (၂၀၂၆-၀၉-၂၁ ထည့်စဉ် ဖမ်းမိ)。
             _cut_ev = [x for x in _PLAN["templateEvents"]
-                       if (x.get("style") or {}).get("kind") != "pop"]
+                       if (x.get("style") or {}).get("kind") != "pop"
+                       and (not _side_ok or x.get("id") in _full_plan_ids)]
             for _i, _ev in enumerate(sorted(_cut_ev,
                                             key=lambda x: x.get("startTime") or 0)):
                 _cid = _ev.get("motionKitTemplateId")

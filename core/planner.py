@@ -34,7 +34,7 @@ MODEL = os.environ.get("IKKI_GEMINI_MODEL", "gemini-flash-latest")
 # ── ပိတ်ထားသော အညွှန်း စာရင်း ────────────────────────────────
 # ⚠️ AI က ဒီထဲကပဲ ရွေးခွင့် ရှိသည်。 အခြားဟာ ပြန်ပေးလျှင် `plain` ဖြစ်သည်。
 LABELS = ("hook", "section", "fact", "number", "steps", "checklist",
-          "compare", "location", "warning", "plain")
+          "compare", "location", "screen", "warning", "plain")
 
 # အညွှန်း → template မိသားစု (manifest.HEADTOP ထဲက)
 FAMILY = {
@@ -46,6 +46,7 @@ FAMILY = {
     "checklist": "explain",
     "compare":   "explain",
     "location":  "broll",
+    "screen":    "mockup",
     "warning":   "callout",
 }
 
@@ -56,6 +57,9 @@ PREFER = {
     "compare":   ["infogfx.big_number", "infogfx.checklist"],
     "number":    ["odo.big_stat", "odo.count_up", "odo.percent_ring"],
     "location":  ["prem7.location_tag", "prem7.note_card"],
+    # Generic browser animation only. A real product screen is rendered only
+    # when the user supplies its screenshot/screen recording as an asset.
+    "screen":    ["brows.window_open"],
     "warning":   ["callouts.box_call", "callouts.underline_call"],
     "fact":      ["callouts.line_call", "callouts.underline_call"],
     "section":   ["titles3.minimal_third", "titles.topic_bar", "titles.chapter"],
@@ -80,6 +84,7 @@ PROFILE_PREFER = {
         "checklist": ["infogfx.checklist"],
         "compare": ["infogfx.big_number"],
         "location": ["prem7.location_tag"],
+        "screen": ["brows.window_open"],
         "warning": ["callouts.underline_call"],
     },
     "bold": {
@@ -91,6 +96,7 @@ PROFILE_PREFER = {
         "checklist": ["infogfx.checklist"],
         "compare": ["infogfx.big_number"],
         "location": ["prem7.note_card", "prem7.location_tag"],
+        "screen": ["brows.window_open"],
         "warning": ["callouts.box_call"],
     },
     "explainer": {
@@ -102,6 +108,7 @@ PROFILE_PREFER = {
         "checklist": ["infogfx.checklist"],
         "compare": ["infogfx.big_number"],
         "location": ["prem7.note_card"],
+        "screen": ["brows.window_open"],
         "warning": ["callouts.box_call"],
     },
 }
@@ -150,6 +157,7 @@ steps     အဆင့်ဆင့် လုပ်ငန်းစဉ်
 checklist လိုအပ်ချက် / စာရင်း
 compare   နှိုင်းယှဉ်ချက်
 location  နေရာ / ကျောင်း / ရုံး ဖော်ပြချက်
+screen    app / website / browser / dashboard ကို screen ဖြင့် ပြသရမည့်အချက်
 warning   သတိပေးချက် / ပြဿနာ / အန္တရာယ်
 plain     အထက်ပါ ဘယ်ဟာမှ မဟုတ် (အများစုက ဒါ ဖြစ်သင့်သည်)
 
@@ -187,6 +195,14 @@ def _heuristic(segs):
             lab = "checklist"
         elif any(k in t for k in ("သတိ", "ပြဿနာ", "အန္တရာယ်", "မရ")):
             lab = "warning"
+        # UI / browser reference ကို နေရာ (location) သို့ မပို့ရ။ ဒီ label က
+        # generic animated mockup အတွက်သာ ဖြစ်ပြီး user asset မရှိလျှင် real
+        # app screenshot ကို မဖန်တီး/မဟန်ဆောင်ပါ။
+        elif (any(k in t.lower() for k in ("app", "website", "web site", "browser",
+                                             "screen", "dashboard", "ui", "link", "page"))
+              or any(k in t for k in ("အက်ပ်", "ဝဘ်", "ဝက်ဘ်", "စကရင်",
+                                      "မျက်နှာပြင်", "လင့်"))):
+            lab = "screen"
         elif any(k in t for k in ("ကျောင်း", "ရုံး", "နေရာ", "မြို့")):
             lab = "location"
         out.append(lab)
@@ -545,14 +561,16 @@ SFX_ROLE = {
     "number":  ("swipe", "click"),         # ကိန်းဂဏန်း ပေါ်လာ
     "warning": ("whoosh_in", "impact"),    # သတိပေးချက်
     "hook":    ("riser_soft", "latch"),    # ဖွင့်ချက်
+    "ui":      ("swipe", "click"),          # browser / phone / dashboard
 }
 # ⚠️ `FAMILY` ရဲ label → SFX အမျိုးအစား。 မြေပုံ မရှိလျှင် အားလုံး `card`
 #    ဖြစ်ပြီး အသံ တစ်မျိုးတည်း ထွက်မည် — အော်အိုက် မရှိတော့。
 # ⚠️ အောင့်မြဲမှု အဆင့် — နေရာ တစ်ခုထဲ ဖြစ်ရပ် ၂ ခု ပြိုလျှင် ဘယ်ဟာ ယူမလဲ
-SFX_RANK = {"hook": 5, "warning": 4, "number": 3, "card": 2, "pop": 1}
+SFX_RANK = {"hook": 5, "warning": 4, "number": 3, "ui": 3, "card": 2, "pop": 1}
 SEM = {"hook": "hook", "number": "number", "warning": "warning",
        "fact": "warning", "section": "card", "steps": "card",
-       "checklist": "card", "compare": "card", "location": "card"}
+       "checklist": "card", "compare": "card", "location": "card",
+       "screen": "ui"}
 SFX_LEAD = 0.18        # ရှေ့သံက ရုပ်ထက် ဘယ်လောက် စောလဲ
 SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
           "latch": -17, "pop": -18, "click": -18, "impact": -14}
@@ -705,7 +723,11 @@ def build(segs, labels, dur, opts=None, video_id="src"):
 
         # ── ဂရပ်ဖစ် — အဓိပ္ပာယ် ရှိမှ · ကြားကာလ စောင့် ──
         fam = FAMILY.get(lab)
-        if not fam or (a - last_change) < gap:
+        # A product/UI reveal often follows the hook within 3–4 seconds in
+        # premium talking-head edits. Treat it as a deliberate visual beat,
+        # not generic cadence fill, while retaining a 2.5s anti-spam gap.
+        _need_gap = min(gap, 2.5) if lab == "screen" else gap
+        if not fam or (a - last_change) < _need_gap:
             continue
         # ⚠️ **pack ကို အရင် စစ်ရမည်** (spec §5 · audit P0) — verify
         #    ပြီးသား pack template ရှိလျှင် အဲဒါကို ယူပြီး
@@ -739,6 +761,11 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         if not cid:
             continue
         n += 1
+        # Browser / product grammar must have a larger stage. It is routed to
+        # the full-frame alpha compositor even if the speaker has side room;
+        # otherwise a wide browser mockup gets built and then rejected by the
+        # side-safe-zone fitting check.
+        _layout = "full" if lab == "screen" or _full_frame(cid) else "side"
         p["templateEvents"].append(dict(
             id=f"tpl{n:03d}", startTime=a,
             endTime=min(b, a + 3.2, dur if dur else a + 3.2),
@@ -747,7 +774,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             #    `sfx_plan` က ဖြစ်ရပ် **အားလုံးကို `card`** ဟု သတ်မှတ်ခဲ့သည် —
             #    `SFX_ROLE` ထဲက warning/number/hook မြေပုံက ရှိပါလျက်
             #    **တစ်ခါမှ အလုပ်မလုပ်ခဲ့ပါ** (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
-            props=pr, style=dict(kind=SEM.get(lab, "card"), lab=lab),
+            props=pr, style=dict(kind=SEM.get(lab, "card"), lab=lab,
+                                  layout=_layout),
             reason=f"「{lab}」အမျိုးအစား — {txt[:28]}",
             confidence=0.72))
         last_change, last_id = a, cid
@@ -815,11 +843,13 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             if not _cid2:
                 continue
             n += 1
+            _layout2 = "full" if _lab2 == "screen" or _full_frame(_cid2) else "side"
             p["templateEvents"].append(dict(
                 id=f"fil{n:03d}", startTime=round(a2, 2),
                 endTime=round(min(b2, a2 + 3.2, dur if dur else a2 + 3.2), 2),
                 layer="template", type="template", motionKitTemplateId=_cid2,
-                props=_pr2, style=dict(kind=SEM.get(_lab2, "card"), lab=_lab2),
+                props=_pr2, style=dict(kind=SEM.get(_lab2, "card"), lab=_lab2,
+                                        layout=_layout2),
                 reason=f"စည်းချက် ဖြည့် — {_near:.0f}s ကွက်လပ်",
                 confidence=0.55))
             _at.append(round(a2, 2)); _at.sort(); _used_t.add(round(a2, 1))
@@ -870,6 +900,14 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     #    ၃ ဆ များမည်。 ⇒ median ကို သုံးသည်。 `dynamic` က p25 ဘက်。
     pop_gap = {"standard": 15.0, "dynamic": 8.0}.get(_lvl, 15.0)
     last_pop = -99.0
+    # Browser / phone overlays are focus moments. A keyword pop over the
+    # same moment makes a real UI look like a generic template, and can hide
+    # controls the user is trying to see.
+    _full_windows = [
+        (float(x.get("startTime") or 0.0), float(x.get("endTime") or 0.0))
+        for x in p["templateEvents"]
+        if (x.get("style") or {}).get("layout") == "full"
+    ]
     for i, s2 in enumerate(segs if _lvl != "minimal" else []):
         a = float(s2.get("start") or 0.0)
         b = float(s2.get("end") or a + 1.0)
@@ -884,6 +922,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         hold = max(2.8, min(5.2, b - a))
         end = min(dur if dur else a + hold, a + hold)
         if end - a < 1.2:
+            continue
+        if any(a < fb and end > fa for fa, fb in _full_windows):
             continue
         # အကျယ် — စာလုံးရေနဲ့ အချိုးကျ (တိုင်းချက်: ၁၁ လုံး ⇒ ၂၆.၇%W)
         tw = max(0.10, min(0.42, 0.024 * len(kw) + 0.02))
