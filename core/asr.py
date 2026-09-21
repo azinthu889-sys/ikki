@@ -561,6 +561,82 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
             log(f"  ⚠️ ASR raw dump မအောင်: {e}")
     return _place(out, meas, cfg=align_cfg)
 
+
+# ══ စကားလုံး အချိန်မှတ် — ထိန်းသိမ်းခြင်း နှင့် စစ်ဆေးခြင်း ═══════════
+# ⚠️ `_place()` က ယခင်က `words` ကို **span တွက်ရန်သာ** သုံးပြီး ထွက်ချက်ထဲ
+#    မထည့်ခဲ့ပါ (`asr.py` ရဲ့ out.append မှာ text/start/end သာ)。 ⇒ Script
+#    Editor က စကားလုံးအလိုက် အချိန်ကို လုံးဝ မမြင်ရပါ (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
+# ⚠️ Gemini ရဲ့ အချိန်က **အရိပ်အမြွက်သာ**、ground truth မဟုတ်ပါ ⇒ ထိန်းသိမ်းရုံနဲ့
+#    မလုံလောက်、**confidence နဲ့တွဲ** ပေးရမည်。
+
+
+def shift_words(words, s0, e0, st, en, tol=0.25):
+    """raw span `(s0,e0)` ကနေ placed span `(st,en)` သို့ စကားလုံးများ ရွှေ့သည်。
+
+    ပြန်ပေးသည် — `(words, conf, note)`。 မရလျှင် `(None, 0.0, အကြောင်းရင်း)`。
+
+    ⚠️ **ဆန့်ခြင်း (stretch) ကို သတိထားရမည်** — placed span က raw span ထက်
+       သိသိသာသာ ကွာလျှင် စကားလုံး အချိန်တွေ မှားကုန်မည်。 ⇒ ရွှေ့ရုံသာ
+       လုပ်ပြီး、ဆန့်ရလျှင် confidence လျှော့သည်。
+    ⚠️ ဖြတ်ပစ်၍ **မရ** — ဝင်းဒိုးပြင် ကျသော စကားလုံးကို ဘောင်ထဲ ချသည်。
+    """
+    if not words:
+        return None, 0.0, "words မပါ"
+    try:
+        ws = [(str(w.get("w") or ""), float(w["s"]), float(w["e"])) for w in words]
+    except (KeyError, TypeError, ValueError):
+        return None, 0.0, "ပုံစံ မမှန်"
+    if not ws:
+        return None, 0.0, "words ဗလာ"
+    raw = max(1e-3, e0 - s0)
+    new = max(1e-3, en - st)
+    ratio = new / raw
+    off = st - s0
+    out = []
+    prev = st
+    for w, a, b in ws:
+        a2 = max(st, min(en, a + off))
+        b2 = max(a2, min(en, b + off))
+        if a2 < prev:
+            a2 = prev
+        if b2 <= a2:
+            b2 = min(en, a2 + 0.02)
+        out.append(dict(w=w, s=round(a2, 3), e=round(b2, 3)))
+        prev = a2
+    # ⚠️ confidence — ဆန့်မှု များလေ နိမ့်လေ。 ၁.၀ က ရွှေ့ရုံ。
+    conf = max(0.0, 1.0 - abs(ratio - 1.0) / max(tol, 1e-6) * 0.5)
+    conf = round(min(1.0, conf), 3)
+    note = "ရွှေ့ရုံ" if abs(ratio - 1.0) <= 0.02 else f"ဆန့် ×{ratio:.2f}"
+    return out, conf, note
+
+
+def check_words(words, st, en, dur=None):
+    """စကားလုံး အချိန်မှတ် စစ်ဆေးချက် — ချိုးဖောက်ချက် စာရင်း ပြန်ပေးသည်
+
+    ⚠️ 「valid or explicitly low-confidence」— မမှန်လျှင် **ဖျောက်မထားရ**、
+       ဘာမှားလဲ ပြောရမည်。
+    """
+    bad = []
+    if not words:
+        return ["words မရှိ"]
+    prev_e = None
+    for i, w in enumerate(words):
+        try:
+            a, b = float(w["s"]), float(w["e"])
+        except (KeyError, TypeError, ValueError):
+            bad.append(f"[{i}] ပုံစံ မမှန်"); continue
+        if b <= a:
+            bad.append(f"[{i}] end ≤ start ({a:.3f}≥{b:.3f})")
+        if a < st - 0.05 or b > en + 0.05:
+            bad.append(f"[{i}] ဝါကျ ဘောင်ပြင် ({a:.2f}–{b:.2f} ⊄ {st:.2f}–{en:.2f})")
+        if dur and (a < -0.05 or b > dur + 0.05):
+            bad.append(f"[{i}] source ကျော် ({b:.2f} > {dur:.2f})")
+        if prev_e is not None and a < prev_e - 0.05:
+            bad.append(f"[{i}] အစဉ် ပြောင်းပြန် ({a:.3f} < {prev_e:.3f})")
+        prev_e = b
+    return bad
+
+
 def _place(lines, meas, cfg=None):
     """စာကြောင်းများကို တိုင်းထားသော စကားပြောကြားကာလပေါ် ချထားသည်。
 
@@ -583,6 +659,7 @@ def _place(lines, meas, cfg=None):
     """
 
     sp, sil, _dur, _ev, _cls = meas
+    _dur_hint = float(_dur or 0) or None
     cfg = cfg or {}
     bias = float(cfg.get("bias_s", BIAS))
     W    = float(cfg.get("window_s", 1.0))
@@ -602,7 +679,8 @@ def _place(lines, meas, cfg=None):
     cps_med = _r[len(_r) // 2] if _r else 0.0
     rest  = [l for l in lines if l.get("start") is None]
     out = []
-    STAT.clear(); STAT.update(timed=len(timed), snapped=0, biased=0, reach=0)
+    STAT.clear(); STAT.update(timed=len(timed), snapped=0, biased=0, reach=0,
+                              word_kept=0, word_bad=0)
     if timed:
         # ⚠️ **bias ကို အရင် ပြင်ပြီးမှ snap** — snap က bias ကို ပြိုင်တာ မဟုတ်ဘဲ
         #    သန့်စင်ပေးတာ。 မူရင်း start နဲ့ တိုင်းလျှင် accept ဘောင်က ပျမ်းမျှ
@@ -667,7 +745,29 @@ def _place(lines, meas, cfg=None):
             # ⚠️ အစီအစဉ် မချိုးရ · အရှည် ၀ ထက် ကြီးရမည်
             if prev is not None and st <= prev: st = prev + 0.01
             if en <= st: en = st + 0.4
-            out.append(dict(text=l["text"], start=round(st, 2), end=round(en, 2)))
+            # ⚠️ **`words` ကို သယ်ရမည်** — ယခင်က ဒီမှာ ကျန်ခဲ့ပြီး Script
+            #    Editor က စကားလုံးအလိုက် အချိန် လုံးဝ မမြင်ရခဲ့ပါ。
+            _e = dict(text=l["text"], start=round(st, 2), end=round(en, 2))
+            _w, _wc, _wn = shift_words(l.get("words"), s0, e0, st, en)
+            if _w:
+                _bad = check_words(_w, st, en, _dur_hint)
+                if _bad:
+                    # ⚠️ မမှန်လျှင် **ဖျောက်မထားရ** — ပြပြီး confidence ၀ ချသည်
+                    STAT["word_bad"] = STAT.get("word_bad", 0) + 1
+                    _e["words_note"] = _bad[0][:60]
+                    _wc = 0.0
+                else:
+                    _e["words"] = _w
+                    STAT["word_kept"] = STAT.get("word_kept", 0) + 1
+                _e["words_conf"] = _wc
+                _e["timing_src"] = "word" if _pairs[i][2] else "segment"
+            else:
+                # ⚠️ စကားလုံး အချိန် မရှိလျှင် **ဝါကျအဆင့်ဟု ရိုးရိုးသားသား
+                #    ပြောရမည်** — word-accurate ဟု ဟန်ဆောင်၍ မရ。
+                _e["words_conf"] = 0.0
+                _e["timing_src"] = "segment"
+            _e["place"] = "snap" if j is not None else "bias"
+            out.append(_e)
             prev = st
 
     # ── အချိန် မပါသော စာကြောင်း — ယခင်နည်း (chunk အတွင်း အချိုးကျ) ──
@@ -682,8 +782,13 @@ def _place(lines, meas, cfg=None):
         for l in ls:
             share = max(1, len(l["text"])) / tot
             st = pos; en = min(b_, pos + talk * share * ((b_ - a_) / talk if talk else 1))
+            # ⚠️ ဒါက **စာလုံးရေ အချိုးနဲ့ ခွဲထားတာ** — အချိန်မှတ် မဟုတ်ပါ。
+            #    「Never use character-count allocation as authoritative timing」
+            #    ⇒ confidence ၀ နဲ့ အမှတ်အသား တပ်ရမည်。
             out.append(dict(text=l["text"], start=round(st, 2),
-                            end=round(max(st + 0.4, en), 2)))
+                            end=round(max(st + 0.4, en), 2),
+                            words_conf=0.0, timing_src="charshare",
+                            place="charshare"))
             pos = en
     out.sort(key=lambda x: x["start"])
     # ⚠️ **နောက်ဆုံး အာမခံချက်** — အချိန်ပါ ဝါကျနဲ့ အချိန်မပါ ဝါကျ ရောပြီးမှ

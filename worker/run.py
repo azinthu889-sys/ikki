@@ -2160,6 +2160,28 @@ def render(job, brand, src, out, stage, log=print, over=None):
         e = dict(text=x["text"], start=round(a0, 2), end=round(b0, 2))
         if oa is not None and ob is not None and ob > oa:
             e["o0"] = round(oa, 2); e["o1"] = round(ob, 2)
+        # ⚠️ **စကားလုံး အချိန်မှတ်ကို သယ်ရမည်** — ဒီမှာ ကျန်ခဲ့လျှင်
+        #    `_place()` က ထိန်းထားလည်း Script Editor ဆီ **မရောက်**ပါ
+        #    (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့ — ကွင်းဆက် ၂ နေရာမှာ ပြတ်နေသည်)。
+        # ⚠️ အချိန်မှတ်ကို **ဖြတ်ပြီး timeline သို့လည်း** ပြောင်းပေးရမည် —
+        #    UI က ထွက်ဗီဒီယိုပေါ် ပြသည်、မူရင်းပေါ် မဟုတ်。
+        if x.get("words"):
+            _w2 = []
+            for _w in x["words"]:
+                try:
+                    _ws, _we = float(_w["s"]), float(_w["e"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                _d = dict(w=_w.get("w") or "", s=round(_ws, 3), e=round(_we, 3))
+                _os, _oe = _omap(_ws), _omap(_we)
+                if _os is not None and _oe is not None and _oe > _os:
+                    _d["o0"] = round(_os, 3); _d["o1"] = round(_oe, 3)
+                _w2.append(_d)
+            if _w2:
+                e["words"] = _w2
+        for _k in ("words_conf", "timing_src", "words_note", "place"):
+            if x.get(_k) is not None:
+                e[_k] = x[_k]
         _sg.append(e)
     st["segs"] = _sg
     # ⚠️ presentation layer စစ်ဆေးချက် (skill `ikki-presentation`) —

@@ -102,3 +102,36 @@ Timeline
   ဖြတ်၍ မရပါ。 အစားထိုး aligner ကို **မြန်မာ အသံနဲ့ တိုင်းပြီးမှ** ဖွင့်ရမည်。
 - **labelled benchmark မရှိသေး** ⇒ precision/recall ကိန်း **မပြောနိုင်သေး**。
 - ⇒ ဤစာတမ်းထဲ 「၁၀၀% တိကျ」ဆိုသော ကတိ **မပါပါ**。
+
+## ၆ · Phase 1 — လုပ်ပြီးသား (၂၀၂၆-၀၉-၂၁)
+
+### ကွင်းဆက် **၂ နေရာ** ပြတ်နေခဲ့သည်
+
+```
+Gemini  → words ✓
+asr._place()          ✗ span တွက်ရန်သာ သုံး · ထွက်ချက်ထဲ မထည့်  (asr.py:670)
+worker  _sg payload   ✗ text/start/end/o0/o1 သာ                (run.py:2160)
+Script Editor         ⇒ စကားလုံး အချိန် **လုံးဝ မမြင်ရ**
+```
+
+### ပြင်ချက်
+
+- `asr.shift_words()` — placed span သို့ ရွှေ့သည်。 **ဆန့်လျှင် confidence
+  လျှော့**သည် (ရွှေ့ရုံ ၁.၀ · ×၁.၂ ⇒ ၀.၆)。 ဖြတ်မပစ်ဘဲ ဘောင်ထဲ ချသည်。
+- `asr.check_words()` — အစဉ် · start<end · ဝါကျဘောင် · source range ·
+  မဖြစ်နိုင်သော ထပ်မှု。 **ချိုးဖောက်လျှင် `words` မထည့်ဘဲ `words_note` ပြ**သည်
+  (ဖျောက်မထား)。
+- ဝါကျတိုင်းမှာ `words_conf` · `timing_src` (`word`/`segment`/`charshare`) ·
+  `place` (`snap`/`bias`/`charshare`)。
+- `STAT.word_kept` / `word_bad` — report အတွက်。
+- worker payload — `words` (+ `o0`/`o1` ဖြတ်ပြီး timeline) ကို သယ်သည်。
+
+### ⚠️ ကတိ မပေးပါ
+
+- `timing_src="charshare"` က **စာလုံးရေ အချိုးနဲ့ ခွဲထားတာ** — အချိန်မှတ်
+  မဟုတ်ပါ ⇒ `words_conf = 0.0`。 spec ရဲ့ 「explicitly low-confidence
+  fallback」အတိုင်း。
+- **forced alignment မရှိသေးပါ** ⇒ word-level တိကျမှု **မကတိနိုင်ပါ**。
+  MMS_FA က ၂၀၂၆-၀၉-၁၈ မှာ နယ်နိမိတ် ၆ ခုမှ ၅ ခု စကား run ထဲ ကျခဲ့သည်。
+  အစားထိုး aligner ကို **မြန်မာ အသံနဲ့ တိုင်းပြီးမှ** ဖွင့်ရမည်。
+- labelled benchmark မရှိသေး ⇒ precision/recall **မပြောနိုင်သေးပါ**。
