@@ -917,6 +917,23 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
         a, bb = float(a), float(bb)
         if bb - a > 0.02: exact.append([a, bb])
     if exact: over["_drop_exact"] = exact
+    # ⚠️ **ချန်ခိုင်းသော အနားယူချက်** (Zin ၂၀၂၆-၀၉-၂၁: 「ဒီနေရာတွေပါ
+    #    စိတ်ကြိုက် edit လို့ရအောင်」)。 engine က တိတ်ဆိတ်မှုကို ပုံသေ
+    #    **ဖြတ်ပစ်**သည် — ဒါပေမယ့် အနားယူချက် တချို့က တမင် ထားတာ
+    #    (အသားပေးချက် · အသက်ရှူ · ဇာတ်လမ်း ရပ်တန့်ချက်)。 ဖြတ်လိုက်လျှင်
+    #    စကားက လျှောက်ပြောနေသလို သဘာဝ မကျပါ。
+    # ⚠️ `_drop` · `_drop_exact` က **အထက်တန်း** — သုံးစွဲသူ ဖြတ်ခိုင်းတာက
+    #    ချန်ခိုင်းတာထက် အဓိကသည် (worker မှာ အစီအစဉ် အတိုင်း)。
+    _keep = []
+    for a, bb in (b.get("keep_spans") or []):
+        try: a, bb = float(a), float(bb)
+        except (TypeError, ValueError): continue
+        if bb - a > 0.02: _keep.append([round(a, 3), round(bb, 3)])
+    over.pop("_keep", None)
+    if _keep:
+        if len(_keep) > 400:
+            raise HTTPException(400, "ချန်ခိုင်းချက် ၄၀၀ ထက် မပိုရ")
+        over["_keep"] = _keep
     # The initial worker stores the take map in its review plan. Persist it for
     # the render pass, otherwise source labels (and cached-speed knowledge)
     # would be lost after the transcript is approved.

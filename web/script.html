@@ -213,6 +213,17 @@ body.rv #bsec,body.rv #bonly{display:none}
   background:#DCFCE7;font-size:11px;user-select:none}
 .snd b:hover{background:#BBF7D0}
 .snd.gone{opacity:.45;text-decoration:line-through}
+/* ⚠️ ⏸ **အနားယူချက်** — engine က ပုံသေ ဖြတ်သည် ⇒ ပုံမှန်မှာ မျဉ်းကြား。
+      「ပြန်ချန်」နှိပ်လျှင် ဖြတ်မည် မဟုတ်တော့ ⇒ မျဉ်း မကြားတော့。 */
+.pau{display:flex;align-items:center;gap:10px;height:26px;margin:0 0 12px 14px;
+     color:var(--faint);font-size:11px;font-family:"Inter",sans-serif;
+     opacity:.55;text-decoration:line-through}
+.pau canvas{width:150px;height:22px;border-radius:6px;background:#F8FAFC;
+     border:1px solid #E2E8F0;flex:none}
+.pau b{cursor:pointer;border-radius:999px;padding:3px 9px;font-weight:500;
+     background:#F1F5F9;color:var(--mute)}
+.pau.kept{opacity:1;text-decoration:none;color:#15803D}
+.pau.kept b[data-pkeep]{background:#DCFCE7;color:#15803D}
 .snd.gone b[data-sdel]{background:#FEE2E2;color:#B91C1C}
 /* ── ဝါကျ အတွင်း နားနဲ့ ရွေးဖျက်ခြင်း ── */
 .trim{margin:-6px 0 14px 14px;padding:12px 14px;background:#FAFAF9;
@@ -262,6 +273,7 @@ body.rv #bsec,body.rv #bonly{display:none}
     <span><i style="background:#FEE2E2;border:1px solid #EF4444"></i>script မှာ မပါ</span>
     <span><i style="background:#E11D48"></i>🔴 ပြန်ရိုက် — သင် ရွေးပါ</span>
     <span>⏸ တိတ်</span><span style="color:#15803D">🟢 အသံ</span>
+    <span>⏸ အနားယူ — <b style="font-weight:600">ပြန်ချန်</b> လို့ ရသည်</span>
     <span>⋯ ဝါကျ အတွင်း ခွဲ</span>
   </div>
 </div></div>
@@ -290,6 +302,10 @@ var esc=function(t){return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt
 var D=null, DEL={}, PDEL={}, UNDO=[], SEL=-1, SECS=[], AUDIO=null, JOB=null;
 // ⚠️ SDEL = ဖျက်မည့် အသံ ဖြစ်ရပ် (ချောင်းဆိုး…) · TRIM = ဝါကျ အတွင်း နားနဲ့ ရွေးထားသော အပိုင်း
 var SDEL={}, TRIM={};
+// ⚠️ SKEEP = **ချန်ခိုင်းသော အနားယူချက်** (engine က ပုံသေ ဖြတ်သည်)。
+//    `PAU_MIN` — ဒီထက် တိုသော အနားယူချက်ကို အကွက် မပြပါ (တစ်ခုချင်း
+//    ပြလျှင် ဝါကျတိုင်းကြား အကွက် ၂၀ ကျော် ဖြစ်ပြီး ဖတ်ရ မရ)。
+var SKEEP={}, PAU_MIN=0.60;
 
 
 /* ── ask() — `confirm()` အစား ──
@@ -465,6 +481,21 @@ function render(d){
           +(e.db!=null?' · '+e.db+' dB':'')+' — စကား မဟုတ်</span>'
           +'<b data-splay>▶ နားထောင်</b>'
           +'<b data-sdel>'+(SDEL[_k]?'↩ ပြန်ထည့်':'✕ ဖျက်')+'</b></div>'; }
+      else if(e.dur>=PAU_MIN){
+        // ⚠️ **ရှည်သော အနားယူချက်ကို edit လုပ်နိုင်ရမည်** (Zin ၂၀၂၆-၀၉-၂၁:
+        //    「ဒီနေရာတွေပါ စိတ်ကြိုက် edit လို့ရအောင်」)。 engine က ပုံသေ
+        //    ဖြတ်သည် — ဒါပေမယ့် အသားပေးချက် · အသက်ရှူ · ရပ်တန့်ချက် တွေက
+        //    တမင် ထားတာ ဖြစ်နိုင်သည်。 ⇒ နားထောင်ပြီး ချန်နိုင်စေသည်。
+        flush();
+        var _pk=e.start.toFixed(2)+":"+e.end.toFixed(2), _on=!!SKEEP[_pk];
+        o+='<div class="pau'+(_on?' kept':'')+'" data-pk="'+_pk+'">'
+          +'<canvas data-w data-w0="'+Math.max(0,e.start-0.3).toFixed(2)
+          +'" data-w1="'+(e.end+0.3).toFixed(2)+'"'
+          +' data-ha="'+e.start.toFixed(2)+'" data-hb="'+e.end.toFixed(2)+'"></canvas>'
+          +'<span>⏸ '+e.dur.toFixed(1)+'s အနားယူ — '+(_on?'ချန်မည်':'ဖြတ်မည်')+'</span>'
+          +'<b data-pplay>▶ နားထောင်</b>'
+          +'<b data-pkeep>'+(_on?'✕ ဖြတ်':'↩ ပြန်ချန်')+'</b></div>';
+      }
       else { sum+=e.dur; n++; }
     }
     flush(); return o;
@@ -521,7 +552,8 @@ function render(d){
   document.getElementById("list").innerHTML=out.join("")
     +'<div class="hint">— စာသား အဆုံး · ဝါကျ '+S.length+' ကြောင်း —<br>'
     +'<span style="font-size:11.5px;opacity:.8">နှိပ် = ဖျက်/ပြန်ထည့် · '
-    +'⋯ = ဝါကျ အတွင်း ခွဲ · ↑↓ ရွေး · X ဖျက် · Space နားထောင် · '
+    +'⋯ = ဝါကျ အတွင်း ခွဲ · ⏸ အနားယူ ↩ ပြန်ချန် · ↑↓ ရွေး · X ဖျက် · '
+    +'Space နားထောင် · '
     +'နှစ်ချက်နှိပ် = နားထောင် · ⌘Z ပြန်ပြင်</span></div>';
   document.getElementById("nsec").textContent=SECS.length;
   paint();
@@ -556,6 +588,20 @@ document.addEventListener("click",function(e){
     var el=sd.closest(".snd"), kk=el.getAttribute("data-sk");
     if(SDEL[kk]){ delete SDEL[kk]; el.classList.remove("gone"); sd.textContent="✕ ဖျက်" }
     else { SDEL[kk]=1; el.classList.add("gone"); sd.textContent="↩ ပြန်ထည့်" }
+    counts(); return }
+  // ⚠️ ⏸ အနားယူချက် — နားထောင် / ချန်
+  var pp=e.target.closest("[data-pplay]");
+  if(pp){ e.stopPropagation();
+    var pk=pp.closest(".pau").getAttribute("data-pk").split(":");
+    playRange(+pk[0], +pk[1], "⏸ အနားယူ "+(+pk[1]-+pk[0]).toFixed(1)+"s"); return }
+  var pkb=e.target.closest("[data-pkeep]");
+  if(pkb){ e.stopPropagation();
+    var pel=pkb.closest(".pau"), pkk=pel.getAttribute("data-pk");
+    var sp2=pel.querySelector("span"), _d=(+pkk.split(":")[1]-+pkk.split(":")[0]);
+    if(SKEEP[pkk]){ delete SKEEP[pkk]; pel.classList.remove("kept");
+      pkb.textContent="↩ ပြန်ချန်"; if(sp2) sp2.textContent="⏸ "+_d.toFixed(1)+"s အနားယူ — ဖြတ်မည်" }
+    else { SKEEP[pkk]=1; pel.classList.add("kept");
+      pkb.textContent="✕ ဖြတ်"; if(sp2) sp2.textContent="⏸ "+_d.toFixed(1)+"s အနားယူ — ချန်မည်" }
     counts(); return }
   var sb=e.target.closest("[data-spl]");
   if(sb){ e.stopPropagation(); openParts(+sb.getAttribute("data-spl")); return }
@@ -658,8 +704,10 @@ document.getElementById("bok").onclick=function(){
   });
   // ⚠️ `approve` က **`segs`** ဟု နာမည်ပေးထားသည် (`keep` မဟုတ်) — မှားပို့လျှင်
   //    「စာသား မပါ」 400 ပြန်ပြီး [✂️ Edit] ဘာမှ မဖြစ်。 (၂၀၂၆-၀၉-၁၉ တကယ် စမ်း၍ တွေ့)
-  var body = isRev ? {segs: keep.map(function(s){return {i:s.n-1, text:s.text}}), drop_spans: ds}
-                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds};
+  // ⚠️ ချန်ခိုင်းသော အနားယူချက် — engine ရဲ့ တိတ်ဆိတ်မှု ဖြတ်ချက်ကို ပြန်ထည့်
+  var ks=Object.keys(SKEEP).map(function(k){ var a=k.split(":"); return [+a[0], +a[1]] });
+  var body = isRev ? {segs: keep.map(function(s){return {i:s.n-1, text:s.text}}), drop_spans: ds, keep_spans: ks}
+                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds, keep_spans: ks};
   fetch(url,{method:"POST",
     headers:{"Content-Type":"application/json",
              Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},

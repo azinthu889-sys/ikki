@@ -612,6 +612,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    retakes() က စကား နယ်နိမိတ် (M.speech ± edge / gap အလယ်) နဲ့ တွက်ပြီးသား
     #    ⇒ **snap မလုပ်ရ** (snap လျှင် စကား အစွန်းအထိ ရွှေ့ပြီး F2 အာမခံချက် ပျက်)。
     user_drop_exact = over.pop("_drop_exact", None) or []
+    # ⚠️ **ချန်ခိုင်းသော အနားယူချက်** (Zin ၂၀၂၆-၀၉-၂၁)。 engine က တိတ်ဆိတ်မှုကို
+    #    ပုံသေ ဖြတ်သည် — ဒါပေမယ့် အနားယူချက် တချို့က တမင် ထားတာ ဖြစ်သည်
+    #    (အသားပေးချက် · အသက်ရှူ · ရပ်တန့်ချက်)。 ဖြတ်လိုက်လျှင် စကားက
+    #    လျှောက်ပြောနေသလို သဘာဝ မကျပါ ⇒ Script Editor ကနေ ပြန်ချန်နိုင်သည်。
+    user_keep = over.pop("_keep", None) or []
     rc = RC.apply(job.get("recipe"), over)
     # ⚠️ template ရွေးချယ်မှုကို **job အလိုက် ကွဲပြားစေရန်** seed ပေးသည် —
     #    မပေးလျှင် ဗီဒီယိုတိုင်း တူညီသော template ၁၀ ခုပဲ ထွက်သည်
@@ -715,7 +720,35 @@ def render(job, brand, src, out, stage, log=print, over=None):
         for x in segs:
             if isinstance(x, dict) and x.get("fix"):
                 x["text"] = x["fix"]
-        log(f"  စာသား ပေးလာသည် {len(segs)} ကြောင်း — ASR ကျော်သွားသည်"
+        # Text ကို user ပြင်ထားသော်လည်း timestamp က ASR ၏ အကြမ်းအချိန်
+        # ဖြစ်နိုင်သည်။ ယခင်လမ်းကြောင်းက `pre_segs` ရှိတာနဲ့ alignment ကိုပါ
+        # ကျော်သွားလို့ Script Editor မှာမှန်သလိုမြင်ပြီး render ထဲ graphic/SFX
+        # က နောက်ကျသွားခဲ့သည်။ Text မပြန်ထုတ်ဘဲ audio-onset နဲ့သာ ပြန်ညှိသည်。
+        try:
+            import asr as ASR2
+            _ac = (CUT.calib(job.get("brand_id") or rc.get("theme")) or {}).get("asr_align")
+            _before = [(float(x.get("start")), float(x.get("end")))
+                       for x in segs if isinstance(x, dict)]
+            _aligned = ASR2.align_provided(segs, MEAS, cfg=_ac)
+            if len(_aligned) == len(segs):
+                _delta = [abs(float(a.get("start", 0)) - b[0])
+                          for a, b in zip(_aligned, _before)]
+                _delta.sort()
+                REPORT["provided_align"] = dict(lines=len(_aligned),
+                                                  median_shift=round(_delta[len(_delta)//2], 3)
+                                                  if _delta else 0.0,
+                                                  snapped=ASR2.STAT.get("snapped"),
+                                                  bias=ASR2.STAT.get("bias_s"))
+                segs = _aligned
+                log(f"  ပေးလာသော စာသား {len(segs)} ကြောင်း · audio alignment "
+                    f"snap {ASR2.STAT.get('snapped', 0)}/{ASR2.STAT.get('reach', 0)}"
+                    + (f" · median ရွှေ့ {REPORT['provided_align']['median_shift']:.2f}s"
+                       if _delta else ""))
+            else:
+                log("  ⚠️ ပေးလာသော စာသား timing မညီ — user timing ကို မပြောင်းပါ")
+        except Exception as _ae:
+            log(f"  ⚠️ ပေးလာသော စာသား alignment မရ ({type(_ae).__name__}) — user timing သုံးသည်")
+        log(f"  စာသား ပေးလာသည် {len(segs)} ကြောင်း — ASR စာသားပြန်မထုတ်"
             + (f" · စာလုံး ပြင်ချက် {_nfix} ကြောင်း" if _nfix else ""))
     else:
         lang = (job.get("lang") or "my")
@@ -790,6 +823,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
             f" · ဖြတ်မှတ် {st.get('cut_threshold')}s pad {st.get('pad')}s "
             + (f"[ချိန်ညှိပြီး · {st.get('calib_src')}]" if st.get("calibrated")
                else "[**မချိန်ညှိရသေး** — recipe ကိန်း]"))
+        # ── သုံးစွဲသူ **ချန်ခိုင်းသော** အနားယူချက်ကို ပြန်ပေါင်း ──
+        # ⚠️ **ဖျက်ချက် မတိုင်ခင် လုပ်ရမည်** — အောက်က `user_drop` /
+        #    `_drop_exact` က ဒီထဲကို ပြန်ဖြတ်နိုင်ရမည် (သုံးစွဲသူ ဖြတ်ခိုင်းတာက
+        #    ချန်ခိုင်းတာထက် အထက်တန်း)。
+        if user_keep:
+            _kn = len(spans)
+            spans, _kadd = CUT.readd(spans, user_keep, float(m["dur"]))
+            st["user_keep"] = round(_kadd, 2)
+            st["user_keep_n"] = len(user_keep)
+            log(f"  ⏸ ချန်ခိုင်းသော အနားယူချက် {len(user_keep)} ခု · "
+                f"ပြန်ထည့် {_kadd:.1f}s → span {_kn} → {len(spans)} · "
+                f"ကျန် {sum(b-a for a,b in spans):.1f}s")
         # ── သုံးစွဲသူ ဖျက်ထားသော အပိုင်းများကို **တကယ် ဖြတ်** ──
         _ed = (CUT.calib(_bid) or {}).get("edit") or {}
         if user_drop:

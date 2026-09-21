@@ -271,3 +271,38 @@ def validate_drops(drops, sp, dur, edge=EDGE_PAD, min_drop=MIN_DROP,
             return [], [(d, f"အားလုံး ဖျက်လျှင် {kept-rm:.1f}s သာ ကျန်မည် "
                             f"(အနည်းဆုံး {min_left}s)") for d in (drops or [])]
     return ok, bad
+
+
+def readd(spans, keep, dur):
+    """ဖြတ်ထားသော အပိုင်းများကို **ပြန်ပေါင်း**သည် — `(spans, ပြန်ထည့် s)`
+
+    ⚠️ engine က တိတ်ဆိတ်မှုကို ပုံသေ ဖြတ်သည် — ဒါပေမယ့် အနားယူချက် တချို့က
+       တမင် ထားတာ ဖြစ်သည် (အသားပေးချက် · အသက်ရှူ · ရပ်တန့်ချက်)。
+       Zin ၂၀၂၆-၀၉-၂၁: 「ဒီနေရာတွေပါ စိတ်ကြိုက် edit လို့ရအောင်」。
+    ⚠️ **ဘောင်ပြင် မထွက်ရ** — `[0, dur]` အတွင်း clamp ပြီး ထပ်နေတာကို ပေါင်းသည်。
+    ⚠️ ပြန်ပေါင်းပြီးနောက် span များက **အစီအစဉ်လိုက် · ထပ်မနေ** ဖြစ်ရမည် —
+       မဟုတ်လျှင် `spans.spans()` က အပိုင်းအစ ထပ်ထုတ်ပြီး ဗီဒီယို ရှည်သွားမည်。
+    """
+    try:
+        dur = float(dur)
+    except (TypeError, ValueError):
+        return spans, 0.0
+    add = []
+    for w in (keep or []):
+        try:
+            a, b = float(w[0]), float(w[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        a = max(0.0, min(a, dur)); b = max(0.0, min(b, dur))
+        if b - a > 0.02:
+            add.append((a, b))
+    if not add:
+        return spans, 0.0
+    before = sum(b - a for a, b in spans)
+    out = []
+    for a, b in sorted(list(spans) + add):
+        if out and a <= out[-1][1] + 1e-6:
+            out[-1] = (out[-1][0], max(out[-1][1], b))
+        else:
+            out.append((a, b))
+    return out, max(0.0, sum(b - a for a, b in out) - before)
