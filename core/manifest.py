@@ -138,6 +138,18 @@ def verify(subset=None):
     return good, bad
 
 
+def _ncl(t):
+    """မြင်ရသော စာလုံး (ဗျည်းတွဲ) အရေအတွက် — planner._ncl နဲ့ တူညီရမည်"""
+    try:
+        try:
+            import planner as _P
+        except ImportError:
+            from core import planner as _P
+        return _P._ncl(t)
+    except Exception:
+        return len(t or "")
+
+
 def _pack_props_ok(cid, props):
     """pack template ရဲ့ props စစ်ချက် — pack.json ရဲ့ manifest အတိုင်း"""
     try:
@@ -157,9 +169,16 @@ def _pack_props_ok(cid, props):
             if v.get("required") and k not in (props or {}):
                 errs.append(f"{cid}: လိုအပ်သော param ကျန် '{k}'")
             mx = v.get("maxChars")
-            if mx and k in (props or {}) and isinstance(props[k], str) \
-               and len(props[k]) > int(mx):
-                errs.append(f"{cid}: '{k}' က {len(props[k])} လုံး > {mx}")
+            if mx and k in (props or {}) and isinstance(props[k], str):
+                # ⚠️ **ဗျည်းတွဲနဲ့ ရေရမည် — code point နဲ့ မဟုတ်**。 မြန်မာစာမှာ
+                #    「ကျွန်တော်」က မြင်ရတာ ၃ လုံးပေမယ့် code point ၆ ခု。
+                #    planner က cluster နဲ့ ဖြတ်ပြီး validator က code point နဲ့
+                #    ရေလျှင် **ဘယ်တော့မှ မကိုက်**ဘဲ plan တစ်ခုလုံး fallback
+                #    ကျသည် — ၂၀၂၆-၀၉-၂၁ render မှာ ဂရပ်ဖစ် **၀** ဖြစ်ခဲ့
+                #    (「'text' က 60 လုံး > 34」)。
+                nn = _ncl(props[k])
+                if nn > int(mx):
+                    errs.append(f"{cid}: '{k}' က {nn} လုံး > {mx}")
         return (not errs), errs
     except Exception as e:
         return False, [f"pack စစ်မရ: {type(e).__name__}"]
