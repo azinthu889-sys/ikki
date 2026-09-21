@@ -372,6 +372,88 @@ def keyword(text):
     return best
 
 
+
+# ══ SFX — semantic event → role ═══════════════════════════════
+# ⚠️ **AI က file path မရွေးရ** — role နာမည်သာ。 role ကို `sfxlib.ROLE`
+#    (၂၂ ခု) နဲ့ `execute.to_sfx()` က စစ်သည်、မရှိလျှင် ကျော်သည်。
+# ⚠️ 「A sound is an intentional part of a visual or semantic event」⇒
+#    **ဂရပ်ဖစ် ဖြစ်ရပ်ပေါ်မှာသာ** ချသည်。 ဖြတ်မှတ်တိုင်း · စာတန်းတိုင်း
+#    မချရ (Zin ရဲ့ စည်းမျဉ်း ၁ · 「no per-word SFX」)。
+# ⚠️ P0 မှာ **ဂိတ် မထိရ** — `qc.SFX_MAX_PER_MIN` က ၁.၅/မိနစ် ဖြစ်နေဆဲ ⇒
+#    ဒီမှာ အဲဒီဘောင်ထဲ ချသည်。 ပိုသိပ်သည်းသော profile ကို P1 မှာ
+#    (density policy ရွှေ့ပြီးမှ) ဖွင့်ရမည်。
+SFX_ROLE = {
+    # ဖြစ်ရပ် အမျိုးအစား → (ရှေ့သံ, ထပ်သံ) · ရှေ့သံက `lead` စက္ကန့် စော
+    "card":    ("whoosh_in", "latch"),     # ဘောင်အပြည့် ကတ် ဝင်လာ
+    "pop":     (None, "pop"),              # keyword pop — တစ်ထပ်သာ
+    "number":  ("swipe", "click"),         # ကိန်းဂဏန်း ပေါ်လာ
+    "warning": ("whoosh_in", "impact"),    # သတိပေးချက်
+    "hook":    ("riser_soft", "latch"),    # ဖွင့်ချက်
+}
+SFX_LEAD = 0.18        # ရှေ့သံက ရုပ်ထက် ဘယ်လောက် စောလဲ
+SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
+          "latch": -17, "pop": -18, "click": -18, "impact": -14}
+
+
+def sfx_plan(events, dur, per_min, log=None):
+    """`templateEvents` → `sfxEvents` · **ဂိတ်ဘောင်ထဲ** ကန့်သတ်သည်
+
+    ⚠️ 「Layered sounds count as one sound moment if they share the same
+       event」⇒ ဖြစ်ရပ်တစ်ခုရဲ့ အထပ်များကို **တစ်ခါတည်း** ယူ/ပယ်ရမည်。
+       ခွဲယူလျှင် whoosh ကျန်ပြီး latch ပျောက်ကာ အသံ မပြည့်စုံဘဲ ဖြစ်မည်
+       (`dress.sfx` ရဲ့ `LAYER_W` မှတ်ချက်နဲ့ တစ်သဘောတည်း)。
+    """
+    if not events or not dur or dur <= 0:
+        return []
+    moments = []
+    for e in sorted(events, key=lambda x: x.get("startTime") or 0):
+        st = (e.get("style") or {}).get("kind")
+        kind = "pop" if st == "pop" else "card"
+        lead, main = SFX_ROLE.get(kind) or (None, None)
+        if not main:
+            continue
+        at = float(e.get("startTime") or 0.0)
+        moments.append((at, kind, lead, main, e.get("id")))
+    if not moments:
+        return []
+    # ⚠️ **အနည်းဆုံး ကွာဟချက်** — ဂိတ်က ၈s ⇒ အဲဒီအထက် ထားရမည်
+    gap = max(8.0, (60.0 / per_min) if per_min else 8.0)
+    keep, last = [], -99.0
+    for m in moments:
+        if m[0] - last >= gap:
+            keep.append(m); last = m[0]
+    # ⚠️ မိနစ်နှုန်း ဂိတ်ကိုပါ လေးစားရမည် (ခွင့်ပြုချက် = floor)
+    cap = int((dur / 60.0) * per_min) if per_min else len(keep)
+    if cap < len(keep):
+        keep = keep[:max(0, cap)]
+    out, n = [], 0
+    for at, kind, lead, main, eid in keep:
+        for role, off in ((lead, -SFX_LEAD), (main, 0.0)):
+            if not role:
+                continue
+            t = max(0.0, min(dur - 0.05, at + off))
+            # ⚠️ ရှေ့သံက ဘောင်အစမှာ ကပ်သွားလျှင် **ထပ်နေမည်** —
+            #    ၂ ခုလုံး ၀.၀၀s ဖြစ်ပြီး အထပ် အဓိပ္ပာယ် ပျက်သည်
+            #    (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。 ⇒ ကပ်လျှင် ရှေ့သံ ချန်သည်。
+            if off < 0 and abs(t - at) < SFX_LEAD * 0.5:
+                continue
+            n += 1
+            out.append(dict(
+                id=f"sfx{n:03d}", startTime=round(t, 2),
+                endTime=round(min(dur, t + 0.6), 2),
+                layer="sfx", type="sfx",
+                props=dict(role=role, db=SFX_DB.get(role, -16),
+                           anchor="visual_settle" if off == 0 else "visual_enter",
+                           priority="medium", event=eid),
+                style=dict(kind=kind),
+                reason=f"「{kind}」ဖြစ်ရပ် — {'ဝင်လာ' if off else 'ကျနေရာ'}",
+                confidence=0.7))
+    if log:
+        log(f"  SFX plan · အသံအခိုက် {len(keep)} · ဖြစ်ရပ် {len(out)} "
+            f"· ဘောင် {per_min}/မိနစ် · ကွာ ≥{gap:.1f}s")
+    return out
+
+
 def build(segs, labels, dur, opts=None, video_id="src"):
     """အညွှန်း → plan (ကုဒ်က တည်ဆောက်သည်、AI မဟုတ်)"""
     o = dict(opts or {})
@@ -449,6 +531,20 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             reason=f"「{lab}」အမျိုးအစား — {txt[:28]}",
             confidence=0.72))
         last_change, last_id = a, cid
+
+    # ── SFX — **ဂရပ်ဖစ် ဖြစ်ရပ်ပေါ်မှာသာ** ──
+    # ⚠️ schema မှာ `sfxEvents` ရှိပါလျက် planner က **တစ်ခါမှ မထုတ်ခဲ့ပါ**
+    #    ⇒ `execute.to_sfx()` က အမြဲ ဗလာ ပြန်ခဲ့သည် (၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့)。
+    # ⚠️ ပိတ်ထားလျှင် **အကြောင်းရင်း ချန်ရမည်** — 「Do not hide disabled
+    #    SFX settings」。 `qualityWarnings` ထဲ ထည့်သည်。
+    if o.get("sfx_on") is False or o.get("sfx") is False:
+        p["qualityWarnings"].append(dict(
+            code="sfx_off", eventId=None,
+            message="ဤပုံစံမှာ SFX ပိတ်ထားသည် — ဆက်တင်ကနေ ပြန်ဖွင့်နိုင်သည်"))
+    else:
+        p["sfxEvents"] = sfx_plan(p["templateEvents"], dur,
+                                  float(o.get("sfx_per_min") or 1.5),
+                                  log=o.get("log"))
 
     # ── punch-in — ၁၅s အတွင်း ၂ ခု · ၁.၀၈ ထက် မကျော် ──
     if en["punch"]:
@@ -535,6 +631,7 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
     schema မအောင်လျှင် **fallback** ကို သုံးသည် — အလုပ် မရပ်ပါ。
     """
     labels = annotate(segs, log=log)
+    opts = dict(opts or {}); opts.setdefault("log", log)
     p = build(segs, labels, dur, opts, video_id)
     ok, errs, warns = PS.validate(p, MF, duration=dur)
     if not ok:
@@ -547,7 +644,9 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
         ok, errs, warns = PS.validate(p, MF, duration=dur)
         if not ok:
             raise RuntimeError(f"fallback ပင် မမှန်: {errs[:2]}")
-    p["qualityWarnings"] = warns
+    # ⚠️ **လွှမ်း၍ မရ** — `build()` က ထည့်ထားသော သတိပေးချက် (ဥပမာ
+    #    `sfx_off`) ပျောက်သွားမည် ⇒ ပေါင်းရမည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
+    p["qualityWarnings"] = list(p.get("qualityWarnings") or []) + list(warns or [])
     log(f"  planner · စာတန်း {len(p['captions'])} · ဂရပ်ဖစ် "
         f"{len(p['templateEvents'])} · punch {len(p['cameraReframes'])} · "
         f"သတိပေး {len(warns)}")

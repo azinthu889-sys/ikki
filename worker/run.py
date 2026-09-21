@@ -1137,7 +1137,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 segs, float(m["dur"]),
                 dict(energy=rc.get("energy"), fps=rc["fps"],
                      aspect=f'{TH["W"]}:{TH["H"]}',
-                     pose=_pose_fr, cap_base=rc.get("cap_base") or 0.92),
+                     pose=_pose_fr, cap_base=rc.get("cap_base") or 0.92,
+                     # ⚠️ SFX မူဝါဒကို **recipe ကနေ** ယူရမည် — planner ထဲ
+                     #    ကိန်းသေ ရေးလျှင် ပုံစံတိုင်း တူသွားမည်。
+                     sfx_on=rc.get("sfx_on"), sfx=rc.get("sfx", True),
+                     sfx_per_min=rc.get("sfx_per_min")),
                 video_id=job["id"], log=log)
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
@@ -1962,7 +1966,45 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ ZAE ရဲ့ house bed ထဲမှာ SFX **ပါပြီးသား** — ထပ်ထည့်လျှင် နှစ်ထပ်
     #    ဖြစ်ပြီး ရှုပ်သည် (project မှတ်တမ်း: "ဖြတ်ချက်တိုင်း SFX ထပ်မထည့်ရ")。
     rc["_dur"] = sum(y - x for x, y in spans)     # sfx density တွက်ရန်
-    cues = DR.sfx(gfx, caps, rc) if rc.get("sfx", True) else []
+    # ⚠️ **SFX ပိတ်ထားလျှင် အကြောင်းရင်း မှတ်ရမည်** — 「Do not hide disabled
+    #    SFX settings」。 ယခင်က တိတ်တဆိတ် ဗလာ ဖြစ်ခဲ့ပြီး သုံးစွဲသူက
+    #    ဘာကြောင့် အသံ မရလဲ မသိခဲ့ပါ (၂၀၂၆-၀၉-၂၁)。
+    if not rc.get("sfx", True):
+        REPORT["sfx_off"] = "recipe က sfx=False"
+        log("  ⓘ SFX ပိတ်ထားသည် (recipe) — အသံ ထည့်မည် မဟုတ်ပါ")
+        cues = []
+    else:
+        cues = DR.sfx(gfx, caps, rc)
+    # ══ plan ရဲ့ sfxEvents — **semantic** လမ်းကြောင်း ═══════════════
+    # ⚠️ schema မှာ ရှိပြီး planner က မထုတ်、worker က မခေါ်ခဲ့ပါ ⇒
+    #    semantic sound design က **လုံးဝ မဖြစ်ခဲ့**ပါ (၂၀၂၆-၀၉-၂၁)。
+    # ⚠️ plan က **မူရင်း အချိန်** နဲ့ ထုတ်သည် ⇒ `omap` နဲ့ ဖြတ်ပြီး
+    #    timeline သို့ ပြောင်းမှ ရမည် (ဂရပ်ဖစ်နဲ့ တစ်သဘောတည်း)。
+    _plan_cues = []
+    if _PLAN and rc.get("sfx", True):
+        try:
+            # ⚠️ `EX` က plan အကိုင်းထဲမှာသာ import — ဒီမှာ မရှိပါ
+            #    (`PZ` · `_breathe` အမှားမျိုးပင်)。
+            import execute as EX2
+            _pc = EX2.to_sfx(_PLAN, log=log)
+            for _t, _role, _db in _pc:
+                _ot = omap(float(_t), snap=True)
+                if _ot is None:
+                    REPORT["sfx_skipped"] = REPORT.get("sfx_skipped", 0) + 1
+                    continue
+                _plan_cues.append((round(_ot, 2), _role, int(_db)))
+            REPORT["sfx_plan_n"] = len(_plan_cues)
+            # ⚠️ **တစ်ခါတည်း ပေါင်းရမည်** — ထပ်နေသော အချိန်/role ကို ဖယ်。
+            #    မဖယ်လျှင် legacy နဲ့ plan က တူသော အခိုက်မှာ နှစ်ထပ် ဖြစ်မည်。
+            _seen = {(round(a, 1), r) for a, r, _ in cues}
+            _add = [c for c in _plan_cues if (round(c[0], 1), c[1]) not in _seen]
+            REPORT["sfx_dedup"] = len(_plan_cues) - len(_add)
+            cues = sorted(cues + _add, key=lambda x: x[0])
+            if _plan_cues:
+                log(f"  SFX plan · {len(_plan_cues)} ခု (ထပ်၍ ဖယ် "
+                    f"{REPORT['sfx_dedup']}) ⇒ စုစုပေါင်း {len(cues)}")
+        except Exception as _se:
+            log(f"  ⚠️ plan SFX မရ ({type(_se).__name__}: {_se}) — legacy သာ")
     nsfx = 0
     if cues:
         try:
@@ -2623,6 +2665,14 @@ def write_report(jid, R):
     A("")
     v, w, ok = _rv(g("checks"), "sfx_density")
     mv, _mw, _mo = _rv(g("checks"), "sfx_moments")
+    # ⚠️ **ပိတ်ထားလျှင် အကြောင်းရင်း ပြရမည်** — ဗလာ ပြလျှင် ချို့ယွင်းချက်
+    #    လို့ ထင်မည် (「Do not hide disabled SFX settings」)。
+    if g('sfx_off'):
+        A(f"SOUND     ⓘ SFX **ပိတ်ထား** — {g('sfx_off')}")
+    if g('sfx_plan_n') is not None:
+        A(f"          plan cue {_mk(g('sfx_plan_n'))} · ထပ်၍ ဖယ် "
+          f"{_mk(g('sfx_dedup'))} · အချိန် မပြောင်းနိုင်၍ ကျော် "
+          f"{_mk(g('sfx_skipped') or 0)}")
     A(f"SOUND     SFX cue {_mk(g('sfx_n'))} -> အသံဖြစ်ရပ် {_mk(mv)} · "
       f"{_mk(v)}/min       [{_mk(w)}]" + _tick(ok))
     v, w, ok = _rv(g("checks"), "sfx_spacing")
