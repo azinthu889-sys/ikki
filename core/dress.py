@@ -758,6 +758,46 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
     #    `work/prem/sl_f0000.png` ဆိုတဲ့ **relative** လမ်းကြောင်းမှာ ရေးသည်。
     #    `el` ဆောက်ပြီးမှ cwd ပြန်ပြောင်းလျှင် `clip_alpha` က ရှာမတွေ့ဘဲ
     #    `FileNotFoundError` ဖြစ်သည် (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
+    # ⚠️ **pack template က motionkit module မဟုတ်** — `headtop.ht_stat_ring`
+    #    ကို `__import__("headtop")` လုပ်လျှင် `ModuleNotFoundError` ဖြစ်သည်
+    #    (၂၀၂၆-၀၉-၂၁ render မှာ ၃ ခုလုံး ကျခဲ့)。 pack adapter ကို သုံးရမည်。
+    if str(template or "").startswith("headtop."):
+        # ⚠️ ဘောင်အရွယ်ကို **theme ကနေ** ယူရမည် — slide_clip က W/H
+        #    parameter မရှိ。 motionkit က format သတ်မှတ်ပြီးသား ဖြစ်သည်。
+        try:
+            import theme as _TH2
+            _t2 = _TH2.t(); _W, _H = int(_t2["W"]), int(_t2["H"])
+        except Exception:
+            _W, _H = 1920, 1080
+        _wk = _o.path.dirname(out) or "."
+        _tag = _o.path.splitext(_o.path.basename(out))[0] or "sl"
+        el = pack_el(template, dict(props or {}), _wk, _tag, _W, _H,
+                     fps=fps, dur=hold, log=log)
+        if el is None:
+            return None
+        # ⚠️ `slide_clip` က **လမ်းကြောင်း** ပြန်ပေးရမည် — element မဟုတ်。
+        base2 = out.replace(".mov", "_b.mov")
+        cwd2 = _o.getcwd()
+        try:
+            _o.chdir(GC.MK)
+            _r2v = _r2()
+            if _r2v is None:
+                return None
+            _f3, _sub3 = _v2fps(fps)
+            _r2v.clip_alpha(el, base2, hold=0.02, fps=_f3, sub=_sub3,
+                            src_fps=_mk_fps(_r2v),
+                            look=dict(grain=1.1,
+                                      tone=getattr(_r2v, "LOOK2026", {}).get("tone")),
+                            camera=(1.0, 1.015))
+            _o.replace(base2, out)
+        except Exception as e:
+            log(f"  ⚠️ pack slide ထုတ်၍ မရ: {type(e).__name__}: {e}")
+            try: _o.remove(base2)
+            except Exception: pass
+            return None
+        finally:
+            _o.chdir(cwd2)
+        return out
     cwd = _o.getcwd()
     try:
         _o.chdir(GC.MK)
