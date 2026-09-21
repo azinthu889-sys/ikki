@@ -48,7 +48,8 @@ def main():
             (("motion", "hold"), "measured"),
             (("motion", "micro"), "spec"),
             (("motion", "settle"), "spec"),
-            (("safeZones", "top"), "spec")):
+            (("safeZones", "top"), "spec"),
+            (("type", "display"), "measured")):
         got = PK.src(t, *keys)
         check(f"{'.'.join(keys)} ⇒ {want}", got == want, got)
 
@@ -81,6 +82,17 @@ def main():
           t["motion"]["hold"].get("note"))
     check("ရွေ့လျားမှု ပုံစံ တိုင်းထားသည်",
           PK.tok(t, "motion", "dominant") == "fade_scale")
+
+    print("\n── ၃ဂ · မြန်မာ display font ──")
+    # ⚠️ Latin လှတိုင်း မြန်မာ ပျက်နိုင်သည် ⇒ display က မြန်မာ ဖြစ်ရမည်
+    check("display = MyanmarHeadOne",
+          PK.tok(t, "type", "display") == "MyanmarHeadOne",
+          PK.tok(t, "type", "display"))
+    check("မြန်မာ ဘေးကင်းကြောင်း အတည်ပြုထား",
+          t["type"]["display"].get("myanmarSafe") is True)
+    check("ပယ်ထားသော font အကြောင်းရင်း ချန်ထား",
+          "Figtree-Black" in (t["type"].get("_rejected") or {}),
+          t["type"].get("_rejected"))
 
     print("\n── ၄ · ပိတ်ထားသော density ──")
     # ⚠️ spec က Headtop ၄–၈/မိနစ် ဆိုသည် · ဂိတ်က ၁.၅ ⇒ **မဖွင့်ရသေး**

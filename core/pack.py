@@ -112,4 +112,34 @@ def selectable(pack="headtop-premium"):
        ခေါ်သူက ရှိပြီးသား လမ်းကြောင်းကို ဆက်သုံးရမည် (adapter)。
     """
     p, _ = load(pack)
-    return list((p or {}).get("templates") or [])
+    out = []
+    for m in (p or {}).get("templates") or []:
+        # ⚠️ **manifest မမှန်လျှင် ရွေးခွင့် မပေးရ** (spec §5) —
+        #    pack.json ထဲ ရှိရုံနဲ့ မလုံလောက်ပါ。
+        if isinstance(m, dict) and not check_manifest(m):
+            out.append(m["id"])
+    return out
+
+
+def template(tid, pack="headtop-premium"):
+    """manifest တစ်ခု — မရှိ/မမှန်လျှင် None"""
+    p, _ = load(pack)
+    for m in (p or {}).get("templates") or []:
+        if isinstance(m, dict) and m.get("id") == tid and not check_manifest(m):
+            return m
+    return None
+
+
+def by_intent(intent, pack="headtop-premium"):
+    """`intent` နဲ့ ကိုက်သော template ID များ — planner က ဒီကနေ ရွေးရမည်
+
+    ⚠️ planner က **ဖိုင်နာမည် မရွေးရ**、intent သာ ပြောရမည် (spec §12)。
+    """
+    p, _ = load(pack)
+    out = []
+    for m in (p or {}).get("templates") or []:
+        if not isinstance(m, dict) or check_manifest(m):
+            continue
+        if intent in (m.get("intent") or []):
+            out.append(m["id"])
+    return out
