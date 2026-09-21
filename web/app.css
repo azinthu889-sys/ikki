@@ -722,7 +722,7 @@ select.inp{ appearance:none; background-image:
 .scard[aria-pressed="true"]{border-color:var(--ac);box-shadow:var(--shac)}
 .scard .thumb{display:block;width:100%;position:relative;aspect-ratio:4/3;background:var(--sur);overflow:hidden}
 .scard .thumb video,.scard .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.scard .thumb video{opacity:0;transition:opacity .25s var(--ez2)}
+.scard .thumb video{opacity:1;transition:opacity .25s var(--ez2)}
 .scard.play .thumb video{opacity:1}
 .scard .meta{display:block;width:100%;padding:10px 12px 12px;box-sizing:border-box}
 .scard .meta b{display:block;font-weight:650;font-size:14px;letter-spacing:-.005em;line-height:1.3}

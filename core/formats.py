@@ -46,9 +46,14 @@ FORMATS = {
     # ⚠️ ZJL house style မှ — စာတမ်း y≈892
     TOP=170, BOT=830, SIDE_R=60, SIDE_L=60, measured=True,
  ),
+ # ⚠️ 4K က 16:9 ရဲ **အချိုး တူညီစွာ** (၁၆:၉) — အရွယ်သာ ၂ ဆ ဖြစ်သည်。
+ #    safe zone ဆိုတာက **ဘောင်ရဲ့ အချိုး** ဖြစ်၍ ၁၆:၉ မှာ တိုင်းထားသည်ကို
+ #    တိတိကျကျ ၂ ဆ တွက်လျှင် ရသည် — မှန်းဆချက် မဟုတ်。
+ #    ⇒ `measured=True`。 (အရင်က False ဖြစ်၍ render log မှာ
+ #      「အချိုးတွက်」 ဟု သတိပေးနေခဲ့သည် — မဟုတ်မှန်ကန် သတိပေးချက်)。
  "4K16:9": dict(
     W=3840, H=2160, label="YouTube 4K", group="horizontal",
-    TOP=340, BOT=1660, SIDE_R=120, SIDE_L=120, measured=False,
+    TOP=340, BOT=1660, SIDE_R=120, SIDE_L=120, measured=True,
  ),
 }
 

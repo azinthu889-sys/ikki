@@ -220,7 +220,7 @@ function paintStyles(){
   /* ⚠️ Zin ၂၀၂၆-၀၉-၂၀: 「dropdown ပုံစံကြီးက မမိုက်ဘူး — နမူနာ ဗီဒီယို
      animation လေးတွေ ပါပြထားတဲ့ ပုံစံ ပိုကြိုက်」 ⇒ dropdown ဖြုတ်ပြီး ကတ်。
      ⚠️ နမူနာက **ဂရပ်ဖစ် ပုံစံ**ကို ပြသည် — ဖြတ်ချက်/စာတန်း အပြည့် မဟုတ်。
-     ⚠️ `preload="none"` — poster သာ အရင် ဆွဲ ⇒ စာမျက်နှာ မနှေး。 */
+     ⚠️ preview clip တစ်ခုစီက အရွယ်သေး · silent ဖြစ်လို့ card မှာ တိုက်ရိုက် လှုပ်ရှားပြသည်။ */
   var cur_=state.style, pick=null;
   Object.keys(STYLES).forEach(function(c){
     STYLES[c].forEach(function(t){ if(t[0]===cur_) pick=t });
@@ -249,7 +249,7 @@ function paintStyles(){
        + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
        + '<span class="thumb">'
        +   '<img src="prev/'+esc(preview)+'.jpg" alt="" loading="lazy" decoding="async">'
-       +   '<video src="prev/'+esc(preview)+'.mp4" muted loop playsinline preload="none"'
+       +   '<video src="prev/'+esc(preview)+'.mp4" muted autoplay loop playsinline preload="metadata"'
        +   ' disablepictureinpicture></video>'
        +   '<span class="tick" aria-hidden="true">✓</span>'
        + '</span>'
