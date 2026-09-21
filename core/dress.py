@@ -482,8 +482,18 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #      ဖြစ်၍ ရွှေ့လို့ ရသည်)。 N5 က ဂရပ်ဖစ်ကို ခေါင်းအထက်
         #      နံရံဗလာမှာ ချသည် ⇒ အပေါ်ကို ဦးစားပေး。
         dy = 0
-        if avoid:
-            ay0, ay1 = avoid
+        # ⚠️ **အနားသတ်သာ template က မျက်နှာပေါ် တင်လို့ရသည်**。 pack ရဲ့
+        #    `safeZones.subject: true` က 「အတွင်း ပွင့်လင်း ⇒ ပြောသူ
+        #    မြင်နေရသည်」 ဟု ဆိုလိုသည် (pack.json မှတ်ချက်)。 ဒါကို
+        #    မျက်နှာဇုန်နဲ့ ပယ်လျှင် headtop မှာ **ဘယ်တော့မှ မပေါ်**ဘူး —
+        #    မျက်နှာ ၀–၆၄% နဲ့ စာတန်း ၇၀% ကြားမှာ ၆၁px သာ ကျန်၍。
+        if avoid and _over_subject(g.get("kind")):
+            log(f"  ⊙ {g['kind']} — အနားသတ်သာ ⇒ မျက်နှာပေါ် ခွင့်ပြု")
+            avoid2 = None
+        else:
+            avoid2 = avoid
+        if avoid2:
+            ay0, ay1 = avoid2
             _y0, _y1 = _ybox(el, H)
             ih = _y1 - _y0
             TOP = int(H*0.075)
@@ -895,7 +905,13 @@ def room(avoid, capy, H):
 
 
 def fits(kind, avoid, capy, H, fmt="16:9"):
-    """`kind` က နေရာ ဝင်လား — တိုင်းချက် မရှိလျှင် `True` (ကြိုမပယ်ရ)"""
+    """`kind` က နေရာ ဝင်လား — တိုင်းချက် မရှိလျှင် `True` (ကြိုမပယ်ရ)
+
+    ⚠️ **ပြောသူပေါ် တင်ခွင့်ရှိသော template ကို အမြင့်နဲ့ မပယ်ရ** —
+       အဲဒါတွေက မျက်နှာဇုန်ကို မဖြတ်သန်းရဘဲ ဘောင်အပြည့် သုံးနိုင်သည်。
+    """
+    if _over_subject(kind):
+        return True
     it = sizes(fmt).get(kind)
     if not it:
         return True
@@ -1004,3 +1020,130 @@ def duck_cues(cues, wav, sfx_db=None, log=None):
                     f"{int(round(float(db)-cut)):+d} dB "
                     f"(စကား {sp:.0f} dB — ဖုံးမည် ဖြစ်၍)")
     return out, n
+
+
+# ══ Headtop Premium pack → render adapter (Overlay audit P0) ═══════
+# ⚠️ audit — 「the new Headtop pack has two verified templates but is not
+#    selected by the production planner or called by the production
+#    renderer」。 `packs/headtop-premium/templates/` က **ဗလာ** ဖြစ်ပြီး
+#    တကယ့် ရေးဆွဲချက်က `core/cards.py` မှာ ရှိသည် ⇒ ဒီမှာ ချိတ်သည်。
+# ⚠️ motion ကို pack ရဲ့ **တိုင်းထားသော token** အတိုင်း သုံးရမည် —
+#    enter ၀.၄၆၇ · exit ၀.၂၀၀ · fade+scale (reference ၂ ပုဒ် · ဖြစ်ရပ် ၂၁
+#    ခုကနေ တိုင်းယူ)。 ကိုယ်ပိုင် ကိန်း ထည့်လျှင် pack က အလကား ဖြစ်သည်。
+PACK_FN = {"headtop.ht_concept_card": "concept_card",
+           "headtop.ht_outline_title": "outline_title"}
+
+
+_PRIMS = {}
+
+
+def _over_subject(kind):
+    """ဤ template က ပြောသူပေါ် တင်လို့ရလား — pack manifest ကနေ
+
+    ⚠️ **manifest ကနေသာ ယူရမည်** — နာမည်နဲ့ မှန်းလျှင် template အသစ်
+       တိုင်း မှားမည်。
+    """
+    if not kind or "." not in str(kind):
+        return False
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        t = _PK.template(kind)
+        return bool((t or {}).get("safeZones", {}).get("subject"))
+    except Exception:
+        return False
+
+
+def _prims(pdir):
+    """pack ရဲ့ `primitives.py` ကို လမ်းကြောင်းကနေ တင်သည် (cache)"""
+    if pdir in _PRIMS:
+        return _PRIMS[pdir]
+    m = None
+    try:
+        import importlib.util as _iu
+        q = os.path.join(pdir, "primitives.py")
+        spec = _iu.spec_from_file_location("ht_prims", q)
+        m = _iu.module_from_spec(spec)
+        spec.loader.exec_module(m)
+    except Exception:
+        m = None
+    _PRIMS[pdir] = m
+    return m
+
+
+def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
+    """pack template → `track()` သုံးနိုင်သော element dict · မရလျှင် `None`
+
+    ⚠️ `cards.py` က **ပုံ တစ်ပုံသာ** ပြန်ပေးသည် — animation မပါ。
+       ⇒ pack ရဲ့ primitive နဲ့ ဝင်/ထွက် frame များ ဆောက်သည်。
+    """
+    import math
+    try:
+        try:
+            import cards as CD
+            import pack as PK
+        except ImportError:
+            from core import cards as CD, pack as PK
+        from PIL import Image
+    except ImportError as e:
+        log and log(f"  ⚠️ pack adapter မရ: {e}")
+        return None
+    fn = PACK_FN.get(tid)
+    if not fn or not hasattr(CD, fn):
+        return None
+    # ⚠️ `PK.src()` က token ရဲ့ **အရင်းအမြစ်** (measured/spec) ကို ပြန်ပေးသည် —
+    #    module မဟုတ်。 primitives.py ကို လမ်းကြောင်းကနေ တင်ရသည်。
+    _p, _t = PK.load()
+    if not _p or not _t:
+        return None
+    P = _prims(PK.path())
+    if P is None:
+        log and log("  ⚠️ pack primitives တင်မရ")
+        return None
+    en = float(PK.tok(_t, "motion", "enter", default=0.467))
+    ex = float(PK.tok(_t, "motion", "exit", default=0.200))
+    hold = float(dur or PK.tok(_t, "motion", "hold", default=1.8))
+    try:
+        if fn == "concept_card":
+            base = CD.concept_card(props.get("head") or "", props.get("sub") or "",
+                                   W=W, H=H, mmf=mmf)
+        else:
+            base = CD.outline_title(props.get("text") or "", W=W, H=H, mmf=mmf,
+                                    cx=float(props.get("cx", 0.5)),
+                                    cy=float(props.get("cy", 0.5)),
+                                    halo=float(props.get("halo", 0.0)))
+    except Exception as e:
+        log and log(f"  ⚠️ pack {tid} ဆောက်မရ: {type(e).__name__}: {e}")
+        return None
+    os.makedirs(work, exist_ok=True)
+    ni = P.frames(en, fps)
+    no = P.frames(ex, fps)
+    anim, statics = [], []
+
+    def _w(im, k):
+        q = os.path.join(work, f"{tag}_{k:04d}.png")
+        im.save(q); return q
+
+    for i in range(ni + 1):
+        a = P.at(P.fade, i, ni, dur=en)
+        s = P.at(P.scale, i, ni, dur=en)
+        im = base if abs(s - 1.0) < 1e-4 else base.resize(
+            (max(1, int(W * s)), max(1, int(H * s))), Image.LANCZOS)
+        if im.size != (W, H):                 # ⚠️ ဘောင် အလယ်မှာ ထားရမည်
+            c = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            c.paste(im, ((W - im.size[0]) // 2, (H - im.size[1]) // 2)); im = c
+        if a < 0.999:
+            al = im.split()[3].point(lambda v, _a=a: int(v * _a))
+            im = im.copy(); im.putalpha(al)
+        anim.append((_w(im, i), 0, 0))
+    # ⚠️ ရပ်ချိန်ကို frame အပြည့် မရေးရ — ဖိုင် ထောင်ချီ ထွက်မည် ⇒ statics
+    statics.append((anim[-1][0], 0, 0, max(0.1, hold)))
+    for j in range(1, no + 1):
+        a = P.at(P.fade, j, no, dur=ex, out=True)
+        im = base.copy()
+        im.putalpha(base.split()[3].point(lambda v, _a=a: int(v * _a)))
+        anim.append((_w(im, ni + j), 0, 0))
+    return dict(anim=anim, statics=statics, dur=round(en + hold + ex, 3),
+                kind=tid, pack=True)
