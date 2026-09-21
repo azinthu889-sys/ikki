@@ -455,11 +455,6 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    (`props` မဟုတ်) ⇒ နှစ်ခုလုံး ကြည့်ရမည်。 မကြည့်လျှင်
             #    「စာသား မရှိ」ဟု ထင်ပြီး ကျော်မိသည် (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。
             _pp = dict(g.get("props") or g.get("args") or {})
-            # ⚠️ **လွတ်တဲ့ဘက်ကို ပေးရမည်** — ဘေးဘက် ကပ်သော template က
-            #    ပုံသေဘက်မှာ ပြောသူ ရှိလျှင် အဲဒီပေါ် တည့်တည့် ကျသည်。
-            if avoid and len(list(avoid)) >= 4:
-                _y0s, _y1s, _x0s, _x1s = _box(avoid)
-                _pp.setdefault("side", "left" if _x0s >= (1.0 - _x1s) else "right")
             if not _pp:
                 _pp = _pack_fill(g["kind"], g.get("text"))
             if not _pp:
@@ -469,6 +464,16 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                 log(f"  ⊘ {g['kind']} @ {g.get('at',0):.1f}s — "
                     f"အကြောင်းအရာ စာသား မရှိ၍ မထည့်ပါ")
                 continue
+            # ⚠️ **`side` ကို content စစ်ချက် ပြီးမှ ထည့်ရမည်**。 အရင်က
+            #    အပေါ်မှာ ထည့်မိသဖြင့် စာသား မရှိသော ဂရပ်ဖစ်မှာပါ
+            #    `_pp = {"side": …}` ဖြစ်သွားပြီး `if not _pp` guard နှစ်ခုလုံး
+            #    **မဖမ်းနိုင်ဘဲ** ရွှေရောင် ဗလာကွက် ထွက်ခဲ့သည် (၂၀၂၆-၀၉-၂၁)。
+            # ⚠️ **လွတ်တဲ့ဘက်ကို ပေးရမည်** — ဘေးဘက် ကပ်သော template
+            #    (`stat_ring` · `check_list`) ရဲ့ `side` ပုံသေက ပုံသေ ဖြစ်၍
+            #    ပြောသူ အဲဒီဘက်မှာ ရှိလျှင် တည့်တည့် ဖုံးသည်。
+            if avoid and len(list(avoid)) >= 4:
+                _y0s, _y1s, _x0s, _x1s = _box(avoid)
+                _pp.setdefault("side", "left" if _x0s >= (1.0 - _x1s) else "right")
             # ⚠️ တစ်မျိုးတည်း ထပ်နေလျှင် **နေရာ ပြောင်း**ပေးသည် —
             #    ၄ ခုလုံး အလယ်မှာ ပေါ်လျှင် တစ်ပုံစံတည်း ဖြစ်သည်。
             _pp.setdefault("cy", (0.30, 0.42, 0.62, 0.72)[i % 4])
