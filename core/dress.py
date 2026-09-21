@@ -263,7 +263,7 @@ def sfx(gfx, caps, rc):
     out.sort(key=lambda x: x[0])
     return out
 
-def mix(base, cues, out, cue_path, log=print):
+def mix(base, cues, out, cue_path, log=print, stem=None):
     """SFX များကို အသံပေါ် ထပ်သည်。
 
     ⚠️ input ၁၄၀ ကန့်သတ်ချက် — cue များကို **အုပ်စုလိုက် ခွဲ**ပြီး ပေါင်းရသည်。
@@ -307,10 +307,64 @@ def mix(base, cues, out, cue_path, log=print):
     fc.append("[0:a]" + "".join(f"[s{i}]" for i in range(len(use))) +
               f"amix=inputs={len(use)+1}:normalize=0:dropout_transition=0,"
               f"alimiter=limit=0.94[a]")
+    # ⚠️ **SFX stem** — `nsfx` က ဖိုင် ရှိမရှိ ရေတွက်ချက်သာ ဖြစ်၍
+    #    **တကယ် ကြားရလား** မသိရပါ。 SFX ချည်းသက်သက် ထုတ်ထားလျှင်
+    #    cue တစ်ခုချင်းကို ပြန်တိုင်း၍ အတည်ပြုလို့ရသည် (audit: stem ထုတ်ရန်)。
+    if stem:
+        fcs = list(fc[:-1]) + ["" .join(f"[s{i}]" for i in range(len(use)))
+                               + (f"amix=inputs={len(use)}:normalize=0:"
+                                  f"dropout_transition=0[sx]"
+                                  if len(use) > 1 else "anull[sx]")]
+        if len(use) == 1:
+            fcs[-1] = "[s0]anull[sx]"
+        try:
+            subprocess.run(["ffmpeg","-v","error","-y","-f","lavfi",
+                "-i",f"anullsrc=r=48000:cl=stereo:d=0.01"]+ins+
+                ["-filter_complex",";".join(fcs),"-map","[sx]",
+                 "-c:a","pcm_s16le",stem],check=True)
+        except Exception as _e:
+            log and log(f"  ⚠️ SFX stem မထွက် ({type(_e).__name__})")
     subprocess.run(["ffmpeg","-v","error","-y","-i",base]+ins+
         ["-filter_complex",";".join(fc),"-map","0:v","-map","[a]",
          "-c:v","copy","-c:a","aac","-b:a","192k",out],check=True)
     return out, len(use)
+
+
+def stem_check(stem, cues, log=None):
+    """stem ကနေ cue တစ်ခုချင်း **တကယ် ကြားရလား** တိုင်းသည်
+
+    `(ok, [(at, role, dB)])` — `ok` က ကြားရသော အရေအတွက်、စာရင်းက မကြားရတာ
+
+    ⚠️ `nsfx` က **ဖိုင် ရှိမရှိ** ရေတွက်ချက်သာ。 ဖိုင် ရှိပြီး အသံ မရှိတာ ·
+       အချိန် လွဲတာ · အားလုံး လျှော့ခံရတာ ဘယ်တော့မှ မဖမ်းမိပါ。
+    """
+    if not stem or not os.path.exists(stem) or not cues:
+        return 0, []
+    try:
+        import numpy as _np
+    except ImportError:
+        return 0, []
+    import subprocess
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", stem, "-ac", "1",
+                        "-ar", "8000", "-f", "f32le", "-"], capture_output=True)
+    x = _np.frombuffer(r.stdout, "<f4").astype(_np.float64)
+    if not len(x):
+        return 0, [tuple(c)[:3] for c in cues]
+    sr, bad, ok = 8000, [], 0
+    for c in cues:
+        at, role, db = (list(c) + [None, None, None])[:3]
+        a = int(max(0.0, float(at) - 0.25) * sr)
+        b = min(len(x), int((float(at) + 0.75) * sr))
+        if b <= a:
+            bad.append((at, role, db)); continue
+        pk = 20 * _np.log10(max(1e-6, float(_np.abs(x[a:b]).max())))
+        if pk < -60.0:
+            bad.append((at, role, db))
+            log and log(f"    ⚠️ SFX {at:6.2f}s {role} — stem ထဲ အသံ မရှိ "
+                        f"({pk:.0f} dB)")
+        else:
+            ok += 1
+    return ok, bad
 
 
 # ── ဂရပ်ဖစ် alpha track ─────────────────────────────────────

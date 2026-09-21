@@ -296,17 +296,25 @@ function paintStyles(){
       paintStyles();
     };
   });
-  /* ⚠️ ဖုန်းမှာ hover မရှိ ⇒ မြင်ကွင်းထဲ ရောက်တာနဲ့ ဖွင့်ပေးသည်。
-     ⚠️ တစ်ချိန်တည်း အားလုံး ဖွင့်လျှင် ဖုန်း နှေးမည် — **တစ်ခုတည်း**သာ。 */
-  if(window.matchMedia&&window.matchMedia('(hover:none)').matches&&window.IntersectionObserver){
+  /* Native autoplay ကို browser က power-save အတွက် ရပ်နိုင်သည်။ viewport ထဲ
+     ဝင်လာသည့် card ကို `play()` လည်းတိုက်ရိုက်ခေါ်ပေး၍ desktop/mobile နှစ်ခုလုံးမှာ
+     motion preview တကယ်စတင်စေသည်။ ဖုန်းတွင် decoder မများအောင် တစ်ခုတည်းသာဖွင့်သည်။ */
+  if(window.IntersectionObserver){
+    var touchOnly=window.matchMedia&&window.matchMedia('(hover:none)').matches;
     var io=new IntersectionObserver(function(es){
       es.forEach(function(e){
-        if(e.isIntersecting&&e.intersectionRatio>0.6){
+        var visible=e.isIntersecting&&e.intersectionRatio>0.35;
+        if(touchOnly&&visible){
           cards.forEach(function(c){ play(c, c===e.target) });
+        }else if(!touchOnly){
+          play(e.target,visible);
         }
       });
-    },{threshold:[0,0.6,1]});
+    },{threshold:[0,0.35,0.6,1]});
     cards.forEach(function(c){ io.observe(c) });
+  }else{
+    /* မထောက်ပံ့တဲ့ browser အဟောင်းအတွက် selected preview ကိုသာ ဖွင့်သည်။ */
+    cards.forEach(function(c){ if(c.getAttribute('data-sv')===state.style) play(c,true) });
   }
   markPick();
 }

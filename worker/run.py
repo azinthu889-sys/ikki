@@ -2094,8 +2094,22 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  ⚠️ SFX duck မရ ({type(_de).__name__}) — မလျှော့ဘဲ ဆက်သည်")
             _CUE_USED.clear()
             _sd = rc.get("_seed") or job.get("id") or "ikki"
+            # ⚠️ **SFX stem** — `nsfx` က ဖိုင် ရှိမရှိ ရေတွက်ချက်သာ。
+            #    ဖိုင် ရှိပြီး အသံ မရှိတာ · အချိန် လွဲတာ ဘယ်တော့မှ မဖမ်းမိပါ。
+            _stem = os.path.join(work, "sfx_stem.wav")
             _, nsfx = DR.mix(cutv, cues, sv,
-                             lambda r, i=None: _cue(SL, r, rc["theme"], i, _sd, log), log)
+                             lambda r, i=None: _cue(SL, r, rc["theme"], i, _sd, log),
+                             log, stem=_stem)
+            try:
+                _ok, _bad = DR.stem_check(_stem, cues, log=log)
+                REPORT["sfx_audible"] = _ok
+                REPORT["sfx_silent"] = len(_bad)
+                if _bad:
+                    log(f"  ⚠️ **SFX {len(_bad)}/{len(cues)} ခု stem ထဲ အသံ မရှိ**")
+            except Exception as _ce:
+                log(f"  ⚠️ stem မစစ်နိုင် ({type(_ce).__name__})")
+            finally:
+                os.path.exists(_stem) and os.remove(_stem)
             REPORT["sfx_variants"] = len(set(_CUE_USED))
             REPORT["sfx_banks"] = sorted({x.split("/")[0] for x in _CUE_USED})
             REPORT["sfx_assets"] = list(_CUE_USED)
@@ -2800,6 +2814,12 @@ def write_report(jid, R):
     if g("sfx_variants") is not None:
         A(f"          asset ကွဲပြားမှု {_mk(g('sfx_variants'))} ဖိုင် / "
           f"cue {_mk(g('sfx_n'))} · bank {', '.join(g('sfx_banks') or []) or '—'}")
+    if g("sfx_audible") is not None:
+        _sl = g("sfx_silent") or 0
+        A(f"          stem စစ်ချက် — ကြားရ {_mk(g('sfx_audible'))} · "
+          f"အသံမရှိ {_mk(_sl)}" + _tick(_sl == 0))
+    if g("sfx_ducked"):
+        A(f"          စကားပေါ် ကျယ်လွန်၍ လျှော့ {_mk(g('sfx_ducked'))} ခု")
     lv, lw, lok = _rv(g("checks"), "lufs")
     tv, tw, tok = _rv(g("checks"), "true_peak")
     A(f"          master {_mk(lv)} LUFS [{_mk(lw)}]{_tick(lok)} · "
