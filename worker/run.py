@@ -530,8 +530,38 @@ def _outdur_guess(spans):
         return 0.0
 
 
+def _pop_size(size0, h_got, h_want, H, tol=0.15):
+    """pop ရဲ့ size ကို **တိုင်းထားသော ink အမြင့်ကနေ** ပြန်တွက်သည်。
+
+    `(size အသစ်, ပြန်ဆောက်ရမလား)` — လွဲချက် `tol` အတွင်းဆိုလျှင် မပြောင်း。
+
+    ⚠️ ကိန်းသေ ဖော်မြူလာ (`size = h × 1.20 × H`) က **မမီနိုင်ပါ** —
+       ၂၀၂၆-၀၉-၂၁ တိုင်းချက် (size ၁၃၁ · H ၁၀၈၀) —
+         「အရေးကြီး」၁၆.၉%H · 「ဂျပန်」၁၆.၈% · 「မနက်」၁၅.၉%
+         「ကမ္ဘာ」၁၁.၅%  · 「Japan」၁၂.၅%      (ပစ်မှတ် ၁၀.၁%)
+       ဗျည်းတွဲ/အထက်သရ က ink ကို ဆွဲသဖြင့် စကားလုံး ပုံစံပေါ် မူတည်၍
+       **၁၁.၅–၁၆.၉%** ကွာသည်。
+    ⚠️ ဒါပေမယ့် ink က size နဲ့ **မျဉ်းဖြောင့်** ဖြစ်သည် —
+       13.9/109 = 16.9/131 = 19.3/150 ≈ 0.129 ⇒ **တစ်ခါ တိုင်းလျှင်
+       တိကျစွာ တွက်လို့ရသည်**。 စမ်းသပ်ချက်: ၅ မျိုးလုံး ၁၀.၀–၁၀.၁% ရသည်。
+    """
+    try:
+        size0 = float(size0); h_got = float(h_got); h_want = float(h_want)
+        H = float(H)
+    except (TypeError, ValueError):
+        return int(size0 or 0), False
+    if h_got <= 0.001 or h_want <= 0.0 or size0 <= 0:
+        return int(size0), False
+    if abs(h_got - h_want) / h_want <= tol:
+        return int(size0), False
+    # ⚠️ **ဘောင် ကန့်သတ်ရမည်** — မထားလျှင် ink အနည်းငယ် ဆိုလျှင်
+    #    size က ဘောင်ထက် ကြီးသွားနိုင်သည်。
+    s1 = max(24, min(int(H * 0.5), int(round(size0 * h_want / h_got))))
+    return s1, s1 != int(size0)
+
+
 def _pop_ink(mov, work, idx):
-    """pop clip ရဲ့ **တကယ့် အလျားလိုက် နယ်နိမိတ်** `(x0, x1)` — မရလျှင် None
+    """pop clip ရဲ့ **တကယ့် နယ်နိမိတ်** `(x0, x1, y0, y1)` — မရလျှင် None
 
     ⚠️ စာလုံးရေနဲ့ ခန့်မှန်းလျှင် မလုံလောက်ပါ — ဖောင့် · စာလုံးအရွယ် ·
        မြန်မာ ဗျည်းတွဲ အားလုံး သက်ရောက်သည်。 ထွက်လာသော alpha ကနေ တိုင်းသည်。
@@ -549,7 +579,11 @@ def _pop_ink(mov, work, idx):
         from PIL import Image
         a = _np.asarray(Image.open(png).convert("RGBA"))
         cols = _np.nonzero((a[..., 3] > 40).any(axis=0))[0]
-        return (int(cols.min()), int(cols.max())) if len(cols) else None
+        rows = _np.nonzero((a[..., 3] > 40).any(axis=1))[0]
+        if not len(cols) or not len(rows):
+            return None
+        return (int(cols.min()), int(cols.max()),
+                int(rows.min()), int(rows.max()))
     finally:
         try: os.unlink(png)
         except OSError: pass
@@ -1733,6 +1767,46 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 except Exception as _e:
                     log(f"  ⊘ pop ဆောက်မရ: {type(_e).__name__}: {_e}"); _pv = None
                 if _pv:
+                    # ⚠️ **အမြင့်ကို ကိန်းသေ ဖော်မြူလာနဲ့ မမီနိုင်ပါ**
+                    #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက် · size ၁၃၁ မှာ) —
+                    #      「အရေးကြီး」၁၆.၉%H · 「ဂျပန်」၁၆.၈% · 「မနက်」၁၅.၉%
+                    #      「ကမ္ဘာ」၁၁.၅%  · 「Japan」၁၂.၅%
+                    #    ⇒ စကားလုံး ပုံစံပေါ် မူတည်ပြီး **၁၁.၅–၁၆.၉%** ကွာသည်
+                    #      (ပစ်မှတ် ၁၀.၁%)。 ဗျည်းတွဲ/အထက်သရ က ink ကို ဆွဲသည်。
+                    #    ⚠️ ဒါပေမယ့် ink က size နဲ့ **မျဉ်းဖြောင့်** ဖြစ်သည်
+                    #      (13.9/109 = 16.9/131 = 19.3/150 ≈ 0.129) ⇒ **တစ်ခါ
+                    #      တိုင်းလျှင် တိကျစွာ တွက်လို့ရသည်**。
+                    #    ⇒ လွဲချက် ၁၅% ကျော်လျှင် size ပြန်တွက်ပြီး တစ်ခါ
+                    #      ပြန်ဆောက်သည် (ပြန်ဆောက်တာ တစ်ခါသာ — အဆုံးမရှိ မဖြစ်စေရ)。
+                    try:
+                        _ik0 = _pop_ink(_pv, work_s, _i)
+                        if _ik0:
+                            _h_got = (_ik0[3] - _ik0[2]) / float(TH["H"])
+                            _s_new, _redo = _pop_size(_pr["size"], _h_got, _h,
+                                                      TH["H"])
+                            if _redo:
+                                log(f"  ↕ pop「{str(_pr.get('text'))[:12]}」"
+                                    f"အမြင့် {_h_got*100:.1f}%H → ပစ်မှတ် {_h*100:.1f}% "
+                                    f"⇒ size {_pr['size']} → {_s_new} · ပြန်ဆောက်")
+                                _pr2 = dict(_pr); _pr2["size"] = _s_new
+                                # ⚠️ `y` ကိုပါ ပြန်တွက်ရမည် — အပေါ်စွန်း↔အလယ်
+                                #    ကွာဟမှုက size နဲ့ အတူ ကြီးသည်。
+                                _k2 = 0.0016364 * _s_new - 0.07437
+                                _pr2["y"] = max(0, int(round((_cy - _k2) * TH["H"])))
+                                try:
+                                    _pv2 = _DR.slide_clip(
+                                        "statement", str(_pr2.get("text") or "")[:24],
+                                        None, None, _bn,
+                                        os.path.join(work_s, f"w{_i:02d}r.mov"), _d,
+                                        log=log, fps=rc["fps"],
+                                        template=_ev.get("motionKitTemplateId"),
+                                        props=_pr2)
+                                    if _pv2:
+                                        _drop(_pv); _pv = _pv2; _pr = _pr2
+                                except Exception as _re3:
+                                    log(f"  ⚠️ pop ပြန်ဆောက်မရ ({type(_re3).__name__})")
+                    except Exception as _he:
+                        log(f"  ⚠️ pop အမြင့် မတိုင်းနိုင် ({type(_he).__name__})")
                     # ⚠️ **အကျယ်ကို မှန်းဆ၍ မရ** — plan က စာလုံးရေနဲ့ ခန့်မှန်းသည်
                     #    (`0.024·len`)。 တကယ် render ပြီးမှ တိုင်းလျှင် 「Language
                     #    school」က ဘယ်အစွန်းမှာ **ပြတ်**နေခဲ့သည် (၂၀၂၆-၀၉-၂၁
@@ -1742,7 +1816,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     try:
                         _ink = _pop_ink(_pv, work_s, _i)
                         if _ink:
-                            _ix0, _ix1 = _ink
+                            _ix0, _ix1 = _ink[0], _ink[1]
                             _w = _ix1 - _ix0
                             _want = float(_st.get("cx") or 0.5) * TH["W"]
                             _dx = int(round(_want - (_ix0 + _ix1) / 2.0))
