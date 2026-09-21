@@ -753,11 +753,38 @@ def render(job, brand, src, out, stage, log=print, over=None):
             else:
                 log(f"  ✓ ဖျက်ချက် {len(_req)} ခုလုံး ၁၀၀% ဖျက်ပြီး")
         if user_drop_exact:
-            spans, _rm2 = CUT.subtract(spans, user_drop_exact, None, snap=0.0)
-            log(f"  ပြန်စ (သုံးစွဲသူ လက်ခံ) {len(user_drop_exact)} ခု · ဖြုတ် {_rm2:.1f}s"
+            # ⚠️ **စစ်ဆေးပြီးမှ ဖြတ်ရမည်** (Cut audit P0)。 အရင်က တိုက်ရိုက်
+            #    `subtract(snap=0.0)` ပို့ခဲ့သဖြင့် အစွန်းက စကားထဲ ကျနေလျှင်
+            #    **စကားလုံး ဖြတ်မိသည်** (Zin အမြဲ စည်းကမ်း: F2 = 0)。
+            #    ⚠️ မလုံခြုံသည်ကို **ပိတ်ပြီး အကြောင်းရင်း ပြ**ရမည် —
+            #       တိတ်တဆိတ် ကျော်သွားလျှင် သုံးစွဲသူ ဘယ်တော့မှ မသိရ。
+            _kept = sum(b - a for a, b in spans)
+            _dok, _dbad = CUT.validate_drops(user_drop_exact, MEAS[0], m["dur"],
+                                             kept=_kept)
+            if _dbad:
+                _fl = st.get("flag_list") or []
+                for _d, _why in _dbad:
+                    try: _at = round(float(_d[0]), 2)
+                    except (TypeError, ValueError, IndexError): _at = 0.0
+                    _fl.append(dict(kind="drop_unsafe", at=_at,
+                                    text=f"ပြန်စ ဖျက်ချက် မလုံခြုံ — {_why}",
+                                    score="မဖြတ်ပါ"))
+                st["flag_list"] = _fl
+                st["flags"] = len(_fl)
+                log(f"  ⚠️ **ပြန်စ ဖျက်ချက် {len(_dbad)}/{len(user_drop_exact)} ခု ပိတ်လိုက်သည်**")
+                for _d, _why in _dbad[:6]:
+                    try: _a, _b = float(_d[0]), float(_d[1])
+                    except (TypeError, ValueError, IndexError): _a = _b = 0.0
+                    log(f"      ⊘ {_a:.2f}–{_b:.2f}s — {_why}")
+            if _dok:
+                spans, _rm2 = CUT.subtract(spans, _dok, None, snap=0.0)
+            else:
+                _rm2 = 0.0
+            log(f"  ပြန်စ (သုံးစွဲသူ လက်ခံ) {len(_dok)}/{len(user_drop_exact)} ခု · ဖြုတ် {_rm2:.1f}s"
                 f" → ကျန် {sum(b-a for a,b in spans):.1f}s")
             st["retake_removed"] = _rm2
-            st["retake_cuts"] = len(user_drop_exact)
+            st["retake_cuts"] = len(_dok)
+            st["retake_blocked"] = len(_dbad)
         # ⚠️ SKILL F6 — **ဒီစာကြောင်းကို ဖျောက်ခွင့် မရှိ**。 ဤ engine က
         #    တိတ်ဆိတ်မှုကိုသာ ဖယ်သည်。 `happiness 3` ချိန်ညှိမှုတွင် လူ
         #    တည်းဖြတ်သူက ၄၈၁s ဖယ်ခဲ့ရာ engine က ၂၀၀s (၁၉%) သာ ရှာနိုင်သည် —
@@ -2180,7 +2207,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
     if rc.get("music"):
         try:
             mv = os.path.join(work, "mus.mp4")
-            MU.bed(raw, mv, rc["music"], probe(raw)["dur"], log=log)
+            MU.bed(raw, mv, rc["music"], probe(raw)["dur"], log=log,
+                   seed=rc.get("_seed") or job.get("id") or "")
             pre = mv; _drop(raw)
         except Exception as e:
             log(f"  ⚠️ သီချင်း မရ: {e}")

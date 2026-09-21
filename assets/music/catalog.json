@@ -1,0 +1,152 @@
+{
+ "version": 1,
+ "n": 5,
+ "_doc": "⚠️ `mood`/`energy`/`license` က **လက်နဲ့ မှတ်ထား** — ကျန်အားလုံးကို sample ကနေ တိုင်းယူသည်。 `bpm` က ယုံကြည်မှု ၀.၁၂ အောက်ဆိုလျှင် `null`。",
+ "items": [
+  {
+   "id": "4604 Wallpaper By Kevin Macleod",
+   "file": "4604 Wallpaper By Kevin Macleod.m4a",
+   "version": 1,
+   "dur": 220.06,
+   "lufs": -11.3,
+   "true_peak": 1.13,
+   "bpm": 184.6,
+   "bpm_conf": 0.635,
+   "seam_db": 104.3,
+   "loop": {
+    "start": 4.0,
+    "end": 209.06,
+    "seam_db": 0.07
+   },
+   "mood": "corporate",
+   "energy": 0.45,
+   "voice_ok": true,
+   "baked_fx": false,
+   "license": "Kevin MacLeod · CC BY 3.0",
+   "measured": [
+    "dur",
+    "lufs",
+    "true_peak",
+    "bpm",
+    "seam_db",
+    "loop"
+   ]
+  },
+  {
+   "id": "5759 Blippy Trance By Kevin Macleod",
+   "file": "5759 Blippy Trance By Kevin Macleod.m4a",
+   "version": 1,
+   "dur": 120.01,
+   "lufs": -11.98,
+   "true_peak": -0.31,
+   "bpm": 99.4,
+   "bpm_conf": 0.694,
+   "seam_db": 167.95,
+   "loop": {
+    "start": 7.5,
+    "end": 110.01,
+    "seam_db": 0.0
+   },
+   "mood": "upbeat",
+   "energy": 0.7,
+   "voice_ok": true,
+   "baked_fx": false,
+   "license": "Kevin MacLeod · CC BY 3.0",
+   "measured": [
+    "dur",
+    "lufs",
+    "true_peak",
+    "bpm",
+    "seam_db",
+    "loop"
+   ]
+  },
+  {
+   "id": "Beauty Flow",
+   "file": "Beauty Flow.m4a",
+   "version": 1,
+   "dur": 433.75,
+   "lufs": -17.76,
+   "true_peak": -0.37,
+   "bpm": 71.8,
+   "bpm_conf": 0.554,
+   "seam_db": 93.36,
+   "loop": {
+    "start": 8.0,
+    "end": 421.75,
+    "seam_db": 0.01
+   },
+   "mood": "calm",
+   "energy": 0.35,
+   "voice_ok": true,
+   "baked_fx": false,
+   "license": "Kevin MacLeod · CC BY 3.0",
+   "measured": [
+    "dur",
+    "lufs",
+    "true_peak",
+    "bpm",
+    "seam_db",
+    "loop"
+   ]
+  },
+  {
+   "id": "Kevin MacLeod Wallpaper",
+   "file": "Kevin MacLeod Wallpaper.m4a",
+   "version": 1,
+   "dur": 220.06,
+   "lufs": -11.3,
+   "true_peak": 0.69,
+   "bpm": 184.6,
+   "bpm_conf": 0.634,
+   "seam_db": 172.84,
+   "loop": {
+    "start": 4.0,
+    "end": 209.06,
+    "seam_db": 0.02
+   },
+   "mood": "corporate",
+   "energy": 0.45,
+   "voice_ok": true,
+   "baked_fx": false,
+   "license": "Kevin MacLeod · CC BY 3.0",
+   "measured": [
+    "dur",
+    "lufs",
+    "true_peak",
+    "bpm",
+    "seam_db",
+    "loop"
+   ]
+  },
+  {
+   "id": "ZAE_house_bed",
+   "file": "ZAE_house_bed.m4a",
+   "version": 1,
+   "dur": 97.79,
+   "lufs": -28.62,
+   "true_peak": -13.01,
+   "bpm": 79.5,
+   "bpm_conf": 0.191,
+   "seam_db": 29.17,
+   "loop": {
+    "start": 11.0,
+    "end": 91.29,
+    "seam_db": 0.01
+   },
+   "mood": "brand",
+   "energy": 0.6,
+   "voice_ok": true,
+   "baked_fx": true,
+   "license": "ZAE house — ကိုယ်ပိုင်",
+   "measured": [
+    "dur",
+    "lufs",
+    "true_peak",
+    "bpm",
+    "seam_db",
+    "loop"
+   ]
+  }
+ ]
+}

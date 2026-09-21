@@ -208,3 +208,66 @@ def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN,
     out = [(a, b) for a, b in out if b - a >= min_keep]
     removed = sum(b - a for a, b in spans) - sum(b - a for a, b in out)
     return out, round(removed, 2)
+
+
+# ══ `_drop_exact` ကာကွယ်ချက် (Cut audit P0) ═══════════════════════
+# ⚠️ သုံးစွဲသူ လက်ခံထားသော ပြန်စ အပိုင်းများကို အရင်က **စစ်ဆေးမှု မရှိဘဲ**
+#    `subtract(..., snap=0.0)` ကို တိုက်ရိုက် ပို့ခဲ့သည်。 ဒါက —
+#      · စကားထဲ ကျနေသော အစွန်းကို ဖြတ်ပြီး **စကားလုံး ဖြတ်**နိုင်သည်
+#        (Zin ရဲ့ ပထမ စည်းကမ်း: စကားထဲ ဘယ်တော့မှ မဖြတ်ရ · F2 = 0)
+#      · အပိုင်းချင်း ထပ်နေလျှင် ဖြုတ်ချက် နှစ်ဆ တွက်မိသည်
+#      · ဗီဒီယို တစ်ခုလုံး ပျောက်သွားအောင် ဖြတ်မိနိုင်သည်
+#    ⇒ **ပိတ်ပြီး အကြောင်းရင်း ပြရမည်** — တိတ်တဆိတ် ဖြတ်တာ မဟုတ်。
+EDGE_PAD = 0.04          # စကား အစွန်းနဲ့ ဤအကွာအဝေးထက် နီးလျှင် မလုံခြုံ
+MIN_DROP = 0.08          # ဒီထက် တိုသော ဖျက်ချက်က အဓိပ္ပာယ် မရှိ
+MIN_LEFT = 1.0           # ဗီဒီယိုမှာ အနည်းဆုံး ကျန်ရမည့် စက္ကန့်
+
+
+def validate_drops(drops, sp, dur, edge=EDGE_PAD, min_drop=MIN_DROP,
+                   min_left=MIN_LEFT, kept=None):
+    """`(ok, bad)` — `ok` က ဖြတ်လို့ရသော အပိုင်း · `bad` က `(အပိုင်း, အကြောင်းရင်း)`
+
+    `sp`   — စကား run စာရင်း `[(a, b)]` (`measure.speech()[0]`)
+    `dur`  — မူရင်း ကြာချိန်
+    `kept` — ယခု ကျန်နေသော span စုစုပေါင်း စက္ကန့် (ရှိလျှင် အနည်းဆုံး စစ်သည်)
+
+    ⚠️ **အစွန်း ၂ ဖက်လုံး** စကားထဲ မကျရ — တစ်ဖက်ဖက် ကျလျှင် စကားလုံး
+       ပြတ်သည်。 `measure.in_speech()` က pad နဲ့ စစ်သည်。
+    """
+    try:
+        import measure as _M
+    except ImportError:
+        from core import measure as _M
+    ok, bad, taken = [], [], []
+    for d in (drops or []):
+        try:
+            a, b = float(d[0]), float(d[1])
+        except (TypeError, ValueError, IndexError):
+            bad.append((d, "ကိန်း မဟုတ်")); continue
+        if not (a == a and b == b) or a in (float("inf"), float("-inf")) \
+                or b in (float("inf"), float("-inf")):
+            bad.append((d, "ကိန်း မမှန်")); continue
+        if b <= a:
+            bad.append((d, "အဆုံးက အစထက် မကြီး")); continue
+        if a < -1e-6 or (dur and b > float(dur) + 0.05):
+            bad.append((d, f"မူရင်း ကြာချိန် ({dur:.1f}s) ပြင်ပ")); continue
+        if b - a < min_drop:
+            bad.append((d, f"တိုလွန်း ({b-a:.2f}s < {min_drop}s)")); continue
+        if any(a < y - 1e-9 and b > x + 1e-9 for x, y in taken):
+            bad.append((d, "အရင် ဖျက်ချက်နဲ့ ထပ်နေသည်")); continue
+        # ⚠️ အစွန်း ၂ ဖက်လုံး စကားထဲ မကျရ
+        ina = _M.in_speech(a, sp, pad=edge) if sp else False
+        inb = _M.in_speech(b, sp, pad=edge) if sp else False
+        if ina or inb:
+            side = "အစ" if ina and not inb else ("အဆုံး" if inb and not ina
+                                                 else "အစ+အဆုံး")
+            bad.append((d, f"{side} က စကားထဲ ကျနေသည် — စကားလုံး ပြတ်မည်"))
+            continue
+        ok.append([a, b]); taken.append((a, b))
+    if kept is not None:
+        rm = sum(y - x for x, y in taken)
+        if kept - rm < min_left:
+            # ⚠️ အားလုံး ဖျက်မိလျှင် ဗီဒီယို မကျန်တော့ ⇒ တစ်ခုမှ မဖျက်ရ
+            return [], [(d, f"အားလုံး ဖျက်လျှင် {kept-rm:.1f}s သာ ကျန်မည် "
+                            f"(အနည်းဆုံး {min_left}s)") for d in (drops or [])]
+    return ok, bad
