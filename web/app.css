@@ -847,3 +847,32 @@ select.inp{ appearance:none; background-image:
 #planrows .plid{white-space:normal;word-break:break-word;font-size:11px;line-height:1.35;text-align:right}
 #planrows .row{align-items:flex-start}
 #planrows .tc{min-width:58px}
+
+/* ⚠️ **ဖိုင် input ကို `hidden` မထားရ** — `hidden` ဆိုလျှင် keyboard focus
+   မရ · screen reader မမြင် ⇒ 「အသံ ဖိုင် ရွေး」က တကယ် မဖွင့်နိုင်ခဲ့သည်
+   (၂၀၂၆-၀၉-၂၁ Zin)。 sr-only က မျက်စိနဲ့ မမြင်ရဘဲ **အလုပ်ဖြစ်နေသည်**。 */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ── Reference Style DNA card (၂၀၂၆-၀၉-၂၁) ────────────────────
+   ⚠️ **ချုံ့ထားရမည်** — Smart Edit တစ်ချက်နှိပ် အလုပ်ဖြစ်မှုကို မပိတ်ဆို့ရ。 */
+.refcard{border:1px dashed var(--ln);border-radius:12px;padding:12px;margin:14px 0;
+  max-width:780px}
+.refhead b{font-size:13.5px;display:block}
+.refhead .lede{font-size:12px;margin:4px 0 0}
+.refbody{margin-top:10px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.refbody .dnab{flex-basis:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px 14px;margin:2px 0 4px}
+.refbody .dnab s{text-decoration:none;font-size:12px;color:var(--tx2);
+  display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--ln);
+  padding:3px 0}
+.refbody .dnab s b{color:var(--tx);font-weight:600}
+.refbody .dnab s.unk b{color:var(--tx2);font-weight:400;font-style:italic}
+.refbody .cmp{flex-basis:100%;font-size:12px;border-radius:8px;padding:7px 10px;line-height:1.55}
+.refbody .cmp.compatible{background:rgba(34,211,197,.10);color:var(--tx)}
+.refbody .cmp.adapted{background:rgba(255,224,0,.12);color:var(--tx)}
+.refbody .cmp.unsuitable{background:rgba(232,16,42,.10);color:var(--tx)}
+.refbody .rmsg{font-size:12px;color:var(--tx2);flex-basis:100%}
+.refbody .rbar{flex-basis:100%;height:6px;border-radius:99px;background:var(--ln);overflow:hidden}
+.refbody .rbar i{display:block;height:100%;background:var(--ac);transition:width .3s}
+@media(max-width:620px){.refbody .dnab{grid-template-columns:1fr}}

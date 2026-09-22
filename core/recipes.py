@@ -733,3 +733,57 @@ def listing():
                         silence_ms=r.get("silence_ms"),
                         shot_grade=r.get("shot_grade")))
     return out
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Visuals & Motion — အလှအပ **အဆင့်** (၂၀၂၆-၀၉-၂၁ Zin)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ **QC ဂိတ်ကို လုံးဝ မထိရ** (Zin: 「ဂိတ် မလျှော့ရ」)。 ဒါကြောင့်
+#    `gfx_share` (coverage ဘောင် — QC က ဒီဘောင်နဲ့ စစ်သည်) ကို **မရွှေ့**ပါ。
+#    ရွှေ့တာက **rate** — ဂရပ်ဖစ် အရေအတွက်、B-roll、punch-in、SFX သိပ်သည်းမှု。
+# ⚠️ ဒါက တိုင်းချက်အပေါ် အခြေခံသည်: coverage တူတူဆိုပေမယ့် ကတ် ၈ ခုက
+#    ၁၆ ခုနဲ့ လုံးဝ မတူ — 「coverage ကို ကြာချိန်နဲ့ ဖြည့်လျှင် slideshow」
+#    ဖြစ်ကြောင်း အရင် တိုင်းပြီးသား。 ⇒ rate က တကယ့် လက်ကိုင်。
+# ⚠️ SFX သိပ်သည်းမှုကို တင်လျှင် **QC ceiling အထိသာ** — ceiling ကို
+#    မတက်စေရ (မတက်ရင် render က QC မအောင်ဘဲ ပိတ်မိမည်)。
+LEVELS = ("auto", "minimal", "balanced", "high")
+SFX_CEIL = 1.5              # = qc.SFX_MAX_PER_MIN (import ဝိုင်း မဖြစ်စေရန်)
+GFX_CEIL = 24               # ကတ် အရေအတွက် — ဒီထက် ပိုလျှင် တစ်ခုချင်း
+                            # ကြာချိန် `card_len` ဂိတ် (၁.၀s) အောက် ကျနိုင်
+ZOOM_CEIL = 0.12            # punch-in — ဒီထက် ပိုလျှင် မျက်စိ ရှုပ်သည်
+
+# level → (gfx, broll, broll_pct, zoom_amt, insert_per_min, sfx_per_min)
+_MUL = {
+    "minimal":  (0.50, 0.50, 0.60, 0.00, 0.50, 0.50),
+    "balanced": (1.00, 1.00, 1.00, 1.00, 1.00, 1.00),
+    "high":     (1.60, 1.30, 1.15, 1.50, 1.50, 1.50),
+}
+
+
+def motion(r, level):
+    """`r` ကို အလှအပ အဆင့်အလိုက် ချိန်ညှိသည် — **အသစ် ပြန်ပေးသည်**。
+
+    `auto` · `balanced` · မသိသော level ⇒ recipe ရဲ့ တိုင်းထားသော ပုံသေအတိုင်း。
+    ⚠️ `gfx_share` · `cap_*` · `lufs` · grade **မထိပါ** — QC ဂိတ်များ ဖြစ်သည်。
+    """
+    lv = (level or "auto").strip().lower()
+    if lv not in _MUL or lv in ("auto", "balanced"):
+        r = dict(r); r["_motion"] = lv if lv in LEVELS else "auto"
+        return r
+    g, b, bp, z, ins, sx = _MUL[lv]
+    r = dict(r)
+    if r.get("gfx") is not None:
+        r["gfx"] = max(1, min(GFX_CEIL, int(round(float(r["gfx"]) * g))))
+    if r.get("broll") is not None:
+        r["broll"] = max(0, int(round(float(r["broll"]) * b)))
+    if r.get("broll_pct") is not None:
+        r["broll_pct"] = round(min(0.60, float(r["broll_pct"]) * bp), 3)
+    if r.get("zoom_amt") is not None:
+        r["zoom_amt"] = round(min(ZOOM_CEIL, float(r["zoom_amt"]) * z), 4)
+    if r.get("insert_per_min") is not None:
+        r["insert_per_min"] = round(float(r["insert_per_min"]) * ins, 3)
+    if r.get("sfx_per_min") is not None:
+        # ⚠️ ceiling အထိသာ — QC `sfx_density` ဂိတ်ကို မဖြတ်စေရ
+        r["sfx_per_min"] = round(min(SFX_CEIL, float(r["sfx_per_min"]) * sx), 3)
+    r["_motion"] = lv
+    return r

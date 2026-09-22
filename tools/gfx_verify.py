@@ -33,11 +33,30 @@ eid = sys.argv[1]
 e = [x for x in G.catalog() if x["id"] == eid]
 if not e: print(json.dumps({"ok":0,"why":"id မတွေ့"})); raise SystemExit
 e = e[0]
+# ⚠️ **engine ရဲ့ လမ်းကြောင်းအတိုင်း စစ်ရမည်** (၂၀၂၆-၀၉-၂၂)。 ယခင်က
+#    `G.fill()` တစ်ခုတည်း စစ်ခဲ့သဖြင့် 「fill ဗလာ」 ၅၁ ခု ကျခဲ့သည် —
+#    ဒါပေမယ့် engine က ယခု `tmplfit` ကိုပါ ပြန်ဆုတ်လမ်း အဖြစ် သုံးသည်
+#    ⇒ verifier က engine ထက် **ကျဉ်း**နေလျှင် အသုံးဝင်သော template တွေကို
+#    အလကား ပိတ်ထားရာ ကျသည်。
 args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62)
-if not args: print(json.dumps({"ok":0,"why":"fill ဗလာ"})); raise SystemExit
-# ⚠️ production (dress.py:235) နှင့် **အတိအကျ တူရမည်** — tag ရှေ့က ထည့်
-if DR._wants_tag(e["fn"]): args = ("g0",) + tuple(args)
-el = G.call(e, args, 2.0)
+kw = None
+if not args:
+    try:
+        kw = DR._tf_args(dict(kind=eid, text="ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း",
+                              items=["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
+                              num="62"),
+                         accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
+    except Exception as _e:
+        kw = None
+    if not kw:
+        print(json.dumps({"ok":0,"why":"fill ဗလာ (tmplfit လည်း မရ)"})); raise SystemExit
+if kw is not None:
+    el = DR._call_template(getattr(__import__(e["module"]), e["fn"]),
+                           eid, "g0", kw)
+else:
+    # ⚠️ production (dress.py) နှင့် **အတိအကျ တူရမည်** — tag ရှေ့က ထည့်
+    if DR._wants_tag(e["fn"]): args = ("g0",) + tuple(args)
+    el = G.call(e, args, 2.0)
 if not isinstance(el, dict):
     print(json.dumps({"ok":0,"why":"dict မဟုတ် (%%s)" %% type(el).__name__})); raise SystemExit
 fr = el.get("anim") or el.get("frames") or []
@@ -61,7 +80,10 @@ print(json.dumps({"ok": 1 if ink >= %(MI)f else 0,
 def main():
     import gfxcat as G
     only = os.environ.get("GFX_ONLY")
-    ents = G.usable()
+    # ⚠️ `usable()` က `USE` အမျိုးအစားသာ ပြန်ပေး ⇒ `mockup` · `transition` ·
+    #    `motion` (၁၁၃ ခု) ကို **စစ်တောင် မစစ်ဖြစ်**ခဲ့。 "IKKI ကို ၁၀၀%
+    #    ပေး" ဆိုလျှင် အရင်ဆုံး အဲဒါတွေ render ဖြစ်မဖြစ် သိရမည် ⇒ `GFX_ALL=1`。
+    ents = G.catalog() if os.environ.get("GFX_ALL") else G.usable()
     if only: ents = [e for e in ents if e["id"] in only.split(",")]
     print(f"စစ်မည် {len(ents)} ခု · timeout {TIMEOUT}s", flush=True)
     res, t0 = [], time.time()
@@ -84,8 +106,24 @@ def main():
         print(f"  [{i:3d}/{len(ents)}] {mark} {e['id']:34s} {r.get('why','')[:60]}", flush=True)
     ok = [r for r in res if r.get("ok")]
     print(f"\nအောင် {len(ok)}/{len(res)} · {time.time()-t0:.0f}s", flush=True)
-    json.dump(res, open(os.path.join(HERE, "assets", "gfx_verify.json"), "w"),
-              ensure_ascii=False, indent=1)
+    # ⚠️ **`GFX_ONLY` နဲ့ ပြေးလျှင် ဖိုင်ကို မလွှမ်းရ** — ၂၀၂၆-၀၉-၂၂:
+    #    template ၂ ခု spot-check လုပ်ရာ ၁၇၂ entry ဖိုင်ကို ၂ entry နဲ့
+    #    လွှမ်းပစ်ခဲ့သည် (git ကနေ ပြန်ယူရ)。 ⇒ အပိုင်း ပြေးလျှင် **ပေါင်း**သည်。
+    _p = os.path.join(HERE, "assets", "gfx_verify.json")
+    if only:
+        old = []
+        try:
+            old = json.load(open(_p, encoding="utf-8")) or []
+        except Exception:
+            old = []
+        _new = {r["id"]: r for r in old}
+        _new.update({r["id"]: r for r in res})
+        res_all = sorted(_new.values(), key=lambda r: r["id"])
+        print(f"  (အပိုင်း ပြေးပြီး — ရှိပြီးသား {len(old)} နဲ့ ပေါင်း ⇒ "
+              f"{len(res_all)})", flush=True)
+    else:
+        res_all = res
+    json.dump(res_all, open(_p, "w"), ensure_ascii=False, indent=1)
     from collections import Counter
     print("module အလိုက် အောင်:", dict(Counter(r["id"].split(".")[0] for r in ok)))
 

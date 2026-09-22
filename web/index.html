@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0A0A">
-<link rel="stylesheet" href="/app.css?v=1789998663">
+<link rel="stylesheet" href="/app.css?v=1790003885">
 </head>
 <body>
 
@@ -92,7 +92,22 @@
               <span data-my="Logo · အရောင် · ဖောင့်" data-en="Logo · colour · font">Logo · အရောင် · ဖောင့်</span></button>
           </div>
           <div id="projectbrand" class="brand-pulse" aria-live="polite"></div>
-          <div class="reference-note"><span>✦</span><p><b data-my="ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?" data-en="Want to use your own video style?">ကိုယ့်ဗီဒီယိုစတိုင်ကိုယူမလား?</b><br><span data-my="Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။" data-en="Reference-video style analysis is not connected to the engine yet. Once connected, it will learn timing, captions and motion from a sample video.">Reference-video style analysis ကို engine ထဲ မချိတ်ရသေးပါ။ ချိတ်ပြီးမှ timing, caption နဲ့ motion ကို sample video အတိုင်း လေ့လာခိုင်းမယ်။</span></p></div>
+          <!-- ⚠️ ယခင်က 「engine ထဲ မချိတ်ရသေးပါ」ဟု **ဆုံးရာ စာသား**
+               ဖြစ်ခဲ့သည် (ဘာမှ လုပ်လို့ မရ)。 ၂၀၂၆-၀၉-၂၁: တကယ် အလုပ်ဖြစ်သော
+               optional card ဖြစ်သည်。
+               ⚠️ **လမ်းကြောင်းသာ · ပုံတူ မဟုတ်** — ရုပ်ပုံ · တီးလုံး · logo ·
+                  စာတန်း စာသား ကို မကူးပါ。 -->
+          <div class="refcard" id="refcard">
+            <div class="refhead">
+              <b data-my="reference ဗီဒီယို သုံးမလား? (optional)"
+                 data-en="Use a reference video (optional)">reference ဗီဒီယို သုံးမလား? (optional)</b>
+              <p class="lede" data-my="IKKI က အရှိန်၊ စာတန်း စည်းနဲ့ လှုပ်ရှားမှု သိပ်သည်းမှုကို တိုင်းပါတယ်။ ရုပ်ပုံ၊ တီးလုံး၊ logo၊ စာသားကို မကူးပါ။"
+                 data-en="IKKI measures pacing, caption rhythm and motion density. It does not copy footage, music, logos or text.">IKKI က အရှိန်၊ စာတန်း စည်းနဲ့ လှုပ်ရှားမှု သိပ်သည်းမှုကို တိုင်းပါတယ်။ ရုပ်ပုံ၊ တီးလုံး၊ logo၊ စာသားကို မကူးပါ။</p>
+            </div>
+            <div class="refbody" id="refbody"></div>
+            <input type="file" id="reffile" class="sr-only" tabindex="-1"
+                   accept="video/mp4,video/quicktime,.mp4,.mov">
+          </div>
           <!-- ⚠️ **CTA တစ်ခုတည်း** — mode အလိုက် စာသား/အလုပ် ပြောင်းသည်。
                အရင်က static 「Brand Studio ဖွင့်မယ်」က Smart Edit မှာလည်း
                ပေါ်နေသဖြင့် 「brand ဆောက်ရမယ်」ဟု အထင်မှား ဖြစ်ခဲ့သည်。 -->
@@ -145,9 +160,18 @@
                data-my="recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်"
                data-en="Upload the recorder file — we align and merge it">recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်</p>
           </div>
-          <label class="btn" style="cursor:pointer" data-my="အသံ ဖိုင် ရွေး" data-en="Choose audio">အသံ ဖိုင် ရွေး
-            <input type="file" id="audfile" accept="audio/*,.m4a,.wav,.mp3" hidden></label>
+          <!-- ⚠️ **တကယ့် ခလုတ် ဖြစ်ရမည်**。 ယခင်က `<label class="btn">` အထဲ
+               `hidden` input ထည့်ထားသဖြင့် — keyboard · touch · screen reader
+               တွေနဲ့ **မဖွင့်နိုင်**ခဲ့သည် (`hidden` input က focus မရ ·
+               label က button role မရှိ)。 ⇒ `<button>` + sr-only input。 -->
+          <button type="button" class="btn" id="audpick"
+                  data-my="အသံ ဖိုင် ရွေး" data-en="Choose audio">အသံ ဖိုင် ရွေး</button>
+          <input type="file" id="audfile" class="sr-only" tabindex="-1"
+                 accept=".wav,.m4a,.mp3,.flac,.aac,.aif,.aiff,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/mpeg,audio/flac">
           <button class="more" id="audclr" hidden data-my="ဖယ်" data-en="Clear">ဖယ်</button>
+          <p class="lede" id="audwhy" style="flex-basis:100%;font-size:11.5px;margin:6px 0 0"
+             data-my="ဒီ recorder အသံက ချိန်ညှိပြီးလျှင် **ကင်မရာအသံကို အစားထိုး**ပါမယ် — နောက်ခံ တီးလုံး မဟုတ်ပါ။"
+             data-en="This recorder track will replace camera audio after sync; it is not background music.">ဒီ recorder အသံက ချိန်ညှိပြီးလျှင် ကင်မရာအသံကို အစားထိုးပါမယ် — နောက်ခံ တီးလုံး မဟုတ်ပါ။</p>
         </div>
         <div class="project-upload">
           <div><span class="eyebrow" data-my="READY WHEN YOU ARE" data-en="READY WHEN YOU ARE">READY WHEN YOU ARE</span>
@@ -580,6 +604,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1789998902"></script>
+<script src="/app.js?v=1790004423"></script>
 </body>
 </html>

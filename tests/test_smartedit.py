@@ -97,5 +97,23 @@ ck("ဖျက်ပြီး ပျောက်", nid not in [b["id"] for b in
                                    M.brands(authorization="Bearer " + t2)["brands"]])
 ck("a_default ရဲ့ zjl မထိ", db.one("SELECT 1 FROM brands WHERE id='zjl'") is not None)
 
+print("\n── ⑥ logo ဖတ်ခြင်း — ကိုယ်ပိုင်ဟာသာ မြင်ရမည် ──")
+# ⚠️ ယခင်က `tok not in (UTOKEN, WTOKEN)` ⇒ account token ကို ပယ်သဖြင့်
+#    ဖောက်သည် ရဲ့ logo မပေါ်; မျှဝေ UTOKEN ရှိသူက brand တိုင်း ဖတ်နိုင်ခဲ့
+k2 = post({"name": "Logo Kit", "aspect": "16:9"}, t2)["id"]
+os.makedirs(M.LOGO, exist_ok=True)
+open(os.path.join(M.LOGO, f"{k2}.png"), "wb").write(b"\x89PNG\r\n\x1a\n")
+ck("ပိုင်ရှင် (acct2) ဖတ်ရ",
+   raises(M.brand_logo_get, k2, authorization="Bearer " + t2) is None)
+ck("အခြား account (a_default) ⇒ 404",
+   raises(M.brand_logo_get, k2, authorization="Bearer " + dflt) == 404)
+ck("worker token ⇒ ဖတ်ရ (ဗီဒီယိုထဲ ထည့်ရန်)",
+   raises(M.brand_logo_get, k2, authorization="Bearer " + M.WTOKEN) is None)
+ck("token မှား ⇒ 401",
+   raises(M.brand_logo_get, k2, authorization="Bearer nope") == 401)
+ck("t= query နဲ့လည်း ပိုင်ရှင် ဖတ်ရ",
+   raises(M.brand_logo_get, k2, authorization=None, t=t2) is None)
+M.brand_del(k2, authorization="Bearer " + t2)
+
 print(f"\n  ⇒ အောင် {OK} · ကျ {FAIL}")
 sys.exit(1 if FAIL else 0)

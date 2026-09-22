@@ -107,9 +107,9 @@ var SKEY='ikki_prefs';
    သူတစ်ပါးရဲ့ brand နဲ့ စခဲ့သည်。 */
 var SMART='ikki';
 var state={style:'short-video', family:'', mode:'smart', brand:SMART, font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
-  ovrBrand:false, ovrFmt:false};
+  ref:'', ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
-  ['style','brand','font','fmt','cap','vfmt','speed','mode'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+  ['style','brand','font','fmt','cap','vfmt','speed','mode','ref'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
   /* ⚠️ **ရှိပြီးသား သုံးစွဲသူရဲ့ ရွေးချယ်မှုကို မလွှမ်းရ** — `mode` မသိမ်းဘဲ
      `brand` သိမ်းထားသူက Smart Edit ဆီ ရုတ်တရက် ပြောင်းသွားလျှင် သူ့ brand
      ပျောက်သွားသလို ခံစားမည် ⇒ `ikki` မဟုတ်လျှင် 「ကိုယ်ပိုင် brand」ဟု
@@ -119,7 +119,7 @@ try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
 function savePrefs(){
   try{ localStorage.setItem(SKEY, JSON.stringify({style:state.style,brand:state.brand,
     font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt,speed:state.speed,
-    mode:state.mode})) }catch(e){}
+    mode:state.mode,ref:state.ref})) }catch(e){}
 }
 /* ကိုယ်ပိုင် kit များသာ — `is_system` (IKKI Smart Edit) ကို ဖယ်သည် */
 function ownKits(){ return (BRANDS||[]).filter(function(b){ return !b.is_system }) }
@@ -223,8 +223,18 @@ function paintAdv(){
   var bn=(BRANDS.find?BRANDS.find(function(b){return b.id===state.brand}):null);
   var nat=NATIVE[state.brand]||'16:9';
   var sz=state.fmt||nat;
-  el.textContent='— '+((bn&&bn.name)||state.brand)+' · '+sz
-    + (state.ovrBrand||state.ovrFmt ? ' (ကိုယ်တိုင် ရွေးထား)' : '');
+  /* ⚠️ **ဖတ်လို့ရသော အနှစ်ချုပ်** (Zin ရဲ့ §5) — ဖွင့်မကြည့်ဘဲ
+     ဘာသုံးမလဲ သိရမည်。 ဖောင့်/စာတန်း အရွယ်က မရွေးလျှင် ပုံစံ ပုံသေ。
+     ⚠️ အလှအပ (Visuals & Motion) က **ဖြတ်ချက် အတည်ပြုချိန်** မှာ ရွေးသည် ⇒
+        ဒီမှာ 「AI ရွေး」ဟုသာ ပြသည် (နောက်အဆင့်မှာ ပြောင်းနိုင်)。 */
+  var my=(cur==='my');
+  var _cap = state.cap ? (my?'စာတန်း ရွေးထား':'captions set')
+                       : (my?'စာတန်း ပုံစံ ပုံသေ':'captions style default');
+  var _fnt = state.font ? (my?'ဖောင့် ရွေးထား':'font set')
+                        : (my?'ဖောင့် ပုံစံ ပုံသေ':'font style default');
+  el.textContent='— '+((bn&&bn.name)||state.brand)+' · '+sz+' · '+_cap+' · '+_fnt
+    + ' · ' + (my?'အလှအပ AI ရွေး':'motion AI')
+    + (state.ovrBrand||state.ovrFmt ? (my?' (ကိုယ်တိုင် ရွေးထား)':' (your pick)') : '');
 }
 function paintModes(){
   [].forEach.call(document.querySelectorAll('#modepick .mode'),function(m){
@@ -658,26 +668,105 @@ function start(input){
       body:JSON.stringify({upload_id:d.upload_ids[0],source_upload_ids:d.upload_ids,
                            audio_upload_id:d.audio||'',speech_speed:state.speed,
                            recipe:state.style,brand_id:state.brand,fmt:state.fmt,cap:state.cap,
-                           font:state.font,title:files[0].name,vfmt:state.vfmt})});
+                           font:state.font,title:files[0].name,vfmt:state.vfmt,
+                           /* ⚠️ reference က **optional** — မရွေးလျှင် ဗလာ ⇒
+                              IKKI Smart Edit ပုံသေအတိုင်း (မပြောင်း)。 */
+                           ref_id:state.ref||''})});
   }).then(function(j){ savePrefs(); watch(j.job_id) })
     .catch(function(e){ if(String(e.message)!=='cancelled'&&String(e.message)!=='quota') fail(e.message) });
 }
 
-/* ── dual-system အသံ ── */
+/* ══════════════════════════════════════════════════════════════════
+   dual-system အသံ (recorder track)
+   ⚠️ Zin ၂၀၂၆-၀၉-၂၁: 「Choose audio က တကယ့် ခလုတ် ဖြစ်ရမယ်」—
+      ယခင်က `<label class="btn">` ထဲ `hidden` input ဖြစ်သဖြင့် keyboard ·
+      touch · screen reader တွေနဲ့ **မဖွင့်နိုင်**ခဲ့သည်。
+   ⚠️ `DOMContentLoaded` **တစ်ခုတည်း အပေါ် မမှီရ** — script က defer/async
+      သို့မဟုတ် DOM ပြီးမှ ရောက်လျှင် event က ကုန်ပြီးသား ဖြစ်ကာ ချိတ်မိမည်
+      မဟုတ် ⇒ DOM အသင့်ဆိုလျှင် **ချက်ချင်း** ချိတ်သည်。
+   ⚠️ ဒီ အသံက **နောက်ခံ တီးလုံး မဟုတ်** — ချိန်ညှိပြီးလျှင် ကင်မရာအသံကို
+      အစားထိုးသည် (မပေါင်းပါ ⇒ echo/phasing မဖြစ်)。
+   ══════════════════════════════════════════════════════════════════ */
 var AUD=null;
-document.addEventListener('DOMContentLoaded',function(){
-  var f=$('audfile'); if(!f) return;
-  f.onchange=function(){
-    AUD=this.files[0]||null;
-    var n=$('audnote'), c=$('audclr');
-    if(AUD){ n.textContent=(cur==='my'?'ရွေးထား: ':'Selected: ')+AUD.name+
-      ' ('+(AUD.size/1e6).toFixed(1)+' MB)'; if(c) c.hidden=false; }
-  };
-  var c=$('audclr');
-  if(c) c.onclick=function(){ AUD=null; f.value=''; c.hidden=true;
-    $('audnote').textContent=(cur==='my'?'recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်'
-                                       :'Upload the recorder file — we align and merge it'); };
-});
+/* ⚠️ ffmpeg ဖတ်နိုင်သော recorder ဖိုင်များ。 `audio/*` တစ်ခုတည်း ခွင့်ပြုလျှင်
+   browser တချို့က .flac/.aif ကို type ဗလာ ပေးသဖြင့် ပိတ်မိသည် ⇒ extension
+   ကိုပါ စစ်သည်。 */
+var AEXT=['wav','m4a','mp3','flac','aac','aif','aiff','mp4','caf','ogg','opus','wma'];
+var AMAX=2*1024*1024*1024;      /* ၂ GB — ၃ နာရီ 24-bit WAV ~၂ GB */
+function audLabel(){
+  return cur==='my' ? 'recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်'
+                    : 'Upload the recorder file — we align and merge it';
+}
+function audClear(){
+  AUD=null;
+  var f=$('audfile'), c=$('audclr'), n=$('audnote');
+  if(f) f.value='';
+  if(c) c.hidden=true;
+  if(n) n.textContent=audLabel();
+}
+function audShow(){
+  var n=$('audnote'), c=$('audclr');
+  if(!AUD||!n) return;
+  var my=(cur==='my');
+  n.textContent=(my?'ရွေးထား: ':'Selected: ')+AUD.name
+    +' ('+(AUD.size/1e6).toFixed(1)+' MB)';
+  if(c) c.hidden=false;
+  /* ⚠️ ကြာချိန် · sample rate ကို **browser ကနေ** ဖတ်သည် — server ဆီ
+     တင်စရာ မလိုပါ (ဗီဒီယို မတင်ခင် တင်လျှင် အလကား ဖြစ်မည်)。
+     မဖတ်နိုင်လျှင် တိတ်တဆိတ် ကျော်သည် — ဖိုင်က မကောင်းဟု မဆိုနိုင်。 */
+  try{
+    var u=URL.createObjectURL(AUD), a=new Audio();
+    a.preload='metadata';
+    a.onloadedmetadata=function(){
+      var d=a.duration;
+      if(isFinite(d)&&d>0){
+        var mm=Math.floor(d/60), ss=Math.round(d%60);
+        n.textContent+=' · '+mm+':'+('0'+ss).slice(-2);
+      }
+      URL.revokeObjectURL(u);
+    };
+    a.onerror=function(){ URL.revokeObjectURL(u) };
+    a.src=u;
+  }catch(e){}
+}
+function audPicked(f){
+  if(!f){ audClear(); return }
+  var ext=(f.name.split('.').pop()||'').toLowerCase();
+  var my=(cur==='my');
+  if(AEXT.indexOf(ext)<0){
+    alert(my?('ဒီ အသံဖိုင် အမျိုးအစားကို မဖတ်နိုင်ပါ (.'+ext+')။ WAV · M4A · MP3 · FLAC သုံးပါ။')
+            :('Unsupported audio type (.'+ext+'). Use WAV, M4A, MP3 or FLAC.'));
+    audClear(); return;
+  }
+  if(f.size>AMAX){
+    alert(my?'အသံဖိုင် ၂ GB ထက် ကြီးလွန်းပါတယ်':'Audio file is larger than 2 GB');
+    audClear(); return;
+  }
+  if(!f.size){
+    alert(my?'အသံဖိုင် ဗလာ ဖြစ်နေပါတယ်':'The audio file is empty');
+    audClear(); return;
+  }
+  AUD=f; audShow();
+}
+function bindAud(){
+  var f=$('audfile'), b=$('audpick'), c=$('audclr');
+  if(!f||!b) return false;
+  if(b.getAttribute('data-bound')==='1') return true;
+  b.setAttribute('data-bound','1');
+  /* ⚠️ ခလုတ်ကို input ဆီ **ရှင်းလင်းစွာ ချိတ်**ရမည် (label ရဲ့ သွယ်ဝိုက်
+     အလုပ်အပေါ် မမှီ) ⇒ mouse · keyboard (Enter/Space က click ဖြစ်သည်) ·
+     touch အားလုံး အလုပ်ဖြစ်သည်。 */
+  b.onclick=function(ev){ ev.preventDefault(); f.click() };
+  f.onchange=function(){ audPicked(this.files&&this.files[0]) };
+  if(c) c.onclick=function(){ audClear() };
+  return true;
+}
+/* DOM အသင့် ဖြစ်ပြီးလျှင် ချက်ချင်း · မဟုတ်လျှင် စောင့်。 နှစ်ခုလုံး
+   မရလျှင် (script က head မှာ · defer မပါ) အခြား လမ်း တစ်ခု ထား。 */
+if(!bindAud()){
+  document.addEventListener('DOMContentLoaded', bindAud);
+  window.addEventListener('load', bindAud);
+}
 
 /* ── job စောင့်ကြည့်ခြင်း ── */
 function paintSteps(){
@@ -704,6 +793,15 @@ function watch(jid){
       // ⚠️ **review မှာ ရပ်ရမည်** — မရပ်လျှင် ၃ စက္ကန့်တိုင်း ဆက်မေးပြီး
       //    dock က "2/7 လုပ်နေဆဲ" ဟု ထာဝရ ပြနေမည်。 တကယ်က သုံးစွဲသူကို
       //    စောင့်နေတာ — ဗီဒီယို မဖြတ်ရသေး。
+      // ⚠️ `cut_review` — ဖြတ်ချက် proxy ထွက်ပြီး **ဒုတိယ အတည်ပြုချက်** ခံရန်
+      //    ရပ်နေသည်。 UI က script.html မှာ ရှိသဖြင့် အဲဒီဆီ ပို့သည် —
+      //    မပို့လျှင် dock က "3/7 လုပ်နေဆဲ" ဟု ထာဝရ ပြနေမည်。
+      if(j.status==='cut_review'){
+        clearInterval(state.poll); $('dock').hidden=true;
+        if(!/[?&]old=1/.test(location.search)){
+          location.href='/script.html?job='+encodeURIComponent(j.id); return;
+        }
+      }
       if(j.status==='review'){
         clearInterval(state.poll); $('dock').hidden=true;
         // ⚠️ **done(j) ခေါ်ရမည်** — အရင်က ဘောက်စ်တွေ ဖွင့်ပေးရုံသာ လုပ်ခဲ့သဖြင့်
@@ -729,7 +827,7 @@ function watch(jid){
   };
 }
 function dock(j){
-  if(!j||['done','failed','cancelled','review'].indexOf(j.status)>-1){$('dock').hidden=true;return}
+  if(!j||['done','failed','cancelled','review','cut_review'].indexOf(j.status)>-1){$('dock').hidden=true;return}
   $('dock').hidden=false;
   $('dkname').textContent=j.title||j.id;
   $('dkstage').textContent=(cur==='my'?STAGE_MY:STAGE_EN)[Math.min(6,j.stage||0)];
@@ -740,7 +838,7 @@ function done(j){
   // ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「ဗီဒီယို upload ပြီးတာနဲ့ Script Editor အော်တို ပေါ်မှ」
   //    ⇒ `review` (ASR ပြီး · ဗီဒီယို မထုတ်ရသေး) ရောက်တာနဲ့ **တန်း ခေါ်သွားသည်**。
   //    `?old=1` ထည့်လျှင် ယခင် စာမျက်နှာ ဆက်ကြည့်လို့ ရသည် (လုံးဝ မပိတ်ရ)。
-  if(j && j.status==='review' && !/[?&]old=1/.test(location.search)){
+  if(j && (j.status==='review'||j.status==='cut_review') && !/[?&]old=1/.test(location.search)){
     location.href='/script.html?job='+encodeURIComponent(j.id); return;
   }
   scene('s-done'); $('dock').hidden=true;
@@ -2172,7 +2270,7 @@ var t=localStorage.getItem('ikki_theme'); if(t) document.documentElement.setAttr
    ပထမ load မှာ ကွက်လပ် ဖြစ်ပြီး ကွန်ရက် ကျလျှင် ထာဝရ ဗလာ ဖြစ်သည်
    (offline စမ်းစဉ် ဖမ်းမိ)。 Smart Edit မှာ ဒေတာ မလိုပါ。 */
 orderProjectFlow(); lang(cur); paintStyles(); paintProjectBrand();
-loadMeta(); loadJobs(); scene('s-ready');
+loadMeta(); loadJobs(); loadRefs(); scene('s-ready');
 
 
 /* ══ AI အစီအစဉ် — ဖတ်ရုံ ══════════════════════════════════
@@ -2598,6 +2696,209 @@ document.addEventListener('click',function(e){
   var se=e.target.closest&&e.target.closest('[data-sedit]');
   if(se) sopen(se.getAttribute('data-sedit'));
 });
+
+/* ══════════════════════════════════════════════════════════════════
+   Reference Video **Style DNA**  (၂၀၂၆-၀၉-၂၁ Zin)
+   ⚠️ **လမ်းကြောင်းသာ · ပုံတူ မဟုတ်** — reference ရဲ့ ရုပ်ပုံ · တီးလုံး ·
+      အသံ · စာတန်း စာသား · logo ကို output ထဲ မကူးပါ。
+   ⚠️ **တိတ်တဆိတ် မဖွင့်ရ** — 「ဒီပရောဂျက်အတွက် သုံး」နှိပ်မှ သက်ဝင်。
+   ⚠️ IKKI Smart Edit က တစ်ချက်နှိပ် အလုပ်ဖြစ်နေရမည် ⇒ ဒီ card က
+      **မဖြစ်မနေ မဟုတ်** · ချုံ့ထားသည်。
+   ══════════════════════════════════════════════════════════════════ */
+var REF={id:null, poll:null, busy:false, list:[], applied:null};
+var DNA_MY={
+  pace:{calm:'ငြိမ်သက်',balanced:'အလယ်အလတ်',fast:'မြန်'},
+  cut:{long_takes:'ရှည်သော ရိုက်ချက်',mixed:'ရော',tight:'တင်းတင်း'},
+  captions:{off:'မရှိ',occasional:'တစ်ခါတစ်ရံ',frequent:'မကြာခဏ'},
+  caption_size:{small:'သေး',medium:'အလယ်',large:'ကြီး'},
+  caption_band:{bottom:'အောက်ပိုင်း'},
+  motion:{minimal:'အနည်းဆုံး',balanced:'အလယ်အလတ်',dynamic:'တက်တက်'},
+  graphics:{sparse:'နည်း',explanatory:'ရှင်းလင်း',dense:'သိပ်'},
+  broll:{low:'နည်း',medium:'အလယ်',high:'များ'},
+  audio:{quiet:'တိတ်',standard:'ပုံမှန်',energetic:'တက်တက်'},
+  music:{likely:'ရှိနိုင်',unlikely:'မရှိနိုင်',uncertain:'မရေရာ'}
+};
+var DNA_ROWS=[['pace','အရှိန်','Pace'],['cut','ဖြတ်ချက် စည်း','Cut rhythm'],
+  ['captions','စာတန်း','Captions'],['caption_size','စာတန်း အရွယ်','Caption size'],
+  ['caption_band','စာတန်း နေရာ','Caption position'],
+  ['motion','လှုပ်ရှားမှု','Motion'],['graphics','ဂရပ်ဖစ်','Graphics'],
+  ['broll','B-roll','B-roll'],['audio','အသံ စွမ်းအင်','Audio energy'],
+  ['music','တီးလုံး','Music'],['aspect','အချိုး','Aspect']];
+
+function refVal(k,v){
+  if(v==null||v==='unknown') return {t:(cur==='my'?'မတိုင်းရ':'unknown'), unk:true};
+  var m=DNA_MY[k];
+  if(cur==='my'&&m&&m[v]) return {t:m[v], unk:false};
+  return {t:String(v).replace(/_/g,' '), unk:false};
+}
+function refBtn(id,label,cls){
+  return '<button type="button" class="btn '+(cls||'')+'" id="'+id+'">'+label+'</button>';
+}
+function paintRef(){
+  var el=$('refbody'); if(!el) return;
+  var my=(cur==='my');
+  var r=REF.list.filter(function(x){return x.id===REF.id})[0]||null;
+  /* ── ① ဘာမှ မရွေးသေး ── */
+  if(!r){
+    el.innerHTML=refBtn('refpick', my?'reference စိစစ်မယ်':'Analyze a reference','')
+      + (REF.list.length ? '<span class="rmsg">'+(my?'သိမ်းထားတဲ့ profile ':'Saved profiles ')
+          + REF.list.length+'</span>' : '')
+      + (REF.busy ? '<span class="rmsg">'+(my?'တင်နေသည်…':'Uploading…')+'</span>' : '');
+    bindRef(); return;
+  }
+  /* ── ② စိစစ်နေဆဲ ── */
+  if(r.status==='queued'||r.status==='running'){
+    el.innerHTML='<div class="rbar"><i style="width:'+(r.status==='running'?70:25)+'%"></i></div>'
+      +'<span class="rmsg">'+(my?'စိစစ်နေပါသည် — အရှိန်၊ စာတန်း စည်း၊ လှုပ်ရှားမှု တိုင်းနေပါတယ်။'
+                                :'Analyzing — measuring pacing, caption rhythm and motion.')+'</span>'
+      +refBtn('refdel', my?'ပယ်ဖျက်':'Cancel','ghost');
+    bindRef(); return;
+  }
+  /* ── ③ မအောင် ── */
+  if(r.status==='failed'){
+    el.innerHTML='<span class="rmsg">⚠️ '+esc(r.err||(my?'စိစစ်လို့ မရပါ':'Analysis failed'))+'</span>'
+      +refBtn('refpick', my?'အခြား sample စမ်းမယ်':'Try another sample','')
+      +refBtn('refdel', my?'ဖျက်':'Delete','ghost');
+    bindRef(); return;
+  }
+  /* ── ④ ရလဒ် ── */
+  var d=r.dna||{}, cm=r.compat||null;
+  var rows=DNA_ROWS.map(function(x){
+    if(d[x[0]]==null&&x[0]!=='aspect') return '';
+    var v=refVal(x[0], d[x[0]]);
+    return '<s class="'+(v.unk?'unk':'')+'"><span>'+(my?x[1]:x[2])+'</span><b>'+esc(v.t)+'</b></s>';
+  }).join('');
+  var applied=(REF.applied===r.id);
+  el.innerHTML='<div class="dnab">'+rows+'</div>'
+    +(cm ? '<div class="cmp '+esc(cm[0])+'">'+esc(my?cm[1]:(cm[2]||cm[1]))+'</div>' : '')
+    +'<span class="rmsg">'+(my?'ယုံကြည်မှု ':'Confidence ')
+      +Math.round((d.confidence||0)*100)+'%'
+      +(r.range?' · '+(my?'အပိုင်း ':'range ')+Math.round(r.range[0])+'–'+Math.round(r.range[1])+'s':'')
+      +'</span>'
+    +(cm&&cm[0]==='unsuitable' ? ''
+      : refBtn('refuse', applied ? (my?'✓ ဒီပရောဂျက်မှာ သုံးထားပြီး':'✓ Used for this project')
+                                 : (my?'ဒီပရောဂျက်အတွက် သုံး':'Use for this project'),
+               applied?'ghost':'primary'))
+    +refBtn('refsave', r.saved ? (my?'✓ သိမ်းထားပြီး':'✓ Saved') : (my?'ငါ့ပုံစံအဖြစ် သိမ်း':'Save as my style'),'ghost')
+    +refBtn('refkeep', my?'IKKI Smart Edit ပဲ ထား':'Keep IKKI Smart Edit','ghost')
+    +refBtn('refdel', my?'reference ဖျက်':'Delete reference','ghost');
+  bindRef();
+}
+function bindRef(){
+  var f=$('reffile');
+  var p=$('refpick');
+  if(p&&f) p.onclick=function(e){ e.preventDefault(); f.click() };
+  if(f&&f.getAttribute('data-bound')!=='1'){
+    f.setAttribute('data-bound','1');
+    f.onchange=function(){ refUpload(this.files&&this.files[0]) };
+  }
+  var u=$('refuse');
+  if(u) u.onclick=function(){ REF.applied=REF.id; state.ref=REF.id; savePrefs(); paintRef() };
+  var k=$('refkeep');
+  if(k) k.onclick=function(){ REF.applied=null; state.ref=''; savePrefs(); paintRef() };
+  var sv=$('refsave');
+  if(sv) sv.onclick=function(){
+    /* ⚠️ 「သိမ်း」က profile ကို ဆက်ထားရန်သာ — ဒီပရောဂျက်ကို မထိပါ。
+       ⚠️ **server မှာ တကယ် သိမ်းရမည်** — local flag ပဲ ပြောင်းလျှင်
+          refresh လုပ်တာနဲ့ ပျောက်ပြီး 「သိမ်းပြီး」က လိမ်ရာ ကျသည်。 */
+    var r=REF.list.filter(function(x){return x.id===REF.id})[0];
+    if(!r) return;
+    var want=!r.saved;
+    api('/refs/'+r.id+'/save',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({saved:want})})
+     .then(function(d){ r.saved=!!d.saved; paintRef() })
+     .catch(function(e){ tipRef(e.message||e) });
+  };
+  var dl=$('refdel');
+  if(dl) dl.onclick=function(){
+    if(!REF.id) return;
+    if(!confirm(cur==='my'?'reference ဖိုင်နဲ့ profile ကို ဖျက်မလား?':'Delete the reference file and profile?')) return;
+    var id=REF.id;
+    api('/refs/'+id,{method:'DELETE'}).then(function(){
+      if(REF.poll){clearInterval(REF.poll);REF.poll=null}
+      REF.list=REF.list.filter(function(x){return x.id!==id});
+      if(REF.applied===id){REF.applied=null; state.ref=''; savePrefs()}
+      REF.id=REF.list.length?REF.list[0].id:null;
+      paintRef();
+    }).catch(function(e){ tipRef(e.message||e) });
+  };
+}
+function tipRef(m){
+  var el=$('refbody'); if(!el) return;
+  var s=document.createElement('span'); s.className='rmsg'; s.textContent='⚠️ '+m;
+  el.appendChild(s);
+}
+function refUpload(f){
+  if(!f) return;
+  var my=(cur==='my');
+  var ext=(f.name.split('.').pop()||'').toLowerCase();
+  if(['mp4','mov','m4v'].indexOf(ext)<0){
+    alert(my?'MP4 ဒါမှမဟုတ် MOV ဖိုင် သုံးပါ':'Use an MP4 or MOV file'); return;
+  }
+  REF.busy=true; paintRef();
+  /* ⚠️ ကြာချိန်ကို **browser ကနေ အရင် စစ်**သည် — ၃ မိနစ် ထက် ရှည်လျှင်
+     အပိုင်း ရွေးခိုင်းရမည် (တိတ်တဆိတ် နမူနာ မယူရ)。 */
+  var u=URL.createObjectURL(f), v=document.createElement('video');
+  v.preload='metadata';
+  v.onloadedmetadata=function(){
+    var d=v.duration; URL.revokeObjectURL(u);
+    var rng=null;
+    if(isFinite(d)&&d>0){
+      if(d<15){ REF.busy=false; paintRef();
+        alert(my?'sample က ၁၅ စက္ကန့် အနည်းဆုံး လိုပါတယ်':'The sample must be at least 15 seconds');
+        return; }
+      if(d>180){
+        var a=prompt(my?('ဒီ sample က '+Math.round(d)+'s ရှည်ပါတယ်။ စိစစ်မယ့် အပိုင်း '
+                        +'စတဲ့ စက္ကန့် ရိုက်ထည့်ပါ (၃ မိနစ် ယူပါမယ်)')
+                       :('This sample is '+Math.round(d)+'s. Enter the start second of the '
+                        +'3-minute range to analyze'), '0');
+        if(a===null){ REF.busy=false; paintRef(); return }
+        var s0=Math.max(0, Math.min(d-15, parseFloat(a)||0));
+        rng=[s0, Math.min(d, s0+180)];
+      }
+    }
+    refSend(f, rng);
+  };
+  v.onerror=function(){ URL.revokeObjectURL(u); refSend(f, null) };
+  v.src=u;
+}
+function refSend(f, rng){
+  upload(f).then(function(up){
+    return api('/refs',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({upload_id:up.upload_id, name:f.name, range:rng})});
+  }).then(function(d){
+    REF.busy=false; REF.id=d.ref_id;
+    REF.list.unshift({id:d.ref_id, name:f.name, status:'queued', range:rng, dna:null});
+    paintRef(); refPoll();
+  }).catch(function(e){
+    REF.busy=false; paintRef(); tipRef(e.message||e);
+  });
+}
+function refPoll(){
+  if(REF.poll) clearInterval(REF.poll);
+  REF.poll=setInterval(function(){
+    if(!REF.id){ clearInterval(REF.poll); REF.poll=null; return }
+    api('/refs/'+REF.id).then(function(r){
+      for(var i=0;i<REF.list.length;i++) if(REF.list[i].id===r.id) REF.list[i]=r;
+      paintRef();
+      if(r.status==='done'||r.status==='failed'){ clearInterval(REF.poll); REF.poll=null }
+    }).catch(function(){});
+  }, 4000);
+}
+function loadRefs(){
+  if(!$('refbody')) return;
+  api('/refs').then(function(d){
+    REF.list=d.refs||[];
+    /* ⚠️ အရင် ရွေးထားတာ ရှိလျှင် ပြန်ပြ — refresh လုပ်လျှင် မပျောက်ရ */
+    if(state.ref && REF.list.filter(function(x){return x.id===state.ref}).length){
+      REF.id=state.ref; REF.applied=state.ref;
+    } else if(!REF.id && REF.list.length){ REF.id=REF.list[0].id }
+    paintRef();
+    var cu=REF.list.filter(function(x){return x.id===REF.id})[0];
+    if(cu&&(cu.status==='queued'||cu.status==='running')) refPoll();
+  }).catch(function(){ paintRef() });
+}
+
 
 })();
 

@@ -29,6 +29,22 @@ CREATE TABLE IF NOT EXISTS versions(
   id TEXT PRIMARY KEY, job_id TEXT, n INTEGER, note TEXT,
   out_path TEXT, dur REAL, created REAL);
 
+-- ⚠️ **Reference Style DNA** (၂၀၂၆-၀၉-၂၁ Zin)。 sample ဗီဒီယိုကနေ
+--    ပုံစံ သွင်ပြင် တိုင်းထားသော profile — account အလိုက် သီးသန့်。
+-- ⚠️ `meas` = ကြမ်းထမ်း တိုင်းချက် · `dna` = ဖတ်နိုင်သော label
+-- ⚠️ reference ရဲ့ **media ကို output ထဲ ဘယ်တော့မှ မသုံးရ** — ကိန်းသာ。
+-- ⚠️ `ver` = version — profile ပြောင်းလျှင် တိုးသည် (job က snapshot ကို
+--    ကိုင်ထားသဖြင့် နောက်မှ ပြင်လည် အရင် render မပျက်)。
+CREATE TABLE IF NOT EXISTS refs(
+  id TEXT PRIMARY KEY, acct TEXT, upload_id TEXT, name TEXT,
+  status TEXT, range_a REAL, range_b REAL, dur REAL,
+  meas TEXT, dna TEXT, conf REAL, compat TEXT, ver INTEGER DEFAULT 1,
+  saved INTEGER DEFAULT 0, err TEXT, created REAL, done REAL, claimed REAL);
+
+CREATE TABLE IF NOT EXISTS mkcat(
+  fmt TEXT PRIMARY KEY, data TEXT, n INTEGER, total INTEGER,
+  worker TEXT, updated REAL);
+
 CREATE TABLE IF NOT EXISTS usage(
   ym TEXT PRIMARY KEY, minutes REAL DEFAULT 0, quota REAL DEFAULT 300);
 """
@@ -80,6 +96,31 @@ def init():
     #    podcast ကျသည် (၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。 ⇒ သုံးစွဲသူ ပေးသော label က
     #    ground truth label လည်း ဖြစ်သွားသည် (ပုံစံအလိုက် ခွဲတိုင်းနိုင်ရန်)。
     for extra, ddl in (("vfmt","TEXT"),):
+        if extra not in cols:
+            c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
+    # ⚠️ **clean-cut preview** (၂၀၂၆-၀၉-၂၁ Zin) — စာတမ်း အတည်ပြုပြီးလျှင်
+    #    ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း **မပါ**သော အရွယ်ငယ် proxy ကိုသာ ထုတ်ပြီး
+    #    「ဖြတ်ချက် အိုကေလား」ဆိုတာ **ဒုတိယ အတည်ပြုချက်** ခံသည်。
+    #    status: review → cut_preview → cut_review → (cut ok) → queued/mode=go
+    # ⚠️ `cut_spans` + `cut_hash` က **အေးခဲသော ဖြတ်မှတ်**。 နောက်ဆုံး render က
+    #    ဒီအတိုင်းသာ သုံးရမည် — ပြန်တွက်လျှင် အတည်ပြုခဲ့တာနဲ့ အနည်းငယ် လွဲပြီး
+    #    ဂရပ်ဖစ် နေရာတွေ ရွှေ့သွားမည် (source-vs-cut time သင်ခန်းစာ)。
+    # ⚠️ `vplan` = worker က တကယ် စီစဉ်လိုက်သော **အလှအပ အစီအစဉ်**。
+    #    `edit_plan` (Headtop ရဲ့ HeadtopEditPlan) နဲ့ ခွဲသည် — ဒါက ပုံစံ
+    #    အားလုံးအတွက် ဖြစ်ပြီး သုံးစွဲသူက event တစ်ခုချင်း ပြင်ရန်。
+    # ⚠️ `sync` = recorder အသံ ချိန်ညှိချက် ရဲ့ **ဖွဲ့စည်းထားသော ရလဒ်**。
+    #    ယခင်က log မှာသာ ပေါ်ခဲ့သဖြင့် — သုံးစွဲသူက 「ငါ့ recorder အသံ
+    #    သုံးလား မသုံးလား」 **မသိခဲ့ရ**。 ⇒ used · offset · corr · drift ·
+    #    ကြာချိန် နှိုင်းယှဉ်ချက် · fallback အကြောင်းရင်း သိမ်းသည်。
+    #    ⚠️ offset ကို သိမ်းထားသဖြင့် **cut preview နဲ့ နောက်ဆုံး render က
+    #       တူညီသော အသံ** ရသည် (ပြန်တိုင်းလျှင် အနည်းငယ် လွဲနိုင်)。
+    for extra, ddl in (("sync","TEXT"), ("vplan","TEXT")):
+        if extra not in cols:
+            c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
+    for extra, ddl in (("cut_path","TEXT"), ("cut_key","TEXT"),
+                       ("cut_dur","REAL"), ("cut_src","REAL"),
+                       ("cut_hash","TEXT"), ("cut_spans","TEXT"),
+                       ("cut_n","INTEGER"), ("cut_ok","REAL")):
         if extra not in cols:
             c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
     # ⚠️ brand ရဲ့ logo — ဖိုင်နာမည်သာ သိမ်းသည် (ဖိုင်က DATA/logos/ ထဲ)

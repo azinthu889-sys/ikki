@@ -7,7 +7,7 @@
 ⚠️ scratch ကို **Mac ထဲမှာသာ** ထားရမည် — ပြင်ပ ExFAT disk မှာ PNG သေးသေး
    ရေးတာ ၂၀ ဆ နှေးသည် (တိုင်းပြီး: ၅၀၀ ဖိုင် · ပြင်ပ 1.47s vs Mac ထဲ 0.07s)。
 """
-import json, math, os, re, shutil, subprocess, sys, time, traceback, urllib.request, urllib.error
+import hashlib, json, math, os, re, shutil, subprocess, sys, time, traceback, urllib.request, urllib.error
 
 API    = os.environ.get("IKKI_API", "http://127.0.0.1:8080")
 TOKEN  = os.environ.get("IKKI_WORKER_TOKEN", "dev-worker")
@@ -477,6 +477,20 @@ class ReviewStop(Exception):
         super().__init__("review")
 
 
+# ⚠️ clean-cut preview ရဲ့ အမြင့် — ၅၄၀p က ဖြတ်ချက် စစ်ရန် လုံလောက်ပြီး
+#    ထုတ်ချိန် · ဖိုင်အရွယ် နှစ်ခုလုံး သေးသည် (နောက်ဆုံး render မှာ မသုံး)。
+CUTPREV_H = 540
+
+
+class CutStop(Exception):
+    """clean-cut proxy ထုတ်ပြီးလျှင် **ရပ်**ပြီး ဖြတ်ချက် အတည်ပြုချက် ခံသည်。
+
+    ⚠️ ကျဘမ်း **မဟုတ်**。 ဂရပ်ဖစ် · တီးလုံး · SFX · စာတန်း **တစ်ခုမှ မထည့်ရသေး** —
+       ဖြတ်ချက် မှားလျှင် အဲဒီအလုပ်အားလုံး အလဟဿ ဖြစ်မည် (Zin ၂၀၂၆-၀၉-၂၁)。
+    """
+    def __init__(self): super().__init__("cut")
+
+
 def ff(args, what="ffmpeg"):
     """ffmpeg ကို ခေါ်ပြီး **ကျဘမ်းဖြစ်လျှင် အကြောင်းရင်းကို ပါလာစေသည်**。
 
@@ -674,7 +688,65 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    (အသားပေးချက် · အသက်ရှူ · ရပ်တန့်ချက်)。 ဖြတ်လိုက်လျှင် စကားက
     #    လျှောက်ပြောနေသလို သဘာဝ မကျပါ ⇒ Script Editor ကနေ ပြန်ချန်နိုင်သည်。
     user_keep = over.pop("_keep", None) or []
+    # ⚠️ **အေးခဲသော ဖြတ်မှတ်** — clean-cut preview ကို သုံးစွဲသူ အတည်ပြုပြီးသား
+    #    ဖြတ်မှတ်。 ရှိလျှင် ③ မှာ ပြန်မတွက်ဘဲ **ဒီအတိုင်းသာ** ဖြတ်ရမည် —
+    #    ပြန်တွက်လျှင် အနည်းငယ် လွဲပြီး သူ ကြည့်ပြီး အိုကေပေးခဲ့တာနဲ့ မတူတော့。
+    frozen_spans = over.pop("_spans", None) or []
+    frozen_hash = over.pop("_cuthash", None) or ""
+    # ⚠️ **အလှအပ အဆင့်** — သုံးစွဲသူက ဖြတ်ချက် အတည်ပြုချိန်မှာ ရွေးသည်。
+    #    `recipes.motion()` က QC ဂိတ် (`gfx_share` · ceiling) ကို **မထိ**ဘဲ
+    #    rate ကိုသာ ပြောင်းသည် (Zin: 「ဂိတ် မလျှော့ရ」)。
+    motion_lv = str(over.pop("_motion", "") or "auto").strip().lower()
+    # ⚠️ **Visual Plan override** — event တစ်ခုချင်း `{"mode":"auto"|"tpl"|"none"}`。
+    #    သုံးစွဲသူ ရွေးချက်က AI ရွေးချက်ကို လွှမ်းသည် ဒါပေမယ့် **preflight
+    #    မအောင်လျှင် AI ဆီ ပြန်ဆုတ်**ရမည် — job တစ်ခုလုံး မကျစေရ။
+    user_ev = over.pop("_ev", None) or {}
+    if not isinstance(user_ev, dict): user_ev = {}
+    # ── Reference **Style DNA** ────────────────────────────────────
+    # ⚠️ **နှစ်ပိုင်း ခွဲရမည်** (Zin ရဲ့ §4):
+    #      ဖြတ်ချက် ပိုင်း (`cut`) ⇒ **cut preview မတိုင်မီ** — မဟုတ်လျှင်
+    #        သုံးစွဲသူ ကြည့်တဲ့ preview က နောက်ဆုံး ဖြတ်ချက်နဲ့ မတူ。
+    #      အလှအပ ပိုင်း (gfx · zoom · broll · SFX · စာတန်း အတိုင်းအတာ) ⇒
+    #        **ဖြတ်ချက် အတည်ပြုပြီးမှ** (mode=go) — visual event တွေက
+    #        အတည်ပြုပြီးသော output timeline အပေါ်သာ ရှိရမည်。
+    ref_dna = over.pop("_dna", None) or {}
+    ref_meta = over.pop("_ref", None) or {}
+    ref_notes = []
+    if ref_dna:
+        try:
+            import refdna as RD, recipes as _RC0
+            _base = _RC0.get(job.get("recipe"))
+            _rov, ref_notes = RD.apply_to(ref_dna, _base,
+                                          fmt=(job.get("fmt") or None))
+            _mode = (job.get("mode") or "")
+            _CUTK = ("cut",)
+            if _mode == "cut":
+                _rov = {k: v for k, v in _rov.items() if k in _CUTK}
+                ref_notes.append("အလှအပ ပိုင်းက **ဖြတ်ချက် အတည်ပြုပြီးမှ** သက်ဝင်သည်")
+            # ⚠️ သုံးစွဲသူ ကိုယ်တိုင် ပေးထားသော override က **အထက်တန်း** ⇒
+            #    reference က လွှမ်းလို့ မရ (Zin: 「explicit user override must
+            #    persist」)。
+            for k in list(_rov):
+                if k in over:
+                    ref_notes.append(f"{k}: သုံးစွဲသူ ရွေးချက် ရှိပြီး ⇒ reference မလွှမ်း")
+                    _rov.pop(k)
+            over.update(_rov)
+            log(f"  ✦ reference «{ref_meta.get('name') or '—'}» v{ref_meta.get('ver')} ⇒ "
+                + (", ".join(f"{k}={v}" for k, v in _rov.items()) or "ပြောင်းစရာ မရှိ"))
+            for _n in ref_notes[:8]: log(f"     · {_n}")
+        except Exception as _re:
+            log(f"  ⚠️ reference မသုံးနိုင် ({type(_re).__name__}: {_re}) ⇒ IKKI ပုံသေ")
+            ref_notes = [f"{type(_re).__name__}"]
     rc = RC.apply(job.get("recipe"), over)
+    if motion_lv not in ("", "auto"):
+        _b4 = (rc.get("gfx"), rc.get("sfx_per_min"), rc.get("zoom_amt"), rc.get("broll"))
+        rc = RC.motion(rc, motion_lv)
+        log(f"  ✦ အလှအပ «{motion_lv}» · gfx {_b4[0]}→{rc.get('gfx')} · "
+            f"SFX {_b4[1]}→{rc.get('sfx_per_min')}/min · "
+            f"punch {_b4[2]}→{rc.get('zoom_amt')} · B-roll {_b4[3]}→{rc.get('broll')} · "
+            f"coverage ဘောင် {rc.get('gfx_share')} (**မထိ**)")
+    else:
+        log(f"  ✦ အလှအပ «AI ရွေး» — recipe ရဲ့ တိုင်းထားသော ပုံသေ")
     # ⚠️ template ရွေးချယ်မှုကို **job အလိုက် ကွဲပြားစေရန်** seed ပေးသည် —
     #    မပေးလျှင် ဗီဒီယိုတိုင်း တူညီသော template ၁၀ ခုပဲ ထွက်သည်
     #    (pool ၂၈၄ ခု ရှိပါလျက် · ၂၀၂၆-၀၉-၁၉ Zin တွေ့)。
@@ -1122,12 +1194,62 @@ def render(job, brand, src, out, stage, log=print, over=None):
             cuts=int(st.get("cuts", 0)),
             removed=round(float(m["dur"]) - _kept, 2),
             spans=[[round(a, 2), round(b, 2)] for a, b in spans],
+            # ⚠️ **ချန်ထားပြီး ဝါကျ မရှိသော ပိုင်းများ** (၂၀၂၆-၀၉-၂၂ Zin)。
+            #    Script Editor က ဝါကျနှင့် **ဖြတ်ပစ်သော** တိတ်ဆိတ်မှုကိုသာ
+            #    ပြခဲ့သဖြင့် — ချန်ထားပြီး ဝါကျ မရှိသော အသံက **လုံးဝ မမြင်ရ**ဘဲ
+            #    ထွက်ချက်ထဲ ပါသွားခဲ့သည် (j_58639d6961da: ၆၉.၅s ရဲ့ ၁၈%)。
+            #    ⚠️ engine က ဒီပိုင်းတွေကို **မဖြတ်ပါ** — သုံးစွဲသူ နားထောင်ပြီး
+            #       ဆုံးဖြတ်ရမည် (Zin: 「ဖြတ်ရတာ ခက်ရင် မဖြတ်နဲ့」)。
+            unlisted=CUT.unlisted(spans, segs, float(m["dur"]), MEAS),
             flags=st.get("flag_list") or [],
             takes=take_map,
             speech_speed=speech_speed,
             retakes=_rt,            # v1 (ယခု အလွတ်) — ယခင် ဒေတာနဲ့ လိုက်ဖက်ရန် ချန်
             clusters=_cl,           # v2 — အုပ်စု + ရွေးစရာ (ဖြတ်မှတ် ကြိုတွက်ပြီး)
             retake_off=_rt_off))    # ပိတ်ထားလျှင် သုံးစွဲသူကို ပြမည့် အကြောင်းရင်း
+
+    # ── ③b **အေးခဲသော ဖြတ်မှတ်** — အတည်ပြုခဲ့တာအတိုင်းသာ ────────────
+    # ⚠️ `cutok` က `_spans` ကို ထည့်ပေးလိုက်သည်。 ရှိလျှင် ③ ရဲ့ ရလဒ်ကို
+    #    **လွှမ်း**ရမည် — brand calib · recipe · ASR တွေ ပြောင်းသွားလျှင်တောင်
+    #    သုံးစွဲသူ ကြည့်ပြီး အိုကေပေးခဲ့သော ဖြတ်ချက်က ground truth ဖြစ်သည်。
+    if frozen_spans:
+        _fz = []
+        for a, b in frozen_spans:
+            try: a, b = float(a), float(b)
+            except (TypeError, ValueError): continue
+            if b - a > 0.05: _fz.append((round(a, 3), round(b, 3)))
+        if _fz:
+            _h = hashlib.sha256(json.dumps(
+                [[round(a, 3), round(b, 3)] for a, b in _fz],
+                separators=(",", ":")).encode()).hexdigest()[:16]
+            _same = (not frozen_hash) or _h == frozen_hash
+            log(f"  ❄ အေးခဲသော ဖြတ်မှတ် {len(_fz)} ခု · "
+                f"{sum(b - a for a, b in _fz):.1f}s · hash {_h}"
+                + ("" if _same else f" ⚠️ မကိုက် (အတည်ပြုချိန် {frozen_hash})"))
+            if not _same:
+                raise RuntimeError("ဖြတ်မှတ် hash မကိုက် — ဖြတ်ချက်ကို ပြန်အတည်ပြုပါ")
+            spans = _fz
+            st["frozen"] = len(_fz)
+        else:
+            log("  ⚠️ အေးခဲသော ဖြတ်မှတ် မသုံးနိုင် (အလွတ်) — ③ ရဲ့ ရလဒ် သုံးသည်")
+
+    # ── cut preview — **ပုံဖြတ်ချက် + အသံသာ** ပါသော proxy ────────────
+    # ⚠️ ဂရပ်ဖစ် · B-roll · တီးလုံး · SFX · စာတန်း · grade **တစ်ခုမှ မပါရ**。
+    #    「ဖြတ်ချက် အိုကေလား」ဆိုတာကိုသာ သုံးစွဲသူ ဆုံးဖြတ်ရန်。
+    if (job.get("mode") or "") == "cut":
+        _cpv = os.path.join(work, "cutprev.mp4")
+        SP.spans(src, spans, _cpv, os.path.join(work, "cp"),
+                 fps=30, vb="1.5M", scale=CUTPREV_H)
+        _mo = probe(_cpv)
+        _od = float((_mo or {}).get("dur") or 0) or sum(b - a for a, b in spans)
+        log(f"  ✂ ဖြတ်ချက် preview · {len(spans)} span · {_od:.1f}s "
+            f"(မူရင်း {float(m['dur']):.1f}s · ဖြုတ် {float(m['dur'])-_od:.1f}s) · "
+            f"{CUTPREV_H}p · **ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း မပါ**")
+        post_cut(job["id"], _cpv,
+                 dict(spans=[[round(a, 3), round(b, 3)] for a, b in spans],
+                      out_dur=round(_od, 2), src_dur=round(float(m["dur"]), 2),
+                      cuts=int(st.get("cuts", 0))), log=log)
+        raise CutStop()
 
     # ⚠️ **မူရင်း အချိန် → ဖြတ်ပြီး အချိန်**。 ဂရပ်ဖစ်/SFX ကို ဖြတ်ပြီးသား
     #    ဗီဒီယိုပေါ် တင်သည် ⇒ ASR ရဲ့ မူရင်းအချိန်ကို တိုက်ရိုက် သုံးလို့ **မရ**。
@@ -1303,8 +1425,17 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    ⇒ အလျားလိုက်မှာ ကန့်သတ်ပြီး baseline ကို အောက် ချသည်。
         #    ⚠️ baseline ကို **format ရဲ့ BOT (safe zone) အတိုင်း** ထားရမည် —
         #       ၀.၈၈ ချလိုက်တော့ QC `caption_zone` ကျခဲ့သည် (1900 > BOT 1660)。
-        if TH["W"] > TH["H"] and pct > 0.06:
-            _old = pct; pct = 0.045
+        # ⚠️ **ကန့်သတ်ရမည် · အစားထိုး၍ မရ** (၂၀၂၆-၀၉-၂၂ တိုင်းချက်)。
+        #    ယခင်က `pct > 0.06` ဆိုလျှင် `0.045` ဖြစ်စေခဲ့သည် ⇒ သုံးစွဲသူ
+        #    **ပိုကြီးတာ ရွေးလျှင် ပိုသေး**သွားသည် (ပြောင်းပြန်):
+        #       xs 0.043→0.043 · s 0.053→0.053 · m 0.065→**0.045** ·
+        #       l 0.080→**0.045** · xl 0.095→**0.045**
+        #    ⇒ `xl` ရွေးထားပါလျက် `s` ထက် သေးသည် (Zin: 「စာတန်း သေးနေတယ်」)。
+        #    မျက်နှာ ဖုံးမှုက တကယ့် ကန့်သတ်ချက် (၂၀၂၆-၀၉-၁၇ တိုင်းချက်) ⇒
+        #    **ceiling** အဖြစ် ထားသည် · ရွေးချက်ကို မလွှမ်းပါ。
+        CAP_H_MAX = 0.060
+        if TH["W"] > TH["H"] and pct > CAP_H_MAX:
+            _old = pct; pct = CAP_H_MAX
             # ⚠️ baseline — QC ရဲ့ `cap_max` ၀.၈၃၃ အောက်မှာ ရှိရမည်。 BOT (၀.၇၆၉)
             #    က အပေါ်လွန်းသည် ⇒ Zin ၂၀၂၆-၀၉-၁၇ "subtitle ကို အောက်ကို နည်းနည်း
             #    ချချင်တယ်" ⇒ ၀.၈၀ (QC ဘောင်အတွင်း · ဘေးလွတ် ၃%)。
@@ -1312,7 +1443,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ ဖောင့် — Zin ရွေးချယ်ချက် (၂၀၂၆-၀၉-၁၇ · နမူနာ ၄ ခုထဲက ၂)。
             #    `MyanmarHeadOne` က ဖောင့်စာရင်းမှာ «ZAE **ခေါင်းစဉ်**» အတွက်
             #    မှတ်ထားပြီး `Pyidaungsu-Bold` က «Short Video · ZAE» အတွက်。
-            rc["mmf"] = "Pyidaungsu-Bold"
+            # ⚠️ **သုံးစွဲသူ ရွေးထားသော ဖောင့်ကို မလွှမ်းရ** (၂၀၂၆-၀၉-၂၂)。
+            #    job မှာ `NotoSansMyanmar-Bold` ရွေးထားပါလျက် ဒီမှာ
+            #    `Pyidaungsu-Bold` နဲ့ လွှမ်းခဲ့သည်。 ⇒ မရွေးထားမှသာ。
+            if not (job.get("font") or "").strip():
+                rc["mmf"] = "Pyidaungsu-Bold"
             log(f"  စာတန်း · အလျားလိုက် format ⇒ အရွယ် {_old} → {pct} · "
                 f"baseline {rc['cap_base']} · ဖောင့် {rc['mmf']}")
             # ⚠️ **ဂရပ်ဖစ် ပိုများစေရန်** (၂၀၂၆-၀၉-၁၇ Zin: "Infography များများလေး
@@ -1330,10 +1465,17 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     log("  အရောင် · ကတ်များ navy + gold သာ (RED/SKY → GOLD)")
             except Exception as _e:
                 log(f"  ⚠️ အရောင် မပြောင်းနိုင်: {_e}")
+            # ⚠️ **သုံးစွဲသူ 「အနည်းဆုံး」ရွေးထားလျှင် ပြန်မတိုးရ** —
+            #    `recipes.motion("minimal")` က gfx ကို တစ်ဝက် လျှော့ပြီးမှ
+            #    ဒီ floor က ၁၀ ဆီ ပြန်တင်လျှင် ရွေးချက်က အလကား ဖြစ်သည်
+            #    (၂၀၂၆-၀၉-၂၂ audit မှာ တွေ့)。
             _g0 = int(rc.get("gfx") or 0)
-            if _g0 and _g0 < 10:
+            if _g0 and _g0 < 10 and motion_lv != "minimal":
                 rc["gfx"] = 10
                 log(f"  ဂရပ်ဖစ် · အလျားလိုက် format ⇒ {_g0} → 10 ကတ်")
+            elif _g0 and _g0 < 10:
+                log(f"  ဂရပ်ဖစ် · 「အနည်းဆုံး」ရွေးထား ⇒ {_g0} ကတ် အတိုင်း "
+                    f"(floor 10 မတင်ပါ)")
         csize = int(TH["H"] * pct)
         cband = int(csize*2.2)*2
         # ⚠️ စာတန်း band ရဲ့ **အပေါ်ဆုံး** — ဂရပ်ဖစ်က ဒီအောက် ဆင်းလျှင်
@@ -1554,6 +1696,31 @@ def render(job, brand, src, out, stage, log=print, over=None):
     if gfx:
         # ⚠️ **ဖြတ်ပြီး timeline သို့ ပြောင်းရမည်** — ဖြုတ်လိုက်သော အပိုင်းထဲ
         #    ကျသွားသော ဂရပ်ဖစ်ကို ဖယ်သည် (အဲဒီစကား ဗီဒီယိုထဲ မရှိတော့)。
+        # ── ⚠️ **text မရှိသော event ကို transcript ကနေ ဖြည့်ရမည်** ──
+        #    ၂၀၂၆-၀၉-၂၂ တိုင်းချက်: 「စည်းချက် ဖြည့်」နဲ့ ထည့်လိုက်သော
+        #    ဂရပ်ဖစ်တွေမှာ `text` မရှိသဖြင့် `tmplfit` က ဖြည့်မရဘဲ
+        #    「⊘ argument မဖြည့်နိုင်: callouts.underline_call」နဲ့ ပယ်ခံခဲ့သည်。
+        #    ⚠️ **အကြောင်းအရာ မတီထွင်ပါ** — အဲဒီအချိန်မှာ တကယ် ပြောနေသော
+        #       ဝါကျကိုသာ ယူသည် (source အချိန်မှာ ဖြည့်ရမည် · omap မတိုင်မီ)。
+        _nofill = 0
+        for _g in gfx:
+            if str(_g.get("text") or "").strip(): continue
+            _a = float(_g.get("at") or 0)
+            _best = None
+            for _sg in (segs or []):
+                try:
+                    _s0, _s1 = float(_sg.get("start")), float(_sg.get("end"))
+                except (TypeError, ValueError):
+                    continue
+                if _s0 - 0.6 <= _a <= _s1 + 0.6:
+                    _best = _sg; break
+                if _best is None and _s0 > _a: _best = _sg; break
+            if _best and str(_best.get("text") or "").strip():
+                _g["text"] = str(_best["text"]).strip()[:120]
+                _nofill += 1
+        if _nofill:
+            log(f"  ✎ ဂရပ်ဖစ် {_nofill} ခုမှာ စာသား မရှိ ⇒ အဲဒီအချိန်ရဲ့ "
+                f"ဝါကျကနေ ဖြည့်ပြီး (tmplfit ဖြည့်နိုင်ရန်)")
         _n0 = len(gfx); _mapped = []
         for g in gfx:
             _a = float(g.get("at") or 0)
@@ -1582,10 +1749,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ⚠️ `card_len` ဘောင် ၁.၀–၁၀.၅s ကို **မကျော်ရ** ⇒ clamp。
             _hold = None
             _sh = rc.get("gfx_share")
+            # ⚠️ **ဖြတ်ပြီး အရှည်** နဲ့ တွက်ရမည် — မူရင်း အရှည် မဟုတ်。
+            #    QC က ထွက်လာသော ဖိုင်ပေါ်မှာ တိုင်းသည်。
+            # ⚠️ `if` အတွင်းမှာ သတ်မှတ်လျှင် အောက်က coverage ပြန်ချိန်ချက်မှာ
+            #    `NameError` ဖြစ်နိုင်သည် ⇒ **အပြင်မှာ** သတ်မှတ်သည်。
+            _od = sum(b - a for a, b in spans) or float(m["dur"])
             if _sh and gfx:
-                # ⚠️ **ဖြတ်ပြီး အရှည်** နဲ့ တွက်ရမည် — မူရင်း အရှည် မဟုတ်。
-                #    QC က ထွက်လာသော ဖိုင်ပေါ်မှာ တိုင်းသည်。
-                _od = sum(b - a for a, b in spans) or float(m["dur"])
                 _tgt = (float(_sh[0]) + float(_sh[1])) / 2.0 * _od
                 _hold = max(1.5, min(10.0, _tgt / len(gfx)))
                 log(f"  ကတ် ရပ်ချိန် {_hold:.1f}s × {len(gfx)} ခု "
@@ -1610,11 +1779,82 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                     W=TH["W"])
             if _nsw:
                 REPORT["gfx_swapped"] = _nsw
-            gmov, ng = DR.track(gfx, None, os.path.join(work,"gx"), TH["W"], TH["H"],
-                                rc["fps"], T1, T2, (brand or {}).get("name","IKKI"),
+            # ── သုံးစွဲသူ ရဲ့ event ဆုံးဖြတ်ချက် ────────────────────────
+            # ⚠️ id က **ဖြတ်ပြီး အချိန်** အပေါ် — ဖြတ်မှတ် အေးခဲပြီးသားမို့
+            #    ပြန်ထုတ်လည်း တူသည် (source အချိန်ဆို ဖြတ်ချက် ပြောင်းလျှင် လွဲ)。
+            def _evid(g): return "g%.2f" % float(g.get("at") or 0)
+            if user_ev:
+                import mkcat as _MK
+                _kept, _rm, _sw, _fb = [], 0, 0, []
+                for g in gfx:
+                    d = user_ev.get(_evid(g)) or {}
+                    md = str(d.get("mode") or "auto").lower()
+                    if md == "none":
+                        _rm += 1; continue
+                    if md == "tpl" and d.get("tpl"):
+                        _tid = str(d["tpl"])
+                        _ok, _why = _MK.preflight(_tid, fmt=(job.get("fmt") or "16:9"))
+                        if _ok:
+                            g = dict(g); g["kind"] = _tid; g["user"] = True; _sw += 1
+                        else:
+                            # ⚠️ **တိတ်တဆိတ် မကျော်ရ** — report မှာ ပေါ်ရမည်
+                            _fb.append(f"{_evid(g)}→{_tid} ({_why})")
+                    _kept.append(g)
+                gfx = _kept
+                log(f"  ✎ သုံးစွဲသူ ဆုံးဖြတ်ချက် · ဖယ် {_rm} · လဲ {_sw}"
+                    + (f" · **preflight မအောင် {len(_fb)}** ⇒ AI ရွေးချက် ပြန်သုံး"
+                       if _fb else ""))
+                for _x in _fb[:6]: log(f"     ✗ {_x}")
+                REPORT["ev_user"] = dict(removed=_rm, swapped=_sw, fallback=_fb[:12])
+            # ── Visual Plan — **တကယ် ထွက်လာတာ** ကိုသာ ပြရမည် ──
+            # ⚠️ ၂၀၂၆-၀၉-၂၂: `gfx` (ရွေးထားသည်) ကနေ ထုတ်ခဲ့သဖြင့် Visual Plan
+            #    မှာ ၇ ခု ပြပြီး ဗီဒီယိုထဲ **၄ ခုသာ** ပါခဲ့သည် — သုံးစွဲသူက
+            #    「0:16 Count Up」ကို မြင်ပေမယ့် အဲဒီမှာ ဘာမှ မရှိ ⇒ လိမ်ရာ ကျ。
+            #    ⇒ `track()` + `_fit_gfx()` ပြီးမှ **တကယ် တပ်ရသော** စာရင်းကနေ
+            #      ထုတ်သည် · မထွက်ခဲ့တာကို **အကြောင်းရင်းနဲ့** မှတ်သည်。
+            _vp_meta = {round(float(g.get("at") or 0), 2):
+                        (str(g.get("kind") or ""), str(g.get("text") or "")[:90],
+                         bool(g.get("user"))) for g in gfx}
+            _vp_want = list(_vp_meta)
+            def _mk_track(_h, _tag="gx"):
+                return DR.track(gfx, None, os.path.join(work, _tag), TH["W"], TH["H"],
+                                rc["fps"], T1, T2, (brand or {}).get("name", "IKKI"),
                                 rc["label"], log,
                                 avoid=_av,
-                                capy=cap_top, hold=_hold)
+                                capy=cap_top, hold=_h)
+            gmov, ng = _mk_track(_hold)
+            # ── ⚠️ **ရွေးထားတာနဲ့ တပ်ရတာ မတူလျှင် coverage ဘောင် အောက် ကျသည်** ──
+            #    `_hold` ကို **ရွေးထားသော** အရေအတွက်နဲ့ တွက်သည် — ဒါပေမယ့်
+            #    နေရာ မရ/မဆောက်နိုင်၍ တချို့ ပယ်ခံရသည်。 ၂၀၂၆-၀၉-၂၂
+            #    (j_58639d6961da): ရွေး ၇ × ၂.၀s = ၀.၂၁၀ မျှော်ပြီး **တပ်ရ ၄**
+            #    ⇒ gfx_share ၀.၁၅၄ ⇒ QC ကျ (ဘောင် ၀.၁၇–၀.၂၅)。
+            #    ⚠️ **ဂိတ်ကို မလျှော့ရ** (Zin) ⇒ တပ်ရသော အရေအတွက်နဲ့ ရပ်ချိန်
+            #       ပြန်တွက်ပြီး **တစ်ခါ** ပြန်ဆောက်သည်。 `hold` က ကတ်ကို
+            #       ရှည်အောင်ပဲ လုပ်နိုင်သဖြင့် ဘောင် အောက်ကို ဒီနည်းနဲ့သာ တင်နိုင်။
+            if _sh and gmov:
+                _lo = float(_sh[0]) * _od
+                _cov = sum(float(k[2]) for k in gmov)
+                if _cov < _lo and ng >= 1:
+                    _mid = (float(_sh[0]) + float(_sh[1])) / 2.0 * _od
+                    _cmax = float(rc.get("card_max_s") or 10.0)
+                    _h2 = min(_cmax, _mid / float(ng))
+                    if _h2 > (_hold or 0) + 0.05:
+                        log(f"  ⤴ coverage {_cov/_od:.3f} < ဘောင် {_sh[0]:.2f} — "
+                            f"ရွေး {len(gfx)} ⇒ တပ်ရ {ng} ⇒ ရပ်ချိန် "
+                            f"{_hold:.1f}s → {_h2:.1f}s နဲ့ ပြန်ဆောက်သည်")
+                        try:
+                            _g2, _n2 = _mk_track(_h2, "gx2")
+                            _c2 = sum(float(k[2]) for k in _g2) if _g2 else 0.0
+                            # ⚠️ **ပိုမကောင်းလျှင် မလဲရ** — ဘောင် အလယ်နဲ့
+                            #    အနီးစပ်ဆုံးကိုသာ ယူသည်。
+                            if _g2 and abs(_c2 - _mid) < abs(_cov - _mid):
+                                log(f"     ⇒ coverage {_cov/_od:.3f} → {_c2/_od:.3f} "
+                                    f"(ကတ် {ng} → {_n2})")
+                                gmov, ng = _g2, _n2
+                            else:
+                                log(f"     ⇒ မတိုးတက်၍ မလဲပါ ({_c2/_od:.3f})")
+                        except Exception as _e2:
+                            log(f"     ⚠️ ပြန်မဆောက်နိုင်: {type(_e2).__name__}: {_e2}")
             # ⚠️ ထုတ်ပြီးမှ **တကယ့် အရှည်နဲ့ ပြန်တိုင်း**ရမည် — `hold` က
             #    တိုအောင် မလုပ်နိုင်သဖြင့် ပစ်မှတ်ထက် ကျော်နိုင်သည်。
             #    ဖယ်တာက ကတ်ဖိုင်ကို ပြန်မထုတ်ရ ⇒ အချိန် မကုန်ပါ。
@@ -1626,6 +1866,42 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 gmov, _wgfit = _fit_gfx(gmov, _sh, _od, log=log)
                 ng = len(gmov)
                 LAST_FIT[:] = _wgfit
+            # ── ⚠️ **တကယ် တပ်ရသော** ဂရပ်ဖစ်ကနေ Visual Plan ──
+            try:
+                _vp = []
+                _got = set()
+                for _at, _mv, _d, _y0, _y1 in (gmov or []):
+                    _a2 = round(float(_at), 2)
+                    # ⚠️ `at` က အနည်းငယ် ရွေ့နိုင် ⇒ အနီးဆုံးကို တွဲသည်
+                    _k = min(_vp_meta, key=lambda x: abs(x - _a2)) if _vp_meta else None
+                    if _k is None or abs(_k - _a2) > 0.75: _k = None
+                    _tp, _tx, _us = _vp_meta.get(_k, ("", "", False))
+                    if _k is not None: _got.add(_k)
+                    _vp.append(dict(id="g%.2f" % _a2, at=_a2, dur=round(float(_d), 2),
+                                    tpl=_tp, text=_tx, user=_us))
+                _miss = [k for k in _vp_want if k not in _got]
+                if _miss:
+                    _why = {kk: vv for kk, vv in (DR.LAST or {}).items()
+                            if kk in ("no_template", "build_fail", "no_room",
+                                      "out_of_frame", "overlap", "no_args") and vv}
+                    log(f"  ⚠️ ဂရပ်ဖစ် {len(_miss)} ခု **မထွက်ခဲ့** — "
+                        + (", ".join(f"{k} {v}" for k, v in _why.items()) or "အကြောင်းရင်း မသိ"))
+                    REPORT["gfx_missing"] = [
+                        dict(at=k, tpl=_vp_meta.get(k, ("", "", False))[0]) for k in _miss]
+                    REPORT["gfx_why"] = _why
+                    # ⚠️ **သုံးစွဲသူကိုပါ ပြရမည်** — log ထဲမှာပဲ ရှိလျှင်
+                    #    「ဘာလို့ ဒီနေရာမှာ ဘာမှ မရှိတာလဲ」မသိရ。
+                    _rsn = ", ".join(f"{k} {v}" for k, v in _why.items()) or "မသိ"
+                    for k in _miss:
+                        _tp, _tx, _us = _vp_meta.get(k, ("", "", False))
+                        _vp.append(dict(id="g%.2f" % k, at=k, dur=0.0,
+                                        tpl=_tp, text=_tx, user=_us,
+                                        missing=True, why=_rsn))
+                st["vplan"] = sorted(_vp, key=lambda x: x["at"])
+                log(f"  ✦ Visual Plan · တကယ် တပ်ရ {len(_vp)} ခု "
+                    f"(ရွေး {len(_vp_want)})")
+            except Exception as _ve:
+                log(f"  ⚠️ Visual Plan မထုတ်နိုင်: {type(_ve).__name__}: {_ve}")
             # ⚠️ စာတန်းနဲ့ ဒေါင်လိုက် ထပ်တာကို **စစ်စရာ မလိုတော့** —
             #    ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်းကို `hide` ဖြင့် ဖျောက်ပြီးသား。
             #    စစ်နေလျှင် စာတန်း တစ်ပုဒ်လုံး ရှိသဖြင့် ဂရပ်ဖစ် အားလုံးနီးပါး
@@ -1633,7 +1909,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
             log(f"  ဂရပ်ဖစ် တပ်ပြီး {ng} ခု")
 
         except Exception as e:
-            log(f"  ⚠️ ဂရပ်ဖစ် မရ: {e}"); gmov=[]
+            # ⚠️ **တစ်လိုင်းတည်း မပြရ** — 「too many values to unpack」ဆိုရုံနဲ့
+            #    ဘယ်လိုင်းမှာ ကျမှန်း မသိဘဲ ဂရပ်ဖစ် လုံးဝ မထွက်တာကို
+            #    ရှာမရခဲ့သည် (၂၀၂၆-၀၉-၂၂)。 ⇒ traceback ပါ ထည့်သည်。
+            log(f"  ⚠️ ဂရပ်ဖစ် မရ: {type(e).__name__}: {e}")
+            for _l in traceback.format_exc().strip().splitlines()[-6:]:
+                log(f"     {_l}")
+            REPORT["gfx_error"] = f"{type(e).__name__}: {e}"
+            gmov=[]
 
     # ── full-frame slide (Knowledge Sharing) ──────────────────
     # ⚠️ lower-third အသေးလေးတွေနဲ့ **ဂရပ်ဖစ် အချိန် ၂.၅%** ပဲ ရခဲ့ပြီး
@@ -2402,6 +2685,66 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     f"{REPORT['sfx_dedup']}) ⇒ စုစုပေါင်း {len(cues)}")
         except Exception as _se:
             log(f"  ⚠️ plan SFX မရ ({type(_se).__name__}: {_se}) — legacy သာ")
+    # ── ⚠️ **ဖြတ်ပြီး အချိန်မှာ အကွာ ပြန်ခြား** ──────────────────────
+    #    `planner.sfx_plan` က `gap` ကို **မူရင်း အချိန်**မှာ ခြားသည် —
+    #    ဒါပေမယ့် QC က **ထွက်ဖိုင်ပေါ်** တိုင်းသည်。 ကြားထဲက တိတ်ဆိတ်မှု
+    #    ဖြတ်လိုက်တာနဲ့ ၂.၅s က ၁.၄s ဖြစ်သွားနိုင်သည်
+    #    (၂၀၂၆-၀၉-၂၂: `sfx_spacing=1.4 ✗` · ပေါလစီ gap 2.0)。
+    #    ⚠️ `sfx_density` bug နဲ့ **အတူတူ အမျိုးအစား** — အဲဒါကို `out_dur`
+    #       နဲ့ ဖြေခဲ့သည်、ဒီဟာကို **map ပြီးမှ ပြန်ခြား**ခြင်းနဲ့ ဖြေသည်。
+    #    ⚠️ **ဂိတ် မလျှော့ပါ** — ပေါလစီရဲ့ gap ကိုသာ တကယ် အတိုင်းအတာ
+    #       ဖြစ်စေသည် (နီးလွန်းသော cue ကို ဖယ်)。
+    if cues:
+        try:
+            import sfxpol as _SP2
+            _g = float(_SP2.clamp(dict(per_min=float(rc.get("sfx_per_min") or 1.0)),
+                                  style=rc.get("_id"))["gap"])
+        except Exception:
+            _g = 8.0
+        # ⚠️ **အထပ် အတွဲကို မခွဲရ** (၂၀၂၆-၀၉-၂၂ ငါ့ regression)。
+        #    ဖြစ်ရပ်တစ်ခုက ရှေ့သံ + ထပ်သံ ၂ ခု ထုတ်သည် (`card` ⇒
+        #    whoosh_in + latch · ၀.၁၈s ကွာ)。 cue တစ်ခုချင်း အကွာ စစ်လျှင်
+        #    ထပ်သံ (latch) ကို ဖယ်ပစ်ပြီး **whoosh ချည်း ကျန်**သည် ⇒
+        #    အသံ တစ်မျိုးတည်း ထပ်ကာ ပေါ့သွားသည်。 planner ရဲ့ မှတ်ချက်ကိုယ်တိုင်
+        #    「အထပ်များကို တစ်ခါတည်း ယူ/ပယ်ရမည်」ဆိုထားသည်。
+        #    ⇒ `LAYER_W` အတွင်း cue များကို **ဖြစ်ရပ် တစ်ခု** အဖြစ် စုပြီး
+        #      ဖြစ်ရပ် အချင်းချင်း အကွာကိုသာ စစ်သည်。
+        LAYER_W = 0.40
+        _mom = []                       # [[cue, …], …]
+        for _c in sorted(cues, key=lambda x: x[0]):
+            if _mom and (_c[0] - _mom[-1][-1][0]) <= LAYER_W:
+                _mom[-1].append(_c)
+            else:
+                _mom.append([_c])
+        _keep2, _drop2, _dropm = [], 0, 0
+        for _m in _mom:
+            _t0 = _m[0][0]
+            if _keep2 and (_t0 - _keep2[-1][0]) < _g:
+                _drop2 += len(_m); _dropm += 1; continue
+            _keep2.extend(_m)
+        if _drop2:
+            log(f"  SFX · ဖြတ်ပြီး အချိန်မှာ အကွာ < {_g:.1f}s ⇒ ဖြစ်ရပ် "
+                f"{_dropm} ခု ({_drop2} cue) ဖယ် "
+                f"({len(cues)} → {len(_keep2)} cue · ဖြစ်ရပ် {len(_mom)} → "
+                f"{len(_mom)-_dropm})")
+            REPORT["sfx_respace"] = _drop2
+            REPORT["sfx_respace_moments"] = _dropm
+        cues = sorted(_keep2, key=lambda x: x[0])
+        # ⚠️ **အသံ တစ်မျိုးတည်း မထပ်ရ** — role ဆက်တိုက် တူလျှင် ပြရမည်
+        try:
+            _roles = [str(c[1]) for c in cues]
+            _run = 1; _mx = 1
+            for _i in range(1, len(_roles)):
+                _run = _run + 1 if _roles[_i] == _roles[_i-1] else 1
+                _mx = max(_mx, _run)
+            REPORT["sfx_role_max_run"] = _mx
+            from collections import Counter as _Ct
+            REPORT["sfx_roles"] = dict(_Ct(_roles))
+            if _mx >= 3:
+                log(f"  ⚠️ SFX role「{_roles[0] if _mx==len(_roles) else ''}」"
+                    f"ဆက်တိုက် {_mx} ခါ တူနေသည် — {dict(_Ct(_roles))}")
+        except Exception:
+            pass
     nsfx = 0
     if cues:
         try:
@@ -2950,6 +3293,26 @@ def post_audio(jid, path, log=print):
         log(f"  အသံ proxy တင်ပြီး · {len(raw)/1e6:.1f} MB")
     except Exception as e:
         log(f"  ⚠️ အသံ proxy မတင်နိုင်: {e}")
+
+
+def post_cut(jid, out, meta, log=print):
+    """clean-cut proxy ကို API ကို တင်သည် — **R2 မသုံး** (ခေတ္တ ဖိုင် · ငယ်သည်)。
+
+    ⚠️ `puturl` က နောက်ဆုံး output ရဲ့ key ကို ထုတ်သဖြင့် proxy အတွက် သုံးလျှင်
+       key တိုးနိုင်သည် ⇒ multipart နဲ့ တိုက်ရိုက် ပို့သည်。
+    """
+    bnd = "----ikki" + os.urandom(8).hex()
+    with open(out, "rb") as f: data = f.read()
+    body = (f"--{bnd}\r\nContent-Disposition: form-data; name=\"meta\"\r\n\r\n{json.dumps(meta)}\r\n"
+            f"--{bnd}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{jid}_cut.mp4\"\r\n"
+            f"Content-Type: video/mp4\r\n\r\n").encode() + data + f"\r\n--{bnd}--\r\n".encode()
+    r = urllib.request.Request(API + f"/api/w/{jid}/cut", data=body, method="POST")
+    r.add_header("Authorization", "Bearer " + TOKEN)
+    r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
+    with urllib.request.urlopen(r, timeout=1800) as f:
+        d = json.loads(f.read())
+    log(f"  ဖြတ်ချက် proxy တင်ပြီး · {len(data)/1e6:.1f} MB · hash {d.get('hash')}")
+    return d
 
 
 def post_result(jid, out, meta):
@@ -3555,15 +3918,55 @@ def handle(d):
     if a2 and os.path.exists(a2) and os.path.getsize(a2) > 4096:
         try:
             import dual as DU   # core က line 20 မှာ path ထဲ ရှိပြီးသား
-            off, ok, inf = DU.offset(src, a2, log=lambda m: print(m, flush=True))
+            _sy = dict(selected=True, used=False)
+            # ── ကြာချိန် နှိုင်းယှဉ်ချက် ──
+            # ⚠️ **နာရီ လွဲမှု (drift) ကို ဖုံးကွယ်၍ မရ**。 offset တစ်ခုတည်း
+            #    「အိုကေ」ဟု ဆိုပြီး ကြာချိန် ၂ ခု များစွာ ကွာနေလျှင် —
+            #    အရှည် recording မှာ နောက်ပိုင်း လွဲသွားမည် (ဂိတ်ထဲ `MAX_DRIFT`
+            #    ရှိသော်လည်း သုံးစွဲသူကို **ပြရမည်**)。
+            try:
+                _dv = float(probe(src)["dur"])
+                _da = float(json.loads(subprocess.run(
+                    ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                     "-of", "json", a2], capture_output=True, text=True).stdout
+                    )["format"]["duration"])
+                _sy.update(dur_video=round(_dv, 2), dur_audio=round(_da, 2),
+                           dur_diff=round(_da - _dv, 2))
+                if _dv > 0 and abs(_da - _dv) / _dv > 0.02 and abs(_da - _dv) > 2.0:
+                    print(f"  ⚠️ ကြာချိန် ကွာ — ဗီဒီယို {_dv:.1f}s · အသံ {_da:.1f}s "
+                          f"({_da - _dv:+.1f}s) ⇒ နာရီ လွဲနိုင်သည်", flush=True)
+            except Exception as _de:
+                print(f"  ⓘ ကြာချိန် မတိုင်းရ ({type(_de).__name__})", flush=True)
+            # ── offset ── **ရှိပြီးသားဆို ပြန်မတိုင်း** ──
+            # ⚠️ cut preview နဲ့ နောက်ဆုံး render က **တူညီသော အသံ** ရရမည်。
+            #    ပြန်တိုင်းလျှင် window ရွေးချက်ပေါ် မူတည်ပြီး အနည်းငယ်
+            #    လွဲနိုင်သည် ⇒ အတည်ပြုပြီးသား offset ကို ပြန်သုံးသည်。
+            _prev = {}
+            try: _prev = json.loads(job.get("sync") or "{}") or {}
+            except Exception: _prev = {}
+            if _prev.get("used") and _prev.get("offset") is not None:
+                off, ok = float(_prev["offset"]), True
+                inf = {k: _prev.get(k) for k in ("corr", "drift", "windows", "ok_windows")}
+                print(f"  ♻️ အတည်ပြုပြီးသား offset ပြန်သုံး ({off:+.3f}s) — "
+                      f"cut preview နဲ့ တူညီစေရန်", flush=True)
+            else:
+                off, ok, inf = DU.offset(src, a2, log=lambda m: print(m, flush=True))
+            _sy.update(offset=off, corr=inf.get("corr"), drift=inf.get("drift"),
+                       windows=inf.get("windows"), ok_windows=inf.get("ok_windows"))
             if ok:
                 mx = os.path.join(SCRATCH, jid + "_mux.mp4")
                 DU.mux(src, a2, mx, off, log=lambda m: print(m, flush=True))
                 os.remove(src); src = mx
+                _sy["used"] = True
                 print(f"  ✓ recorder အသံ သုံးသည် (offset {off:+.2f}s)", flush=True)
             else:
-                print(f"  ⚠️ **အသံ မပေါင်းပါ** — {inf.get('why','ဂိတ် မအောင်')} "
+                _sy["why"] = inf.get("why") or "ချိန်ညှိချက် ဂိတ် မအောင်"
+                _sy["why_en"] = "Recorder audio could not be verified"
+                print(f"  ⚠️ **အသံ မပေါင်းပါ** — {_sy['why']} "
                       f"⇒ ကင်မရာ အသံ ဆက်သုံးသည်", flush=True)
+            try: req(f"/api/w/{jid}/sync", _sy)
+            except Exception as _se:
+                print(f"  ⚠️ sync ရလဒ် မမှတ်နိုင်: {type(_se).__name__}", flush=True)
         except Exception as e:
             print(f"  ⚠️ အသံ ပေါင်း၍ မရ: {type(e).__name__}: {e}", flush=True)
         finally:
@@ -3604,6 +4007,12 @@ def handle(d):
             m, mo, st, ncap = render(job, brand, src, out, stage,
                                      log=lambda s: print(s, flush=True),
                                      over=render_over)
+        except CutStop:
+            # ⚠️ ကျဘမ်း **မဟုတ်** — ဖြတ်ချက် အတည်ပြုချက် ခံရန် ရပ်လိုက်တာ。
+            #    proxy ကို `post_cut` က တင်ပြီးသား ⇒ `fail` မခေါ်ရ ·
+            #    မိနစ်လည်း မရေတွက်ရ (နောက်ဆုံး ဗီဒီယို မထွက်သေး)。
+            print(f"⏸  ဖြတ်ချက် preview တင်ပြီး · {time.time()-t0:.1f}s\n", flush=True)
+            return
         except ReviewStop as rs:
             # ⚠️ ကျဘမ်း **မဟုတ်** — သုံးစွဲသူ အတည်ပြုရန် ရပ်လိုက်တာ。
             #    `fail` ကို မခေါ်ရ、မိနစ်လည်း မရေတွက်ရ (ဗီဒီယို မထွက်သေး)。
@@ -3619,6 +4028,8 @@ def handle(d):
                                    segs=st.get("segs") or [],
                                    # ⚠️ မပါလျှင် plan က တိတ်တဆိတ် ပျောက်သည်
                                    edit_plan=st.get("edit_plan"),
+                                   # ⚠️ မပါလျှင် Visual Plan panel က ဗလာ ဖြစ်မည်
+                                   vplan=st.get("vplan"),
                                    minutes=round((time.time()-t0)/60, 2), note=job.get("recipe","")))
     except Exception:
         _failed = True
@@ -3708,6 +4119,88 @@ IDX_EVERY = 600.0
 IDX_MAX = 20000
 _IDX_AT = [0.0]
 
+# ── Motion Kit catalog — **worker သာ ဖတ်နိုင်သည်** ─────────────
+# ⚠️ motionkit runtime က ဤစက်ထဲ ရှိပြီး API က VPS container ထဲ ⇒ API က
+#    တိုက်ရိုက် ဖတ်လို့ မရ。 ⇒ sanitized snapshot တင်ပေးရသည်。
+#    browser က port 8765 ကို တိုက်ရိုက် **မဆွဲရ** (CORS · deploy · availability)。
+CAT_EVERY = 3600.0
+_CAT_AT = [0.0]
+
+def push_catalog(force=False, log=print):
+    if not force and time.time() - _CAT_AT[0] < CAT_EVERY: return
+    _CAT_AT[0] = time.time()
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))), "core"))
+        import mkcat as MK
+        d = MK.build(log=log)
+        if not d.get("ok"):
+            log(f"  ⚠️ Motion Kit catalog မရ — {d.get('why')}")
+            return
+        d["worker"] = _sock.gethostname()[:60]
+        r = req("/api/w/catalog", d)
+        log(f"  ✦ Motion Kit catalog တင်ပြီး · {r.get('n')} ခု (စစ်ပြီးသားသာ)")
+    except Exception as e:
+        log(f"  ⚠️ Motion Kit catalog မတင်နိုင်: {type(e).__name__}: {e}")
+
+
+# ── Reference **Style DNA** စိစစ်မှု ─────────────────────────────
+# ⚠️ **လမ်းကြောင်းသာ · ပုံတူ မဟုတ်**。 reference ရဲ့ media ကို output ထဲ
+#    တစ်ခုမှ မကူးပါ — `refdna` က ကိန်းဂဏန်းသာ ထုတ်သည်。
+# ⚠️ render job မရှိတဲ့အခါ ဒီအလုပ်ကို လုပ်သည် (render က အထက်တန်း)。
+def ref_one(log=print):
+    """တန်းစီထားသော reference တစ်ခုကို စိစစ်သည် — လုပ်လျှင် True。"""
+    try:
+        d = req("/api/w/refclaim", {"worker": WORKER_ID})
+    except Exception as e:
+        log(f"  ⚠️ refclaim မရ: {type(e).__name__}"); return False
+    r = (d or {}).get("ref")
+    if not r: return False
+    rid = r["id"]
+    log(f"✦ reference {rid} · «{r.get('name')}» စိစစ်နေသည်")
+    src = None; tmp = None
+    try:
+        import refdna as RD
+        # ⚠️ `fetch_src` က local/presigned-URL နှစ်မျိုးလုံး ကိုင်ပြီးသား ⇒
+        #    parallel လမ်းကြောင်း **မဆောက်ရ** (Zin ရဲ့ architecture #3/#5)。
+        #    စက်ထဲ ရှိပြီးသားဆို လမ်းကြောင်း ပဲ ပြန်ပေးသည် (မဆွဲချ)。
+        tmp0 = os.path.join(SCRATCH, rid + "_ref")
+        src = fetch_src(rid, tmp0, path="ref")
+        if src == tmp0: tmp = tmp0
+        a, b = (r.get("range") or [None, None])[:2]
+        pr = RD.probe(src)
+        _du = float(pr.get("dur") or 0)
+        # ⚠️ ၃ မိနစ် ထက် ရှည်လျှင် **အပိုင်း မဖြစ်မနေ** — တိတ်တဆိတ်
+        #    ဘယ်အပိုင်းကို ယူလိုက်မှန်း မသိရလျှင် ရလဒ်က အဓိပ္ပာယ် မရှိ。
+        if a is None and _du > RD.RANGE_MAX:
+            req(f"/api/w/refs/{rid}/result",
+                {"err": f"{_du:.0f}s ရှည်ပါတယ် — {RD.RANGE_MAX/60:.0f} မိနစ် "
+                        f"အောက် အပိုင်း ရွေးပေးပါ"})
+            return True
+        if _du and _du < RD.RANGE_MIN:
+            req(f"/api/w/refs/{rid}/result",
+                {"err": f"{_du:.0f}s တိုပါတယ် — {RD.RANGE_MIN:.0f} စက္ကန့် "
+                        f"အနည်းဆုံး လိုပါတယ်"})
+            return True
+        meas = RD.measure(src, a, b, log=log)
+        dna = RD.labels(meas)
+        cm = RD.compat(dna)
+        log(f"  ✦ Style DNA · {dna.get('pace')}/{dna.get('cut')}/"
+            f"{dna.get('motion')} · စာတန်း {dna.get('captions')} · "
+            f"ယုံကြည်မှု {dna.get('confidence')} · {cm[0]}")
+        req(f"/api/w/refs/{rid}/result",
+            {"meas": meas, "dna": dna, "compat": list(cm)})
+    except Exception as e:
+        log(f"  ✖ reference စိစစ်မရ: {type(e).__name__}: {e}")
+        try: req(f"/api/w/refs/{rid}/result", {"err": f"{type(e).__name__}: {e}"})
+        except Exception: pass
+    finally:
+        if tmp:
+            try: os.remove(tmp)
+            except OSError: pass
+    return True
+
+
 def push_index(force=False):
     """စက်ထဲက ဗီဒီယို ဖိုင် စာရင်းကို API သို့ ပို့သည် (နာမည် + အရွယ် + လမ်းကြောင်း)"""
     if not force and time.time() - _IDX_AT[0] < IDX_EVERY: return
@@ -3770,9 +4263,11 @@ def main(once=False):
     sweep_scratch(keep=None)
     print(f"  disk ကျန် {free_gb():.1f} GB", flush=True)
     push_index(force=True)
+    push_catalog(force=True, log=lambda x: print(x, flush=True))
     _bt = 0.0
     while True:
         push_index()
+        push_catalog(log=lambda x: print(x, flush=True))
         try:
             # ⚠️ ရုပ်ကြမ်း တင်လာတာကို **၃၀ စက္ကန့်တစ်ခါ** စစ်သည် — job poll
             #    တိုင်း စစ်လျှင် API ကို အလကား ခေါ်များသည်。
@@ -3801,6 +4296,10 @@ def main(once=False):
                 finally:
                     try: os.remove(BUSY)
                     except OSError: pass
+                if once: return
+            # ⚠️ render job မရှိတဲ့အခါမှသာ reference စိစစ်သည် —
+            #    render က **အထက်တန်း** (သုံးစွဲသူ ဗီဒီယို စောင့်နေသည်)。
+            elif ref_one(log=lambda x: print(x, flush=True)):
                 if once: return
             elif once: print("  job မရှိ"); return
         except urllib.error.URLError as e:

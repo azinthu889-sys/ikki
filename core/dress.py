@@ -503,6 +503,28 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    အများစု ကျဘမ်း ဖြစ်မည်。
             a = g.get("args") or (ARGS[g["kind"]](brand, label)
                                   if g["kind"] in ARGS else _cargs(g["kind"], brand, label))
+            # ⚠️ **tmplfit ပြန်ဆုတ်လမ်း** — `ARGS`/`_cargs` က ဖြည့်မရလျှင်
+            #    catalog ရဲ့ param signature အတိုင်း ဖြည့်ကြည့်သည်。
+            #    ဒါက motionkit template အများစုကို ပထမဆုံး သုံးနိုင်စေသည်。
+            if not a:
+                try:
+                    _T = None
+                    try:
+                        import theme as _TH2
+                        _T = _TH2.t()
+                    except Exception:
+                        _T = None
+                    a = _tf_args(g,
+                                 accent=(_T or {}).get("GOLD"),
+                                 ink=(_T or {}).get("INK") or "#FFFFFF",
+                                 dim=(_T or {}).get("DIM") or "#8B8B8B")
+                    if a:
+                        LAST["tmplfit"] = LAST.get("tmplfit", 0) + 1
+                        log and log(f"  ✎ {g['kind']} — tmplfit နဲ့ ဖြည့်ပြီး "
+                                    f"({len(a)} param)")
+                except Exception as _te:
+                    log and log(f"  ⚠️ tmplfit မရ: {type(_te).__name__}: {_te}")
+                    a = None
             if not a:
                 # ⚠️ **မှန်းဆ မဖြည့်ရ** — ကျော်သွားတာကို အကြောင်းရင်းနဲ့ ပြသည်
                 LAST["no_args"] = LAST.get("no_args", 0) + 1
@@ -525,9 +547,35 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         except _PackDone:
             pass
         except Exception as e:
-            LAST["build_fail"] += 1
-            log(f"  ⊘ ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s "
-                f"{type(e).__name__}: {e}"); continue
+            # ⚠️ **legacy arg က အမျိုးအစား မှားတတ်သည်** — ၂၀၂၆-၀၉-၂၂:
+            #    `odo.count_up` က 「can't multiply sequence by non-int of
+            #    type 'float'」နဲ့ ကျခဲ့သည် (စာသားကို ဂဏန်းနေရာ ထည့်မိ)。
+            #    `tmplfit` က catalog ရဲ့ signature အတိုင်း ဖြည့်သဖြင့်
+            #    အမျိုးအစား မှန်သည် ⇒ **တစ်ခါ ပြန်စမ်း**ရမည်。
+            _retry = None
+            if not isinstance(e, _PackDone) and a is not None:
+                try:
+                    _T3 = None
+                    try:
+                        import theme as _TH3
+                        _T3 = _TH3.t()
+                    except Exception:
+                        _T3 = None
+                    _alt = _tf_args(g, accent=(_T3 or {}).get("GOLD"),
+                                    ink=(_T3 or {}).get("INK") or "#FFFFFF",
+                                    dim=(_T3 or {}).get("DIM") or "#8B8B8B")
+                    if _alt and _alt != a:
+                        el = _call_template(fn, g["kind"], f"g{i}", _alt)
+                        _retry = True
+                        LAST["tmplfit_retry"] = LAST.get("tmplfit_retry", 0) + 1
+                        log and log(f"  ✎ {g['kind']} — {type(e).__name__} ⇒ "
+                                    f"tmplfit နဲ့ ပြန်ဆောက်ပြီး")
+                except Exception as _e4:
+                    _retry = None
+            if not _retry:
+                LAST["build_fail"] += 1
+                log(f"  ⊘ ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s "
+                    f"{type(e).__name__}: {e}"); continue
         # ⚠️ **မျက်နှာကို မဖုံးရ** — Zin: "Infography ကိုမျက်နှာကိုမဖုန်းစေနဲ့
         #    သေချာ Fitting ကျမည့်နေရာကို ရွေးပြီးလုပ်စေချင်တယ်"。
         # ⚠️ template ရဲ့ `y`/`cy` param ကို မှီခို၍ **မရ** — အများစုမှာ မရှိ။
@@ -544,16 +592,36 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         if avoid and _sr >= int(W * 0.22) and not _over_subject(g.get("kind")):
             _ay0, _ay1, _x0, _x1 = _box(avoid)
             _y0b, _y1b = _ybox(el, H)
-            _iw = 0
+            # ⚠️ **နောက်ဆုံး frame တစ်ခုတည်းနဲ့ တွက်၍ မရ**。 စာလုံး animation
+            #    အများစုက ဘေးကနေ **ရှော့ဝင်/ကျယ်လာ**သဖြင့် အလယ် frame တွေရဲ့
+            #    ink က ပိုကျယ်/ပိုဘယ်ဘက် ရှိနိုင်သည် ⇒ နောက်ဆုံး frame နဲ့
+            #    ရွှေ့လျှင် အစောပိုင်း frame တွေ **အစွန် ပြတ်**သည်
+            #    (၂၀၂၆-၀၉-၂၂ Zin ရဲ့ render: 「Casper Mobile」·「account level」
+            #     ဘယ်ဘက် ပြတ်နေခဲ့သည်)。
+            #    ⇒ frame ၆ ခု နမူနာယူပြီး **အကျယ်ဆုံး** ink ကို သုံးသည်。
+            _iw = 0; _ix0 = 0; _ix1 = 0
             try:
                 import numpy as _np
                 from PIL import Image as _Im
-                _a0 = _np.asarray(_Im.open(el["anim"][-1][0]).convert("RGBA"))[:, :, 3]
-                _xs = _np.nonzero(_a0.max(axis=0) > 8)[0]
-                _iw = int(_xs.max() - _xs.min()) if len(_xs) else 0
-                _ix0 = int(_xs.min()) + el["anim"][-1][1] if len(_xs) else 0
+                _fr = el["anim"]
+                _pick = sorted({0, len(_fr) - 1,
+                                len(_fr) // 5, 2 * len(_fr) // 5,
+                                3 * len(_fr) // 5, 4 * len(_fr) // 5})
+                _lo, _hi = None, None
+                for _j in _pick:
+                    if not (0 <= _j < len(_fr)): continue
+                    _a0 = _np.asarray(_Im.open(_fr[_j][0]).convert("RGBA"))[:, :, 3]
+                    _xs = _np.nonzero(_a0.max(axis=0) > 8)[0]
+                    if not len(_xs): continue
+                    _o = _fr[_j][1]
+                    _a, _b = int(_xs.min()) + _o, int(_xs.max()) + _o
+                    _lo = _a if _lo is None else min(_lo, _a)
+                    _hi = _b if _hi is None else max(_hi, _b)
+                if _lo is not None:
+                    _ix0, _ix1 = _lo, _hi
+                    _iw = _hi - _lo
             except Exception:
-                _iw, _ix0 = 0, 0
+                _iw, _ix0, _ix1 = 0, 0, 0
             if _iw and _iw <= _sr:
                 # ဘယ်/ညာ — ကျယ်တဲ့ဘက်
                 if _x0 * W >= (1.0 - _x1) * W:
@@ -561,11 +629,20 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                 else:
                     _tx = int(_x1 * W + ((1.0 - _x1) * W - _iw) / 2)
                 dx = _tx - _ix0
+                # ⚠️ **ဘောင်ထဲ ဝင်အောင် ကန့်သတ်ရမည်** — မကန့်သတ်လျှင်
+                #    အစွန် ပြတ်သည် (keyword pop လမ်းကြောင်းမှာ ကန့်သတ်
+                #    ပြီးသား · card လမ်းကြောင်းမှာ **မရှိခဲ့**)。
+                _m = max(8, int(W * 0.02))
+                if _iw and _iw <= W - 2 * _m:
+                    dx = max(_m - _ix0, min(W - _m - _ix1, dx))
+                elif _iw:
+                    dx = int(round((W - _iw) / 2.0)) - _ix0   # ကျယ်လွန်း ⇒ အလယ်
                 # ဒေါင်လိုက် — စာတန်းအထက် အလယ်
                 _band = (capy - 12 if capy else H - 12) - int(H * 0.075)
                 dy = int(H * 0.075) + (_band - (_y1b - _y0b)) // 2 - _y0b
                 log(f"  ↔ {g['kind']} — ဘေးနေရာ {_sr}px သို့ ရွှေ့ "
-                    f"(dx={dx} dy={dy})")
+                    f"(dx={dx} dy={dy} · ink {_ix0}–{_ix1} ⇒ "
+                    f"{_ix0+dx}–{_ix1+dx} / {W})")
                 avoid = None                                  # ဇုန် စစ်ချက် မလို
         # ⚠️ **အနားသတ်သာ template က မျက်နှာပေါ် တင်လို့ရသည်**。 pack ရဲ့
         #    `safeZones.subject: true` က 「အတွင်း ပွင့်လင်း ⇒ ပြောသူ
@@ -578,7 +655,15 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         else:
             avoid2 = avoid
         if avoid2:
-            ay0, ay1 = avoid2
+            # ⚠️ `avoid` က **၂ ခု ဒါမှမဟုတ် ၄ ခု** ဖြစ်နိုင်သည် —
+            #    `(y0, y1)` သာ ဟုတ်ခဲ့ပြီး `subject_box` ပေါ်လာပြီးနောက်
+            #    worker က `(y0, y1, sx0, sx1)` ပို့သည်。 `ay0, ay1 = avoid2`
+            #    က **「too many values to unpack (expected 2)」** နဲ့ ကျပြီး
+            #    `track()` တစ်ခုလုံး ရပ်ကာ **ဂရပ်ဖစ် လုံးဝ မထွက်**ခဲ့သည်
+            #    (၂၀၂၆-၀၉-၂၂ Zin: 「စောက်တလွဲ ဖြစ်နေတာလဲ」 — j_3929e0a70565)。
+            #    ⚠️ ဘေးမှာ ချသော/အနားသတ်သာ template တွေက `avoid2=None`
+            #       ဖြစ်သဖြင့် **တချို့ render မှာသာ** ကျသည် ⇒ ဖုံးနေခဲ့သည်。
+            ay0, ay1 = float(avoid2[0]), float(avoid2[1])
             _y0, _y1 = _ybox(el, H)
             ih = _y1 - _y0
             TOP = int(H*0.075)
@@ -893,6 +978,36 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
 
 
 _CIDX = None
+def _tf_args(g, accent=None, ink=None, dim=None, dur=None):
+    """`tmplfit` နဲ့ template ရဲ့ **required param အတိုင်း** kwargs ဆောက်သည်。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၂ တိုင်းချက်: engine မှာ `ARGS` ၁၂ ခု + `gfx_args.json`
+       ၅၂ ခုပဲ ရှိသဖြင့် **~၆၄ template** သာ ဖြည့်နိုင်ခဲ့သည် —
+       overlay အမျိုးအစား ၃၇၇ ခု ရှိပါလျက်。 template အများစုက
+       「ဂဏန်း/စာရင်း param လိုသည်」နဲ့ **ပယ်ခံ**ခဲ့သည် (log မှာ တကယ် ပေါ်)。
+       `tmplfit` က စာသားတစ်ခုတည်းနဲ့ **၁၇၀ ခု** · စာရင်းပါလျှင် **၃၀၀ ခု**
+       ဖြည့်နိုင်သည် (တိုင်းပြီး)。
+    ⚠️ **အကြောင်းအရာ မတီထွင်ရ** — `items` က planner ပေးမှ သုံးသည်。
+       မရှိလျှင် စာရင်း template တွေက ငြင်းမည် (မှန်ကန်သော အပြုအမူ)。
+    """
+    try:
+        import tmplfit as _TF
+        import gfxcat as _GC
+    except ImportError:
+        from core import tmplfit as _TF, gfxcat as _GC
+    tid = g.get("kind") or ""
+    ent = next((e for e in _GC.catalog() if e.get("id") == tid), None)
+    if not ent:
+        return None
+    head = str(g.get("text") or "").strip()
+    items = [str(x).strip() for x in (g.get("items") or []) if str(x).strip()]
+    c = dict(head=head, sub=str(g.get("sub") or "").strip(),
+             items=items, num=g.get("num"))
+    if not head and not items:
+        return None            # ⚠️ အကြောင်းအရာ မရှိ ⇒ မှန်းမဖြည့်ရ
+    return _TF.fit(ent, c, accent=accent, ink=ink, dim=dim, dur=dur)
+
+
 def _cargs(kind, brand, label):
     """catalog ရဲ့ signature ကနေ argument ဖြည့်သည် (ARGS မှာ မရှိသော template)。"""
     global _CIDX

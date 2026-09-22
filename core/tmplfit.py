@@ -26,7 +26,13 @@ HEAD = ("text", "title", "head", "headline", "q", "msg", "line", "l1",
 SUB = ("sub", "subtitle", "kicker", "note", "desc", "caption", "l2", "w2",
        "right", "after", "bottom", "value", "num", "detail")
 LIST = ("items", "lines", "rows", "bullets", "points", "steps", "words")
-NUM = ("pct", "val", "value_n", "count", "n", "score", "amount", "percent")
+# ⚠️ `target`·`to`·`goal`·`end_val` — `odo.count_up` လို counter template
+#    တွေရဲ့ ပစ်မှတ် ဂဏန်း。 catalog မှာ `type="text"` ဟု မှတ်ထားသော်လည်း
+#    template က **float နဲ့ မြှောက်**သည် (၂၀၂၆-၀၉-၂၂ တကယ့် render:
+#    「TypeError: can't multiply sequence by non-int of type 'float'」) ⇒
+#    ဂဏန်း ဖြစ်ကြောင်း သက်သေ ရှိသည် · မှန်းဆချက် မဟုတ်。
+NUM = ("pct", "val", "value_n", "count", "n", "score", "amount", "percent",
+       "target", "to", "goal", "end_val", "total_n", "num")
 
 # ── အရောင် slot — **အဓိပ္ပာယ်အလိုက် ခွဲရမည်** ──────────────────────
 # ⚠️ ၂၀၂၆-၀၉-၂၁ စမ်းစဉ် ဖမ်းမိ — အရောင် slot အားလုံးကို accent တစ်ခုတည်း

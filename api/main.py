@@ -5,7 +5,7 @@
 ⚠️ worker က အိမ်က Mac ပေါ်မှာ ဖြစ်ပြီး NAT နောက်မှာ ရှိသည် — server က
    worker ကို **ပြန်မခေါ်နိုင်**။ ဒါကြောင့် worker က ဆွဲယူသည် (claim)。
 """
-import json, sys, os, shutil, time
+import json, sys, os, shutil, time, hashlib
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Header, Form
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -344,6 +344,24 @@ async def job_new(req: Request, authorization: str = Header(None)):
         if len(sources) > 1:
             raise HTTPException(400, "take များစွာနဲ့ recorder အသံတစ်ဖိုင်ကို မပေါင်းနိုင်သေးပါ — take တစ်ခုတည်းသုံးပါ၊ သို့မဟုတ် camera audio ကိုသုံးပါ")
         over["_audio"] = au
+    # ── Reference Style DNA — **setup မှာ ရွေးထားလျှင်** ──
+    # ⚠️ snapshot ကို ဒီမှာတင် သိမ်းသည် (worker က DB မဖတ်နိုင်) ·
+    #    နောက်မှ profile ပြင်လည် ဒီ render မပျက် (versioned)。
+    rf = (b.get("ref_id") or "").strip()
+    if rf:
+        r = db.one("SELECT * FROM refs WHERE id=? AND acct=?", rf, aid(authorization))
+        if not r: raise HTTPException(404, "reference မရှိပါ")
+        if r["status"] != "done":
+            raise HTTPException(409, f"စိစစ်မှု မပြီးသေးပါ ({r['status']})")
+        try: _dna = json.loads(r["dna"] or "{}") or {}
+        except Exception: _dna = {}
+        if not _dna: raise HTTPException(409, "Style DNA မရှိပါ")
+        try: _cm = json.loads(r["compat"] or "null")
+        except Exception: _cm = None
+        if _cm and _cm[0] == "unsuitable":
+            raise HTTPException(400, f"ဒီ reference ကို မသုံးနိုင်ပါ — {_cm[1]}")
+        over["_ref"] = dict(id=r["id"], ver=r["ver"], name=r["name"])
+        over["_dna"] = _dna
     if len(sources) > 1:
         # The primary source remains in jobs.upload_id for old jobs/routes;
         # only additional takes live in the job-local override.
@@ -993,8 +1011,16 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     #    `keep_n` = ချန်ခဲ့သော နံပါတ် ⇒ ပြန်ဖွင့်လျှင် အရင် ဖျက်ချက် ပြန်မြင်ရ。
     _kn = sorted({int(k.get("i")) + 1 for k in keep
                   if k.get("i") is not None and (k.get("text") or "").strip()})
-    db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
-           "segs=?,keep_n=?,over=?,approved=? WHERE id=?",
+    # ── ⚠️ **clean-cut preview ကို အရင် ထုတ်သည်** (၂၀၂၆-၀၉-၂၁ Zin) ──
+    #    ယခင်က `mode='go'` ⇒ စာတမ်း အတည်ပြုလိုက်တာနဲ့ ဂရပ်ဖစ် · တီးလုံး ·
+    #    SFX · စာတန်း အားလုံး ပါသော **နောက်ဆုံး ဗီဒီယို** တန်းထွက်ခဲ့သည် —
+    #    ဖြတ်ချက် မှားလျှင် အကုန် ပြန်လုပ်ရသည် (render မိနစ် အလဟဿ)。
+    #    ⇒ အခု `mode='cut'` — ပုံဖြတ်ချက် + အသံသာ ပါသော proxy ထုတ်ပြီး
+    #      「ဖြတ်ချက် အိုကေလား」ခံသည်。 အိုကေမှ `mode='go'` သို့ တက်သည်。
+    db.run("UPDATE jobs SET status='queued',mode='cut',stage=0,stage_name=NULL,"
+           "segs=?,keep_n=?,over=?,approved=?,"
+           "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL WHERE id=?",
            json.dumps(clean, ensure_ascii=False),
            json.dumps(_kn),
            json.dumps(over, ensure_ascii=False) if over else None,
@@ -1146,6 +1172,542 @@ def w_puturl(jid: str, authorization: str = Header(None)):
     key = f"out/{jid}_v{n}.mp4"
     return {"url": ST.presign("PUT", key, 7200), "key": key}
 
+# ══════════════════════════════════════════════════════════════════════
+# clean-cut preview — **ဒုတိယ အတည်ပြုချက်** (၂၀၂၆-၀၉-၂၁ Zin)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ လုပ်ငန်းစဉ်:  review ─(စာတမ်း အတည်ပြု)→ cut_preview ─(worker)→
+#                cut_review ─(ဖြတ်ချက် အိုကေ)→ queued/mode=go → done
+# ⚠️ ဖြတ်ချက်ကို **အေးခဲ**ပြီး နောက်ဆုံး render က အဲဒီအတိုင်းသာ သုံးရမည်。
+#    ပြန်တွက်လျှင် အနည်းငယ် လွဲပြီး ဂရပ်ဖစ်/SFX နေရာ ရွှေ့သွားမည်。
+
+def _cuthash(spans):
+    """ဖြတ်မှတ်ရဲ့ canonical hash — **server ဘက်မှာ တွက်သည်** (worker ကို မယုံ)。"""
+    cn = [[round(float(a), 3), round(float(b), 3)] for a, b in (spans or [])]
+    return hashlib.sha256(
+        json.dumps(cn, separators=(",", ":")).encode()).hexdigest()[:16], cn
+
+
+@app.post("/api/w/{jid}/cut")
+async def w_cut(jid: str, file: UploadFile = File(None), meta: str = Form("{}"),
+                authorization: str = Header(None)):
+    """worker က clean-cut proxy ပို့သည် — ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း **မပါ**。"""
+    auth(authorization, WTOKEN)
+    _beat()
+    m = json.loads(meta or "{}")
+    sp = m.get("spans") or []
+    if not isinstance(sp, list) or not sp:
+        raise HTTPException(400, "ဖြတ်မှတ် မပါ")
+    h, cn = _cuthash(sp)
+    okey = m.get("out_key") or ""
+    if okey and ST.on():
+        if not ST.head(okey): raise HTTPException(400, "R2 မှာ ဖိုင် မရှိ")
+        pth = okey
+    else:
+        if file is None: raise HTTPException(400, "ဖိုင် မပါ")
+        pth = os.path.join(OUT, f"{jid}_cut.mp4")
+        with open(pth, "wb") as f: shutil.copyfileobj(file.file, f)
+    # ⚠️ **quota မကောက်ရ** — ဒါက ခေတ္တ ကြည့်ရန် proxy ဖြစ်၍ နောက်ဆုံး render
+    #    နဲ့ **နှစ်ခါ** ကောက်လျှင် သုံးစွဲသူက အနစ်နာခံရမည် (Zin ရဲ့ လိုအပ်ချက်)。
+    db.run("UPDATE jobs SET status='cut_review',stage=3,stage_name='ဖြတ်ချက် ကြည့်ရန်',"
+           "cut_path=?,cut_key=?,cut_dur=?,cut_src=?,cut_hash=?,cut_spans=?,"
+           "cut_n=?,minutes=0 WHERE id=?",
+           pth, (okey or None), float(m.get("out_dur", 0)),
+           float(m.get("src_dur", 0)), h,
+           json.dumps(cn, separators=(",", ":")), len(cn), jid)
+    return {"ok": True, "hash": h, "n": len(cn)}
+
+
+@app.get("/api/jobs/{jid}/cut")
+def job_cut_file(jid: str, authorization: str = Header(None), t: str = ""):
+    """clean-cut proxy ကို ဖွင့်ရန် — **ပိုင်ရှင်သာ**。"""
+    auth(authorization or (f"Bearer {t}" if t else None), UTOKEN)
+    j = mine(authorization, jid, t)
+    if j.get("cut_key") and ST.on():
+        return RedirectResponse(ST.get_url(j["cut_key"], 3600,
+                                           filename=f"{jid}_cut.mp4"), status_code=302)
+    pth = j.get("cut_path")
+    if not pth or not os.path.exists(pth):
+        raise HTTPException(404, "ဖြတ်ချက် ဗီဒီယို မရှိသေး")
+    return FileResponse(pth, filename=f"{jid}_cut.mp4")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Motion Kit catalog — **worker က တင် · API က ဖြန့်** (၂၀၂၆-၀၉-၂၁)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ browser က port 8765 (motionkit dev gallery) ကို **တိုက်ရိုက် မဆွဲရ** —
+#    CORS · deploy · availability သုံးခုလုံး ပြဿနာ ဖြစ်မည်。 motionkit runtime
+#    က worker စက် (Mac) ထဲမှာသာ ရှိသည် ⇒ worker က sanitized snapshot တင်ပြီး
+#    API က ပြန်ဖြန့်သည်。
+# ⚠️ snapshot မရှိလျှင် **တိတ်တဆိတ် ဗလာ မပြရ** — 「worker မချိတ်ရသေး」ဟု
+#    အကြောင်းရင်း ပြရမည် (Zin ရဲ့ architecture #6)。
+
+# ══════════════════════════════════════════════════════════════════════
+# Reference Video **Style DNA** (၂၀၂၆-၀၉-၂၁ Zin)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ **လမ်းကြောင်းသာ · ပုံတူ မဟုတ်**。 reference ရဲ့ ရုပ်ပုံ · တီးလုံး · အသံ ·
+#    စာတန်း စာသား · logo ကို output ထဲ **ဘယ်တော့မှ မသုံးရ** — ကိန်းသာ。
+# ⚠️ **တိတ်တဆိတ် မဖွင့်ရ**。 သုံးစွဲသူက `apply` ကို ကိုယ်တိုင် နှိပ်မှ သက်ဝင်。
+# ⚠️ account အလိုက် သီးသန့် — သူတစ်ပါးရဲ့ profile ကို မမြင်ရ · မဖျက်ရ。
+REF_MIN, REF_MAX = 15.0, 180.0
+
+
+def _ref(rid, authorization):
+    """**ကိုယ်ပိုင် reference သာ** — မဟုတ်လျှင် 404 (403 မဟုတ် — ရှိမရှိ မပြ)。"""
+    r = db.one("SELECT * FROM refs WHERE id=? AND acct=?", rid, aid(authorization))
+    if not r: raise HTTPException(404, "reference မရှိပါ")
+    return r
+
+
+def _refout(r, full=False):
+    o = dict(id=r["id"], name=r["name"], status=r["status"],
+             dur=r["dur"], conf=r["conf"], ver=r["ver"],
+             saved=bool(r["saved"]), created=r["created"],
+             range=[r["range_a"], r["range_b"]] if r["range_a"] is not None else None,
+             err=r["err"])
+    for k in ("dna", "compat"):
+        try: o[k] = json.loads(r[k]) if r[k] else None
+        except Exception: o[k] = None
+    # ⚠️ `meas` (ကြမ်းထမ်း တိုင်းချက်) ကို တောင်းမှသာ — UI က label သာ လိုသည်
+    if full:
+        try: o["meas"] = json.loads(r["meas"]) if r["meas"] else None
+        except Exception: o["meas"] = None
+    return o
+
+
+@app.post("/api/refs")
+async def ref_new(req: Request, authorization: str = Header(None)):
+    """reference sample ကို စိစစ်ရန် တန်းစီသည် (upload ပြီးပြီးလျှင်)。
+
+    body: `{"upload_id": …, "name": …, "range": [a, b]}`
+    ⚠️ ၃ မိနစ် ထက် ရှည်လျှင် **အပိုင်း ရွေးရမည်** — တိတ်တဆိတ် နမူနာ
+       မယူရ (Zin: 「do not silently sample arbitrary content」)。
+    """
+    auth(authorization, UTOKEN)
+    b = await req.json()
+    up = str((b or {}).get("upload_id") or "").strip()
+    u = db.one("SELECT * FROM uploads WHERE id=?", up)
+    if not u: raise HTTPException(400, "upload မရှိ")
+    if not u["done"]: raise HTTPException(400, "upload မပြီးသေး")
+    a = bb = None
+    rg = (b or {}).get("range")
+    if isinstance(rg, list) and len(rg) == 2 and rg[0] is not None:
+        try: a, bb = float(rg[0]), float(rg[1])
+        except (TypeError, ValueError): raise HTTPException(400, "အပိုင်း မမှန်")
+        if bb - a < REF_MIN:
+            raise HTTPException(400, f"အပိုင်းက {REF_MIN:.0f} စက္ကန့် အနည်းဆုံး လိုပါတယ်")
+        if bb - a > REF_MAX:
+            raise HTTPException(400, f"အပိုင်းက {REF_MAX/60:.0f} မိနစ် ထက် မပိုရပါ")
+    rid = db.nid("r_")
+    db.run("INSERT INTO refs(id,acct,upload_id,name,status,range_a,range_b,"
+           "ver,created) VALUES(?,?,?,?,?,?,?,?,?)",
+           rid, aid(authorization), up,
+           str((b or {}).get("name") or "reference")[:80],
+           "queued", a, bb, 1, time.time())
+    return {"ok": True, "ref_id": rid, "status": "queued"}
+
+
+@app.get("/api/refs")
+def ref_list(authorization: str = Header(None)):
+    """**ကိုယ်ပိုင် profile များသာ**。"""
+    auth(authorization, UTOKEN)
+    rs = db.rows("SELECT * FROM refs WHERE acct=? ORDER BY created DESC LIMIT 60",
+                 aid(authorization))
+    return {"refs": [_refout(r) for r in rs]}
+
+
+@app.get("/api/refs/{rid}")
+def ref_get(rid: str, full: int = 0, authorization: str = Header(None)):
+    auth(authorization, UTOKEN)
+    return _refout(_ref(rid, authorization), full=bool(full))
+
+
+@app.post("/api/refs/{rid}/save")
+async def ref_save(rid: str, req: Request, authorization: str = Header(None)):
+    """「ငါ့ပုံစံအဖြစ် သိမ်း」— profile ကို ဆက်ထားရန် အမှတ်。
+
+    ⚠️ ဒီ ပရောဂျက်ကို **မထိပါ** — သိမ်းတာနဲ့ သုံးတာ ခွဲထားသည်
+       (Zin ရဲ့ 「Save as my style」က 「Use for this project」နဲ့ မတူ)。
+    """
+    auth(authorization, UTOKEN)
+    _ref(rid, authorization)
+    b = await req.json() if req is not None else {}
+    on = bool((b or {}).get("saved", True))
+    db.run("UPDATE refs SET saved=? WHERE id=? AND acct=?",
+           1 if on else 0, rid, aid(authorization))
+    return {"ok": True, "saved": on}
+
+
+@app.delete("/api/refs/{rid}")
+def ref_del(rid: str, authorization: str = Header(None)):
+    """profile + reference ဖိုင်ကို ဖျက်သည်。
+
+    ⚠️ **ဖိုင်ကိုပါ ဖျက်ရမည်** — profile ပဲ ဖျက်ပြီး media ကျန်နေလျှင်
+       「ဖျက်ပြီး」ဆိုတာ မှားရာ ကျသည် (Zin ရဲ့ gate #6)。
+    """
+    auth(authorization, UTOKEN)
+    r = _ref(rid, authorization)
+    db.run("DELETE FROM refs WHERE id=? AND acct=?", rid, aid(authorization))
+    # ⚠️ တူညီသော upload ကို အခြား ref တွေ သုံးနေလျှင် **မဖျက်ရ**
+    left = db.one("SELECT COUNT(*) n FROM refs WHERE upload_id=?", r["upload_id"])
+    gone = False
+    if not (left or {}).get("n"):
+        u = db.one("SELECT * FROM uploads WHERE id=?", r["upload_id"])
+        if u:
+            try:
+                if u.get("key") and ST.on(): ST.delete(u["key"])
+                elif u.get("path") and os.path.exists(u["path"]): os.remove(u["path"])
+                gone = True
+            except Exception:
+                gone = False
+            db.run("DELETE FROM uploads WHERE id=?", r["upload_id"])
+    return {"ok": True, "media_deleted": gone}
+
+
+@app.post("/api/jobs/{jid}/ref")
+async def job_ref(jid: str, req: Request, authorization: str = Header(None)):
+    """profile ကို ဒီ ပရောဂျက်အတွက် **သုံး / ဖယ်**。
+
+    body: `{"ref_id": "r_…"}` သို့ `{"ref_id": null}` (ဖယ်)
+    ⚠️ DNA **snapshot** ကို job ထဲ သိမ်းသည် — နောက်မှ profile ပြင်လည်
+       ဒီ render မပျက်ပါ (versioned)。
+    ⚠️ worker က DB မဖတ်နိုင်သဖြင့် snapshot က မဖြစ်မနေ。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    b = await req.json()
+    rid = (b or {}).get("ref_id")
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    over.pop("_dna", None); over.pop("_ref", None)
+    if rid:
+        r = _ref(str(rid), authorization)
+        if r["status"] != "done":
+            raise HTTPException(409, f"စိစစ်မှု မပြီးသေးပါ ({r['status']})")
+        try: dna = json.loads(r["dna"] or "{}") or {}
+        except Exception: dna = {}
+        if not dna: raise HTTPException(409, "Style DNA မရှိပါ")
+        cm = None
+        try: cm = json.loads(r["compat"] or "null")
+        except Exception: cm = None
+        if cm and cm[0] == "unsuitable":
+            raise HTTPException(400, f"ဒီ reference ကို မသုံးနိုင်ပါ — {cm[1]}")
+        over["_ref"] = dict(id=r["id"], ver=r["ver"], name=r["name"])
+        over["_dna"] = dna
+    db.run("UPDATE jobs SET over=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    return {"ok": True, "applied": bool(rid)}
+
+
+# ── worker လမ်းကြောင်း ──
+@app.post("/api/w/refclaim")
+async def w_refclaim(req: Request, authorization: str = Header(None)):
+    auth(authorization, WTOKEN)
+    _beat()
+    r = db.one("SELECT * FROM refs WHERE status='queued' ORDER BY created LIMIT 1")
+    if not r: return {"ref": None}
+    db.run("UPDATE refs SET status='running',claimed=? WHERE id=? AND status='queued'",
+           time.time(), r["id"])
+    chk = db.one("SELECT * FROM refs WHERE id=?", r["id"])
+    if chk["status"] != "running": return {"ref": None}
+    return {"ref": dict(id=chk["id"], range=[chk["range_a"], chk["range_b"]],
+                        name=chk["name"])}
+
+
+@app.get("/api/w/ref/{rid}")
+def w_ref_src(rid: str, authorization: str = Header(None)):
+    """reference ရဲ့ မူရင်းဖိုင် — **worker သာ**。"""
+    auth(authorization, WTOKEN)
+    r = db.one("SELECT * FROM refs WHERE id=?", rid)
+    if not r: raise HTTPException(404, "reference မရှိ")
+    u = db.one("SELECT * FROM uploads WHERE id=?", r["upload_id"])
+    if not u: raise HTTPException(404, "ဖိုင် မရှိ")
+    # ⚠️ `uploads.local` က **worker စက်ထဲ ရှိပြီးသား** ဟု ဆိုလိုသည် ⇒
+    #    ဆွဲချစရာ မလို (`w_src2` နဲ့ တူညီသော ပုံစံ)。
+    if u.get("local"):
+        return {"local": u["path"], "size": u["size"]}
+    if u.get("key") and ST.on():
+        return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
+    if u.get("path") and os.path.exists(u["path"]):
+        return FileResponse(u["path"])
+    raise HTTPException(404, "ဖိုင် မရှိ")
+
+
+@app.post("/api/w/refs/{rid}/result")
+async def w_ref_result(rid: str, req: Request, authorization: str = Header(None)):
+    auth(authorization, WTOKEN)
+    _beat()
+    b = await req.json()
+    if (b or {}).get("err"):
+        db.run("UPDATE refs SET status='failed',err=?,done=? WHERE id=?",
+               str(b["err"])[:400], time.time(), rid)
+        return {"ok": True}
+    dna = (b or {}).get("dna") or {}
+    if not dna: raise HTTPException(400, "dna မပါ")
+    db.run("UPDATE refs SET status='done',meas=?,dna=?,conf=?,compat=?,dur=?,"
+           "err=NULL,done=? WHERE id=?",
+           json.dumps((b or {}).get("meas") or {}, ensure_ascii=False),
+           json.dumps(dna, ensure_ascii=False),
+           float(dna.get("confidence") or 0),
+           json.dumps((b or {}).get("compat") or None, ensure_ascii=False),
+           float(dna.get("dur") or 0) or None, time.time(), rid)
+    return {"ok": True}
+
+
+@app.post("/api/w/{jid}/sync")
+async def w_sync(jid: str, req: Request, authorization: str = Header(None)):
+    """worker က recorder အသံ ချိန်ညှိချက် ရလဒ်ကို မှတ်သည်。
+
+    ⚠️ **ခန့်မှန်း၍ မရ** — ဂိတ် မအောင်လျှင် ကင်မရာ အသံ ဆက်သုံးပြီး
+       အကြောင်းရင်းကို သုံးစွဲသူ မြင်ရမည် (Zin ရဲ့ ordering #5)。
+    """
+    auth(authorization, WTOKEN)
+    _beat()
+    b = await req.json()
+    if not isinstance(b, dict): raise HTTPException(400, "sync မမှန်")
+    keep = {}
+    for k in ("selected", "used", "offset", "corr", "drift", "windows",
+              "ok_windows", "dur_video", "dur_audio", "dur_diff", "why",
+              "why_en", "at"):
+        if k in b: keep[k] = b[k]
+    keep["at"] = time.time()
+    db.run("UPDATE jobs SET sync=? WHERE id=?",
+           json.dumps(keep, ensure_ascii=False), jid)
+    return {"ok": True}
+
+
+@app.post("/api/w/catalog")
+async def w_catalog(req: Request, authorization: str = Header(None)):
+    """worker က Motion Kit catalog snapshot တင်သည်。"""
+    auth(authorization, WTOKEN)
+    _beat()
+    b = await req.json()
+    if not isinstance(b, dict) or not b.get("ok"):
+        raise HTTPException(400, f"catalog မရ: {str((b or {}).get('why'))[:120]}")
+    items = b.get("items") or []
+    if not isinstance(items, list) or not items:
+        raise HTTPException(400, "catalog ဗလာ")
+    fmt = str(b.get("fmt") or "16:9")[:12]
+    db.run("INSERT INTO mkcat(fmt,data,n,total,worker,updated) VALUES(?,?,?,?,?,?) "
+           "ON CONFLICT(fmt) DO UPDATE SET data=excluded.data,n=excluded.n,"
+           "total=excluded.total,worker=excluded.worker,updated=excluded.updated",
+           fmt, json.dumps(b, ensure_ascii=False), len(items),
+           int(b.get("total") or 0), str(b.get("worker") or "")[:60], time.time())
+    return {"ok": True, "n": len(items)}
+
+
+@app.get("/api/motion/catalog")
+def motion_catalog(fmt: str = "16:9", cat: str = "", q: str = "",
+                   authorization: str = Header(None)):
+    """curated library — **verified သာ**。 raw ၄၇၉ စာရင်း မထုတ်ပါ。"""
+    auth(authorization, UTOKEN)
+    r = db.one("SELECT * FROM mkcat WHERE fmt=?", fmt) \
+        or db.one("SELECT * FROM mkcat ORDER BY updated DESC LIMIT 1")
+    if not r:
+        # ⚠️ **ရှင်းလင်းစွာ ပြောရမည်** — UI က 「AI ရွေးပေးမယ်」သာ ပြရန်
+        return {"ok": False, "n": 0, "cats": [], "items": [],
+                "why": "Motion Kit ကို ဖတ်နိုင်သော worker မချိတ်ရသေးပါ",
+                "why_en": "No worker with Motion Kit access has connected yet"}
+    try: d = json.loads(r["data"])
+    except Exception:
+        return {"ok": False, "n": 0, "cats": [], "items": [],
+                "why": "catalog snapshot ဖတ်မရပါ"}
+    its = d.get("items") or []
+    if cat: its = [i for i in its if i.get("cat") == cat]
+    if q:
+        ql = q.strip().lower()
+        its = [i for i in its
+               if ql in str(i.get("name", "")).lower()
+               or ql in str(i.get("id", "")).lower()]
+    return {"ok": True, "fmt": d.get("fmt"), "n": len(its),
+            "total": d.get("total"), "verified": d.get("n"),
+            "stale_h": round((time.time() - float(r["updated"] or 0)) / 3600.0, 1),
+            "cats": d.get("cats") or [], "items": its[:400]}
+
+
+MOTION_LEVELS = ("auto", "minimal", "balanced", "high")
+EV_MODES = ("auto", "tpl", "none")
+
+
+@app.post("/api/jobs/{jid}/finetune")
+async def job_finetune(jid: str, req: Request, authorization: str = Header(None)):
+    """**Fine tune** — ဗီဒီယို တစ်ပုဒ်ချင်း အလှအပ ချိန်ညှိချက် (Zin ရဲ့ §5)。
+
+    body: `{"cap": "<size id>"|"", "music_off": bool}`
+    ⚠️ ဤအဆင့်က **ဖြစ်မနေ မဟုတ်** — မထိလျှင် brand/style ရဲ့ ပုံသေ。
+    ⚠️ သုံးစွဲသူ ရွေးချက်က **ဆက်တည်ရမည်** — style ပြောင်းလျှင် မလွှမ်းရ。
+       (job ရဲ့ `over` ထဲ သိမ်းသဖြင့် style override ကနေ သီးသန့် ဖြစ်သည်)
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    if j.get("status") not in ("cut_review", "done", "failed", "review"):
+        raise HTTPException(409, f"ချိန်ညှိရန် အဆင့်မှာ မရှိပါ ({j.get('status')})")
+    b = await req.json()
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    out = {}
+    if "cap" in (b or {}):
+        cp = str(b.get("cap") or "").strip()[:24]
+        import recipes as _RC
+        if cp and cp not in set(_RC.CAPSIZE):
+            raise HTTPException(400, f"စာတန်း အရွယ် မမှန်: {cp}")
+        db.run("UPDATE jobs SET cap=? WHERE id=?", cp or None, jid)
+        out["cap"] = cp
+    if "music_off" in (b or {}):
+        # ⚠️ knob အသစ် **မလိုပါ** — `recipes.BOUNDS["music"]` ရဲ့ choice ထဲ
+        #    `None` ပါပြီးသား ⇒ `over["music"]=None` က တီးလုံး ပိတ်သည်。
+        #    (၂၀၂၆-၀၉-၂၁: `music_off` ဆိုတာ ထပ်ဆောက်မိပြီး ဖယ်ခဲ့သည်)
+        mo = bool(b.get("music_off"))
+        over.pop("music", None)
+        if mo: over["music"] = None
+        db.run("UPDATE jobs SET over=? WHERE id=?",
+               json.dumps(over, ensure_ascii=False) if over else None, jid)
+        out["music_off"] = mo
+    return {"ok": True, **out}
+
+
+@app.post("/api/jobs/{jid}/revis")
+def job_revis(jid: str, authorization: str = Header(None)):
+    """**အလှအပ ပဲ** ပြန်ထုတ်သည် — ဖြတ်ချက် မထိပါ。
+
+    ⚠️ `over["_spans"]` (အေးခဲသော ဖြတ်မှတ်) ကို ချန်ထားသဖြင့် ဖြတ်ချက်က
+       အတည်ပြုခဲ့တာအတိုင်း ဖြစ်ပြီး **ဖြတ်ချက် ပြန်အတည်ပြုစရာ မလို**。
+       ဖြတ်ချက် ပြောင်းလိုလျှင် `recut` ကနေ ပြန်စရမည် (validation #5)。
+    ⚠️ ASR ပြန်မလုပ်ပါ (`segs` ရှိပြီးသား) ⇒ Gemini မကုန်ပါ。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    if j.get("status") not in ("done", "failed"):
+        raise HTTPException(409, f"ပြီးဆုံးထားသော job မဟုတ်ပါ ({j.get('status')})")
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    if not over.get("_spans"):
+        raise HTTPException(409, "အေးခဲသော ဖြတ်မှတ် မရှိ — ဖြတ်ချက်ကနေ ပြန်စပါ")
+    db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
+           "err=NULL,claimed=NULL,finished=NULL WHERE id=?", jid)
+    return {"ok": True, "spans": len(over["_spans"])}
+
+
+@app.post("/api/jobs/{jid}/vplan")
+async def job_vplan(jid: str, req: Request, authorization: str = Header(None)):
+    """Visual Plan ရဲ့ event တစ်ခုချင်း ဆုံးဖြတ်ချက်ကို သိမ်းသည်。
+
+    body: `{"ev": {"g18.40": {"mode":"none"}, "g42.10": {"mode":"tpl","tpl":"…"}}}`
+    ⚠️ ဤမှာ သိမ်းရုံသာ — ပြန်ထုတ်မှ သက်ဝင်သည် (worker က `_ev` ကို နာခံသည်)。
+    ⚠️ template id ကို **snapshot ထဲ ရှိမှ** လက်ခံသည် — မရှိသော id ပေးလျှင်
+       worker မှာ preflight ကျပြီး တိတ်တဆိတ် AI ရွေးချက် ဖြစ်သွားမည်。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    b = await req.json()
+    ev = (b or {}).get("ev")
+    if not isinstance(ev, dict): raise HTTPException(400, "ev မပါ")
+    if len(ev) > 200: raise HTTPException(400, "event ၂၀၀ ထက် မပိုရ")
+    # ── snapshot ထဲက id များ ──
+    ids = set()
+    r = db.one("SELECT data FROM mkcat ORDER BY updated DESC LIMIT 1")
+    if r:
+        try: ids = {i.get("id") for i in (json.loads(r["data"]).get("items") or [])}
+        except Exception: ids = set()
+    clean = {}
+    for k, v in ev.items():
+        k = str(k)[:24]
+        md = str((v or {}).get("mode") or "auto").lower()
+        if md not in EV_MODES: raise HTTPException(400, f"mode မမှန်: {md[:12]}")
+        if md == "auto": continue                 # ပုံသေ ⇒ မသိမ်း
+        if md == "none": clean[k] = {"mode": "none"}; continue
+        tid = str((v or {}).get("tpl") or "")
+        if not tid: raise HTTPException(400, f"{k} — template မပါ")
+        if ids and tid not in ids:
+            raise HTTPException(400, f"{k} — «{tid[:40]}» က စစ်ပြီးသား စာရင်းထဲ မပါ")
+        clean[k] = {"mode": "tpl", "tpl": tid}
+    over = {}
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    over.pop("_ev", None)
+    if clean: over["_ev"] = clean
+    db.run("UPDATE jobs SET over=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    return {"ok": True, "n": len(clean)}
+
+
+@app.post("/api/jobs/{jid}/cutok")
+async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(None)):
+    """「ဖြတ်ချက် အိုကေ — အလှအပ ထည့်」⇒ **အေးခဲသော ဖြတ်မှတ်** နဲ့ render。
+
+    body (မဖြစ်မနေ မဟုတ်): `{"motion": "auto"|"minimal"|"balanced"|"high"}`
+    ⚠️ ဂရပ်ဖစ် · SFX · B-roll ရှာဖွေမှုက **ဒီအဆင့် ပြီးမှသာ** စသည် ⇒
+       အလှအပ အဆင့်ကို ဒီမှာ ရွေးတာ သဘာဝ ကျသည် (Zin ရဲ့ §4)。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    if j.get("status") != "cut_review":
+        raise HTTPException(409, f"ဖြတ်ချက် ကြည့်ရန် အဆင့်မှာ မရှိပါ ({j.get('status')})")
+    try: cn = json.loads(j.get("cut_spans") or "[]")
+    except Exception: cn = []
+    if not cn: raise HTTPException(400, "အေးခဲသော ဖြတ်မှတ် မရှိ")
+    h, cn = _cuthash(cn)
+    if j.get("cut_hash") and h != j.get("cut_hash"):
+        # ⚠️ ဖြစ်လျှင် **ရပ်ရမည်** — အတည်ပြုခဲ့တာနဲ့ မတူတော့သည်
+        raise HTTPException(409, "ဖြတ်မှတ် hash မကိုက် — ဖြတ်ချက်ကို ပြန်ထုတ်ပါ")
+    over = {}
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    # ⚠️ worker က ဒီ ၂ ခု ရှိလျှင် **ပြန်မတွက်ဘဲ** ဒီအတိုင်းသာ ဖြတ်ရမည်
+    over["_spans"] = cn
+    over["_cuthash"] = h
+    # ── အလှအပ အဆင့် ──
+    mv = "auto"
+    if req is not None:
+        try: b = await req.json()
+        except Exception: b = {}
+        mv = str((b or {}).get("motion") or "auto").strip().lower()
+        if mv not in MOTION_LEVELS:
+            raise HTTPException(400, f"အလှအပ အဆင့် မမှန်: {mv[:20]}")
+    # ⚠️ `auto` = AI ရွေး ⇒ recipe ရဲ့ တိုင်းထားသော ပုံသေအတိုင်း ⇒ မသိမ်း
+    over.pop("_motion", None)
+    if mv != "auto": over["_motion"] = mv
+    db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
+           "over=?,cut_ok=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False), time.time(), jid)
+    return {"ok": True, "hash": h, "spans": len(cn), "motion": mv}
+
+
+@app.post("/api/jobs/{jid}/recut")
+def job_recut(jid: str, authorization: str = Header(None)):
+    """「ဖြတ်ချက် ပြန်ပြင်」⇒ script editor ဆီ ပြန်。
+
+    ⚠️ **စာတမ်း ဆုံးဖြတ်ချက်များ မပျက်ရ** — ပျောက်သွားတာက proxy သာ。
+       (`segs_all` · `keep_n` · `over` ရဲ့ ဖျက်/ချန်ချက်များ အတိုင်း ရှိသည်)
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    # ⚠️ `failed` ကိုပါ လက်ခံရမည် — render ကျဘမ်းဖြစ်ပြီးလျှင် စာတမ်းဆီ
+    #    **ပြန်လမ်း မရှိဘဲ** ပိတ်မိသည် (၂၀၂၆-၀၉-၂၂: QC ကျပြီး Zin က
+    #    မမြင်ရခဲ့သော ပိုင်းတွေကို ဖြတ်လိုသော်လည်း ဝင်လမ်း မရှိခဲ့)。
+    if j.get("status") not in ("cut_review", "cut_preview", "failed"):
+        raise HTTPException(409, f"ဖြတ်ချက် ကြည့်ရန် အဆင့်မှာ မရှိပါ ({j.get('status')})")
+    pth = j.get("cut_path")
+    if pth and not j.get("cut_key") and os.path.exists(pth):
+        try: os.remove(pth)
+        except OSError: pass
+    over = {}
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    over.pop("_spans", None); over.pop("_cuthash", None)
+    # ⚠️ ကျဘမ်းဖြစ်တုန်း စားထားသော မိနစ်ကို ပြန်ထည့်ပေးရမည် —
+    #    ဗီဒီယို မရှိဘဲ မိနစ် ကုန်လျှင် ငွေယူပြီး ပစ္စည်း မပေးရာ ကျသည်。
+    _back = float(j.get("minutes") or 0)
+    if _back > 0:
+        db.run("UPDATE usage SET minutes=max(0,minutes-?) WHERE ym=?",
+               _back, time.strftime("%Y-%m"))
+    db.run("UPDATE jobs SET status='review',mode='review',stage=2,"
+           "stage_name='စာတမ်း အတည်ပြုရန်',err=NULL,minutes=0,over=?,"
+           "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    return {"ok": True}
+
+
 @app.post("/api/w/{jid}/stage")
 async def w_stage(jid: str, req: Request, authorization: str = Header(None)):
     auth(authorization, WTOKEN)
@@ -1204,6 +1766,11 @@ async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}
     if m.get("edit_plan"):
         db.run("UPDATE jobs SET edit_plan=? WHERE id=?",
                json.dumps(m.get("edit_plan"), ensure_ascii=False), jid)
+    # ⚠️ Visual Plan — **ပုံစံ အားလုံးအတွက်**。 မသိမ်းလျှင် သုံးစွဲသူက
+    #    event တစ်ခုချင်း ပြင်လို့ မရ (edit_plan က Headtop အတွက်သာ)。
+    if m.get("vplan") is not None:
+        db.run("UPDATE jobs SET vplan=? WHERE id=?",
+               json.dumps(m.get("vplan"), ensure_ascii=False), jid)
     db.run("UPDATE usage SET minutes=minutes+? WHERE ym=?",
            float(m.get("minutes",0)), time.strftime("%Y-%m"))
     _notify(jid, m)
@@ -1799,7 +2366,17 @@ def brand_logo_get(bid: str, authorization: str = Header(None), t: str = ""):
     # ⚠️ worker ကလည်း ဆွဲသည် (ဗီဒီယိုထဲ ထည့်ရန်) ⇒ token နှစ်မျိုးလုံး လက်ခံ。
     h = authorization or (f"Bearer {t}" if t else None)
     tok = (h or "").replace("Bearer ", "")
-    if tok not in (UTOKEN, WTOKEN): raise HTTPException(401, "unauthorised")
+    # ⚠️ worker (WTOKEN) က ဗီဒီယိုထဲ ထည့်ရန် ဆွဲသဖြင့် အကုန် ဖတ်ခွင့် ရသည်。
+    #    user ဘက်မှာတော့ **ကိုယ်ပိုင် kit ရဲ့ logo ကိုသာ** — အခြား account ရဲ့
+    #    logo ကို မမြင်ရ ("ငါ့brand ကငါပဲမြင်ချင်ပါတယ်")。
+    #    ၂၀၂၆-၀၉-၂၁ အထိ `tok not in (UTOKEN, WTOKEN)` ဖြစ်နေ၍ —
+    #    (၁) account တိုင်း၏ token ကို ပယ်သဖြင့် ဖောက်သည် ရဲ့ logo မပေါ်၊
+    #    (၂) မျှဝေ UTOKEN ရှိသူက brand တိုင်း၏ logo ကို ဖတ်နိုင်ခဲ့သည်。
+    if tok != WTOKEN:
+        auth(h, UTOKEN)                  # account တိုင်း၏ token လက်ခံ
+        if not db.one("SELECT id FROM brands WHERE id=? AND acct=?",
+                      bid, aid(h)):
+            raise HTTPException(404, "logo မရှိ")
     p = os.path.join(LOGO, f"{bid}.png")
     if not os.path.exists(p): raise HTTPException(404, "logo မရှိ")
     return FileResponse(p, media_type="image/png")
@@ -2172,6 +2749,20 @@ def _script_of(segs, plan):
     #    ၂၀၂၆-၀၉-၁၉: စာရင်း ထင်ပြီး loop ပတ်မိ၍ `TypeError: 'int' object is not
     #    iterable` ⇒ 500 ⇒ 「transcript မပေါ်ဘူး」 ဖြစ်ခဲ့သည်。
     events = []
+    # ── ⚠️ **ချန်ထားပြီး ဝါကျ မရှိသော ပိုင်းများ** ──
+    #    ဤဟာ မပါခဲ့သဖြင့် သုံးစွဲသူ မမြင်ရဘဲ ထွက်ချက်ထဲ ပါသွားခဲ့သည်
+    #    (Zin ၂၀၂၆-၀၉-၂၂: 「Script editor မှာ ဖြတ်ခဲ့ပေမယ့် ဗီဒီယိုထဲ ပါနေတယ်」 —
+    #     တကယ်တော့ အဲဒီပိုင်းတွေ **စာမျက်နှာပေါ် တစ်ခါမှ မပေါ်ခဲ့**)。
+    for u in (plan.get("unlisted") or []):
+        try:
+            ua, ub = float(u.get("a")), float(u.get("b"))
+        except (TypeError, ValueError):
+            continue
+        if ub <= ua: continue
+        events.append(dict(type="unlisted", start=round(ua, 2), end=round(ub, 2),
+                           dur=round(ub - ua, 2),
+                           kind=str(u.get("kind") or "unknown"),
+                           speech=u.get("speech")))
     spans = plan.get("spans") or []
     if spans:
         prev = None

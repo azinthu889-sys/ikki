@@ -306,3 +306,98 @@ def readd(spans, keep, dur):
         else:
             out.append((a, b))
     return out, max(0.0, sum(b - a for a, b in out) - before)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# ချန်ထားပြီး **ဝါကျ မရှိသော** အပိုင်းများ (၂၀၂၆-၀၉-၂၂ Zin)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ **ဤဟာက ဖုံးကွယ်ခဲ့သော အပေါက်**。 Script Editor က (၁) ဝါကျများ နှင့်
+#    (၂) engine **ဖြတ်ပစ်လိုက်သော** တိတ်ဆိတ်မှုများ ကိုသာ ပြခဲ့သည်。
+#    ⇒ 「ချန်ထားပြီး ဝါကျ မရှိသော အသံ」က row တစ်ခုမှ မဖြစ်ဘဲ **လုံးဝ
+#      မမြင်ရ** — သုံးစွဲသူ ဖျက်လို့ မရဘဲ ထွက်ချက်ထဲ ပါသွားသည်。
+#    တိုင်းချက် (j_58639d6961da): ထွက်ချက် ၆၉.၅s ရဲ့ **၁၂.၆s (၁၈%)** က
+#    Script Editor မှာ တစ်ခါမှ မပေါ်ခဲ့သော ပိုင်းများ ဖြစ်ခဲ့သည် —
+#    out 0:30–0:32 · 0:40–0:45 · 1:03–1:07 (Zin ပြောသည့် နေရာ အတိအကျ)。
+# ⚠️ Zin ရဲ့ စည်းကမ်း: 「ဖြတ်ရတာ ခက်ရင် မဖြတ်နဲ့ · user ကို အသံလိုင်းနဲ့ ပြပေး ·
+#    သူ ကိုယ်တိုင် နားထောင်ပြီးမှ ဖြတ်မယ်」 ⇒ ဤ function က **မဖြတ်ပါ**。
+#    ပြရန် စာရင်းသာ ထုတ်သည် — ဆုံးဖြတ်ချက်က သုံးစွဲသူ့ဟာ。
+UNL_MIN = 0.25       # ဤထက် တိုလျှင် row မပြ (ဖတ်ရ မရ ဖြစ်မည်)
+UNL_PAD = 0.30       # ဝါကျ နယ်နိမိတ် ဝန်းကျင် လျှော့ — ASR အချိန် အနည်းငယ် လွဲသည်
+
+
+UNL_GAP = 0.80       # ဤထက် နီးသော အပိုင်းအစများကို **တစ်ကြောင်းတည်း** ပေါင်း
+
+
+def unlisted(spans, segs, dur, meas=None, min_d=UNL_MIN, pad=UNL_PAD,
+             merge_gap=UNL_GAP):
+    """ချန်ထားသော အပိုင်းထဲက **ဝါကျ မရှိသော** ပိုင်းများ。
+
+    `spans` = ချန်မည့် (a,b) များ · `segs` = ASR ဝါကျများ · `meas` =
+    `measure.speech()` ရဲ့ ရလဒ် (ပါလျှင် စကား ဘယ်လောက် ပါလဲ ပါ တိုင်းသည်)。
+
+    ⇒ `[{a, b, dur, speech, kind}]` — `kind`: `"speech"` (စကား ပါ · အရေးကြီး) ·
+      `"quiet"` (တိတ်ဆိတ်) · `"mixed"`。
+    """
+    if not spans: return []
+    # ── ဝါကျ နယ်နိမိတ်များ (pad နဲ့ ကျယ်) ──
+    sent = []
+    for s in (segs or []):
+        try: a, b = float(s.get("start")), float(s.get("end"))
+        except (TypeError, ValueError): continue
+        if b > a: sent.append((a - pad, b + pad))
+    sent.sort()
+    # merge
+    mg = []
+    for a, b in sent:
+        if mg and a <= mg[-1][1]: mg[-1][1] = max(mg[-1][1], b)
+        else: mg.append([a, b])
+    # ── span တစ်ခုချင်းကနေ ဝါကျ နယ်များ ဖြုတ် ──
+    out = []
+    for a, b in spans:
+        try: a, b = float(a), float(b)
+        except (TypeError, ValueError): continue
+        cur = [[a, b]]
+        for sa, sb in mg:
+            nxt = []
+            for x, y in cur:
+                if sb <= x or sa >= y: nxt.append([x, y]); continue
+                if sa > x: nxt.append([x, min(sa, y)])
+                if sb < y: nxt.append([max(sb, x), y])
+            cur = [p for p in nxt if p[1] - p[0] > 1e-6]
+        out.extend(cur)
+    # ── စကား ပါမပါ တိုင်း ──
+    runs = []
+    if meas:
+        try: runs = [(float(x), float(y)) for x, y in (meas[0] or [])]
+        except Exception: runs = []
+    res = []
+    for x, y in out:
+        d = y - x
+        if d < min_d: continue
+        sps = sum(max(0.0, min(y, q) - max(x, p)) for p, q in runs) if runs else None
+        if sps is None: kind = "unknown"
+        elif sps >= max(0.35, 0.25 * d): kind = "speech"
+        elif sps <= 0.05: kind = "quiet"
+        else: kind = "mixed"
+        res.append(dict(a=round(x, 2), b=round(y, 2), dur=round(d, 2),
+                        speech=(None if sps is None else round(sps, 2)),
+                        kind=kind))
+    res.sort(key=lambda r: r["a"])
+    # ── နီးစပ်သော အပိုင်းအစများ ပေါင်း ──
+    # ⚠️ တိုင်းချက်မှာ ၀.၃၂s အပိုင်းအစ ၁၀ ခု ထွက်ခဲ့သည် — တစ်ခုချင်း row
+    #    ပြလျှင် ဖတ်ရ မရ。 သုံးစွဲသူကလည်း 「တစ်နေရာ」ဟုသာ ခံစားသည်
+    #    (Zin: 「0:40 ကနေ 0:44 တစ်နေရာ」) ⇒ ပေါင်းပြသည်。
+    mrg = []
+    for r in res:
+        if mrg and r["a"] - mrg[-1]["b"] <= merge_gap:
+            p_ = mrg[-1]
+            p_["b"] = r["b"]; p_["dur"] = round(p_["b"] - p_["a"], 2)
+            if p_.get("speech") is not None and r.get("speech") is not None:
+                p_["speech"] = round(p_["speech"] + r["speech"], 2)
+            # ⚠️ စကား ပါသော ပိုင်း တစ်ခု ပါလျှင် တစ်ခုလုံးကို စကား အဖြစ် ပြရမည်
+            if r["kind"] == "speech" or p_["kind"] == "speech": p_["kind"] = "speech"
+            elif "unknown" in (r["kind"], p_["kind"]): p_["kind"] = "unknown"
+            elif "mixed" in (r["kind"], p_["kind"]): p_["kind"] = "mixed"
+        else:
+            mrg.append(dict(r))
+    return [r for r in mrg if r["dur"] >= min_d]

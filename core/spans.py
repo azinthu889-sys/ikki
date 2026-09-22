@@ -62,7 +62,12 @@ def _punch(z, w, h, y=PUNCH_Y, x=0.5):
 
 
 def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
-          fade=FADE, zooms=None):
+          fade=FADE, zooms=None, scale=None):
+    """ဖြတ်မှတ်အတိုင်း ဖြတ်ပြီး ပြန်ဆက်သည်。
+
+    `scale` = အမြင့် (px)。 ပေးလျှင် အရွယ် ချုံ့သည် — **clean-cut preview**
+    အတွက် (540p · 1.5M) ဖြစ်ပြီး နောက်ဆုံး render မှာ မသုံးပါ。
+    """
     os.makedirs(work, exist_ok=True)
     parts=[]
     _w, _h = _dim(src) if zooms else (0, 0)
@@ -80,6 +85,9 @@ def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
         cmd = ["ffmpeg","-v","error","-y",
             "-ss",f"{a:.3f}","-i",src,"-t",f"{d:.3f}",
             "-af",f"afade=t=in:st=0:d={fade:.4f},afade=t=out:st={max(0,d-fade):.3f}:d={fade:.4f}"]
+        if scale:
+            _sc = f"scale=-2:{int(scale)}"
+            vf = f"{vf},{_sc}" if vf else _sc
         if vf: cmd += ["-vf", vf]
         cmd += ["-r",str(fps),"-c:v",vcodec,"-b:v",vb,"-c:a","aac","-b:a","192k",
                 "-avoid_negative_ts","make_zero",p]
