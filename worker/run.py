@@ -1684,6 +1684,23 @@ def render(job, brand, src, out, stage, log=print, over=None):
             if idx and not DR.resolves(TP.templ("typo", 0, set())):
                 log("  ⚠️ typography template မတွေ့ — ပုံမှန် စာတန်း ဆက်သုံးသည်")
                 idx = set()
+            # ⚠️ **ရှည်သော ကြောင်းကို typography မလုပ်ရ** (၂၀၂၆-၀၉-၂၅)。
+            #    typography စာတန်းက motionkit template နဲ့ ဆွဲသဖြင့် စာတန်းရဲ့
+            #    safe width (`cap_wide`) ကို **မသိ**ပါ ⇒ ရှည်လျှင် ဘောင်ကို
+            #    ကျော်ထွက်ပြီး **ဘယ်/ညာ ၂ ဖက်လုံး ပြတ်**သည်。 ZAE render
+            #    (j_8af784926e78 · ၁၂s) မှာ 「အခါတလေမှာ တစ်နှစ်ပါပဲ Language」
+            #    က ၁၀၈၀px အပြည့် ဖြစ်ကာ အစွန်း ၂ ဖက် ပြတ်ခဲ့သည်。
+            # ⚠️ ပုံမှန် စာတန်းက `captions.wrap()` နဲ့ မှန်မှန် ခွဲသည်
+            #    (တူညီသော စာသားကို ၄၇၈px + ၂၈၁px ၂ ကြောင်း ခွဲပြီး) ⇒
+            #    ရှည်လျှင် အဲဒီကို ချန်ထားတာ ပိုကောင်းသည်。
+            if idx:
+                _tmax = int(rc.get("typo_max_ch") or 22)
+                _long = {i for i in idx
+                         if len((caps[i].get("text") or "").strip()) > _tmax}
+                if _long:
+                    log(f"  စာတန်း · typography {len(_long)} ကြောင်း ရှည်၍ ချန် "
+                        f"(>{_tmax} လုံး — ဘောင် ကျော်မည်)")
+                    idx -= _long
             if idx:
                 typo = [caps[i] for i in sorted(idx)]
                 # ⚠️ typography ဖြစ်သွားသော ကြောင်းကို caps ထဲက **မဖယ်ရတော့** —
