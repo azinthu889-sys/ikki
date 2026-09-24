@@ -1,0 +1,236 @@
+[
+ {
+  "id": "callouts.spot_call",
+  "ok": 1,
+  "cover": 0.6838,
+  "n": 61
+ },
+ {
+  "id": "insert.insert_flow",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "insert.insert_label",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "motionfx.bg_gradient",
+  "ok": 1,
+  "cover": 0.3108,
+  "n": 60
+ },
+ {
+  "id": "motionfx.bg_rays",
+  "ok": 1,
+  "cover": 0.039,
+  "n": 60
+ },
+ {
+  "id": "motionfx.hud_corners",
+  "ok": 1,
+  "cover": 0.002,
+  "n": 60
+ },
+ {
+  "id": "motionfx.scanlines",
+  "ok": 1,
+  "cover": 0.0237,
+  "n": 60
+ },
+ {
+  "id": "motionfx.shape_wipe",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "motionfx.sweep_light",
+  "ok": 1,
+  "cover": 0.0463,
+  "n": 60
+ },
+ {
+  "id": "prem.glass_stat",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem.list_reveal",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem.split_hero",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem2.big_number",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem2.split_compare",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem2.word_pop",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.marquee_band",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.serif_quote",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.step_bar",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.arrow_point",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.pov_label",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.stop_scroll",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.three_reasons",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.wait_for_it",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.bounce_cap",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.box_cap",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.hl_word_cap",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.karaoke_cap",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.line_by_line",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem5.word_pop_cap",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.poll_sticker",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.save_reminder",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.social_proof",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem7.end_grid",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "retro.frame_box",
+  "ok": 1,
+  "cover": 0.0377,
+  "n": 60
+ },
+ {
+  "id": "retro.rec_dot",
+  "ok": 1,
+  "cover": 0.0104,
+  "n": 60
+ },
+ {
+  "id": "retro.tape_wipe",
+  "ok": 1,
+  "cover": 0.4332,
+  "n": 60
+ },
+ {
+  "id": "titles2.wipe_word",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 61
+ },
+ {
+  "id": "typew.grad_card",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "typew.split_grad",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ }
+]

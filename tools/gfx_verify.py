@@ -16,7 +16,7 @@ import os, sys, json, subprocess, time
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(HERE, "core"))
-TIMEOUT = 60
+TIMEOUT = 150
 MIN_FRAMES = 2
 # ⚠️ **ဖိုင် အရွယ် ဂိတ် မထားရ** — animation ရဲ့ ပထမ ဖရိမ်းများက ၁၃၃ bytes
 #    (ဗလာနီးပါး) ဖြစ်တတ်သည် · ပုံမှန်。 >1KB ဟု ထားမိ၍ **အလုပ်လုပ်နေသော
@@ -38,7 +38,15 @@ e = e[0]
 #    ဒါပေမယ့် engine က ယခု `tmplfit` ကိုပါ ပြန်ဆုတ်လမ်း အဖြစ် သုံးသည်
 #    ⇒ verifier က engine ထက် **ကျဉ်း**နေလျှင် အသုံးဝင်သော template တွေကို
 #    အလကား ပိတ်ထားရာ ကျသည်。
-args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62)
+# ⚠️ **ပုံ ယူသော template ကို ပုံ မပေးဘဲ စစ်လျှင် ဘယ်တော့မှ မအောင်**。
+#    `thm.media_*` ၁၂ · `social` ၁၀ · `brows` · `maps.photo_inset` ·
+#    `typo2.subject_rise` — ၂၈ ခု 「fill ဗလာ」နဲ့ ကျခဲ့သည် (၂၀၂၆-၀၉-၂၅)。
+#    ⇒ ကိုယ်ပိုင် icon ကို နမူနာ ပုံ အဖြစ် ပေးသည် (ဒေသတွင်း ဖိုင် · ပြင်ပ
+#    ဒေါင်းလုဒ် မလို · လိုင်စင် ကိစ္စ မရှိ)。
+DEMO_IMG = "/Users/zinthuaung/ikki/web/img/ikki-icon-512.png"
+if not os.path.exists(DEMO_IMG): DEMO_IMG = None
+DEMO_TEXTS = ["ဂျပန်မှာ အလုပ်", "ပညာသင် ဗီဇာ", "အခုပဲ စမယ်", "သင်တန်း ၃ လ"]
+args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62, img=DEMO_IMG)
 kw = None
 # ⚠️ `fill()` က **param မလိုသော** template အတွက် `()` ပြန်ပေးသည် (မှန်သည် —
 #    `gfxcat.fill` ကိုယ်တိုင် "`()` ပြန်ရမည်" ဟု ရေးထားပြီးသား)。 `if not args`
@@ -52,15 +60,67 @@ if args is None:
                          accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
     except Exception as _e:
         kw = None
+    # ⚠️ **၃ ခုမြောက် လမ်းကြောင်း — `demoargs` ရဲ့ ပုံစံ**。 param ရဲ့
+    #    တည်ဆောက်ပုံကို နာမည်တစ်ခုတည်းနဲ့ မှန်း၍ မရသော template ၅၅ ခု
+    #    ဒီအထိ ကျန်ခဲ့သည် (`grid` က ကိန်း ၂ ဆင့် · `maps` ရဲ့ `a` က
+    #    (lat,lon) ဖြစ်လျက် `prem7` ရဲ့ `a` က (နာမည်,ကိန်း))。
+    #    `argshape.fit()` က `demoargs` ကို ပုံစံပြ ယူပြီး **စာသား အကွက်**
+    #    တွေကိုသာ အစားထိုးသည် — engine ဘက်မှာလည်း ဒီအတိုင်း (`dress.py`)。
     if not kw:
-        print(json.dumps({"ok":0,"why":"fill ဗလာ (tmplfit လည်း မရ)"})); raise SystemExit
+        kw = G.fill_kw(e, DEMO_TEXTS, img=DEMO_IMG, pct=62)
+    if not kw:
+        print(json.dumps({"ok":0,"why":"fill ဗလာ (tmplfit · demoargs ပုံစံ လည်း မရ)"})); raise SystemExit
+# ⚠️ **template ရဲ့ exception ကို ဖမ်းရမည်** — မဖမ်းလျှင် child က print
+#    မရောက်ခင် သေပြီး parent က 「ထွက်ချက် ဗလာ」ဟုသာ မှတ်ကာ **အကြောင်းရင်း
+#    ပျောက်**သည် (၆၄ ခု ဤအတိုင်း ဖြစ်ခဲ့ — တကယ်က စာရင်းပုံစံ မကိုက်ခြင်း)。
 if kw is not None:
-    el = DR._call_template(getattr(__import__(e["module"]), e["fn"]),
-                           eid, "g0", kw)
+    try:
+        _m = __import__(e["module"])
+        # ⚠️ **`getattr(module, fn)` တစ်ခုတည်း မလုံလောက်** — `trans` ရဲ့ ၂၄ ခုက
+        #    factory ကနေ ဆောက်ထားသော closure ဖြစ်၍ `BUILDERS` dict ထဲမှာသာ
+        #    ရှိပြီး module attribute **မဟုတ်**ပါ ⇒ `AttributeError` နဲ့ ကျကာ
+        #    အသွင်ကူး ၂၄ ခုလုံး တစ်ခါမှ မစစ်ဖြစ်ခဲ့ (၂၀၂၆-၀၉-၂၄)。
+        _fn = getattr(_m, "BUILDERS", {}).get(e["fn"]) or getattr(_m, e["fn"])
+        # ⚠️ **ဤလမ်းကြောင်းမှာလည်း tag ထပ်သည်** — `G.call` ဘက်မှာသာ ပြင်ခဲ့ပြီး
+        #    `tmplfit` ဘက်မှာ `"g0"` ကျန်ခဲ့သဖြင့် ဖိုင်များ အပြန်အလှန် လွှမ်းကာ
+        #    「ဖိုင် သေး/မရှိ」ဖြစ်သည် (cut_/board_ ၈ ခု — ၂၀၂၆-၀၉-၂၅)。
+        import hashlib as _h2
+        _tag2 = "v" + _h2.sha1(eid.encode()).hexdigest()[:8]
+        # ⚠️ **cwd ကို motionkit သို့ ပြောင်းရမည်** — template တွေက frame ကို
+        #    `work/<module>/...` ဆိုသော **relative** လမ်းကြောင်းမှာ ရေးသည်。
+        #    `G.call` က ကိုယ်တိုင် `chdir` လုပ်သော်လည်း ဤ tmplfit လမ်းကြောင်းက
+        #    မလုပ်ခဲ့ ⇒ frame တွေ `~/ikki/work/` ထဲ ကျပြီး `rp()` က
+        #    `MK/work/` မှာ ရှာကာ 「ဖိုင် သေး/မရှိ」 (cut_grid · cut_list ·
+        #    cut_steps · cut_timeline — ၂၀၂၆-၀၉-၂၅)。
+        #    (`gfxtextsens.py` မှာ ဤအမှားကို ကြိုသိပြီး chdir လုပ်ထားပြီးသား)
+        _cwd2 = os.getcwd()
+        try:
+            os.chdir(G.MK)
+            el = DR._call_template(_fn, eid, _tag2, kw)
+        finally:
+            try: os.chdir(_cwd2)
+            except Exception: pass
+    except BaseException as _ex:
+        if isinstance(_ex, KeyboardInterrupt): raise
+        print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
+        raise SystemExit
 else:
     # ⚠️ production (dress.py) နှင့် **အတိအကျ တူရမည်** — tag ရှေ့က ထည့်
-    if DR._wants_tag(e["fn"]): args = ("g0",) + tuple(args)
-    el = G.call(e, args, 2.0)
+    # ⚠️ **template တိုင်းကို `g0` နဲ့ ခေါ်လျှင် တစ်ခုနဲ့တစ်ခု ဖိုင် ထပ်သည်**。
+    #    `prem._crop()` က crop PNG ကို ဖိုင်နာမည်နဲ့ cache လုပ်ပြီး
+    #    `if not os.path.exists(q)` နဲ့ စစ်သဖြင့် ရှေ့ template ရဲ့
+    #    `work/prem/g0w_c.png` ကို နောက် template တွေက **အတူတူ ပြန်သုံး**သည် —
+    #    `thm.key_pop` က တိုက်ရိုက်ခေါ်လျှင် မှင် ၁၁.၃%%၊ verifier ကနေ ၀.၀၄%%
+    #    (၂၀၂၆-၀၉-၂၄ တိုင်း၍ တွေ့)。 ⇒ id အလိုက် **သီးသန့် tag**。
+    import hashlib as _h
+    _tag = "v" + _h.sha1(eid.encode()).hexdigest()[:8]
+    if DR._wants_tag(e["fn"]): args = (_tag,) + tuple(args)
+    try:
+        el = G.call(e, args, 2.0)
+    except BaseException as _ex:
+        if isinstance(_ex, KeyboardInterrupt): raise
+        print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
+        raise SystemExit
 if not isinstance(el, dict):
     print(json.dumps({"ok":0,"why":"dict မဟုတ် (%%s)" %% type(el).__name__})); raise SystemExit
 fr = el.get("anim") or el.get("frames") or []
@@ -154,6 +214,21 @@ def main():
             r.update({"ok": 0, "why": f"{TIMEOUT}s ကျော်"})
         except Exception as ex:
             r.update({"ok": 0, "why": f"{type(ex).__name__}: {ex}"})
+        # ⚠️ **template တစ်ခုပြီးတိုင်း ကိုယ့်ယာယီ frame ကို ရှင်းရမည်**。
+        #    tag ကို id အလိုက် သီးသန့် လုပ်လိုက်သည်နှင့် ဖိုင်များ အပြန်အလှန်
+        #    မလွှမ်းတော့ဘဲ **စုပုံ**သည် — ၅၉၆ ခု ပြေးရာ `work/` က ၅.၃ GB
+        #    ရောက်ကာ disk ၁၀၀% ပြည့်ပြီး 「ဖိုင် သေး/မရှိ」နဲ့ ၅၄ ခု
+        #    **မှားကျ**ခဲ့သည် (၄၆၁ → ၄၀၇ · ၂၀၂၆-၀၉-၂၄)。
+        #    ⚠️ `work/` တစ်ခုလုံး မဖျက်ရ — ဤ id ရဲ့ tag နဲ့ ကိုက်တာကိုသာ。
+        try:
+            import glob as _g, hashlib as _hh
+            _t = "v" + _hh.sha1(e["id"].encode()).hexdigest()[:8]
+            for _d in _g.glob(os.path.join(G.MK, "work", "*")):
+                for _f in _g.glob(os.path.join(_d, "*%s*" % _t)):
+                    try: os.remove(_f)
+                    except OSError: pass
+        except Exception:
+            pass
         res.append(r)
         mark = "✓" if r.get("ok") else "✖"
         print(f"  [{i:3d}/{len(ents)}] {mark} {e['id']:34s} {r.get('why','')[:60]}", flush=True)

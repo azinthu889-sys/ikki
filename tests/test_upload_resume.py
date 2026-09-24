@@ -99,5 +99,50 @@ db.run("UPDATE uploads SET path=? WHERE id=?", "/Users/editor/Downloads/missing.
 ck("မမြင်နိုင်သော Mac path ⇒ 404 (false success မဟုတ်)",
    code(M.w_src, "j_server", authorization="Bearer " + M.WTOKEN) == 404)
 
+# ══ R2 က multipart ကို ဖျက်ပြီးလျှင် **အသစ် စခွင့်ပြုရမည်** ═══════════
+# ⚠️ ၂၀၂၆-၀၉-၂၄ — ၀၉-၁၇ က ကျန်ခဲ့သော record ၂ ခုကြောင့် `tokutei.mp4` ကို
+#    **ရက်တစ်ပတ်လုံး ပြန်တင်လို့ မရ**ခဲ့ပါ。 R2 က မပြီးသေးသော multipart ကို
+#    ကာလကြာလျှင် ဖျက်သည် ⇒ `mpu_list_parts` က **404** ⇒ ၅၀၂ ⇒ upload
+#    အသစ်လည်း မစနိုင်。 「ခဏနေရင် ပြန်ကြိုးစားပါ」က လိမ်ရာ ကျသည် —
+#    R2 က `on: True` ဖြစ်နေဆဲ ဖြစ်၍ စောင့်၍ ဘယ်တော့မှ မရနိုင်ပါ。
+# ⚠️ ယာယီ အမှား (ကွန်ရက် · ၅xx) ကိုတော့ **အသစ် မစရ** — မမြင်ဘဲ အသစ်
+#    စလျှင် တင်ပြီးသား byte တွေ နှစ်ခါ တင်ရမည်。
+ck("၄၀၄ ⇒ ပျောက်ပြီ", M._r2_gone(type("E", (Exception,), {"code": 404})()))
+ck("၄၀၃ ⇒ ပျောက်ပြီ (တံဆိပ် ကုန်)",
+   M._r2_gone(type("E", (Exception,), {"code": 403})()))
+ck("၅၀၃ ⇒ ယာယီ (အသစ် မစရ)",
+   not M._r2_gone(type("E", (Exception,), {"code": 503})()))
+ck("code မရှိ (ကွန်ရက် ပြတ်) ⇒ ယာယီ", not M._r2_gone(Exception("timeout")))
+
+_gone = {"n": 0}
+
+
+def _boom(key, mpu):
+    _gone["n"] += 1
+    raise type("E", (Exception,), {"code": 404})()
+
+
+_real = store.mpu_list_parts
+store.mpu_list_parts = _boom
+_on = store.on
+store.on = lambda: True
+try:
+    db.run("INSERT INTO uploads(id,name,size,received,path,done,created,key,mpu,"
+           "part_size,acct) VALUES(?,?,?,0,'',0,?,?,?,?,?)",
+           "u_dead", "x.mp4", 100, time.time(), "uploads/u_dead.mp4",
+           "MPU-DEAD", 8*1024*1024, "a_default")
+    _u = db.one("SELECT * FROM uploads WHERE id=?", "u_dead")
+    _r = M._r2_resume(_u)
+    ck("R2 ၄၀၄ ⇒ `None` (၅၀၂ မဟုတ်)", _r is None, repr(_r)[:40])
+    _u2 = db.one("SELECT mpu FROM uploads WHERE id=?", "u_dead")
+    ck("သေသွားသော `mpu` ကို ရှင်းသည် ⇒ ထပ် မပိတ်တော့",
+       not (_u2 or {}).get("mpu"), repr((_u2 or {}).get("mpu"))[:30])
+    # ⚠️ **row ကို မဖျက်ရ** — မှတ်တမ်း ကျန်ရမည်
+    ck("record ကို မဖျက်ပါ", db.one("SELECT id FROM uploads WHERE id=?",
+                                    "u_dead") is not None)
+finally:
+    store.mpu_list_parts = _real
+    store.on = _on
+
 print("\n  ⇒ အောင် %d · ကျ %d" % (OK, FAIL))
 raise SystemExit(1 if FAIL else 0)

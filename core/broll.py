@@ -83,6 +83,38 @@ def _frame(p, at, out):
     subprocess.run(["ffmpeg","-v","error","-y","-ss",f"{at:.2f}","-i",p,
         "-frames:v","1","-vf","scale=768:-2","-q:v","4",out], check=True)
 
+_SIDE = {}
+_SIDE_AT = set()
+
+
+def _side_tags(path):
+    """`stock_kw.json` ကနေ မြန်မာ keyword — မရှိလျှင် `None`
+
+    ⚠️ **မရှိလျှင် `None` ပြန်ရမည်、ဗလာ dict မဟုတ်** — ဗလာ ပြန်လျှင်
+       ခေါ်သူက 「မသုံးရ」ဟု မှတ်ပြီး clip ကို ပယ်မည်。 `None` က
+       「မသိ ⇒ `_ask()` ကို မေး」ဟု ဆိုလိုသည်。
+    ⚠️ sidecar က ဖိုဒါတိုင်းမှာ ရှိနိုင်သည် (stock style တစ်ခုချင်း) ⇒
+       ဖိုင်ရဲ့ **မိဘ ၂ ဆင့်အထိ** ရှာသည်。
+    """
+    import os as _o
+    d = _o.path.dirname(_o.path.abspath(path))
+    for _ in range(3):
+        q = _o.path.join(d, "stock_kw.json")
+        if q not in _SIDE_AT:
+            _SIDE_AT.add(q)
+            try:
+                with open(q, encoding="utf-8") as f:
+                    _SIDE.update(json.load(f) or {})
+            except (OSError, ValueError):
+                pass
+        d = _o.path.dirname(d)
+    e = _SIDE.get(_o.path.basename(path))
+    if not e:
+        return None
+    return {"usable": True, "my": e.get("my") or [],
+            "en": e.get("en") or [], "kind": "stock"}
+
+
 def _ask(img):
     b64 = base64.b64encode(open(img,"rb").read()).decode()
     body = {"contents":[{"parts":[{"text":PROMPT},
@@ -123,11 +155,47 @@ def load():
             # while allowing an index built on macOS to work in Docker.
             if not os.path.exists(p):
                 marker = "/assets/broll/"
+                # ⚠️ **stock clip က motionkit အောက်မှာ · ပြင်ပ drive သို့
+                #    symlink ဖြစ်သည်**。 drive အမည် ပြောင်းလျှင် (တကယ်:
+                #    `/Volumes/i` → `/Volumes/a`) absolute လမ်းကြောင်း ပျက်ပြီး
+                #    အောက်က fallback က `CLIPS/basename` ဆီ ပို့ကာ ဖိုင် မတွေ့ဘဲ
+                #    clip ၃၅၃ ခု **တိတ်တဆိတ် ကျန်ခဲ့**မည် ⇒ motionkit ရဲ့
+                #    လက်ရှိ လမ်းကြောင်းပေါ် ပြန်တည့်သည်。
+                smk = "/assets/stock/"
                 if marker in p:
                     p = os.path.join(ROOT, p.split(marker, 1)[1])
+                elif smk in p:
+                    try:
+                        import gfxcat as _GC
+                    except ImportError:
+                        from core import gfxcat as _GC
+                    p = os.path.join(_GC.MK, "assets", "stock",
+                                     p.split(smk, 1)[1])
                 else:
                     p = os.path.join(CLIPS, os.path.basename(p))
+                # ⚠️ **Mac ထဲ မိတ္တူကို နောက်ဆုံး fallback** — ၂၀၂၆-၀၉-၂၄:
+                #    stock clip တွေက ပြင်ပ drive ပေါ် ရှိပြီး **launchd worker က
+                #    macOS TCC ကြောင့် မဖတ်နိုင်**ပါ ⇒ `os.path.exists()` က
+                #    False ပြန်ကာ clip ၃၅၃ ခု **တိတ်တဆိတ် ကျန်ခဲ့**သည်
+                #    (worker log: `Volumes=0`)。 Full Disk Access ပေးလည်း မရ —
+                #    launchd job မှာ TCC က interpreter ကို မမှတ်ယူသဖြင့်。
+                #    ⇒ `assets/broll_bank/` ထဲ ကူးထား (`.gitignore` — repo PUBLIC)。
                 c["path"] = p
+            # ⚠️ **Mac ထဲ မိတ္တူကို ဦးစားပေးရမည်** — ၂၀၂၆-၀၉-၂၄: stock clip
+            #    တွေက ပြင်ပ drive ပေါ် ရှိပြီး **launchd worker က macOS TCC
+            #    ကြောင့် မဖတ်နိုင်**ပါ ⇒ `os.path.exists()` က False ပြန်ကာ
+            #    clip ၃၅၃ ခု **တိတ်တဆိတ် ကျန်ခဲ့**သည် (worker log: `Volumes=0`)。
+            #    Full Disk Access ပေးလည်း မရ — launchd job မှာ TCC က
+            #    interpreter ကို မမှတ်ယူသဖြင့် (၂ ခါ စမ်းပြီး)。
+            #    ⚠️ fallback အဖြစ်သာ ထားလျှင် **shell ↔ worker ရလဒ် ကွဲ**မည်
+            #       (shell က ပြင်ပ drive ဖတ်နိုင်၍)。 ⇒ မိတ္တူ ရှိလျှင် အမြဲ သုံးသည်;
+            #       SSD ဖြစ်၍ ပိုမြန်လည်း မြန်သည်。
+            # ⚠️ `ROOT` က `assets/broll` ⇒ မိတ္တူက **သူ့ဘေးမှာ** ရှိသည်
+            #    (`assets/broll_bank`) — `ROOT` နဲ့ တွဲလျှင် တစ်ဆင့် နက်သွားမည်。
+            _lb = os.path.join(os.path.dirname(ROOT), "broll_bank",
+                               os.path.basename(c.get("path", "")))
+            if os.path.exists(_lb):
+                c["path"] = _lb
             # ⚠️ ကူးထားတဲ့ ဖိုင် မရှိတော့တာတွေ ဖယ်ရမည် — မဖျက်လျှင် render ပျက်သည်
             if os.path.exists(c.get("path", "")):
                 clips.append(c)
@@ -175,7 +243,15 @@ def index(folder, limit=None, log=print):
             img = os.path.join(ROOT, "_f.jpg")
             try: _frame(p, m["dur"]*0.4, img)
             except Exception: bad += 1; continue
-        tags = _ask(img)
+        # ⚠️ **sidecar ရှိလျှင် Gemini vision ကို ကျော်ရမည်** (၂၀၂၆-၀၉-၂၅)。
+        #    `_ask()` က clip တစ်ခုချင်းကို Gemini နဲ့ ဖော်ပြသည် ⇒ Gemini ကျလျှင်
+        #    index လုပ်၍ မရ、B-roll ကွင်းဆက် တစ်ခုလုံး ရပ်သည် (၅၀၃ တွေ့)。
+        #    `tools/stockdl.py` က **ဘာ ရှာလို့ ရလာမှန်း သိပြီးသား** ဖြစ်၍
+        #    `stock_kw.json` မှာ မြန်မာ keyword တပ်ပေးထားသည် — vision နဲ့
+        #    ပြန်မှန်းတာထက် ပိုတိကျပြီး ပြင်ပ မှီခိုမှု မရှိပါ。
+        tags = _side_tags(p)
+        if tags is None:
+            tags = _ask(img)
         if not tags or not tags.get("usable"):
             bad += 1
             log(f"  ✗ {os.path.basename(p)[:34]:36} {'မသုံးရ' if tags else 'မရ'}")
@@ -354,6 +430,51 @@ MPROMPT = """မြန်မာဗီဒီယိုတစ်ခု၏ စာတ
 စာတမ်း:
 %s"""
 
+def _exact_score(text, clip):
+    """**keyword တစ်ခုလုံး** ပါမှ ရေတွက် — LCS ထက် တိကျသည်
+
+    ⚠️ မြန်မာ keyword က **cluster ၂ ခု အထက်** ဖြစ်ရမည် (`ငွေ` တစ်ခုတည်းက
+       စကားလုံး အများကြီးထဲ ပါနေတတ်သည်)。 အင်္ဂလိပ်က ၄ လုံး အထက်。
+    ⚠️ substring ကိုသာ ယူသည် — LCS မဟုတ်。 LCS က မဆက်စပ်သော cluster
+       တွေကို တူသည်ဟု မှတ်ကာ မှားကိုက်မှု ဖြစ်စေသည်。
+    """
+    t = text or ""
+    low = t.lower()
+    sc = 0
+    for w in (clip.get("my") or []):
+        w = (w or "").strip()
+        if len(_cl(w)) >= 2 and w in t:
+            sc += len(_cl(w))
+    for tag in (clip.get("en") or []):
+        for w in re.findall(r"[a-z]{4,}", str(tag).lower()):
+            if w in low:
+                sc += 2
+    return sc
+
+
+def _pick_exact(segs, clips, want, used=None, min_score=2):
+    """အတိအကျ keyword နဲ့ (ဝါကျ, clip) တွဲ — `pick()` နဲ့ ပုံစံတူ ပြန်ပေးသည်"""
+    used = set(used or ())
+    out = []
+    for i, s in enumerate(segs):
+        if len(out) >= want:
+            break
+        t = (s.get("text") or "")
+        if not t:
+            continue
+        best = None
+        for c in clips:
+            if c.get("path") in used:
+                continue
+            v = _exact_score(t, c)
+            if v >= min_score and (best is None or v > best[0]):
+                best = (v, c)
+        if best:
+            used.add(best[1].get("path"))
+            out.append((i, best[1], best[0]))
+    return out
+
+
 def match(segs, want, used=None, log=print, strict=False):
     """Gemini ဖြင့် စာကြောင်း↔ရုပ် တွဲသည်。
 
@@ -433,8 +554,20 @@ def match(segs, want, used=None, log=print, strict=False):
     # ⚠️ Gemini မရလျှင် စာလုံးတူမှုဖြင့် ဖြည့်သည် — ဒါပေမဲ့ **အမှတ် နိမ့်တာကို
     #    မယူရ**。 ၃ နဲ့ ယူတော့ "ROLEX နာရီ" · "Hakone ကားလမ်း" တို့ ဂျပန်စာ
     #    သင်တန်း ဗီဒီယိုထဲ ဝင်လာခဲ့သည် (Zin ၂၀၂၆-၀၉-၁၇)。 ⇒ ၆ သို့ တင်。
+    # ⚠️ **အတိအကျ keyword fallback** (၂၀၂၆-၀၉-၂၅) — Gemini ကျလျှင် B-roll
+    #    လုံးဝ ၀ ဖြစ်ခဲ့သည် (strict မှာ fallback မရှိ · non-strict မှာ
+    #    `min_score=6` ဖြစ်ပြီး တိုင်းရာ အမြင့်ဆုံး ၄ သာ ရသည်)。
+    # ⚠️ LCS အမှတ်နည်းက **မှားကိုက်တတ်** — ဂိတ် ၂ နဲ့ တိုင်းရာ ၁၀ ခု ကိုက်ပြီး
+    #    ၆ ခု မှားခဲ့သည် (「စက်တင်ဘာလ」→ factory · 「KBZPay」→ japan office)。
+    #    ⇒ **keyword တစ်ခုလုံး ဝါကျထဲ အတိအကျ ပါမှ** ရေတွက်သည် — တိုင်းရာ
+    #    ၅/၁၇ ကိုက်ပြီး **မှားကိုက်မှု ၀** (`ငွေလွှဲ` · `mobile`)。
+    ex = _pick_exact(segs, av, want, used)
+    if ex:
+        log(f"  B-roll · **အတိအကျ keyword** {len(ex)} ခု (Gemini မရ · "
+            f"မှားကိုက်မှု ကာကွယ်ရန် တစ်ခုလုံး ပါမှ ယူသည်)")
+        return ex
     if strict:
-        log("  B-roll · strict semantic match မရ — lexical fallback မသုံး")
+        log("  B-roll · strict semantic match မရ · အတိအကျ keyword လည်း မရ")
         return []
     lex = pick(segs, want, used, min_score=6)
     if lex: log(f"  B-roll · စာလုံးတူမှုဖြင့် {len(lex)} ခု (Gemini မရ)")

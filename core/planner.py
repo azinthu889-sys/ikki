@@ -166,7 +166,31 @@ def _rotate(cands, used, seed="", k=NOREPEAT):
         # ⚠️ ဗီဒီယိုအလိုက် ကွဲပြားစေရန် — တူညီသော seed ⇒ တူညီသော ရလဒ်
         import hashlib
         h = int.from_bytes(hashlib.sha1(str(seed).encode()).digest()[:4], "big")
-        fresh = fresh[h % len(fresh):] + fresh[:h % len(fresh)]
+        # ⚠️ **ရှေ့ဆုံး အနည်းငယ်အတွင်းသာ လှည့်ရမည်** (၂၀၂၆-၀၉-၂၅)。
+        #    candidate စာရင်းက semantic ဦးစားပေး အစဉ်လိုက် ဖြစ်သည် —
+        #    label-specific ရှေ့、ယေဘုယျ pool နောက်。 စာရင်း တစ်ခုလုံးကို
+        #    cyclic shift လုပ်လျှင် pool ကြီးလာတဲ့အခါ (၁၁ → ၂၁၆)
+        #    **ယေဘုယျ template က semantic ကို ကျော်တက်**သည် —
+        #    `screen` ဝါကျက browser template အစား `prem2.word_pop` ရခဲ့သည်
+        #    (`tests/test_planner.py` က ဖမ်းမိ)。
+        #    ⇒ ရှေ့ဆုံး `HEAD` အတွင်းသာ လှည့်ပြီး ကျန်တာ အစဉ်အတိုင်း。
+        # ⚠️ နယ်နိမိတ်ကို **ယေဘုယျ pool ဝင်သည့် နေရာ**ကနေ တွက်သည် —
+        #    ကိန်းသေ ထားလျှင် label အလိုက် မကိုက်ပါ (`screen` မှာ
+        #    label-specific ၁၁ ခုသာ ရှိပြီး `HEAD=12` က ကျော်သွားခဲ့)。
+        try:
+            _gen = set(_auto_candidates("fact"))
+        except Exception:
+            _gen = set()
+        k2 = 0
+        for _c in fresh:
+            if _c in _gen:
+                break
+            k2 += 1
+        if k2 < 2:                      # label က ယေဘုယျ pool ကိုပဲ သုံးသည်
+            k2 = min(len(fresh), 12)
+        k2 = max(1, min(k2, len(fresh)))
+        r = h % k2
+        fresh = fresh[r:k2] + fresh[:r] + fresh[k2:]
     return fresh + stale
 
 
@@ -255,6 +279,27 @@ def _profile_candidates(label, profile, last_id=None):
         cands = list(PREFER.get(label) or (MF.HEADTOP.get(fam) if fam else []) or [])
     seen = set(cands)
     cands += [c for c in _auto_candidates(label) if c not in seen]
+    # ⚠️ **ဗလာ အညွှန်းကို ယေဘုယျ pool နဲ့ ဖြည့်ရမည်** (၂၀၂၆-၀၉-၂၅ တိုင်းချက်) —
+    #    `plain` · `quote` · `list` ၃ ခုမှာ candidate **၀** ဖြစ်နေသည်。
+    #    တကယ့် job (`j_c42e5c142058`) ရဲ့ အညွှန်း ဖြန့်ကျက်မှုက
+    #    `hook ၁ · number ၇ · **plain ၉**` ⇒ ဝါကျ ၁၇ ကြောင်းမှာ **၉ ကြောင်း
+    #    ဂရပ်ဖစ် လုံးဝ မရနိုင်**ခဲ့ပါ。 ကျန်တာကလည်း pool သေးသဖြင့်
+    #    `headtop.ht_outline_title` က တစ်ပုဒ်တည်းမှာ **၃–၄ ကြိမ်** ထပ်ခဲ့သည်
+    #    (Zin: 「မထပ်အောင်」)。 recipe က ဂရပ်ဖစ် ၂၄ ခု တောင်းပါလျက် **၅ ခု**သာ
+    #    ထွက်ခဲ့ခြင်းရဲ့ အဓိက အကြောင်းရင်း ဖြစ်သည်。
+    # ⚠️ `fact` က ယေဘုယျ အိမ် — အညွှန်း မကိုက်သမျှ အားလုံး အဲဒီထဲ ကျသည်
+    #    (`_auto_candidates`)。 ၂၂၀ ခု ရှိပြီး ၁၄၁ ခု ဖြည့်လို့ရသည်。
+    # ⚠️ **ပမာဏကို ဒီနေရာက မဆုံးဖြတ်ပါ** — `gfx_share` QC ဘောင် (၀.၁၇–၀.၂၅)
+    #    က နောက်မှာ ကန့်သတ်ဆဲ ဖြစ်၍ 「ဝါကျတိုင်း ကတ်」 မဖြစ်ပါ。 ဒီမှာ
+    #    လုပ်တာက **ရွေးစရာ ရှိအောင်** ဖြစ်သည်。
+    # ⚠️ **ဗလာ အခါမှသာ မဟုတ် — အမြဲ ဆက်တွဲရမည်**。 `section` က ၂၂ ခုသာ
+    #    ရှိပြီး ဖြည့်လို့ရတာ ၉ ခု ⇒ ဝါကျ ၄ ကြောင်းလောက်နဲ့ ကုန်ကာ ထပ်စ ပြန်
+    #    ဖြစ်သည်。 semantic ဦးစားပေးမှု မပျက်စေရန် label-specific ကို **ရှေ့**
+    #    မှာ ထားပြီး ယေဘုယျ pool ကို **နောက်က** ဆက်တွဲသည် (လက်ရေး စာရင်းကို
+    #    catalog နဲ့ ဆက်တွဲသလိုပင်)。
+    if label != "fact":
+        _seen2 = set(cands)
+        cands += [c for c in _auto_candidates("fact") if c not in _seen2]
     return [c for c in cands if c != last_id]
 
 # ── စွမ်းအင် အဆင့် ──────────────────────────────────────────
@@ -450,6 +495,31 @@ def _short(text, n=26):
     return " ".join(out) if out else t
 
 
+def _num_rows(text):
+    """စာသားကနေ **(အညွှန်း, ကိန်း)** အတွဲများ — မတွေ့လျှင် ဗလာ
+
+    ⚠️ ကိန်းကို **မတီထွင်ရ** — စာသားထဲ တကယ် ပါမှသာ ယူသည်。 မြန်မာ ဂဏန်း
+       (၀–၉) နဲ့ အာရဗီ ဂဏန်း ၂ မျိုးလုံး ကို ကိုင်သည်。
+    """
+    import re as _re
+    out = []
+    for part in _re.split(r"[၊။,;]|\s{2,}", str(text or "")):
+        m = _re.search(r"([0-9၀-၉]+(?:\.[0-9၀-၉]+)?)", part)
+        if not m:
+            continue
+        lab = (part[:m.start()] + part[m.end():]).strip(" ·-—:\t")
+        if len(lab) < 2:
+            continue
+        v = m.group(1)
+        v = "".join(str(ord(c) - 0x1040) if "၀" <= c <= "၉" else c
+                    for c in v)
+        try:
+            out.append((lab[:18], float(v)))
+        except ValueError:
+            continue
+    return out
+
+
 def fill(cid, label, text):
     """template ရဲ့ **required param အတိုင်း** ဖြည့်သည် — မဖြည့်နိုင်လျှင် None
 
@@ -470,6 +540,28 @@ def fill(cid, label, text):
     #       「Never add a chart without factual data」နဲ့ တူညီသော စည်းမျဉ်း)。
     if cid in STRUCTURED:
         return None
+    # ⚠️ **chart က ကိန်းအတွဲ မရှိဘဲ မဆွဲရ** (၂၀၂၆-၀၉-၂၅)。 `rows` ကို
+    #    စာလုံး စာရင်း ပေးမိသဖြင့် `charts.stacked_bar` က render ချိန်မှာ
+    #    `ValueError: too many values to unpack (expected 2)` နဲ့ ကျပြီး
+    #    ဂရပ်ဖစ် တစ်ခု **ပျောက်**ခဲ့သည် (j_c42e5c142058)。
+    # ⚠️ manifest နဲ့ ခွဲ၍ **မရ** — `charts.stacked_bar` ရော
+    #    `prem.list_reveal` ရော `rows: list` ဟုသာ ပြောသည်、ဒါပေမယ့်
+    #    ဒုတိယက စာလုံး စာရင်းနဲ့ အလုပ်ဖြစ်သည် ⇒ **category** နဲ့ ခွဲရသည်。
+    # ⚠️ ASR စာသားမှာ အညွှန်းတွဲ ကိန်း ၂ ခု ရှိခဲမည် ⇒ chart အများစု
+    #    ကျော်သွားမည် — အဲဒါ **မှန်**သည် (「Never add a chart without
+    #    factual data」)。 ကိန်း မှန်းဆ ဆွဲတာထက် မဆွဲတာ ကောင်းသည်。
+    try:
+        _cat = (e.get("category") or "").lower()
+    except AttributeError:
+        _cat = ""
+    _chart_rows = None
+    if _cat == "chart":
+        _rq = {q.get("name") for q in (e.get("params") or [])
+               if q.get("required")}
+        if "rows" in _rq:
+            _chart_rows = _num_rows(text)
+            if len(_chart_rows) < 2:
+                return None
     req = [q["name"] for q in (e.get("params") or [])
            if q.get("required") and not q.get("auto")]
     two = split2(text)
@@ -489,7 +581,9 @@ def fill(cid, label, text):
         "after":  two[1] if len(two) > 1 else "",
         "items":  two or [_short(text, 24)],
         "points": two or [_short(text, 24)],
-        "rows":   two or [_short(text, 24)],
+        # ⚠️ chart ဆိုလျှင် **(အညွှန်း, ကိန်း) အတွဲ** ဖြစ်ရမည် — စာလုံး
+        #    စာရင်း ပေးလျှင် `ValueError: too many values to unpack` ကျမည်。
+        "rows":   _chart_rows or two or [_short(text, 24)],
         "left":   two[0] if two else _short(text, 12),
         "right":  two[1] if len(two) > 1 else _short(text, 12),
         "value":  num or "",
@@ -538,8 +632,48 @@ def _pack_ids(lab):
         return []
 
 
+_FULLSTAGE = None
+
+
+def _fullstage_ids():
+    """`assets/gfx_cutaway.txt` — **ဖုံးအုပ်မှု တိုင်းပြီး** ဖြတ်ပြောင်း id。
+
+    ⚠️ **`gfx_fullstage.txt` ကို မသုံးရ**。 အဲဒါက `bbox` ကနေ ထုတ်ထားပြီး
+       `bbox` က alpha > ၁၆ pixel ကို ရေတွက်သဖြင့် **စာတန်း** template
+       (`prem5.karaoke_cap` · `word_pop_cap` · `hl_word_cap` …) တွေပါ
+       ပါဝင်သည် — အဲဒါတွေကို ဖြတ်ပြောင်း လုပ်လျှင် စာတန်းက ပြောသူကို
+       ဖုံးပစ်မည်。 ၂၀၂၆-၀၉-၂၄: ၃၉ ခုမှာ ၃၀ ခုက `ink` ၁.၀၀၀၀ တိတိ ⇒
+       တိုင်းချက် ပျက်နေခြင်း。 `tools/gfx_cutaway.py` က alpha **အလယ်မှတ်**
+       နဲ့ ပြန်တိုင်းသည်。
+    ⚠️ ဖိုင် မရှိလျှင် **ဗလာ ပြန်**သည် — pack manifest ရဲ့ `fullFrame`
+       တစ်ခုတည်း အလုပ်လုပ်မည်。 မတိုင်းရသေးဘဲ ခန့်မှန်းထည့်လျှင်
+       စာတန်းကို ဖြတ်ပြောင်း လုပ်မိမည်。
+    """
+    global _FULLSTAGE
+    if _FULLSTAGE is None:
+        _FULLSTAGE = set()
+        try:
+            import os as _o
+            q = _o.path.join(_o.path.dirname(_o.path.dirname(
+                _o.path.abspath(__file__))), "assets", "gfx_cutaway.txt")
+            with open(q, encoding="utf-8") as f:
+                _FULLSTAGE = {l.strip() for l in f
+                              if l.strip() and not l.startswith("#")}
+        except OSError:
+            pass
+    return _FULLSTAGE
+
+
 def _full_frame(tid):
-    """ဘောင်အပြည့် ဖုံးသော pack template လား"""
+    """ဘောင်အပြည့် ဖုံးသော template လား
+
+    ⚠️ ယခင်က **pack manifest ရဲ့ `fullFrame`** ကိုသာ ကြည့်ခဲ့သဖြင့်
+       `assets/gfx_fullstage.txt` ထဲက **catalog template ၃၉ ခု** ကို
+       ဘောင်အပြည့် ဟု **လုံးဝ မမှတ်မိ**ခဲ့ — ဘေးကတ် အဖြစ် သေးသေးလေး
+       ချခဲ့ရာ ကြည့်သူ မမြင်ရပါ (၂၀၂၆-၀၉-၂၄ တိုင်းပြီး)。
+    """
+    if tid in _fullstage_ids():
+        return True
     try:
         try:
             import pack as _PK
@@ -850,8 +984,48 @@ def build(segs, labels, dur, opts=None, video_id="src"):
 
     n = 0
     last_change = -99.0
-    _ff_used = False        # ⚠️ ဘောင်အပြည့် ကတ် — ဗီဒီယိုတစ်ပုဒ်လျှင် တစ်ခါသာ
+    # ⚠️ **ဘောင်အပြည့် (cutaway) ကို တစ်ခါသာ ခွင့်ပြုခဲ့တာ မှားသည်** —
+    #    reference ၂ ပုဒ်ကို ၂ fps နဲ့ တိုင်းရာ —
+    #      ပုဒ်① ၁၃ ခု/၁၃ မိနစ် = ၁.၀၀/min · အလယ် ၇.၅s · **ပေါ်ချိန် ၁၅.၂%**
+    #      ပုဒ်② ၁၄ ခု/၉.၂ မိနစ် = ၁.၅၁/min · အလယ် ၅.၂s · **ပေါ်ချိန် ၁၅.၁%**
+    #    ⇒ နှုန်းနဲ့ ကြာချိန် ကွဲသော်လည်း **ပေါ်ချိန် ၁၅% က တည်ငြိမ်**သည်
+    #      ⇒ အဲဒါကို ဘတ်ဂျက် အဖြစ် ထားသည် (နှုန်း မဟုတ်)。
+    # ⚠️ ယခင် `_ff_used = True` က ဗီဒီယိုတစ်ပုဒ်လျှင် **၁ ခုသာ** ခွင့်ပြုခဲ့ ⇒
+    #    ၆၀s ထွက်ဖိုင်မှာ ပေါ်ချိန် ၁၀% ပင် မပြည့်; ရှည်သော ဗီဒီယိုမှာ ပိုဆိုး。
+    # ⚠️ **ကတ်တိုင်း ၃.၂s အမြင့်ဆုံး ဖြစ်နေတာ ဘောင်အပြည့်အတွက် မှားသည်** —
+    #    reference ရဲ့ cutaway အလယ်ကြာချိန် **၅.၂–၇.၅s**。 ၃.၂s ဆိုလျှင်
+    #    ဘတ်ဂျက် ပြည့်ပါလျက် ပေါ်ချိန် **၁၅% ဘယ်တော့မှ မရောက်**နိုင်ပါ
+    #    (၆.၀s လိုသည့်နေရာ ၃.၂s ⇒ ၅၃% သာ)。 ဘေးကတ်က ၃.၂s အတိုင်း ထားသည်。
+    _FF_COVER, _FF_LEN, _FF_MAXLEN = 0.15, 6.0, 6.5
+    # ⚠️ **တကယ့်ကြာချိန်နဲ့ တွက်ရမည်** — `_FF_LEN` (၆.၀) နဲ့ `round()` သုံးလျှင်
+    #    ၆၀s ဗီဒီယိုမှာ ၂ ခု ⇒ ၂×၆.၅ = ၁၃s = **၂၁.၇%** (ပန်းတိုင် ၁၅% ကျော်)。
+    #    အောက်လျှော (`int`) + `_FF_MAXLEN` နဲ့ ၁ ခု ⇒ ၁၀.၈%。 ကျော်တာက
+    #    လျော့တာထက် ပိုဆိုးသည် — ဖုံးလွန်လျှင် ပြောသူနဲ့ ဆက်သွယ်မှု ပြတ်သည်。
+    _ff_max = max(1, int(_FF_COVER * float(dur or 0) / _FF_MAXLEN))
+    _ff_n = 0               # ⚠️ ယခုအထိ သုံးပြီးသော ဘောင်အပြည့် အရေအတွက်
+    # ⚠️ **ဘတ်ဂျက်က အမြင့်ဆုံးသာ — ပန်းတိုင် မဟုတ်**。 ၂၀၂၆-၀၉-၂၄ တိုင်းချက်:
+    #    ဘတ်ဂျက် ၂၀ ဖွင့်ပေးပြီးမှ ၇၈၀s ဗီဒီယိုမှာ ဘောင်အပြည့် **၁ ခုသာ**
+    #    ထွက်ခဲ့သည် — `number` ရဲ့ candidate ၄၈ ခုမှာ ဘောင်အပြည့် ၃ ခုသာ
+    #    ဖြစ်သဖြင့် `_rotate` ရဲ့ ရှေ့ဆုံးသို့ **ဘယ်တော့မှ မရောက်**ခဲ့。
+    #    ⇒ ဘတ်ဂျက် လွတ်နေလျှင် ဘောင်အပြည့်ကို **ရှေ့တန်း တင်**ရသည်。
+    # ⚠️ **အချိန် အညီအမျှ ခြားရမည်** — မစုပုံရ。 (slide rhythm တိုင်းချက်:
+    #    ဖုံးအုပ်မှု ပြည့်ပါလျက် အစုလိုက် ပေါ်ပြီး ၄၀–၁၂၀s ပျောက်နေလျှင်
+    #    slideshow ဟု ခံစားရသည် — ကြာချိန် မဟုတ်၊ **ကွာဟချက်** က အဓိက)。
+    _ff_gap = (float(dur or 0) / (_ff_max + 1)) if dur else 1e9
+    _ff_last = -1e9         # နောက်ဆုံး ဘောင်အပြည့် ကျသည့် အချိန်
     last_id = None
+    # ⚠️ **cache ကို ကြိုဖြည့်ရမည်** — ၂၀၂၆-၀၉-၂၄ တိုင်းချက်: process တစ်ခုရဲ့
+    #    **ပထမဆုံး `plan()`** က နောက်ပိုင်း ခေါ်ဆိုမှုတွေနဲ့ **မတူ**ခဲ့သည်
+    #    (cache ကို အဲဒီ ခေါ်ဆိုမှု အတွင်း ဆောက်နေသဖြင့်)。 warm-up ပြီးလျှင်
+    #    ၄ ခါ ဆက်တိုက် တူညီသည် — တိုင်းပြီး。
+    #    ⚠️ worker က job များစွာကို **တစ် process ထဲ** ပြေးသဖြင့် restart ပြီး
+    #       ပထမ job က re-render နဲ့ မတူဖြစ်မည် — ပြန်ထုတ်လျှင် တူရမည်ဆိုသော
+    #       စည်းမျဉ်း ပျက်သည်。
+    try:
+        _pops()
+        _auto_candidates("plain")
+    except Exception:
+        pass
     _used_tpl = []          # ⚠️ ရွေးပြီးသား template — ပြန်ပြန် မပေါ်စေရန်
 
     for i, s in enumerate(segs):
@@ -924,34 +1098,49 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         _recent = set(_used_tpl[-NOREPEAT:])
         _pack_c = (_rotate(_pack_ids(lab), _used_tpl, video_id)
                    if profile == "premium" else [])
+        # ⚠️ ဤအပိုင်းမှာ ဘောင်အပြည့် **သင့်မသင့်** — ဘတ်ဂျက် လွတ်ရမည်၊
+        #    နောက်ဆုံး ဖြတ်ပြောင်းနဲ့ `_ff_gap` ခွာရမည်。 သင့်လျှင် ရှေ့တန်း
+        #    တင်သည်; မသင့်လျှင် **လုံးဝ ချန်**သည် (ဘေးကတ်နဲ့ အစားထိုးသည်)。
+        # ⚠️ `screen` မှာ **ဖြတ်ပြောင်း ရှေ့မတင်ရ** — အဲဒီအညွှန်းက UI/mockup
+        #    template (browser · app window) ကို ရည်ရွယ်ပြီး `layout="full"`
+        #    ကို သီးသန့် ရသည်。 တင်လိုက်လျှင် `prem2.word_pop` လို ယေဘုယျ
+        #    ဖြတ်ပြောင်းက browser template ကို ကျော်တက်သည်
+        #    (`tests/test_planner.py` က ဖမ်းမိ · ၂၀၂၆-၀၉-၂၅)。
+        _want_ff = (_ff_n < _ff_max) and (a - _ff_last >= _ff_gap) \
+            and lab != "screen"
+
+        def _ff_order(ids):
+            """ဘောင်အပြည့်တွေကို ရှေ့/နောက် စီ (သို့) ဖယ်သည်"""
+            _f = [x for x in ids if _full_frame(x)]
+            _o = [x for x in ids if not _full_frame(x)]
+            return (_f + _o) if _want_ff else _o
+
+        _pack_c = _ff_order(_pack_c)
         _stale = []
         for _pid in _pack_c:
-            if _full_frame(_pid) and (lab != "hook" or _ff_used):
-                continue
             if _pid in _recent:
                 _stale.append(_pid); continue      # ကြာသေး ⇒ catalog ကို အခွင့်ပေး
             _pp = _pack_props(_pid, lab, txt)
             if _pp is not None:
                 cid, pr = _pid, _pp
-                if _full_frame(_pid):
-                    _ff_used = True
                 break
         if not cid:
             cands = _rotate(_profile_candidates(lab, profile, last_id),
                             _used_tpl, video_id)
-            for c in cands:
+            # ⚠️ catalog လမ်းကြောင်းမှာလည်း အတူတူ စီရမည် — ယခင်က pack
+            #    လမ်းကြောင်းမှာသာ စစ်ခဲ့သဖြင့် ① ဘတ်ဂျက် မကန့်သတ်ရ
+            #    ② ဘောင်အပြည့် ရှေ့တန်း မတက်ရ ဖြစ်ခဲ့သည်。
+            for c in _ff_order(cands):
                 pr = fill(c, lab, txt)
                 if pr is not None:
                     cid = c
                     break
         if not cid:
             # ⚠️ **ဂရပ်ဖစ် မပျောက်စေရ** — ကွဲပြားမှုထက် ရှိတာက ကောင်းသည်
-            for _pid in _stale:
+            for _pid in _ff_order(_stale):
                 _pp = _pack_props(_pid, lab, txt)
                 if _pp is not None:
                     cid, pr = _pid, _pp
-                    if _full_frame(_pid):
-                        _ff_used = True
                     break
         if not cid:
             continue
@@ -960,10 +1149,30 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         # the full-frame alpha compositor even if the speaker has side room;
         # otherwise a wide browser mockup gets built and then rejected by the
         # side-safe-zone fitting check.
-        _layout = "full" if lab == "screen" or _full_frame(cid) else "side"
+        _ff = _full_frame(cid)
+        _layout = "full" if lab == "screen" or _ff else "side"
+        # ⚠️ ရေတွက်ခြင်းကို **ဒီတစ်နေရာတည်း**မှာ လုပ်သည် — ရွေးသည့်နေရာ
+        #    ၃ ခုစီမှာ တွက်လျှင် လမ်းကြောင်း တစ်ခု လွတ်သွားတတ်သည်။
+        if _ff:
+            _ff_n += 1
+            _ff_last = a
+        # ⚠️ **ဖြတ်ပြောင်းကို ဝါကျ တစ်ကြောင်းနဲ့ ချုပ်၍ မရ**。 ၂၀၂၆-၀၉-၂၄
+        #    တကယ့် job (`j_228ad0f42421`) နဲ့ စစ်ရာ ဖြတ်ပြောင်း ၁ ခုက
+        #    **၀.၈s** သာ ရခဲ့သည် — `min(b, …)` ရဲ့ `b` က ဝါကျ အဆုံး ဖြစ်ပြီး
+        #    တကယ့် ဝါကျတွေက ၀.၈–၃s သာ ရှည်သည်。 ပိုဆိုးတာက worker ရဲ့
+        #    `omap_window(min_d=1.0)` က ၁s အောက်ကို **ပယ်**သဖြင့် ဗီဒီယိုမှာ
+        #    ဖြတ်ပြောင်း **လုံးဝ မပါ**ဖြစ်မည်。
+        # ⚠️ reference မှာ ဖြတ်ပြောင်းက **ဝါကျ အများကြီး ကျော်ဖြတ်**သည်
+        #    (ဝါကျ ~၂s · ဖြတ်ပြောင်း အလယ် ၅.၂–၇.၅s)。 ပြောသူကို ဖုံးထားသည်
+        #    ဖြစ်၍ ဝါကျ အဆုံးမှာ ရပ်ရန် အကြောင်း မရှိပါ。 ဘေးကတ်က ဝါကျနဲ့
+        #    ဆက်စပ်သဖြင့် ယခင်အတိုင်း `b` နဲ့ ချုပ်သည်。
+        if _ff:
+            _e1 = min(a + _FF_LEN, dur) if dur else a + _FF_LEN
+        else:
+            _e1 = min(b, a + 3.2, dur if dur else a + 3.2)
         p["templateEvents"].append(dict(
             id=f"tpl{n:03d}", startTime=a,
-            endTime=min(b, a + 3.2, dur if dur else a + 3.2),
+            endTime=_e1,
             layer="template", type="template", motionKitTemplateId=cid,
             # ⚠️ **semantic label ကို ပါသွားစေရမည်**。 အရင်က `style={}` ဖြစ်နေသဖြင့်
             #    `sfx_plan` က ဖြစ်ရပ် **အားလုံးကို `card`** ဟု သတ်မှတ်ခဲ့သည် —
@@ -1025,8 +1234,14 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             _pack_fill = (_rotate(_pack_ids(_lab2) or _pack_ids("section"),
                                   _used_tpl, video_id)
                           if profile == "premium" else [])
+            # ⚠️ **ကြာသေးတာကို ကျော်ရမည်** — main loop မှာ `_recent` စစ်ချက်
+            #    ရှိပြီး ဒီမှာ **မထည့်မိ**ခဲ့ပါ。 `_pack_ids("section")` မှာ
+            #    id **တစ်ခုတည်း** (`headtop.ht_outline_title`) သာ ရှိသဖြင့်
+            #    `plain` ဝါကျတိုင်းရဲ့ ဖြည့်ကတ်က **အတူတူ** ဖြစ်ခဲ့သည် —
+            #    တစ်ပုဒ်တည်းမှာ ၆ ကြိမ် (Zin ၂၀၂၆-၀၉-၂၅: 「မထပ်အောင်」)。
+            _recent2 = set(_used_tpl[-NOREPEAT:])
             for _pid2 in _pack_fill:
-                if _full_frame(_pid2):
+                if _full_frame(_pid2) or _pid2 in _recent2:
                     continue
                 _pp2 = _pack_props(_pid2, _lab2, _txt2)
                 if _pp2 is not None:
@@ -1039,6 +1254,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                         _profile_candidates(_lab2, profile)
                         + _profile_candidates("section", profile),
                         _used_tpl, video_id):
+                    # ⚠️ ဒီမှာလည်း ကြာသေးတာ ကျော်ရမည် — `_rotate` က ရှေ့တင်
+                    #    ပေးရုံသာ、**ပယ်မပေးပါ**。 pool သေးလျှင် ထပ်နိုင်ဆဲ。
+                    if _cid_try in _recent2:
+                        continue
                     _pr_try = fill(_cid_try, _lab2, _txt2)
                     if _pr_try is not None:
                         _cid2, _pr2 = _cid_try, _pr_try

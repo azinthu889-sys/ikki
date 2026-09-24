@@ -98,8 +98,23 @@ def main():
     ok_ui, err_ui, _ = PS.validate(ui, MF, duration=4.0)
     ui_ev = _gfx(ui)
     check("UI plan schema အောင်သည်", ok_ui, err_ui[:2])
-    check("UI event က browser template ရွေးသည်",
-          bool(ui_ev) and ui_ev[0]["motionKitTemplateId"] == "brows.window_open", ui_ev)
+    # ⚠️ **id အတိအကျ မစစ်ရ — မျိုးရိုးကို စစ်ရမည်** (၂၀၂၆-၀၉-၂၅)。
+    #    ယခင်က `== "brows.window_open"` ဟု ရေးထားရာ candidate pool ကို
+    #    ချဲ့ပြီး လှည့်ခြင်း ထည့်လိုက်သည်နှင့် ကျခဲ့သည် — ဒါပေမယ့် ရွေးလိုက်တာ
+    #    `thm.ui_progress` (category `ui`) ဖြစ်၍ **semantic အရ မှန်**သည်。
+    #    ဗီဒီယိုတိုင်း template တစ်ခုတည်း မဖြစ်စေရန် လှည့်ခြင်းက ရည်ရွယ်ချက်
+    #    ဖြစ်သည် (Zin: 「မထပ်အောင်」) ⇒ ဂိတ်က **UI မျိုးရိုး** ကို စစ်ရမည်、
+    #    id တစ်ခုတည်းကို မဟုတ်。 ဂိတ် လျှော့ခြင်း မဟုတ် — မှန်ရာကို စစ်ခြင်း。
+    _uid = ui_ev[0]["motionKitTemplateId"] if ui_ev else ""
+    try:
+        import gfxcat as _GC
+        _ucat = {e["id"]: (e.get("category") or "") for e in _GC.catalog()}
+    except Exception:
+        _ucat = {}
+    check("UI event က UI/mockup မျိုးရိုး template ရွေးသည်",
+          bool(ui_ev) and (_ucat.get(_uid) in ("ui", "mockup")
+                           or _uid.startswith(("brows.", "thm.ui_"))),
+          f"{_uid} · category={_ucat.get(_uid)}")
     check("UI event ကို full-stage အဖြစ် route လုပ်သည်",
           bool(ui_ev) and ui_ev[0]["style"].get("layout") == "full", ui_ev)
     ui_after_hook = PL.build([

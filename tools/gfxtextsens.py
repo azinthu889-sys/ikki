@@ -39,7 +39,7 @@ import json, os, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(HERE, "core"))
-TIMEOUT = 150            # render ၃ ခါ ဖြစ်နိုင်သဖြင့် ရှည်ရမည်
+TIMEOUT = 420           # render ၃ ခါ ဖြစ်နိုင်သဖြင့် ရှည်ရမည်
 DIFF_MIN = 0.02          # ပုံရိပ် ကွာဟမှု အနည်းဆုံး (ဧရိယာ အချိုး)
 AA_MAX = 0.02            # စာသား တူတူနဲ့ ကွာဟမှု — ဤထက် ကြီးလျှင် မတည်ငြိမ်
 AB_OVER_AA = 3.0         # A/B က A/A ထက် အနည်းဆုံး ဤအဆ ကြီးရမည်
@@ -51,6 +51,17 @@ TXT_A = "ဂျပန်မှာ အလုပ်"
 TXT_B = "ပြည်ပကနေ ချစ်ရသူတွေဆီ ငွေလွှဲခြင်းနဲ့ ဆုလက်ဆောင်"
 ITM_A = ["ဂျပန်", "ကိုးရီးယား", "စင်္ကာပူ"]
 ITM_B = ["ပြည်ပ ငွေလွှဲ", "ဘဏ် အကောင့်", "မိုဘိုင်း ငွေဖြည့်ခြင်း"]
+
+# ⚠️ **ကိန်းပါသော နမူနာ** (`--num`) — chart/dashboard template ၄၁ ခုက
+#    `rows` = (စာသား, ကိန်း) အတွဲ လိုသဖြင့် ကိန်းမပါသော နမူနာနဲ့ စစ်လျှင်
+#    「adapter ဖွဲ့စည်းပုံ မကိုက်」နဲ့ ကျပြီး pool ထဲ လုံးဝ မဝင်ခဲ့
+#    (၂၀၂၆-၀၉-၂၄ တိုင်းပြီး)。 ဤနမူနာနဲ့ **တကယ့် စွမ်းရည်** ကို စစ်သည်。
+ITM_NA = ["ဂျပန် ၅၂", "ကိုးရီးယား ၃၁", "စင်္ကာပူ ၁၇"]
+ITM_NB = ["ပြည်ပ ငွေလွှဲ ၆၈", "ဘဏ် အကောင့် ၂၄", "မိုဘိုင်း ၈"]
+if "--num" in sys.argv:
+    ITM_A, ITM_B = ITM_NA, ITM_NB
+    TXT_A = "ဂျပန်မှာ အလုပ် ၅၂ ရာခိုင်နှုန်း"
+    TXT_B = "ပြည်ပကနေ ငွေလွှဲခြင်း ၆၈ ရာခိုင်နှုန်း နဲ့ ဆုလက်ဆောင်"
 
 CHILD = r'''
 import os, sys, json
@@ -88,10 +99,17 @@ def build(txt, items, tag):
                     accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
     if not a:
         a = G.fill(e, txt, "ZAE", 62)
-        if not a:
+        # ⚠️ `fill()` က param မလိုသော template အတွက် `()` ပြန်ပေးသည် (မှန်သည်)。
+        #    `not a` နဲ့ စစ်လျှင် ကျရှုံးဟု မှတ်မိသည် ⇒ `is None` သာ。
+        if a is None:
             return None, "fill ဗလာ"
+        # ⚠️ **`"g0"` ကိန်းသေ သုံး၍ မရ** — A နဲ့ B run နှစ်ခုလုံး တူညီသော
+        #    ဖိုင်နာမည်သို့ ရေးသဖြင့် `prem._crop()` ရဲ့ cache
+        #    (`if not os.path.exists(q)`) က B အတွက် A ရဲ့ PNG ကို ပြန်ပေးကာ
+        #    **diff = 0.000** ဖြစ်စေသည် — template က မမှား၊ စစ်ဆေးချက်က မှား。
+        #    (၂၀၂၆-၀၉-၂၄: thm ၂၈ ခုထဲ ၁၇ ခု ဤအကြောင်းကြောင့် မှားကျခဲ့)。
         if DR._wants_tag(e["fn"]):
-            a = ("g0",) + tuple(a)
+            a = (tag,) + tuple(a)
         el = G.call(e, a, 2.0)
     else:
         # ⚠️ template တွေက frame ကို **motionkit ရဲ့ cwd** နဲ့ ဆက်စပ်ပြီး

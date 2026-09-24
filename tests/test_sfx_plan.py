@@ -144,6 +144,58 @@ def main():
     if FAILED:
         print(f"  ✗ ကျသည် {len(FAILED)}: {FAILED}")
         return 1
+    # ══ SFX budget က **တိုင်းထားသော** ထွက်အရှည်နဲ့ တွက်ရမည် ═══════════
+    # ⚠️ ၂၀၂၆-၀၉-၂၄ `j_c42e5c142058` — ထုတ်သူနဲ့ ဂိတ်က ဖော်မြူလာ တူပေမယ့်
+    #    **အရှည် မတူ**သဖြင့် QC `headtop_sfx_moments` ၆/၇ နဲ့ ကျခဲ့သည် —
+    #      planner  `_outdur_guess(spans)` ၆၇.၈s ⇒ ၆
+    #      QC       ထွက်ဖိုင် အစစ်        ၇၀.၆s ⇒ ၇
+    #    ဖြတ်မှတ် pad + render slack ~၂.၈s က ခန့်မှန်းချက်ထဲ မပါ。
+    # ⚠️ ခန့်မှန်းချက် ကောင်းအောင် လုပ်ရုံနဲ့ **မရ** — အေးခဲ ဖြတ်မှတ် ၆၉.၈s
+    #    နဲ့လည်း ၆ ပဲ ရသည်。 ⇒ worker က `probe(cutv)` နဲ့ **တိုင်းပြီးမှ**
+    #    `sfx_plan` ကို ပြန်ခေါ်ရမည် (stage ၆ မှာ `cutv` ရှိပြီးသား)。
+    import ast as _ast
+    _w = open(os.path.join(HERE, "..", "worker", "run.py"),
+                 encoding="utf-8").read()
+    check("worker က SFX ပြန်တွက်သည်", "PLN2.sfx_plan" in _w)
+    check("တိုင်းထားသော `cutv` အရှည် သုံးသည်",
+          "probe(cutv)" in _w and "out_dur=_rd" in _w)
+    # ⚠️ `EX2.to_sfx` ရဲ့ **အထက်**မှာ ဖြစ်ရမည် — အောက်မှာ ဆိုလျှင် အကျိုးမရှိ
+    _t = _ast.parse(_w)
+    _re = [n.lineno for n in _ast.walk(_t)
+              if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute)
+              and n.func.attr == "sfx_plan"]
+    _to = [n.lineno for n in _ast.walk(_t)
+              if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute)
+              and n.func.attr == "to_sfx"]
+    check("`to_sfx` မခေါ်ခင် ပြန်တွက်သည်",
+          bool(_re) and bool(_to) and min(_re) < max(_to),
+          f"sfx_plan@{_re} · to_sfx@{_to}")
+
+    # ── တကယ့် ကိန်းနဲ့ — အရှည် ကွာလျှင် အခိုက် အရေအတွက် ကွာရမည် ────
+    _ev = [dict(id=f"t{i:02d}", startTime=round(i * 9.0, 2),
+                   endTime=round(i * 9.0 + 3.0, 2), layer="template",
+                   type="template", motionKitTemplateId="prem.glass_stat",
+                   props={}, style=dict(kind="card"), reason="", confidence=0.7)
+              for i in range(1, 19)]
+    _a = PL.sfx_plan(_ev, 178.68, 1.5, log=None, style="headtop", out_dur=67.8)
+    _b = PL.sfx_plan(_ev, 178.68, 1.5, log=None, style="headtop", out_dur=70.6)
+
+    def _mom(cs, layer=0.60):
+           _o = []
+           for t in sorted(float(c["startTime"]) for c in cs):
+               if not _o or t - _o[-1] > layer:
+                   _o.append(t)
+           return _o
+
+    _ma, _mb = len(_mom(_a)), len(_mom(_b))
+    check("၇၀.၆s က ၆၇.၈s ထက် အခိုက် မနည်းရ", _mb >= _ma, f"{_ma} → {_mb}")
+    # ⚠️ **၂ ဖက်လုံး** အောင်ရမည် — အောက်ဘောင် (moments) ရော အထက်ဘောင်
+    #    (density ≤ per_min) ရော。 တစ်ဖက်တည်း ကြည့်လျှင် တစ်ဖက် ပြန်ကျမည်。
+    _want = max(1, int(6.0 * 70.6 / 60.0))
+    _dens = _mb / (max(60.0, 70.6) / 60.0)
+    check(f"၇၀.၆s ⇒ အခိုက် ≥ {_want}", _mb >= _want, f"ရ {_mb}")
+    check("density ဘောင် မကျော်ရ", _dens <= 6.0, f"{_dens:.2f}/min")
+
     print("  ✓ အားလုံး အောင်")
     return 0
 

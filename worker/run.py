@@ -67,8 +67,16 @@ from video_codec import h264_args, preferred_codec
 #    ⇒ ယာယီ ဖြစ်နိုင်သော အမှား (404/5xx/timeout) ကို နောက်ဆုတ်ပြီး ပြန်ကြိုးစားသည်。
 #    ⚠️ `/claim` ကို **ပြန်မကြိုးစားရ** — အဖြေ ပျောက်ရုံနဲ့ ပြန်ခေါ်လျှင်
 #       job နှစ်ခု ယူမိနိုင်သည်。 ၄၀၀/၄၀၁/၄၀၉/၄၁၀/၄၂၂ က တကယ့် အမှား ⇒ ချက်ချင်း ထုတ်。
+#    ⚠️ ၂၀၂၆-၀၉-၂၄ — retry ၅ ကြိမ် (စုစုပေါင်း ၈၉s) က **မလုံလောက်**ခဲ့。
+#       Mac ရဲ့ DNS ယာယီ ပြတ်သွား၍ (`Errno 8: nodename nor servname`)
+#       stage 4 မှာ render တစ်ခုလုံး ကျပြီး **~၄၀ မိနစ်စာ အလုပ် ဆုံးရှုံး**ခဲ့。
+#       ⇒ ၁၀ ကြိမ် · စုစုပေါင်း **~၂၁ မိနစ်** အထိ စောင့်သည်。
+#    ⚠️ render တစ်ခု ၄၀ မိနစ် ကြာသဖြင့် ၂၁ မိနစ် စောင့်တာက **သက်သာ**သည် —
+#       ကွန်ရက် ပြန်လာလျှင် အလုပ် မပျက်ဘဲ ဆက်သွားနိုင်သည်。
+#    ⚠️ `/claim` ကတော့ ပြန်မကြိုးစားပါ (အောက်က `once`) ⇒ ဤစောင့်ချိန်က
+#       job ယူခြင်းကို မထိခိုက်ပါ。
 RETRY_CODES = (404, 408, 429, 500, 502, 503, 504)
-RETRY_WAIT  = (2, 5, 12, 25, 45)
+RETRY_WAIT  = (2, 5, 12, 25, 45, 90, 180, 300, 300, 300)
 
 # ⚠️ slide အရှည် ချိန်ညှိချက် — **သီးသန့် function** အဖြစ် ထားသည်
 #    (စမ်းသပ်လို့ ရစေရန်)。 ၂၀၂၆-၀၉-၂၀ မှာ render ထဲ တိုက်ရိုက် ရေးထားပြီး
@@ -2403,6 +2411,53 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         f"{rmov[0][0]:.1f}–{rmov[-1][0] + rmov[-1][2]:.1f}s")
         except Exception as _re2:
             log(f"  ⚠️ ဘေးဘောင် စာရင်း မရ: {type(_re2).__name__}: {_re2}")
+    # ══ ဖြတ်ပြောင်း မဆောက်ခင် motionkit ရဲ့ cache ရှင်းရန် ══════════════
+    # ⚠️ **၂၀၂၆-၀၉-၂၄ တိုင်း၍ တွေ့** — `dress.slide_clip()` က ဖြတ်ပြောင်း
+    #    **အားလုံးကို tag `"sl"` တစ်ခုတည်း**နဲ့ ခေါ်သည် (pack လမ်းကြောင်းမှာ
+    #    `out` ဖိုင်နာမည်ကနေ သီးသန့် tag ထုတ်ပေမယ့် catalog လမ်းကြောင်းမှာ
+    #    ပုံသေ)。 template တွေက ဖရိမ်း PNG ကို `work/<mod>/sl_f0000.png`
+    #    မှာ ရေးပြီး `if not os.path.exists()` နဲ့ ကျော်သည်、`prem._CROP`
+    #    စသော module-level dict တွေကလည်း လမ်းကြောင်းနဲ့ cache လုပ်သည်
+    #    ⇒ **ဒုတိယ ဖြတ်ပြောင်းက ပထမတစ်ခုရဲ့ စာကို ပြန်ပြ**သည်。
+    # ⚠️ ယခင်က ဘောင်အပြည့် **တစ်ပုဒ်လျှင် ၁ ခုသာ** ခွင့်ပြုခဲ့သဖြင့် ဤ
+    #    ချွတ်ယွင်းချက် **တစ်ခါမှ မဖြစ်ခဲ့**ပါ。 ဖြတ်ပြောင်း ၁၃ ခုအထိ
+    #    တိုးလိုက်ပြီးမှ ပေါ်လာသည် — ဖြတ်ပြောင်း ၃၀ ခုကို စစ်ရာ **၁၃ ခု**
+    #    process တစ်ခုအတွင်း စာ မပြောင်းဘဲ ဖရိမ်း ၆၀/၆၀ တူခဲ့သည်。
+    # ⚠️ process **သီးသန့်**မှာ ၅/၅ ကွဲသဖြင့် အကြောင်းရင်းက cache ဖြစ်ကြောင်း
+    #    တိကျစွာ သိရသည် (template က စာ လျစ်လျူရှုခြင်း **မဟုတ်**)。
+    #    ရှင်းပြီးနောက် ၅/၅ ကွဲသည် — အတည်ပြုပြီး。
+    # ⚠️ **helper module အားလုံး** ရှင်းရမည် — `prem3`/`prem4`/`insert` တို့မှာ
+    #    ကိုယ်ပိုင် cache မရှိဘဲ `prem`/`inkbox` ကနေ ယူသည်。
+    _MK_CACHES = (("prem", "_CROP"), ("prem", "_SZ"), ("inkbox", "_C"),
+                  ("infogfx", "_MW"), ("odo", "_STRIPS"),
+                  ("cttext_rsvg", "_W"), ("render2", "_CACHE"),
+                  ("subject", "_CACHE"))
+
+    def _mk_cache_clear(tag="sl"):
+        """ဖြတ်ပြောင်း တစ်ခုစီ မဆောက်ခင် — cache dict + ယာယီ ဖရိမ်း"""
+        import glob as _gg
+        _n = _f = 0
+        try:
+            import gfxcat as _GC
+            _mkroot = _GC.MK
+        except Exception:
+            return 0, 0
+        for _mod, _nm in _MK_CACHES:
+            _m = sys.modules.get(_mod)
+            if _m is None:
+                continue          # ⚠️ တင်မထားသူကို **အတင်း import မလုပ်ရ**
+            _d = getattr(_m, _nm, None)
+            if isinstance(_d, dict):
+                _n += len(_d); _d.clear()
+            elif isinstance(_d, list):
+                _n += len(_d); del _d[:]
+        for _q in _gg.glob(os.path.join(_mkroot, "work", "*", f"{tag}*")):
+            try:
+                os.remove(_q); _f += 1
+            except OSError:
+                pass
+        return _n, _f
+
     # ══ Headtop — ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်သည် ═══════
     # ⚠️ ထပ်တင်လို့ မရပါ。 ပြောသူက ဘောင်ရဲ့ ၆၄% (မျက်နှာဇုန် ၀–၆၉၆px) ယူပြီး
     #    စာတန်းက ၇၀% (၇၅၇px) ကနေ စသဖြင့် ကျန်နေရာက **၆၁px = ၅.၆% ·H** သာ。
@@ -2443,6 +2498,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 except Exception:
                     _pp = None
                 _mv = None
+                # ⚠️ **တစ်ခုစီ မဆောက်ခင် ရှင်း** — မရှင်းလျှင် ဒုတိယကနေစပြီး
+                #    ပထမ ဖြတ်ပြောင်းရဲ့ စာ ပြန်ပေါ်မည် (အပေါ်မှာ ရှင်းပြထား)。
+                _mk_cache_clear()
                 try:
                     _mv = _DR.slide_clip(
                         "statement", str(_head)[:60], None, None, _bn,
@@ -2560,6 +2618,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  keyword pop · {len(pmov)} ခု · "
                     + " · ".join(f"「{t}」{a:.1f}s" for a, _m, _d, _x, t in pmov[:4]))
 
+            if _nok > 1:
+                log(f"  ဖြတ်ပြောင်း · cache ရှင်းချက် အသုံးပြု "
+                    f"(tag 「sl」 မျှသဖြင့် စာ ထပ်ပြန်ပေါ်မှု ရှောင်ရန်)")
             log(f"  ဖြတ်ပြောင်း · motionkit {_nok} ခု"
                 + (f" · စာရွက် ပြန်ဆုတ် {_nno} ခု" if _nno else ""))
             # ⚠️ **ဖုံးအုပ်မှုကို ဘောင်ထဲ ချရမည်**。 ကတ် ၃ ခု × ၂.၅s =
@@ -3179,6 +3240,40 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ `EX` က plan အကိုင်းထဲမှာသာ import — ဒီမှာ မရှိပါ
             #    (`PZ` · `_breathe` အမှားမျိုးပင်)。
             import execute as EX2
+            # ⚠️ `PLN` က plan အကိုင်းထဲမှာသာ import — ဒီ scope မှာ **မရှိ**
+            #    (`EX2` ကို သီးသန့် import ရတဲ့ အကြောင်းရင်း အတူတူ)。
+            import planner as PLN2
+            # ══ SFX ကို **ရုပ်ပိုင်း အရှည် တိုင်းပြီးမှ** ပြန်တွက်သည် ══════
+            # ⚠️ ၂၀၂၆-၀၉-၂၄ `j_c42e5c142058` — QC ရဲ့ `headtop_sfx_moments`
+            #    က ၆ ရပြီး ၇ လိုသဖြင့် ကျခဲ့သည်。 ထုတ်သူနဲ့ ဂိတ်က
+            #    **ဖော်မြူလာ တူ** (`int(per_min × dur / 60)`) ပေမယ့်
+            #    **အရှည် မတူ** —
+            #      planner  : `_outdur_guess(spans)` = ၆၇.၈s ⇒ ၆
+            #      QC       : ထွက်ဖိုင် အစစ်        = ၇၀.၆s ⇒ ၇
+            #    ဖြတ်မှတ် pad နဲ့ render slack က ~၂.၈s ပြန်ထည့်သော်လည်း
+            #    ခန့်မှန်းချက်ထဲ မပါ ⇒ **စနစ်တကျ လျော့**နေသည်。
+            # ⚠️ ခန့်မှန်းချက် ကောင်းအောင် လုပ်ရုံနဲ့ **မရပါ** — အေးခဲ
+            #    ဖြတ်မှတ် ၆၉.၈s နဲ့ တွက်လည် ၆ ပဲ ရသေးသည် (၇.၀ မပြည့်)。
+            #    ကျန် ၀.၈s က render ကနေ လာသဖြင့် render မပြီးခင် ဘယ်
+            #    ခန့်မှန်းချက်နဲ့မှ မှန်အောင် မရနိုင်ပါ。
+            # ⇒ `cutv` (ဖြတ်ပြီး ဗီဒီယိုဖိုင် အစစ်) က ဤအဆင့်မှာ **ရှိပြီး**
+            #   ဖြစ်သဖြင့် အဲဒါကို တိုင်းပြီး SFX ကို ပြန်တွက်သည်。
+            #   ဂိတ် **မလျှော့ပါ** — ထုတ်သူကို ဂိတ်နဲ့ တစ်တန်းတည်း ထားခြင်း。
+            # ⚠️ `dur` က **မူရင်း အရှည်** အတိုင်း ထားရမည် — ဖြစ်ရပ် အချိန်မှတ်
+            #    တွေက မူရင်း timeline ပေါ် ရှိပြီး `omap` က အောက်မှာ ပြောင်းသည်。
+            try:
+                _rd = float(probe(cutv).get("dur") or 0)
+            except Exception:
+                _rd = 0.0
+            if _rd > 0:
+                _pm0 = float(rc.get("sfx_per_min") or 1.5)
+                _old = len(_PLAN.get("sfxEvents") or [])
+                _PLAN["sfxEvents"] = PLN2.sfx_plan(
+                    _PLAN.get("templateEvents") or [], float(m["dur"]), _pm0,
+                    log=None, style=rc.get("_id"), out_dur=_rd)
+                log(f"  SFX ပြန်တွက် · ဖြတ်ပြီး **တိုင်းထား {_rd:.1f}s** "
+                    f"(ခန့်မှန်း {_outdur_guess(spans):.1f}s မဟုတ်) ⇒ "
+                    f"ဖြစ်ရပ် {_old} → {len(_PLAN['sfxEvents'])}")
             _pc = EX2.to_sfx(_PLAN, log=log)
             for _t, _role, _db in _pc:
                 _ot = omap(float(_t), snap=True)

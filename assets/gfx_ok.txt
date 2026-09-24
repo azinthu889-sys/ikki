@@ -1,5 +1,5 @@
 # motionkit template — **တစ်ခုချင်း တကယ် render ပြီး စစ်ပြီးသား** စာရင်း。
-# ထုတ်သူ: tools/gfx_gate.py  (354 ခု)
+# ထုတ်သူ: tools/gfx_gate.py  (372 ခု)
 # ⚠️ ဂိတ် ၂ ခု — ခန့်မှန်းချက် မပါ、တိုင်းလို့ရတာချည်း:
 #      ① render ဖြစ် · ဖရိမ်း ≥၂ · နောက်ဆုံး ဖရိမ်းမှာ မှင် ≥၀.၀၅%
 #      ② bbox အောက်စွန်း < 0.79 ·H — စာတန်းဇုန် မဖုံးရ
@@ -36,16 +36,23 @@ capt.soft_in
 capt.two_col
 capt.word_swap
 charts.battery
+charts.bubble_chart
+charts.column_chart
 charts.org_chart
 charts.pct_grid
+charts.pie
+charts.ranking
 charts.sparkline
 charts.speedo
+charts.stacked_bar
 charts.thermometer
 charts.venn2
+charts.waterfall
 cine.font_card
 cine.title_stack
 dash.avatar_row
 dash.kpi_card
+dash.progress_row
 glitch.block_reveal
 glitch.echo_ghost
 glitch.flicker_word
@@ -56,6 +63,7 @@ glitch.scan_wipe
 glitch.strike_red
 glitch.two_line_hit
 infogfx.arrow
+infogfx.bars
 infogfx.big_number
 infogfx.callout
 infogfx.counter
@@ -162,6 +170,8 @@ motionfx.speed_lines
 motionfx.sweep_light
 motionfx.waveform
 odo.big_stat
+odo.count_pill
+odo.label_num
 odo.odometer
 prem.glass_stat
 prem.list_reveal
@@ -213,11 +223,16 @@ thm.hook_wipe
 thm.key_boxed
 thm.key_bracket
 thm.key_count
+thm.key_drop
 thm.key_hl
 thm.key_note
 thm.key_ok
 thm.key_pieces
+thm.key_pop
 thm.key_red
+thm.key_shake
+thm.key_slide
+thm.key_strike
 thm.key_under
 thm.list_arrow
 thm.list_big
@@ -290,6 +305,8 @@ titles2.big_number
 titles2.breaking
 titles2.callout
 titles2.clock_strip
+titles2.compare_bars
+titles2.credits
 titles2.cta_card
 titles2.donut_stat
 titles2.fact_box
@@ -324,6 +341,7 @@ titles3.stat_ribbon
 titles3.subscribe_bug
 titles3.topic_dots
 titles3.warning_card
+typew.code_block
 typew.cursor_blink
 typew.grad_card
 typew.hl_bar

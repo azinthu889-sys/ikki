@@ -34,6 +34,34 @@ LIST = ("items", "lines", "rows", "bullets", "points", "steps", "words")
 NUM = ("pct", "val", "value_n", "count", "n", "score", "amount", "percent",
        "target", "to", "goal", "end_val", "total_n", "num")
 
+# ⚠️ **(စာသား, ကိန်း) အတွဲ** လိုသော slot — chart/dashboard အမျိုးအစား。
+#    ၂၀၂၆-၀၉-၂၄ တိုင်းချက်: template ၄၁ ခုက ဤပုံစံ လိုသဖြင့် flat စာရင်း
+#    ပေးလိုက်ရာ `ValueError: too many values to unpack` နဲ့ ကျခဲ့သည်
+#    (pool ထဲ လုံးဝ မဝင်ခဲ့)。
+ROWS = ("rows", "pairs", "series", "data", "bars", "segments", "slices")
+MIN_ROWS = 2
+
+
+def _rows_of(items):
+    """`[(label, value)]` — **ကိန်း တကယ်ပါမှ**; မပါလျှင် `None`。
+
+    ⚠️ ကိန်း **မတီထွင်ရ** (Zin: 「Never add a chart without factual data」)。
+       ဝါကျမှာ ကိန်း မပါလျှင် ဤ template ကို လုံးဝ မသုံးရ。
+    """
+    out = []
+    for it in (items or []):
+        t = str(it).strip()
+        m = _re.search(r"(\d+(?:[.,]\d+)?)", t)
+        if not m:
+            continue
+        try:
+            v = float(m.group(1).replace(",", ""))
+        except ValueError:
+            continue
+        lab = (t[:m.start()] + " " + t[m.end():]).strip(" ·-–—:%()၊။")
+        out.append((lab[:22] or t[:22], v))
+    return out if len(out) >= MIN_ROWS else None
+
 # ── အရောင် slot — **အဓိပ္ပာယ်အလိုက် ခွဲရမည်** ──────────────────────
 # ⚠️ ၂၀၂၆-၀၉-၂၁ စမ်းစဉ် ဖမ်းမိ — အရောင် slot အားလုံးကို accent တစ်ခုတည်း
 #    ပေးလိုက်လျှင် —
@@ -147,6 +175,17 @@ def fit(entry, c, accent=None, dur=None, ink=None, dim=None):
                 out[name] = int(float(num_use.replace(",", ""))) if typ == "int" \
                     else float(num_use.replace(",", ""))
                 got = True
+            continue
+
+        # ── (စာသား, ကိန်း) အတွဲ — chart/dashboard ──
+        if low in ROWS:
+            _rw = _rows_of(items)
+            if not _rw:
+                if req and not has_d:
+                    return None
+                continue
+            out[name] = _rw
+            got = True
             continue
 
         # ── စာရင်း — item ၂ ခု အနည်းဆုံး ──

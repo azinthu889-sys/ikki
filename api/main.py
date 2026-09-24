@@ -225,13 +225,49 @@ async def up_init(req: Request, authorization: str = Header(None)):
     return {"upload_id": uid, "received": 0, "chunk": 8*1024*1024, "mode": "local"}
 
 
+def _r2_gone(e):
+    """R2 က ဤ multipart ကို **အပြီး ဖျက်ပြီး**လား (ယာယီ အမှား မဟုတ်)
+
+    ⚠️ `urllib` က `HTTPError` (code ရှိ) · `URLError` (code မရှိ) ၂ မျိုး
+       ပစ်သည်。 ကွန်ရက် ပြတ်တာကို 「ပျောက်ပြီ」ဟု မှတ်လျှင် သုံးစွဲသူက
+       တင်ပြီးသား byte တွေ **နှစ်ခါ တင်**ရမည် ⇒ code ကို **တိတိကျကျ**
+       ကြည့်ရမည်。 404 (NoSuchUpload) နှင့် 403 (တံဆိပ် သက်တမ်းကုန်) သာ。
+    """
+    c = getattr(e, "code", None) or getattr(e, "status", None)
+    try:
+        c = int(c)
+    except (TypeError, ValueError):
+        return False
+    return c in (403, 404)
+
+
 def _r2_resume(u):
-    """Build a restart-safe multipart state directly from R2."""
+    """Build a restart-safe multipart state directly from R2.
+
+    ပြန်ပေးသည် — state dict、multipart က R2 မှာ **မရှိတော့လျှင် `None`**。
+    """
     if not ST.on():
         raise HTTPException(503, "R2 မချိတ်နိုင်သေးပါ")
     try:
         parts = ST.mpu_list_parts(u["key"], u["mpu"])
     except Exception as e:
+        # ⚠️ **၄၀၄ နဲ့ ယာယီ အမှားကို ခွဲရမည်** (၂၀၂၆-၀၉-၂၄) —
+        #    R2 က မပြီးသေးသော multipart ကို ကာလတစ်ခုကြာလျှင် ဖျက်သည်。
+        #    ၀၉-၁၇ က ကျန်ခဲ့သော record ၂ ခုကြောင့် `tokutei.mp4` ကို
+        #    **ရက်တစ်ပတ်လုံး ပြန်တင်လို့ မရ**ခဲ့ပါ — resume query က အဲဒါကို
+        #    ဆက်ရွေးပြီး `mpu_list_parts` က 404 ⇒ ၅၀၂ ⇒ upload အသစ်လည်း
+        #    မစနိုင်。 「ခဏနေရင် ပြန်ကြိုးစားပါ」က **လိမ်ရာ ကျ**သည် —
+        #    စောင့်၍ ဘယ်တော့မှ မရနိုင်ပါ (R2 က `on: True` ဖြစ်နေဆဲ)。
+        # ⚠️ ယာယီ အမှား (ကွန်ရက် · ၅xx) မှာတော့ **ပြန်မစရ** — အဟောင်းကို
+        #    မမြင်ဘဲ အသစ် စလျှင် သုံးစွဲသူက byte တွေ **နှစ်ခါ တင်**ရမည်。
+        if _r2_gone(e):
+            # multipart က အပြီး ပျောက်သွားပြီ ⇒ record ကို ရှင်းပြီး
+            # ခေါ်သူက **အသစ်** စခိုင်းသည် (`None`)。 row ကို မဖျက်ပါ。
+            try:
+                db.run("UPDATE uploads SET mpu=NULL WHERE id=?", u["id"])
+            except Exception:
+                pass
+            return None
         # Do not create another multipart upload when R2 cannot be verified:
         # doing so would make the user upload duplicate bytes after a crash.
         raise HTTPException(502, "R2 upload ကို အတည်မပြုနိုင်သေးပါ — ခဏနေရင် ပြန်ကြိုးစားပါ") from e
@@ -272,14 +308,22 @@ def up_resume(uid: str, authorization: str = Header(None)):
     u = my_upload(authorization, uid)
     if not u.get("mpu") or u.get("done"):
         raise HTTPException(409, "ဆက်တင်နိုင်သော R2 upload မဟုတ်ပါ")
-    return _r2_resume(u)
+    # ⚠️ R2 မှာ ပျောက်သွားလျှင် `None` ⇒ ဆက်တင်၍ မရတော့ကြောင်း ပြောရမည်
+    #    (၅၀၂ နဲ့ 「ခဏနေ」ဟု မပြောရ — စောင့်၍ မရနိုင်ပါ)。
+    r = _r2_resume(u)
+    if r is None:
+        raise HTTPException(409, "ဤ upload က သက်တမ်းကုန်သွားပြီ — "
+                                 "အစကနေ ပြန်တင်ပါ")
+    return r
 
 @app.get("/api/upload/{uid}")
 def up_state(uid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     u = my_upload(authorization, uid)
     if u.get("mpu") and not u.get("done"):
-        return _r2_resume(u)
+        r = _r2_resume(u)
+        if r is not None:
+            return r
     # ⚠️ DB မဟုတ်ဘဲ **ဖိုင်အရွယ်ကို တိုင်း**ရမည် — chunk တစ်ခု ရေးပြီး DB မရေးမီ
     #    ပြတ်သွားလျှင် ကိန်း ၂ ခု ကွဲသည်。
     got = os.path.getsize(u["path"]) if os.path.exists(u["path"]) else 0
@@ -3001,6 +3045,14 @@ def script_page():
     return _FR(os.path.join(WEB, "script.html"), media_type="text/html",
                headers={"Cache-Control": "no-store, must-revalidate", "Pragma": "no-cache"})
 
+
+# ⚠️ Motion Kit gallery — **`mount("/")` ရှေ့မှာ ထားရမည်** (အထက်က
+#    အကြောင်းရင်း အတိုင်း — နောက်မှာ ထားလျှင် ၄၀၄)。 ဖိုဒါ မရှိလျှင်
+#    mount မလုပ်ဘဲ ကျော်သည် — server မကျစေရ。
+_GAL = os.environ.get("IKKI_GALLERY",
+                      os.path.expanduser("~/Downloads/motionkit_preview"))
+if os.path.isdir(_GAL):
+    app.mount("/gallery", StaticFiles(directory=_GAL, html=True), name="gallery")
 
 app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
 

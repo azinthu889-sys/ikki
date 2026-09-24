@@ -15,6 +15,18 @@ from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "core"))
+# ⚠️ **Gemini ကို ပိတ်ရမည်** — ဤ test က 「တူညီ seed ⇒ တူညီ ရလဒ်」ဟု
+#    စစ်သည်。 `plan()` က Gemini ကို ခေါ်ပြီး Gemini ရဲ့ အဖြေက ခေါ်တိုင်း
+#    ကွဲနိုင်သဖြင့် **ကွန်ရက်ကို တိုင်းနေသလို** ဖြစ်သည်。
+#    ⚠️ ၂၀၂၆-၀၉-၂၄ တိုင်းချက် — Gemini 503 ဖြစ်နေစဉ် ဤ test အောင်ခဲ့ပြီး
+#       Gemini ပြန်ကောင်းလာသည်နှင့် **ကျ**သွားသည် (ဂရပ်ဖစ် ၇ ↔ ၈)。
+#       Gemini မရောက်အောင် လုပ်ပြီး စမ်းတော့ **၃ ခါလုံး တူ** ⇒ planner ရဲ့
+#       ကိုယ်ပိုင် ရွေးချယ်မှုက deterministic ဖြစ်ပြီးသား。
+#    ⇒ ဤ test က **planner ရဲ့ logic** ကို တိုင်းရမည် — Gemini ကို မဟုတ်。
+#      (Gemini ဖွင့်ထားလျှင် ပြန်ထုတ်ချက် တူညီမှု **အာမ မခံနိုင်**ပါ။)
+os.environ.setdefault("ZJL_FORCE_PROXY", "1")
+os.environ["ZJL_GEMINI_PROXY"] = "http://127.0.0.1:9/disabled-in-test"
+
 import planner as PL          # noqa: E402
 
 SENT = ["ဒီနေ့ ဂျပန်စာ N5 အတွက် ဘာလုပ်ရမလဲ ပြောပြမယ်",

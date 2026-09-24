@@ -284,20 +284,26 @@
  {
   "id": "charts.bubble_chart",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.6718,
+  "aa": 0.0,
+  "ink": 0.43184,
+  "why": ""
  },
  {
   "id": "charts.column_chart",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.6773,
+  "aa": 0.0,
+  "ink": 0.53273,
+  "why": ""
  },
  {
   "id": "charts.gantt",
   "category": "chart",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 3)"
+  "why": "ValueError: not enough values to unpack (expected 3, got 2)"
  },
  {
   "id": "charts.heat_grid",
@@ -309,7 +315,7 @@
   "id": "charts.kpi_tiles",
   "category": "chart",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "why": "ထွက်ချက် ဗလာ"
  },
  {
   "id": "charts.line_chart",
@@ -347,14 +353,20 @@
  {
   "id": "charts.pie",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.5779,
+  "aa": 0.0,
+  "ink": 0.95868,
+  "why": ""
  },
  {
   "id": "charts.ranking",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.5779,
+  "aa": 0.0,
+  "ink": 0.20199,
+  "why": ""
  },
  {
   "id": "charts.scatter",
@@ -383,8 +395,11 @@
  {
   "id": "charts.stacked_bar",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.5851,
+  "aa": 0.0,
+  "ink": 0.96811,
+  "why": ""
  },
  {
   "id": "charts.thermometer",
@@ -407,8 +422,11 @@
  {
   "id": "charts.waterfall",
   "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.6761,
+  "aa": 0.0,
+  "ink": 0.26471,
+  "why": ""
  },
  {
   "id": "cine.font_card",
@@ -502,8 +520,11 @@
  {
   "id": "dash.progress_row",
   "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.0345,
+  "aa": 0.0,
+  "ink": 0.26943,
+  "why": ""
  },
  {
   "id": "dash.tile_pop",
@@ -613,8 +634,11 @@
  {
   "id": "infogfx.bars",
   "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.58,
+  "aa": 0.0,
+  "ink": 0.55896,
+  "why": ""
  },
  {
   "id": "infogfx.big_number",
@@ -647,7 +671,7 @@
   "id": "infogfx.compare_bar",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 3)"
+  "why": "ValueError: not enough values to unpack (expected 3, got 2)"
  },
  {
   "id": "infogfx.counter",
@@ -888,8 +912,11 @@
  {
   "id": "kinetic.count_up",
   "category": "text",
-  "ok": 0,
-  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
+  "ok": 1,
+  "diff": 0.2263,
+  "aa": 0.0,
+  "ink": 0.0466,
+  "why": ""
  },
  {
   "id": "kinetic.drop_in",
@@ -1354,7 +1381,7 @@
   "id": "maps.stat_map",
   "category": "infographic",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "maps.world_dots",
@@ -1374,26 +1401,38 @@
  {
   "id": "odo.count_pill",
   "category": "infographic",
-  "ok": 0,
-  "why": "150s ကျော်"
+  "ok": 1,
+  "diff": 0.1658,
+  "aa": 0.0,
+  "ink": 0.07179,
+  "why": ""
  },
  {
   "id": "odo.count_up",
   "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+  "ok": 1,
+  "diff": 0.5576,
+  "aa": 0.0,
+  "ink": 0.02288,
+  "why": ""
  },
  {
   "id": "odo.label_num",
   "category": "infographic",
-  "ok": 0,
-  "why": "150s ကျော်"
+  "ok": 1,
+  "diff": 0.6293,
+  "aa": 0.0,
+  "ink": 0.04646,
+  "why": ""
  },
  {
   "id": "odo.money",
   "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+  "ok": 1,
+  "diff": 0.1747,
+  "aa": 0.0,
+  "ink": 0.02604,
+  "why": ""
  },
  {
   "id": "odo.odometer",
@@ -1417,13 +1456,16 @@
   "id": "odo.split_flap",
   "category": "infographic",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "odo.tick_row",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "diff": 0.1091,
+  "aa": 0.9753,
+  "ink": 0.16542,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.975 (A/B 0.109)"
  },
  {
   "id": "odo.timer",
@@ -1556,13 +1598,18 @@
   "id": "prem2.tilt_card",
   "category": "title",
   "ok": 0,
-  "why": "150s ကျော်"
+  "diff": 0.0183,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.018)"
  },
  {
   "id": "prem2.timeline_flow",
   "category": "title",
   "ok": 0,
-  "why": "150s ကျော်"
+  "diff": 0.0315,
+  "aa": 0.0299,
+  "ink": 1.0,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.030 (A/B 0.031)"
  },
  {
   "id": "prem2.word_pop",
@@ -1599,7 +1646,7 @@
   "id": "prem3.logo_wall",
   "category": "title",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "prem3.marquee_band",
@@ -1663,7 +1710,7 @@
   "id": "prem4.big_question",
   "category": "text",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "prem4.mistake_hook",
@@ -1686,7 +1733,7 @@
   "id": "prem4.shock_stat",
   "category": "text",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "prem4.stop_scroll",
@@ -1959,13 +2006,15 @@
   "id": "prem7.spec_list",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "why": "TypeError: 'float' object is not iterable"
  },
  {
   "id": "prem7.step_badge",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+  "diff": 0.019,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.019)"
  },
  {
   "id": "prem7.timer_badge",
@@ -1979,7 +2028,10 @@
   "id": "qcard.bar_quote",
   "category": "title",
   "ok": 0,
-  "why": "150s ကျော်"
+  "diff": 0.6707,
+  "aa": 0.3408,
+  "ink": 0.02451,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.341 (A/B 0.671)"
  },
  {
   "id": "qcard.corner_note",
@@ -2101,7 +2153,7 @@
   "id": "retro.noise_card",
   "category": "text",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "FileNotFoundError: [Errno 2] No such file or directory: 'work/ig/s1_F035_bl.png.t.png' ->"
  },
  {
   "id": "retro.rec_dot",
@@ -2134,84 +2186,93 @@
   "id": "retro.vhs_title",
   "category": "text",
   "ok": 0,
-  "why": "150s ကျော်"
+  "diff": 0.4965,
+  "aa": 0.0346,
+  "ink": 0.11793,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.035 (A/B 0.496)"
  },
  {
   "id": "retro.warp_word",
   "category": "text",
   "ok": 0,
-  "why": "150s ကျော်"
+  "why": "420s ကျော်"
  },
  {
   "id": "thm.chat_badge",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5725,
-  "aa": 0.0,
-  "ink": 0.13755,
-  "why": ""
+  "ok": 0,
+  "diff": 0.7376,
+  "aa": 0.7376,
+  "ink": 0.10318,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.738 (A/B 0.738)"
  },
  {
   "id": "thm.chat_dots",
   "category": "infographic",
   "ok": 0,
-  "why": "fill ဗလာ"
+  "diff": 0.0,
+  "ink": 0.01386,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
  },
  {
   "id": "thm.chat_one",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5454,
-  "aa": 0.0,
-  "ink": 0.12111,
-  "why": ""
+  "ok": 0,
+  "diff": 0.6587,
+  "aa": 0.6587,
+  "ink": 0.09839,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.659 (A/B 0.659)"
  },
  {
   "id": "thm.chat_pair",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.05483,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.6136,
+  "aa": 0.51,
+  "ink": 0.03124,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.510 (A/B 0.614)"
  },
  {
   "id": "thm.chat_quote",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5919,
-  "aa": 0.0,
-  "ink": 0.03458,
-  "why": ""
+  "ok": 0,
+  "diff": 0.6413,
+  "aa": 0.6413,
+  "ink": 0.0263,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.641 (A/B 0.641)"
  },
  {
   "id": "thm.chat_react",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.548,
-  "aa": 0.0,
-  "ink": 0.12119,
-  "why": ""
+  "ok": 0,
+  "why": "420s ကျော်"
  },
  {
   "id": "thm.chat_stack",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5134,
-  "aa": 0.0,
-  "ink": 0.03559,
-  "why": ""
+  "ok": 0,
+  "diff": 0.5207,
+  "aa": 0.5707,
+  "ink": 0.0471,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.571 (A/B 0.521)"
  },
  {
   "id": "thm.chat_tail",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "diff": 0.5151,
+  "aa": 0.5705,
+  "ink": 0.04883,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.571 (A/B 0.515)"
  },
  {
   "id": "thm.chat_thread",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "diff": 0.5191,
+  "aa": 0.5727,
+  "ink": 0.0471,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.573 (A/B 0.519)"
  },
  {
   "id": "thm.chat_type",
@@ -2226,199 +2287,195 @@
   "id": "thm.cmp_bad_good",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.03558,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.6312,
+  "aa": 0.5216,
+  "ink": 0.03843,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.522 (A/B 0.631)"
  },
  {
   "id": "thm.cmp_before",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.409,
-  "aa": 0.6498,
-  "ink": 0.00641,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.650 (A/B 0.409)"
+  "why": "420s ကျော်"
  },
  {
   "id": "thm.cmp_frame",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.03119,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.cmp_glass",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.16057,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.cmp_meter",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.05203,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.cmp_price",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.16057,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.cmp_rows",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 3)"
+  "diff": 0.5992,
+  "aa": 0.5992,
+  "ink": 0.00662,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.599 (A/B 0.599)"
  },
  {
   "id": "thm.cmp_split",
   "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.04008,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "ok": 1,
+  "diff": 0.4326,
+  "aa": 0.0,
+  "ink": 0.01861,
+  "why": ""
  },
  {
   "id": "thm.cmp_stack",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "diff": 0.6426,
+  "aa": 0.6426,
+  "ink": 0.03018,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.643 (A/B 0.643)"
  },
  {
   "id": "thm.cmp_vs",
   "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.08276,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "ok": 1,
+  "diff": 0.2987,
+  "aa": 0.0,
+  "ink": 0.02373,
+  "why": ""
  },
  {
   "id": "thm.cmp_win_a",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.16057,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.cmp_win_b",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.16057,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.hook_count",
   "category": "text",
-  "ok": 1,
-  "diff": 0.6498,
-  "aa": 0.0,
-  "ink": 0.00193,
-  "why": ""
+  "ok": 0,
+  "diff": 0.6724,
+  "aa": 0.6724,
+  "ink": 0.0008,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.672 (A/B 0.672)"
  },
  {
   "id": "thm.hook_frame",
   "category": "text",
   "ok": 1,
-  "diff": 0.6229,
+  "diff": 0.3422,
   "aa": 0.0,
-  "ink": 0.0064,
+  "ink": 0.00384,
   "why": ""
  },
  {
   "id": "thm.hook_glass",
   "category": "text",
   "ok": 1,
-  "diff": 0.0625,
+  "diff": 0.0778,
   "aa": 0.0,
-  "ink": 0.04037,
+  "ink": 0.02517,
   "why": ""
  },
  {
   "id": "thm.hook_num",
   "category": "text",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.11278,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.2703,
+  "aa": 0.7766,
+  "ink": 0.00694,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.777 (A/B 0.270)"
  },
  {
   "id": "thm.hook_punch",
   "category": "text",
   "ok": 1,
-  "diff": 0.5579,
+  "diff": 0.4221,
   "aa": 0.0,
-  "ink": 0.00487,
+  "ink": 0.00262,
   "why": ""
  },
  {
   "id": "thm.hook_q",
   "category": "text",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.04199,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.2321,
+  "aa": 0.4803,
+  "ink": 0.00694,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.480 (A/B 0.232)"
  },
  {
   "id": "thm.hook_red",
   "category": "text",
   "ok": 1,
-  "diff": 0.5579,
+  "diff": 0.4221,
   "aa": 0.0,
-  "ink": 0.00487,
+  "ink": 0.00262,
   "why": ""
  },
  {
   "id": "thm.hook_side",
   "category": "text",
   "ok": 1,
-  "diff": 0.6088,
+  "diff": 0.4503,
   "aa": 0.0,
-  "ink": 0.0041,
+  "ink": 0.00229,
   "why": ""
  },
  {
   "id": "thm.hook_strike",
   "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.0487,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "ok": 1,
+  "diff": 0.4475,
+  "aa": 0.0,
+  "ink": 0.01373,
+  "why": ""
  },
  {
   "id": "thm.hook_tag",
   "category": "text",
   "ok": 1,
-  "diff": 0.7138,
+  "diff": 0.5073,
   "aa": 0.0,
-  "ink": 0.02287,
+  "ink": 0.00749,
   "why": ""
  },
  {
   "id": "thm.hook_two",
   "category": "text",
   "ok": 1,
-  "diff": 0.6763,
+  "diff": 0.4706,
   "aa": 0.0,
-  "ink": 0.01699,
+  "ink": 0.01552,
   "why": ""
  },
  {
   "id": "thm.hook_wipe",
   "category": "text",
-  "ok": 1,
-  "diff": 0.5977,
-  "aa": 0.0,
-  "ink": 0.00401,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.00439,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
  },
  {
   "id": "thm.key_boxed",
@@ -2433,19 +2490,18 @@
   "id": "thm.key_bracket",
   "category": "text",
   "ok": 1,
-  "diff": 0.3637,
+  "diff": 0.3768,
   "aa": 0.0,
-  "ink": 0.11773,
+  "ink": 0.11797,
   "why": ""
  },
  {
   "id": "thm.key_count",
   "category": "text",
-  "ok": 1,
-  "diff": 0.071,
-  "aa": 0.0,
-  "ink": 0.11288,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0112,
+  "ink": 0.09901,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.011)"
  },
  {
   "id": "thm.key_drop",
@@ -2469,9 +2525,9 @@
   "id": "thm.key_note",
   "category": "text",
   "ok": 1,
-  "diff": 0.3773,
+  "diff": 0.3962,
   "aa": 0.0,
-  "ink": 0.11361,
+  "ink": 0.11448,
   "why": ""
  },
  {
@@ -2487,18 +2543,18 @@
   "id": "thm.key_pieces",
   "category": "text",
   "ok": 1,
-  "diff": 0.7099,
+  "diff": 0.7017,
   "aa": 0.0,
-  "ink": 0.01113,
+  "ink": 0.00898,
   "why": ""
  },
  {
   "id": "thm.key_pop",
   "category": "text",
   "ok": 1,
-  "diff": 0.3752,
+  "diff": 0.3833,
   "aa": 0.0,
-  "ink": 0.11291,
+  "ink": 0.11527,
   "why": ""
  },
  {
@@ -2514,9 +2570,9 @@
   "id": "thm.key_shake",
   "category": "text",
   "ok": 1,
-  "diff": 0.3752,
+  "diff": 0.3833,
   "aa": 0.0,
-  "ink": 0.11291,
+  "ink": 0.11527,
   "why": ""
  },
  {
@@ -2532,7 +2588,7 @@
   "id": "thm.key_strike",
   "category": "text",
   "ok": 1,
-  "diff": 0.3775,
+  "diff": 0.3762,
   "aa": 0.0,
   "ink": 0.11331,
   "why": ""
@@ -2540,10 +2596,11 @@
  {
   "id": "thm.key_swap",
   "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.04105,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "ok": 1,
+  "diff": 0.3721,
+  "aa": 0.0,
+  "ink": 0.09908,
+  "why": ""
  },
  {
   "id": "thm.key_under",
@@ -2558,7 +2615,7 @@
   "id": "thm.list_arrow",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.6261,
+  "diff": 0.6271,
   "aa": 0.0,
   "ink": 0.02553,
   "why": ""
@@ -2566,17 +2623,17 @@
  {
   "id": "thm.list_big",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5936,
-  "aa": 0.0,
-  "ink": 0.04097,
-  "why": ""
+  "ok": 0,
+  "diff": 0.7172,
+  "aa": 0.7172,
+  "ink": 0.00097,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.717 (A/B 0.717)"
  },
  {
   "id": "thm.list_dot",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.6235,
+  "diff": 0.6234,
   "aa": 0.0,
   "ink": 0.02524,
   "why": ""
@@ -2585,7 +2642,7 @@
   "id": "thm.list_flow",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.4652,
+  "diff": 0.4663,
   "aa": 0.0,
   "ink": 0.00845,
   "why": ""
@@ -2593,17 +2650,17 @@
  {
   "id": "thm.list_num",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.6489,
-  "aa": 0.0,
-  "ink": 0.02868,
-  "why": ""
+  "ok": 0,
+  "diff": 0.65,
+  "aa": 0.0328,
+  "ink": 0.02836,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.033 (A/B 0.650)"
  },
  {
   "id": "thm.list_tick",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.6501,
+  "diff": 0.6502,
   "aa": 0.0,
   "ink": 0.02892,
   "why": ""
@@ -2611,132 +2668,127 @@
  {
   "id": "thm.list_two",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.4894,
-  "aa": 0.0,
-  "ink": 0.01354,
-  "why": ""
+  "ok": 0,
+  "why": "fill ဗလာ"
  },
  {
   "id": "thm.media_window",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.1579,
+  "diff": 0.0223,
   "aa": 0.0,
-  "ink": 0.24151,
+  "ink": 0.21964,
   "why": ""
  },
  {
   "id": "thm.stat_bar",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.6286,
-  "aa": 0.0,
-  "ink": 0.12624,
-  "why": ""
+  "ok": 0,
+  "diff": 0.1865,
+  "aa": 0.7046,
+  "ink": 0.01551,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
  },
  {
   "id": "thm.stat_bars",
   "category": "infographic",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "diff": 0.3967,
+  "aa": 0.3967,
+  "ink": 0.03969,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.397 (A/B 0.397)"
  },
  {
   "id": "thm.stat_big",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.6087,
+  "diff": 0.1466,
   "aa": 0.0,
-  "ink": 0.12008,
+  "ink": 0.00773,
   "why": ""
  },
  {
   "id": "thm.stat_delta",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.21,
-  "aa": 0.0,
-  "ink": 0.46736,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0119,
+  "ink": 0.0523,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.012)"
  },
  {
   "id": "thm.stat_frame",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.658,
-  "aa": 0.0,
-  "ink": 0.14416,
-  "why": ""
+  "ok": 0,
+  "diff": 0.1614,
+  "aa": 0.7653,
+  "ink": 0.01809,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.765 (A/B 0.161)"
  },
  {
   "id": "thm.stat_glass",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.2413,
-  "aa": 0.0,
-  "ink": 0.4232,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0092,
+  "ink": 0.06395,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.009)"
  },
  {
   "id": "thm.stat_note",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.24,
-  "aa": 0.0,
-  "ink": 0.42397,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0093,
+  "ink": 0.06395,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.009)"
  },
  {
   "id": "thm.stat_ok",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.6286,
-  "aa": 0.0,
-  "ink": 0.12624,
-  "why": ""
+  "ok": 0,
+  "diff": 0.1865,
+  "aa": 0.7046,
+  "ink": 0.01551,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
  },
  {
   "id": "thm.stat_pct",
   "category": "infographic",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.01691,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.0109,
+  "ink": 0.10213,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.011)"
  },
  {
   "id": "thm.stat_red",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.6286,
-  "aa": 0.0,
-  "ink": 0.12624,
-  "why": ""
+  "ok": 0,
+  "diff": 0.1865,
+  "aa": 0.7046,
+  "ink": 0.01551,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
  },
  {
   "id": "thm.stat_roll",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5034,
-  "aa": 0.0,
-  "ink": 0.11643,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.24755,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
  },
  {
   "id": "thm.stat_solid",
   "category": "infographic",
-  "ok": 1,
-  "diff": 0.5737,
-  "aa": 0.0,
-  "ink": 0.42139,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.06343,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
  },
  {
   "id": "thm.stat_tag",
   "category": "infographic",
   "ok": 1,
-  "diff": 0.2868,
+  "diff": 0.0215,
   "aa": 0.0,
-  "ink": 0.39402,
+  "ink": 0.0472,
   "why": ""
  },
  {
@@ -2748,65 +2800,65 @@
  {
   "id": "thm.tag_arrow",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.5859,
-  "aa": 0.0,
-  "ink": 0.03419,
-  "why": ""
+  "ok": 0,
+  "diff": 0.6326,
+  "aa": 0.6326,
+  "ink": 0.02629,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.633 (A/B 0.633)"
  },
  {
   "id": "thm.tag_circle",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.5736,
-  "aa": 0.0,
-  "ink": 0.03792,
-  "why": ""
+  "ok": 0,
+  "diff": 0.5244,
+  "aa": 0.5244,
+  "ink": 0.03009,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.524 (A/B 0.524)"
  },
  {
   "id": "thm.tag_corner",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.6953,
-  "aa": 0.0,
-  "ink": 0.09372,
-  "why": ""
+  "ok": 0,
+  "diff": 0.7811,
+  "aa": 0.7811,
+  "ink": 0.07191,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.781 (A/B 0.781)"
  },
  {
   "id": "thm.tag_note",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.5752,
-  "aa": 0.0,
-  "ink": 0.11579,
-  "why": ""
+  "ok": 0,
+  "diff": 0.4357,
+  "aa": 0.4357,
+  "ink": 0.08753,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.436 (A/B 0.436)"
  },
  {
   "id": "thm.tag_pill",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.6173,
-  "aa": 0.0,
-  "ink": 0.09946,
-  "why": ""
+  "ok": 0,
+  "diff": 0.7827,
+  "aa": 0.7827,
+  "ink": 0.07778,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.783 (A/B 0.783)"
  },
  {
   "id": "thm.tag_time",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.6072,
-  "aa": 0.0,
-  "ink": 0.03694,
-  "why": ""
+  "ok": 0,
+  "diff": 0.6329,
+  "aa": 0.6329,
+  "ink": 0.02943,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.633 (A/B 0.633)"
  },
  {
   "id": "thm.tag_under",
   "category": "callout",
-  "ok": 1,
-  "diff": 0.6685,
-  "aa": 0.0,
-  "ink": 0.03918,
-  "why": ""
+  "ok": 0,
+  "diff": 0.726,
+  "aa": 0.726,
+  "ink": 0.03214,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.726 (A/B 0.726)"
  },
  {
   "id": "thm.type_alt",
@@ -2874,8 +2926,11 @@
  {
   "id": "thm.type_hot",
   "category": "text",
-  "ok": 0,
-  "why": "TypeError: not all arguments converted during string formatting"
+  "ok": 1,
+  "diff": 0.6718,
+  "aa": 0.0,
+  "ink": 0.0219,
+  "why": ""
  },
  {
   "id": "thm.type_rule",
@@ -2908,9 +2963,9 @@
   "id": "thm.type_swap",
   "category": "text",
   "ok": 1,
-  "diff": 0.3199,
+  "diff": 0.3185,
   "aa": 0.0,
-  "ink": 0.03169,
+  "ink": 0.03172,
   "why": ""
  },
  {
@@ -2952,64 +3007,64 @@
  {
   "id": "thm.ui_app",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.0878,
-  "aa": 0.0,
-  "ink": 0.41202,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0807,
+  "aa": 0.0807,
+  "ink": 0.21133,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.081 (A/B 0.081)"
  },
  {
   "id": "thm.ui_badge",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.1004,
-  "aa": 0.0,
-  "ink": 0.41388,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0895,
+  "aa": 0.0895,
+  "ink": 0.21319,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.089 (A/B 0.089)"
  },
  {
   "id": "thm.ui_browser",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.0878,
-  "aa": 0.0,
-  "ink": 0.41202,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0807,
+  "aa": 0.0807,
+  "ink": 0.21133,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.081 (A/B 0.081)"
  },
  {
   "id": "thm.ui_cursor",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.0883,
-  "aa": 0.0,
-  "ink": 0.41202,
-  "why": ""
+  "ok": 0,
+  "diff": 0.0841,
+  "aa": 0.0841,
+  "ink": 0.21133,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.084 (A/B 0.084)"
  },
  {
   "id": "thm.ui_notif",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.5056,
-  "aa": 0.0,
-  "ink": 0.13505,
-  "why": ""
+  "ok": 0,
+  "diff": 0.3812,
+  "aa": 0.3812,
+  "ink": 0.102,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.381 (A/B 0.381)"
  },
  {
   "id": "thm.ui_phone",
   "category": "ui",
-  "ok": 1,
-  "diff": 0.0509,
-  "aa": 0.0,
-  "ink": 0.71265,
-  "why": ""
+  "ok": 0,
+  "diff": 0.1148,
+  "aa": 0.1148,
+  "ink": 0.12828,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.115 (A/B 0.115)"
  },
  {
   "id": "thm.ui_progress",
   "category": "ui",
   "ok": 1,
-  "diff": 0.059,
+  "diff": 0.063,
   "aa": 0.0,
-  "ink": 0.10689,
+  "ink": 0.1004,
   "why": ""
  },
  {
@@ -3024,17 +3079,18 @@
   "id": "thm.ui_steps",
   "category": "ui",
   "ok": 0,
-  "diff": 0.017,
+  "diff": 0.0082,
   "ink": 0.22656,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.017)"
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.008)"
  },
  {
   "id": "thm.ui_tabs",
   "category": "ui",
   "ok": 0,
-  "diff": 0.0,
-  "ink": 0.01396,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+  "diff": 0.6042,
+  "aa": 0.7361,
+  "ink": 0.02359,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.736 (A/B 0.604)"
  },
  {
   "id": "thm.ui_toggle",
@@ -3289,14 +3345,20 @@
  {
   "id": "titles2.compare_bars",
   "category": "title",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24726,
+  "why": "အရွယ် ကွာ"
  },
  {
   "id": "titles2.credits",
   "category": "title",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "ok": 1,
+  "diff": 0.6678,
+  "aa": 0.0,
+  "ink": 0.03164,
+  "why": ""
  },
  {
   "id": "titles2.cta_card",
@@ -3310,8 +3372,11 @@
  {
   "id": "titles2.data_strip",
   "category": "title",
-  "ok": 0,
-  "why": "ValueError: not enough values to unpack (expected 2, got 1)"
+  "ok": 1,
+  "diff": 0.806,
+  "aa": 0.0,
+  "ink": 0.99879,
+  "why": ""
  },
  {
   "id": "titles2.donut_stat",
@@ -3412,8 +3477,11 @@
  {
   "id": "titles2.rating",
   "category": "title",
-  "ok": 0,
-  "why": "TypeError: '<' not supported between instances of 'int' and 'str'"
+  "ok": 1,
+  "diff": 0.6259,
+  "aa": 0.0,
+  "ink": 0.13668,
+  "why": ""
  },
  {
   "id": "titles2.score_bar",
@@ -3614,7 +3682,7 @@
   "id": "titles3.schedule_row",
   "category": "title",
   "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
+  "why": "ထွက်ချက် ဗလာ"
  },
  {
   "id": "titles3.stat_ribbon",
@@ -3655,8 +3723,11 @@
  {
   "id": "typew.code_block",
   "category": "text",
-  "ok": 0,
-  "why": "150s ကျော်"
+  "ok": 1,
+  "diff": 0.0706,
+  "aa": 0.0,
+  "ink": 0.19577,
+  "why": ""
  },
  {
   "id": "typew.cursor_blink",
@@ -4008,8 +4079,11 @@
  {
   "id": "typo2.orbit_dots",
   "category": "typography",
-  "ok": 0,
-  "why": "fill ဗလာ"
+  "ok": 1,
+  "diff": 0.3493,
+  "aa": 0.0,
+  "ink": 0.01974,
+  "why": ""
  },
  {
   "id": "typo2.subject_rise",

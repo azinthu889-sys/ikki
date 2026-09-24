@@ -66,6 +66,19 @@ PLAN = {
                      "vertical 3d render"], 20, "port"),
  "course":         (["classroom students","online learning","notebook writing",
                      "lecture hall","study desk","graduation"], 28, "land"),
+ # ⚠️ **ZAE ရဲ့ အကြောင်းအရာ ယခင် PLAN မှာ လုံးဝ မပါခဲ့** (၂၀၂၆-၀၉-၂၅) —
+ #    ငွေလွှဲ · မိုဘိုင်းဘဏ် · ဂျပန် · ဗီဇာ · ဂျပန်စာ。 `short_video` ရဲ့
+ #    ရှာစာက 「vertical lifestyle/food/gym」 ဖြစ်နေ၍ ZAE ဗီဒီယိုတွေအတွက်
+ #    **သက်ဆိုင်သော clip တစ်ခုမှ မရှိ**ခဲ့ပါ ⇒ B-roll ၀ ခု。
+ "zae_money":      (["mobile banking app","money transfer phone","counting cash money",
+                     "atm machine using","online payment phone","bank card payment",
+                     "sending money online","wallet money hand"], 32, "port"),
+ "zae_japan":      (["tokyo street day","japan city walk","japanese signage street",
+                     "japan train station","japan office worker","tokyo crossing",
+                     "japanese restaurant kitchen","japan convenience store"], 32, "port"),
+ "zae_study":      (["student studying desk","japanese language book","writing notes class",
+                     "online class laptop","passport visa document","airport departure",
+                     "handshake job interview","factory worker japan"], 32, "port"),
 }
 
 
@@ -84,6 +97,43 @@ TOPUP = {
  "knowledge":      ["bright office meeting","whiteboard presentation","students classroom bright",
                     "notebook writing desk","team discussion table","library daylight"],
 }
+
+
+# ⚠️ **အင်္ဂလိပ် ရှာစာ → မြန်မာ သော့စကားလုံး** (၂၀၂၆-၀၉-၂၅)。
+#    `broll._ask()` က clip တစ်ခုချင်းကို **Gemini vision** နဲ့ ဖော်ပြပြီး
+#    မြန်မာ keyword ထုတ်သည် ⇒ Gemini ကျလျှင် index လုပ်၍ မရ、တွဲ၍လည်း မရ
+#    (၂၀၂၆-၀၉-၂၅ ၅၀၃ — B-roll ကွင်းဆက် တစ်ခုလုံး ရပ်သွားခဲ့)。
+# ⚠️ ဒါပေမယ့် **ဘာ ရှာလို့ ရလာမှန်း ကိုယ်တိုင် သိပြီးသား** —「money transfer
+#    phone」နဲ့ ရှာလို့ ရလာတာကို vision နဲ့ ပြန်မှန်းစရာ မလိုပါ。 ရှာစာကနေ
+#    တိုက်ရိုက် တပ်တာက **ပိုတိကျ**ပြီး ပြင်ပ မှီခိုမှုလည်း မရှိပါ。
+KW_MY = {
+ "mobile banking app":      ["ဖုန်း", "ဘဏ်", "အက်ပ်", "ငွေ"],
+ "money transfer phone":    ["ငွေလွှဲ", "ဖုန်း", "ငွေ"],
+ "counting cash money":     ["ငွေ", "ပိုက်ဆံ", "ရေတွက်"],
+ "atm machine using":       ["ဘဏ်", "ငွေထုတ်", "ငွေ"],
+ "online payment phone":    ["ငွေပေးချေ", "ဖုန်း", "အွန်လိုင်း"],
+ "bank card payment":       ["ကတ်", "ဘဏ်", "ငွေပေးချေ"],
+ "sending money online":    ["ငွေလွှဲ", "အွန်လိုင်း", "ငွေ"],
+ "wallet money hand":       ["ပိုက်ဆံအိတ်", "ငွေ"],
+ "tokyo street day":        ["တိုကျို", "ဂျပန်", "လမ်း"],
+ "japan city walk":         ["ဂျပန်", "မြို့", "လမ်းလျှောက်"],
+ "japanese signage street": ["ဂျပန်", "ဆိုင်းဘုတ်", "လမ်း"],
+ "japan train station":     ["ဂျပန်", "ဘူတာ", "ရထား"],
+ "japan office worker":     ["ဂျပန်", "ရုံး", "အလုပ်သမား"],
+ "tokyo crossing":          ["တိုကျို", "ဂျပန်", "လမ်းဆုံ"],
+ "japanese restaurant kitchen": ["ဂျပန်", "စားသောက်ဆိုင်", "မီးဖိုချောင်"],
+ "japan convenience store": ["ဂျပန်", "ဆိုင်"],
+ "student studying desk":   ["ကျောင်းသား", "စာကျက်", "စားပွဲ"],
+ "japanese language book":  ["ဂျပန်စာ", "စာအုပ်", "သင်ယူ"],
+ "writing notes class":     ["မှတ်စု", "အတန်း"],
+ "online class laptop":     ["အွန်လိုင်းအတန်း", "ကွန်ပျူတာ", "သင်တန်း"],
+ "passport visa document":  ["ပတ်စ်ပို့", "ဗီဇာ", "စာရွက်စာတမ်း"],
+ "airport departure":       ["လေဆိပ်", "ထွက်ခွာ", "ခရီး"],
+ "handshake job interview": ["အင်တာဗျူး", "အလုပ်", "လက်ဆွဲ"],
+ "factory worker japan":    ["စက်ရုံ", "အလုပ်သမား", "ဂျပန်"],
+}
+
+SIDECAR = "stock_kw.json"     # {ဖိုင်အမည်: {"q": [...], "my": [...]}}
 
 
 def _get(url, hdr=None):
@@ -129,7 +179,9 @@ def pexels(q, n, orient):
             if not good or (good[0].get("size") or 1e12) > HARD:
                 continue                      # ⚠️ ကြီးလွန်းလျှင် ဤ clip ကို လုံးဝ ကျော်
             fs = good
-        out.append(dict(src="pexels", id=v["id"], url=fs[0]["link"], dur=v.get("duration"),
+        # ⚠️ **ရှာစာကို ရလဒ်ထဲ မှတ်ရမည်** — sidecar က ဒါနဲ့ မြန်မာ keyword တပ်သည်
+        out.append(dict(src="pexels", q=q, id=v["id"], url=fs[0]["link"],
+                        dur=v.get("duration"),
                         w=fs[0].get("width"), h=fs[0].get("height"),
                         by=(v.get("user") or {}).get("name"), page=v.get("url")))
     return out
@@ -146,7 +198,7 @@ def pixabay(q, n, orient):
         if not f or not f.get("url"): continue
         if orient == "port" and (f.get("width", 0) >= f.get("height", 1)): continue
         if orient == "land" and (f.get("height", 0) > f.get("width", 1)): continue
-        out.append(dict(src="pixabay", id=v.get("id"), url=f["url"], dur=v.get("duration"),
+        out.append(dict(src="pixabay", q=q, id=v.get("id"), url=f["url"], dur=v.get("duration"),
                         w=f.get("width"), h=f.get("height"),
                         by=v.get("user"), page=v.get("pageURL")))
     return out
@@ -208,6 +260,23 @@ def main():
             except Exception as e:
                 print(f"  ❌ {st:16s} {r['src']} {r['id']} {type(e).__name__}", flush=True)
     json.dump(rows, open(os.path.join(OUT, "catalog.json"), "w"), ensure_ascii=False, indent=1)
+    # ⚠️ **sidecar — ဖိုင် → မြန်မာ သော့စကားလုံး**。 `core/broll.index()` က
+    #    ဒါကို တွေ့လျှင် Gemini vision (`_ask`) ကို **လုံးဝ ကျော်**သည် ⇒
+    #    Gemini ကျနေလည် stock clip တွေ index လုပ်လို့ရသည်。
+    # ⚠️ မြေပုံမှာ မရှိသော ရှာစာကို **မမှန်းရ** — ဗလာ ထားပြီး `_ask` ကို
+    #    ပြန်သွားစေသည် (မှားတပ်တာထက် မတပ်တာ ကောင်းသည်)。
+    side = {}
+    for r in rows:
+        q = str(r.get("q") or "").strip().lower()
+        my = KW_MY.get(q)
+        if not my:
+            continue
+        side[os.path.basename(r["file"])] = {"q": q, "my": my,
+                                             "en": q.split(), "style": r["style"]}
+    json.dump(side, open(os.path.join(OUT, SIDECAR), "w"),
+              ensure_ascii=False, indent=1)
+    print(f"  📇 sidecar {len(side)}/{len(rows)} ဖိုင် — မြန်မာ keyword တပ်ပြီး "
+          f"(Gemini မလို)", flush=True)
     with open(os.path.join(OUT, "LICENSES.md"), "w") as f:
         f.write("# Stock video — လိုင်စင်\n\n"
                 "Pexels · Pixabay လိုင်စင်: **ဗီဒီယိုထဲ ထည့်သုံးခွင့်** (ကုန်သွယ်မှုပါ) ရှိသည်၊\n"

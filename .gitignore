@@ -35,3 +35,14 @@ work/
 
 # ⚠️ ကိုယ်ရေးကိုယ်တာ ဖိုင်နာမည်များ ပါသည် — PUBLIC repo ထဲ မတင်ရ
 tools/clean_dup_downloads.sh
+
+# ⚠️ motionkit သီချင်း bank ရဲ့ **Mac ထဲ မိတ္တူ** (၂၀၂၆-၀၉-၂၄)。
+#    launchd worker က ပြင်ပ drive ကို TCC ကြောင့် မဖတ်နိုင်၍ ကူးထားသည်。
+#    ⚠️ repo က **PUBLIC** — ၀.၉၂ GB တင်စရာ မလို (မူရင်း motionkit မှာ ရှိ)。
+assets/music_bank/
+
+# ⚠️ motionkit stock B-roll ရဲ့ **Mac ထဲ မိတ္တူ** (၂၀၂၆-၀၉-၂၄)。
+#    launchd worker က ပြင်ပ drive ကို TCC ကြောင့် မဖတ်နိုင်၍ ကူးထားသည်
+#    ⇒ clip ၃၅၃ ခု တိတ်တဆိတ် ကျန်ခဲ့တာ ပြေလည်စေရန်。
+#    ⚠️ repo က **PUBLIC** — ၃.၉ GB တင်စရာ မလို (မူရင်း motionkit မှာ ရှိ)。
+assets/broll_bank/
