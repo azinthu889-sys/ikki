@@ -210,6 +210,115 @@ def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN,
     return out, round(removed, 2)
 
 
+# ══ visible-shot stabilizer ══════════════════════════════════════════
+# A cut engine may quite correctly preserve a 300 ms spoken fragment: deleting
+# it would change what the user said.  A delivered video must nevertheless not
+# flash a 300 ms shot.  Do not solve that conflict by dropping or merging words.
+# Instead, restore a small amount of *adjacent source* around the fragment.  An
+# explicit user drop is an absolute fence and is never crossed.
+VISUAL_MIN_SHOT = 0.60
+VISUAL_TARGET_SHOT = 0.80
+VISUAL_EPS = 0.001
+
+
+def stabilize_visible_spans(spans, explicit_drops=None, dur=None,
+                            minimum=VISUAL_MIN_SHOT,
+                            target=VISUAL_TARGET_SHOT):
+    """Return visible-safe spans without deleting a kept spoken fragment.
+
+    ``spans`` are the currently kept source ranges.  If one is shorter than
+    ``minimum``, we symmetrically re-add surrounding source up to ``target``.
+    Only engine-removed context may be restored; ranges in ``explicit_drops``
+    were chosen by the user and form hard boundaries.  A fragment that cannot
+    reach the delivery floor is returned in ``blocked`` for Cut Review rather
+    than silently changed.
+
+    Returns ``(clean, stabilized, blocked)``.  ``stabilized`` is audit data
+    suitable for the cut-preview UI.  No speech/text is removed or reordered.
+    """
+    try:
+        limit = max(0.0, float(dur)) if dur is not None else None
+    except (TypeError, ValueError):
+        limit = None
+    floor = max(0.05, float(minimum))
+    aim = max(floor, float(target))
+
+    kept = []
+    for raw in (spans or []):
+        try:
+            a, b = float(raw[0]), float(raw[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if limit is not None:
+            a, b = max(0.0, a), min(limit, b)
+        if b - a > 0.05:
+            kept.append((a, b))
+    kept.sort()
+
+    fences = []
+    for raw in (explicit_drops or []):
+        try:
+            a, b = float(raw[0]), float(raw[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if b > a:
+            fences.append((max(0.0, a), min(limit, b) if limit is not None else b))
+    fences.sort()
+
+    def bounds(a, b):
+        """Nearest user-selected deletion on either side of a kept range."""
+        lo, hi = 0.0, (limit if limit is not None else float("inf"))
+        for x, y in fences:
+            if y <= a + VISUAL_EPS:
+                lo = max(lo, y)
+            elif x >= b - VISUAL_EPS:
+                hi = min(hi, x)
+            elif x < b and y > a:
+                # A malformed keep/drop overlap must not be repaired by
+                # extending through the user's exact deletion.
+                lo, hi = a, b
+        return lo, hi
+
+    out, stabilized, blocked = [], [], []
+    for a, b in kept:
+        old = b - a
+        if old + VISUAL_EPS >= floor:
+            out.append((a, b)); continue
+        lo, hi = bounds(a, b)
+        need = max(0.0, aim - old)
+        before_cap, after_cap = max(0.0, a - lo), max(0.0, hi - b)
+        before = min(before_cap, need / 2.0)
+        after = min(after_cap, need - before)
+        remain = need - before - after
+        if remain > VISUAL_EPS:
+            extra = min(before_cap - before, remain)
+            before += max(0.0, extra); remain -= max(0.0, extra)
+        if remain > VISUAL_EPS:
+            extra = min(after_cap - after, remain)
+            after += max(0.0, extra)
+        aa, bb = a - before, b + after
+        new_d = bb - aa
+        if new_d + VISUAL_EPS < floor:
+            out.append((a, b))
+            blocked.append(dict(start=round(a, 3), end=round(b, 3),
+                                dur=round(old, 3), max_dur=round(new_d, 3)))
+            continue
+        out.append((aa, bb))
+        stabilized.append(dict(start=round(a, 3), end=round(b, 3),
+                               before=round(old, 3),
+                               after=round(new_d, 3)))
+
+    # Padding can touch a neighbouring kept run.  Coalesce it: this restores
+    # source continuity and avoids creating two adjacent visual cuts.
+    clean = []
+    for a, b in out:
+        if clean and a <= clean[-1][1] + VISUAL_EPS:
+            clean[-1] = (clean[-1][0], max(clean[-1][1], b))
+        else:
+            clean.append((a, b))
+    return clean, stabilized, blocked
+
+
 # ══ `_drop_exact` ကာကွယ်ချက် (Cut audit P0) ═══════════════════════
 # ⚠️ သုံးစွဲသူ လက်ခံထားသော ပြန်စ အပိုင်းများကို အရင်က **စစ်ဆေးမှု မရှိဘဲ**
 #    `subtract(..., snap=0.0)` ကို တိုက်ရိုက် ပို့ခဲ့သည်。 ဒါက —

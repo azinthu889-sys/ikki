@@ -125,17 +125,112 @@ function savePrefs(){
 function ownKits(){ return (BRANDS||[]).filter(function(b){ return !b.is_system }) }
 function isSmart(){ return state.mode!=='brand' }
 
+/* ── App dialog (no browser prompt/confirm) ───────────────────────────
+   In-app browsers deliberately block window.prompt(). Keep all input in
+   the IKKI surface so a cancelled field never turns into a failed render. */
+var ACTIVE_DIALOG=null;
+function appDialog(opt){
+  opt=opt||{};
+  return new Promise(function(resolve){
+    if(ACTIVE_DIALOG) ACTIVE_DIALOG.close(null);
+    var root=document.createElement('div');
+    var card=document.createElement('section');
+    var title=document.createElement('h2');
+    var msg=document.createElement('p');
+    var form=document.createElement('form');
+    var field, actions=document.createElement('div');
+    var cancel=document.createElement('button');
+    var ok=document.createElement('button');
+    root.className='app-dialog-backdrop';
+    root.setAttribute('role','presentation');
+    card.className='app-dialog';
+    card.setAttribute('role','dialog');
+    card.setAttribute('aria-modal','true');
+    title.id='app-dialog-title'; card.setAttribute('aria-labelledby',title.id);
+    title.textContent=opt.title || (cur==='my'?'IKKI':'IKKI');
+    msg.className='app-dialog-message';
+    if(opt.message){ msg.textContent=opt.message; card.setAttribute('aria-describedby','app-dialog-message'); msg.id='app-dialog-message'; }
+    card.appendChild(title); if(opt.message) card.appendChild(msg);
+    if(opt.options){
+      field=document.createElement('select');
+      opt.options.forEach(function(item){
+        var choice=document.createElement('option');
+        choice.value=String(item.value); choice.textContent=item.label; field.appendChild(choice);
+      });
+      if(opt.value!=null) field.value=String(opt.value);
+    } else {
+      field=document.createElement(opt.multiline?'textarea':'input');
+      if(!opt.multiline) field.type=opt.type||'text';
+      field.value=opt.value==null?'':String(opt.value);
+      if(opt.placeholder) field.placeholder=opt.placeholder;
+      if(opt.readonly) field.readOnly=true;
+      if(opt.inputMode) field.inputMode=opt.inputMode;
+    }
+    field.className='inp app-dialog-input';
+    field.setAttribute('aria-label',opt.label||opt.title||'Input');
+    form.appendChild(field);
+    actions.className='app-dialog-actions';
+    cancel.type='button'; cancel.className='btn'; cancel.textContent=opt.cancelLabel || (cur==='my'?'မလုပ်တော့ပါ':'Cancel');
+    ok.type='submit'; ok.className='cta'; ok.textContent=opt.okLabel || (cur==='my'?'ဆက်လုပ်မယ်':'Continue');
+    if(opt.cancel!==false) actions.appendChild(cancel);
+    actions.appendChild(ok); form.appendChild(actions); card.appendChild(form); root.appendChild(card);
+    function close(value){
+      if(!root.parentNode) return;
+      document.removeEventListener('keydown',onKey,true);
+      root.parentNode.removeChild(root);
+      if(ACTIVE_DIALOG&&ACTIVE_DIALOG.root===root) ACTIVE_DIALOG=null;
+      resolve(value);
+    }
+    function onKey(ev){ if(ev.key==='Escape'){ ev.preventDefault(); close(null); } }
+    cancel.onclick=function(){ close(null); };
+    form.onsubmit=function(ev){ ev.preventDefault(); close(field.value); };
+    root.onclick=function(ev){ if(ev.target===root&&opt.dismiss!==false) close(null); };
+    document.addEventListener('keydown',onKey,true);
+    document.body.appendChild(root);
+    ACTIVE_DIALOG={root:root,close:close};
+    setTimeout(function(){ field.focus(); if(opt.readonly&&field.select) field.select(); },0);
+  });
+}
+function appConfirm(message, title){
+  return appDialog({title:title||(cur==='my'?'အတည်ပြုပါ':'Confirm'),message:message,
+    value:'',readonly:true,cancelLabel:cur==='my'?'မဖျက်တော့ပါ':'Cancel',
+    okLabel:cur==='my'?'အတည်ပြုမယ်':'Confirm'}).then(function(v){ return v!==null; });
+}
+function appCopy(value){
+  return appDialog({title:cur==='my'?'ကူးယူပါ':'Copy',message:cur==='my'?'စာသားကို ရွေးပြီး ကူးယူနိုင်ပါတယ်':'Select the text to copy it.',
+    value:value,readonly:true,cancel:false,okLabel:cur==='my'?'ပြီးပြီ':'Done'});
+}
+
 /* ── API ── */
-function askToken(){
-  /* ⚠️ အစမ်းအဆင့်မှာ login မရှိသေး — token တစ်ခုတည်းဖြင့် ဝင်သည်。
-     localStorage မှာ သိမ်းထားသဖြင့် တစ်ကြိမ်ပဲ ထည့်ရသည်。 */
-  var t=window.prompt(cur==='my'
-    ? 'ဝင်ရောက်ရန် token ထည့်ပါ'
-    : 'Enter your access token');
-  if(t){ TOKEN=t.trim(); localStorage.setItem('ikki_token',TOKEN); location.reload(); }
+var AUTH_PROMPTING=false;
+function askToken(invalid){
+  /* Several boot requests can receive 401 together. One dialog must own the
+     sign-in flow; otherwise a later 401 replaces the field while it is being
+     filled and makes a valid token appear to loop. */
+  if(AUTH_PROMPTING) return;
+  AUTH_PROMPTING=true;
+  appDialog({title:cur==='my'?'ဝင်ရောက်ရန်':'Sign in',
+    message:invalid
+      ? (cur==='my'?'token မမှန်ပါ၊ သို့မဟုတ် server နဲ့ မချိတ်နိုင်သေးပါ။ ပြန်စစ်ပြီး ထည့်ပါ။'
+                   :'That token was not accepted, or the server is unavailable. Check it and try again.')
+      : (cur==='my'?'access token ထည့်ပါ':'Enter your access token'),
+    placeholder:'IKKI token',okLabel:cur==='my'?'ဝင်မယ်':'Sign in'}).then(function(t){
+      if(!t||!t.trim()){ AUTH_PROMPTING=false; return; }
+      var candidate=t.trim();
+      /* Save only a token the production API accepts. This turns a bad paste
+         into a clear retry instead of repeatedly reloading the application. */
+      return fetch('/api/me',{headers:{'X-IKKI-Token':candidate}}).then(function(r){
+        if(!r.ok) throw new Error('invalid token');
+        TOKEN=candidate; localStorage.setItem('ikki_token',TOKEN); location.reload();
+      }).catch(function(){
+        AUTH_PROMPTING=false; askToken(true);
+      });
+    });
 }
 function api(path,opt){
-  opt=opt||{}; opt.headers=Object.assign({'Authorization':'Bearer '+TOKEN},opt.headers||{});
+  /* Production Traefik drops Authorization on its HTTPS hop. The API turns
+     this same-origin IKKI-only header back into Bearer inside the container. */
+  opt=opt||{}; opt.headers=Object.assign({'X-IKKI-Token':TOKEN},opt.headers||{});
   return fetch('/api'+path,opt).then(function(r){
     if(r.status===401){ askToken(); throw new Error('auth'); }
     if(r.status===402) {scene('s-quota'); throw new Error('quota');}
@@ -330,7 +425,12 @@ function paintStyles(){
        + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
        + '<span class="thumb">'
        +   '<img src="prev/'+esc(preview)+'.jpg" alt="" loading="lazy" decoding="async">'
-       +   '<video src="prev/'+esc(preview)+'.mp4" muted autoplay loop playsinline preload="metadata"'
+       /* Do not give every gallery card `autoplay`. On a desktop-sized
+          viewport that starts 5–6 H.264 decoders simultaneously; Chrome then
+          kills the renderer (Aw, Snap / error 5) on lower-memory or embedded
+          browsers. The still image remains immediate; `play()` below enables
+          exactly one motion preview after an intentional hover, focus or tap. */
+       +   '<video src="prev/'+esc(preview)+'.mp4" muted loop playsinline preload="none"'
        +   ' disablepictureinpicture></video>'
        +   '<span class="tick" aria-hidden="true">✓</span>'
        + '</span>'
@@ -345,11 +445,26 @@ function paintStyles(){
   paintAdv();
 
   var cards=[].slice.call(el.querySelectorAll('.scard'));
+  var playing=null;
   function play(card,on){
     var v=card.querySelector('video'); if(!v) return;
     card.classList.toggle('play', on);
-    if(on){ var q=v.play(); q&&q.catch&&q.catch(function(){}); }
-    else { try{ v.pause(); v.currentTime=0 }catch(e){} }
+    if(on){
+      /* One decoder at a time is the safety invariant.  The image poster is
+         already visible, so this does not degrade the card's premium look. */
+      cards.forEach(function(other){
+        if(other===card) return;
+        var ov=other.querySelector('video');
+        other.classList.remove('play');
+        if(ov) try{ ov.pause(); ov.currentTime=0 }catch(e){}
+      });
+      playing=card;
+      v.preload='metadata';
+      var q=v.play(); q&&q.catch&&q.catch(function(){});
+    } else {
+      try{ v.pause(); v.currentTime=0 }catch(e){}
+      if(playing===card) playing=null;
+    }
   }
   cards.forEach(function(card){
     card.onmouseenter=function(){ play(card,true) };
@@ -365,19 +480,16 @@ function paintStyles(){
       paintStyles();
     };
   });
-  /* Native autoplay ကို browser က power-save အတွက် ရပ်နိုင်သည်။ viewport ထဲ
-     ဝင်လာသည့် card ကို `play()` လည်းတိုက်ရိုက်ခေါ်ပေး၍ desktop/mobile နှစ်ခုလုံးမှာ
-     motion preview တကယ်စတင်စေသည်။ ဖုန်းတွင် decoder မများအောင် တစ်ခုတည်းသာဖွင့်သည်။ */
+  /* Touch has no hover, so only the selected card may move while it is in
+     view. Desktop previews are hover/focus driven.  Never autoplay every
+     visible card: that was the renderer-crash path. */
   if(window.IntersectionObserver){
     var touchOnly=window.matchMedia&&window.matchMedia('(hover:none)').matches;
     var io=new IntersectionObserver(function(es){
       es.forEach(function(e){
         var visible=e.isIntersecting&&e.intersectionRatio>0.35;
-        if(touchOnly&&visible){
-          cards.forEach(function(c){ play(c, c===e.target) });
-        }else if(!touchOnly){
+        if(touchOnly && e.target.getAttribute('data-sv')===state.style)
           play(e.target,visible);
-        }
       });
     },{threshold:[0,0.35,0.6,1]});
     cards.forEach(function(c){ io.observe(c) });
@@ -509,34 +621,114 @@ function loadMeta(){
   }).catch(function(){});
 }
 
-/* ── တင်ခြင်း — ပြတ်လျှင် ဆက်တင်သည် ──
-   ⚠️ offset ကို server က ဖိုင်အရွယ်နဲ့ တိုင်းသည်။ 409 ပြန်လာလျှင်
-      server ပြောတဲ့ offset ကနေ ဆက်ရမည် — client ရဲ့ ကိန်းကို မယုံရ。 */
+/* ── တင်ခြင်း — R2 အတည်ပြုထားသော part များကနေ ဆက်တင်သည် ──
+   Browser crash ပြီးနောက် local file ကို auto-read မရသောကြောင့် user က
+   တူညီသော file ကို ပြန်ရွေးရုံသာ လိုသည်။ R2 ListParts ကို source of truth
+   အဖြစ်သုံးပြီး ရောက်ပြီးသား bytes ကို ဘယ်တော့မှ ပြန်မတင်ရ။ */
 function upload(f){
   scene('s-up'); $('upname').textContent=f.name;
-  var CH=8*1024*1024, sent=0, id=null, dead=false;
-  $('upcancel').onclick=function(){dead=true; scene('s-ready')};
-  function bar(){
-    var pc=Math.min(100,Math.round(sent/f.size*100));
-    $('upbar').style.width=pc+'%';
-    $('upnum').textContent=(sent/1e9).toFixed(2)+' GB / '+(f.size/1e9).toFixed(2)+' GB · '+pc+'%';
+  var CH=8*1024*1024, sent=0, id=null, dead=false, partial={}, active={};
+  var shown=0, shownAt=performance.now(), rate=0, recovered=[];
+  // Upload progress events can fire dozens of times per second per R2 part.
+  // Rendering each one is unnecessary work and has crashed embedded browsers
+  // during multi-GB uploads. Keep the measurement current, but paint at 4 Hz.
+  var barFrame=0, barPaintedAt=0;
+  var rkey='ikki_upload_resume:'+encodeURIComponent([f.name,f.size,f.lastModified||0].join('|'));
+  function bytes(n){
+    if(n>=1024*1024*1024) return (n/1073741824).toFixed(2)+' GB';
+    if(n>=1024*1024) return (n/1048576).toFixed(1)+' MB';
+    return Math.max(0,Math.round(n/1024))+' KB';
   }
-  return api('/upload/init',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name:f.name,size:f.size})})
-    .then(function(d){ id=d.upload_id; state.up=id; CH=d.chunk||CH;
+  function speed(n){
+    if(n<1048576) return (n*8/1000000).toFixed(1)+' Mbps';
+    return (n/1048576).toFixed(1)+' MB/s';
+  }
+  function eta(sec){
+    if(!isFinite(sec)||sec<=0) return '';
+    sec=Math.ceil(sec);
+    if(sec>=3600) return '~'+Math.floor(sec/3600)+'h '+Math.ceil((sec%3600)/60)+'m left';
+    if(sec>=60) return '~'+Math.ceil(sec/60)+'m left';
+    return '~'+sec+'s left';
+  }
+  function remember(){
+    try{ localStorage.setItem(rkey,JSON.stringify({id:id,name:f.name,size:f.size,at:Date.now()})); }catch(e){}
+  }
+  function forget(){ try{ localStorage.removeItem(rkey); }catch(e){} }
+  $('upcancel').onclick=function(){
+    // Pause is non-destructive: R2's completed parts remain resumable.
+    dead=true;
+    Object.keys(active).forEach(function(k){ try{ active[k].abort() }catch(e){} });
+    scene('s-ready');
+  };
+  function paintBar(){
+    barFrame=0;
+    barPaintedAt=performance.now();
+    // `sent` only changes after a whole R2 part succeeds.  Including the bytes
+    // currently leaving the browser makes a slow 32 MB part visibly progress
+    // instead of looking frozen for minutes.
+    var visible=sent;
+    Object.keys(partial).forEach(function(k){ visible+=partial[k]||0 });
+    visible=Math.min(f.size,visible);
+    var now=performance.now(), elapsed=(now-shownAt)/1000;
+    if(visible<shown){ shown=visible; shownAt=now; }
+    else if(visible>shown && elapsed>=0.35){
+      var instant=(visible-shown)/elapsed;
+      rate=rate ? rate*0.72+instant*0.28 : instant;
+      shown=visible; shownAt=now;
+    }
+    var pc=Math.min(100,Math.round(visible/f.size*100));
+    $('upbar').style.width=pc+'%';
+    var detail=bytes(visible)+' / '+bytes(f.size)+' · '+pc+'%';
+    if(rate>0 && visible<f.size) detail+=' · '+speed(rate)+' · '+eta((f.size-visible)/rate);
+    $('upnum').textContent=detail;
+  }
+  function bar(force){
+    var now=performance.now();
+    if(force){
+      if(barFrame){ cancelAnimationFrame(barFrame); barFrame=0; }
+      paintBar();
+      return;
+    }
+    if(barFrame || now-barPaintedAt<250) return;
+    barFrame=requestAnimationFrame(paintBar);
+  }
+  function savedResume(){
+    try{
+      var old=JSON.parse(localStorage.getItem(rkey)||'null');
+      if(old&&old.id) return api('/upload/'+encodeURIComponent(old.id)+'/resume').catch(function(){ return null });
+    }catch(e){}
+    return Promise.resolve(null);
+  }
+  function findOrCreate(){
+    // This lookup also rescues pre-resume builds, which had no local `rkey`.
+    return savedResume().then(function(found){
+      if(found) return found;
+      return api('/uploads/resumable?name='+encodeURIComponent(f.name)+'&size='+encodeURIComponent(f.size))
+        .then(function(r){ return r.upload || api('/upload/init',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({name:f.name,size:f.size})}); });
+    });
+  }
+  return findOrCreate().then(function(d){
+      id=d.upload_id; state.up=id; CH=d.chunk||CH; recovered=d.parts||[];
+      sent=Number(d.received||0);
+      if(sent<0||sent>f.size) throw new Error('R2 upload size မကိုက်ပါ — အစကပြန်မတင်ဘဲ support ကို ဆက်သွယ်ပါ');
+      remember();
+      if(sent>0&&!d.done){
+        $('upname').textContent=f.name+' — R2 မှာ အတည်ပြုပြီး '+bytes(sent)+' ကနေ ဆက်တင်နေပါတယ်';
+      }
       // ⚠️ R2 mode — browser က R2 ကို တိုက်ရိုက် တင်သည်。 VPS မဖြတ်သဖြင့်
       //    Cloudflare ရဲ့ အနီးဆုံး edge ကို သွားပြီး အများကြီး မြန်သည်。
       // ⚠️ ဖိုင်က worker ရဲ့ စက်ထဲ ရှိပြီးသားဆို **တစ် byte မှ မတင်ရ**
-      if(d.mode==='have'){ sent=f.size; bar();
+      if(d.mode==='have'){ sent=f.size; bar(); forget();
         $('upname').textContent=f.name+' — စက်ထဲ ရှိပြီးသား · တင်စရာ မလို ⚡';
         return {upload_id:id}; }
       if(d.mode==='r2') return r2up();
       function next(){
         if(dead) return Promise.reject(new Error('cancelled'));
-        if(sent>=f.size) return {upload_id:id};
+        if(sent>=f.size){ forget(); return {upload_id:id}; }
         var end=Math.min(f.size,sent+CH);
         return fetch('/api/upload/'+id+'/chunk?offset='+sent,{method:'PUT',
-            headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/octet-stream'},
+            headers:{'X-IKKI-Token':TOKEN,'Content-Type':'application/octet-stream'},
             body:f.slice(sent,end)})
           .then(function(r){return r.json().then(function(j){return {r:r,j:j}})})
           .then(function(x){
@@ -559,9 +751,15 @@ function upload(f){
     //      · Zin ရဲ့ လိုင်းမှာ parallel က **ပိုနှေး** (4.1 → 3.2 MB/s) —
     //        လိုင်း ကိုယ်တိုင် ပြည့်နေ၍。 ဒါပေမယ့် လိုင်း မြန်သော customer
     //        မှာ parallel က အများကြီး ကူသည် ⇒ **ပုံသေ မထားရ · တိုင်းပြီး ချိန်ရ**。
-    var parts=[], next=1, inflight=0, urls={}, uNext=1, err=null, doneB=0;
+    var parts=recovered.slice(), known={}, next=1, inflight=0, urls={}, uNext=1, err=null, doneB=0;
+    // Large 4K files retain a Blob and an XHR buffer for every in-flight part.
+    // Cap these at two: this is deliberately stability-first for embedded and
+    // low-memory browsers, while still allowing the link to stay busy.
+    var MAX_CONC=f.size>=1024*1024*1024 ? 2 :
+      ((navigator.hardwareConcurrency||4)<6 ? 2 : 3);
     var CONC=1, best=0, bestC=1, probe=0, tMark=performance.now(), bMark=0;
     var NP=Math.ceil(f.size/CH);
+    parts.forEach(function(p){ if(p&&p.n&&p.etag) known[p.n]=true; });
 
     function grab(){           // presigned URL များ **အစုလိုက်** ကြိုတောင်း
       if(uNext>NP) return Promise.resolve();
@@ -575,10 +773,53 @@ function upload(f){
       var el=(performance.now()-tMark)/1000;
       if(el<4) return;
       var mbps=(doneB-bMark)/1048576/el;
-      if(mbps>best*1.08){ best=mbps; bestC=CONC; if(CONC<6) CONC++; }
+      if(mbps>best*1.08){ best=mbps; bestC=CONC; if(CONC<MAX_CONC) CONC++; }
       else if(CONC>bestC){ CONC=bestC; }
-      else if(probe++%4===3 && CONC<6){ CONC++; }
+      else if(probe++%4===3 && CONC<MAX_CONC){ CONC++; }
       tMark=performance.now(); bMark=doneB;
+    }
+
+    function signedPut(u, blob, pn, size){
+      // fetch() deliberately exposes no upload-byte progress.  XMLHttpRequest
+      // does, which lets the user see a real rate and ETA while a large R2 part
+      // is in flight.  The two-minute timer is *no-progress* time, not a total
+      // part limit, so slow but moving connections are never cut off.
+      return new Promise(function(resolve,reject){
+        var xhr=new XMLHttpRequest(), settled=false, idle=null;
+        function finish(fn,value){
+          if(settled) return;
+          settled=true;
+          clearTimeout(idle);
+          delete active[pn];
+          fn(value);
+        }
+        function armIdle(){
+          clearTimeout(idle);
+          idle=setTimeout(function(){
+            finish(reject,new Error('r2 stalled'));
+            try{xhr.abort()}catch(e){}
+          },120000);
+        }
+        try{
+          xhr.open('PUT',u,true);
+          xhr.upload.onprogress=function(ev){
+            if(dead || !ev.lengthComputable) return;
+            partial[pn]=Math.min(size,ev.loaded);
+            bar(); armIdle();
+          };
+          xhr.onload=function(){
+            if(xhr.status<200 || xhr.status>=300) return finish(reject,new Error('r2 '+xhr.status));
+            var et=xhr.getResponseHeader('ETag');
+            if(!et) return finish(reject,new Error('ETag မရ — bucket CORS ကို စစ်ပါ'));
+            finish(resolve,et);
+          };
+          xhr.onerror=function(){ finish(reject,new Error('r2 network')) };
+          xhr.onabort=function(){ finish(reject,new Error(dead?'cancelled':'r2 stalled')) };
+          active[pn]=xhr;
+          xhr.send(blob);
+          armIdle();
+        }catch(e){ finish(reject,e) }
+      });
     }
 
     function put(pn){
@@ -587,13 +828,11 @@ function upload(f){
       function go(){
         var u=urls[pn];
         if(!u) return grab().then(go);
-        return fetch(u,{method:'PUT',body:f.slice(from,to)}).then(function(r){
-          if(!r.ok) throw new Error('r2 '+r.status);
-          var et=r.headers.get('ETag');
-          // ⚠️ ETag မရလျှင် complete ကျမည် — bucket CORS ရဲ့ ExposeHeaders
-          if(!et) throw new Error('ETag မရ — bucket CORS ကို စစ်ပါ');
-          parts.push({n:pn, etag:et}); sent+=size; bar(); tune(size);
+        return signedPut(u,f.slice(from,to),pn,size).then(function(et){
+          delete partial[pn];
+          parts.push({n:pn, etag:et}); known[pn]=true; sent+=size; bar(); tune(size);
         }).catch(function(e){
+          delete partial[pn]; bar();
           if(dead || String(e.message).indexOf('ETag')===0) throw e;
           if(++tries>4) throw e;
           delete urls[pn];      // URL သက်တမ်း ကုန်နိုင် — ပြန်တောင်း
@@ -609,6 +848,7 @@ function upload(f){
       if(next>NP && inflight===0){
         // ⚠️ complete က အပိုင်း နံပါတ် **အစဉ်လိုက်** လိုသည် — အပြိုင် တင်၍ ရောနေ
         parts.sort(function(x,y){return x.n-y.n});
+        bar(true);
         return api('/upload/'+id+'/complete',{method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({parts:parts})})
@@ -616,14 +856,16 @@ function upload(f){
       }
       var jobs=[];
       while(inflight<CONC && next<=NP){
-        var pn=next++; inflight++;
+        var pn=next++;
+        if(known[pn]) continue;
+        inflight++;
         jobs.push(put(pn).then(function(){inflight--},
                                function(e){inflight--; err=err||e}));
       }
       if(!jobs.length) jobs.push(new Promise(function(r){setTimeout(r,60)}));
       return Promise.race(jobs).then(pump);
     }
-    bar(); return grab().then(pump);
+    bar(); return grab().then(pump).then(function(result){ forget(); return result; });
   }
 }
 
@@ -673,7 +915,13 @@ function start(input){
                               IKKI Smart Edit ပုံသေအတိုင်း (မပြောင်း)。 */
                            ref_id:state.ref||''})});
   }).then(function(j){ savePrefs(); watch(j.job_id) })
-    .catch(function(e){ if(String(e.message)!=='cancelled'&&String(e.message)!=='quota') fail(e.message) });
+    /* Login is an interruption, never a render failure. `api()` has already
+       opened IKKI's sign-in dialog; do not replace it with the red failure
+       screen or imply that a source video/minutes were affected. */
+    .catch(function(e){
+      var why=String((e&&e.message)||e);
+      if(why!=='cancelled'&&why!=='quota'&&why!=='auth') fail(why);
+    });
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1578,16 +1826,20 @@ document.addEventListener('click', function(e){
   if(e.target && (e.target.id==='logout'||e.target.id==='logout2')) doLogout.call(e.target);
   if(e.target && e.target.id==='acctnew'){
     var my=(cur==='my');
-    var nm=window.prompt(my?'အကောင့် အမည်?':'Account name?','');
-    if(!nm) return;
-    api('/accounts',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:nm})})
-     .then(function(d){
-       // ⚠️ token ကို **တစ်ခါပဲ** ပြသည် — server မှာ ပြန်မပေးတော့。
-       window.prompt(my?'ဒီ token ကို ကူးယူထားပါ — နောက်တစ်ခါ မပြတော့ပါ:'
-                       :'Copy this token — it is shown only once:', d.token);
-       paintMe();
-     }).catch(function(err){ alert(String(err.message||err).slice(0,200)); });
+    appDialog({title:my?'အကောင့်အသစ်':'New account',
+      message:my?'အကောင့်အမည် ထည့်ပါ':'Enter an account name',
+      placeholder:my?'ဥပမာ — My Studio':'For example — My Studio'}).then(function(nm){
+        if(!nm||!nm.trim()) return;
+        return api('/accounts',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({name:nm.trim()})})
+         .then(function(d){
+           // ⚠️ token ကို **တစ်ခါပဲ** ပြသည် — server မှာ ပြန်မပေးတော့。
+           return appDialog({title:my?'token ကို သိမ်းပါ':'Save this token',
+             message:my?'ဒီ token ကို ကူးယူထားပါ — နောက်တစ်ခါ မပြတော့ပါ:'
+               :'Copy this token — it is shown only once:',value:d.token,readonly:true,
+             cancel:false,okLabel:my?'ပြီးပြီ':'Done'}).then(paintMe);
+         });
+      }).catch(function(err){ alert(String(err.message||err).slice(0,200)); });
   }
   var ad=e.target.closest&&e.target.closest('[data-adel]');
   if(ad){ if(!confirmTwo(ad,'?')) return;
@@ -1631,17 +1883,19 @@ function paintPlan(){
 document.addEventListener('click', function(e){
   if(e.target && e.target.id==='topup'){
     var my=(cur==='my');
-    var n=window.prompt(my?'ဘယ်နှစ်မိနစ် လိုချင်လဲ?':'How many minutes?','300');
-    if(n===null) return;
-    e.target.disabled=true;
-    api('/plan/topup',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({minutes:n})})
-     .then(function(d){ e.target.disabled=false;
-       alert((d.sent? (my?'တောင်းဆိုချက် ပို့ပြီးပါပြီ။':'Request sent.')
-                    : (my?'Telegram မသတ်မှတ်ရသေးလို့ မပို့နိုင်ပါ — အောက်မှာ ထည့်ပါ။'
-                        :'Telegram is not set up yet — add it below.'))
-             + (d.contact? '\n'+d.contact : '')); })
-     .catch(function(err){ e.target.disabled=false; alert(String(err.message||err).slice(0,200)); });
+    var topup=e.target; topup.disabled=true;
+    appDialog({title:my?'မိနစ် ထပ်တောင်းမယ်':'Ask for more minutes',
+      message:my?'လိုချင်တဲ့ မိနစ်အရေအတွက် ထည့်ပါ':'Enter the number of minutes you need',
+      value:'300',type:'number',inputMode:'numeric'}).then(function(n){
+        if(n===null){ topup.disabled=false; return; }
+        return api('/plan/topup',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({minutes:n})})
+         .then(function(d){ topup.disabled=false;
+           alert((d.sent? (my?'တောင်းဆိုချက် ပို့ပြီးပါပြီ။':'Request sent.')
+                        : (my?'Telegram မသတ်မှတ်ရသေးလို့ မပို့နိုင်ပါ — အောက်မှာ ထည့်ပါ။'
+                            :'Telegram is not set up yet — add it below.'))
+                 + (d.contact? '\n'+d.contact : '')); });
+      }).catch(function(err){ topup.disabled=false; alert(String(err.message||err).slice(0,200)); });
   }
   if(e.target && e.target.id==='planedit'){
     var f=$('planform'); if(!f) return;
@@ -1783,36 +2037,38 @@ document.addEventListener('click', function(e){
     var done=function(){ var o=t.innerHTML; t.innerHTML=eh(v)+' <span>'+(my?'ကူးပြီး ✓':'copied ✓')+'</span>';
       setTimeout(function(){ t.innerHTML=o; },1600); };
     if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(v).then(done,function(){ window.prompt(my?'ကူးယူပါ':'Copy',v); });
-    } else { window.prompt(my?'ကူးယူပါ':'Copy',v); }
+      navigator.clipboard.writeText(v).then(done,function(){ appCopy(v); });
+    } else { appCopy(v); }
   }
   // ── ငွေလွှဲ တင်ပြခြင်း ──
   if(t.id==='paynew'){
     var on=(PAY&&PAY.methods||[]).filter(function(m){return m.on&&(m.num||m.qr)});
     if(!on.length) return;
-    var mid=on[0].id;
-    if(on.length>1){
-      var pick=window.prompt((my?'ဘယ်ကနေ လွှဲလဲ? ':'Which one? ')+
-        on.map(function(m,i){return (i+1)+') '+(my?m.my:m.en)}).join('  '),'1');
-      if(pick===null) return;
-      var ix=parseInt(pick,10)-1; if(!(ix>=0&&ix<on.length)) return alert(my?'မမှန်ပါ':'Not valid');
-      mid=on[ix].id;
-    }
-    var amt=window.prompt(my?'ဘယ်လောက် လွှဲလိုက်လဲ? (MMK)':'How much did you send? (MMK)','');
-    if(amt===null) return;
-    var ref=window.prompt(my?'ငွေလွှဲနံပါတ် (transaction ID) — bank app ထဲမှာ ရှိပါတယ်'
-                            :'Transaction ID — it is in your bank app','');
-    if(ref===null) return;
     t.disabled=true;
-    api('/pay',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({method:mid,amount:amt,ref:ref})})
+    var choose=on.length>1
+      ? appDialog({title:my?'ငွေလွှဲနည်း ရွေးပါ':'Choose payment method',
+          message:my?'ငွေလွှဲခဲ့တဲ့နည်းကို ရွေးပါ':'Select the method you used',
+          options:on.map(function(m){return {value:m.id,label:my?m.my:m.en};})})
+      : Promise.resolve(on[0].id);
+    choose.then(function(mid){
+      if(mid===null) throw {cancelled:true};
+      return appDialog({title:my?'လွှဲခဲ့တဲ့ ပမာဏ':'Transfer amount',
+        message:my?'MMK ပမာဏ ထည့်ပါ':'Enter the amount in MMK',type:'number',inputMode:'numeric'}).then(function(amt){
+          if(amt===null) throw {cancelled:true};
+          return appDialog({title:my?'ငွေလွှဲနံပါတ်':'Transaction ID',
+            message:my?'bank app ထဲက transaction ID ကို ထည့်ပါ':'Enter the transaction ID from your bank app'}).then(function(ref){
+              if(ref===null) throw {cancelled:true};
+              return {method:mid,amount:amt,ref:ref};
+            });
+        });
+    }).then(function(body){ return api('/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); })
      .then(function(d){ t.disabled=false;
        alert(my?('တင်ပြပြီးပါပြီ။ ငွေလွှဲနံပါတ်ကို စစ်ဆေးပြီးမှ'+
-                 (d.minutes?' '+d.minutes+' မိနစ် ':' မိနစ် ')+'တက်ပါမယ်။')
+                 (d.minutes?' '+d.minutes+' မိနစ် ':' မိနစ် ')+'တက်ပါမယ်。')
                :('Submitted. Minutes land once the transfer is checked'+
                  (d.minutes?' ('+d.minutes+' min)':'')+'.'));
        paintPay(); })
-     .catch(function(err){ t.disabled=false; alert(String(err.message||err).slice(0,200)); });
+     .catch(function(err){ t.disabled=false; if(!err||!err.cancelled) alert(String(err.message||err).slice(0,200)); });
   }
   if(t.classList.contains('paydel')){
     if(t.getAttribute('data-sure')!=='1'){
@@ -1840,12 +2096,13 @@ document.addEventListener('click', function(e){
   }
   if(t.classList.contains('payno')){
     var id2=t.getAttribute('data-id');
-    var why=window.prompt(my?'ဘာကြောင့် လက်မခံလဲ? (သုံးစွဲသူ မြင်ရမယ်)':'Why declined? (the user sees this)','');
-    if(why===null) return;
-    api('/pay/'+id2+'/reject',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({why:why})})
-     .then(function(){ paintPay(); })
-     .catch(function(err){ alert(String(err.message||err).slice(0,200)); });
+    appDialog({title:my?'လက်မခံရတဲ့အကြောင်း':'Why decline?',
+      message:my?'သုံးစွဲသူ မြင်ရမယ့်အကြောင်းအရင်း ထည့်ပါ':'The user will see this reason',multiline:true})
+      .then(function(why){
+        if(why===null) return;
+        return api('/pay/'+id2+'/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({why:why})})
+          .then(function(){ paintPay(); });
+      }).catch(function(err){ alert(String(err.message||err).slice(0,200)); });
   }
   if(t.id==='payrefresh'){ paintPayAdmin(); }
   // ── ပိုင်ရှင် · ဆက်တင် ──
@@ -2812,14 +3069,16 @@ function bindRef(){
   var dl=$('refdel');
   if(dl) dl.onclick=function(){
     if(!REF.id) return;
-    if(!confirm(cur==='my'?'reference ဖိုင်နဲ့ profile ကို ဖျက်မလား?':'Delete the reference file and profile?')) return;
-    var id=REF.id;
-    api('/refs/'+id,{method:'DELETE'}).then(function(){
-      if(REF.poll){clearInterval(REF.poll);REF.poll=null}
-      REF.list=REF.list.filter(function(x){return x.id!==id});
-      if(REF.applied===id){REF.applied=null; state.ref=''; savePrefs()}
-      REF.id=REF.list.length?REF.list[0].id:null;
-      paintRef();
+    appConfirm(cur==='my'?'reference ဖိုင်နဲ့ profile ကို ဖျက်မလား?':'Delete the reference file and profile?').then(function(yes){
+      if(!yes) return;
+      var id=REF.id;
+      return api('/refs/'+id,{method:'DELETE'}).then(function(){
+        if(REF.poll){clearInterval(REF.poll);REF.poll=null}
+        REF.list=REF.list.filter(function(x){return x.id!==id});
+        if(REF.applied===id){REF.applied=null; state.ref=''; savePrefs()}
+        REF.id=REF.list.length?REF.list[0].id:null;
+        paintRef();
+      });
     }).catch(function(e){ tipRef(e.message||e) });
   };
 }
@@ -2848,13 +3107,15 @@ function refUpload(f){
         alert(my?'sample က ၁၅ စက္ကန့် အနည်းဆုံး လိုပါတယ်':'The sample must be at least 15 seconds');
         return; }
       if(d>180){
-        var a=prompt(my?('ဒီ sample က '+Math.round(d)+'s ရှည်ပါတယ်။ စိစစ်မယ့် အပိုင်း '
-                        +'စတဲ့ စက္ကန့် ရိုက်ထည့်ပါ (၃ မိနစ် ယူပါမယ်)')
-                       :('This sample is '+Math.round(d)+'s. Enter the start second of the '
-                        +'3-minute range to analyze'), '0');
-        if(a===null){ REF.busy=false; paintRef(); return }
-        var s0=Math.max(0, Math.min(d-15, parseFloat(a)||0));
-        rng=[s0, Math.min(d, s0+180)];
+        appDialog({title:my?'စိစစ်မယ့် အပိုင်း':'Analysis range',
+          message:my?('ဒီ sample က '+Math.round(d)+'s ရှည်ပါတယ်။ ၃ မိနစ်စစ်ဖို့ စတင်စက္ကန့် ထည့်ပါ')
+            :('This sample is '+Math.round(d)+'s. Enter the start second for the 3-minute range'),
+          value:'0',type:'number',inputMode:'numeric'}).then(function(a){
+            if(a===null){ REF.busy=false; paintRef(); return; }
+            var s0=Math.max(0, Math.min(d-15, parseFloat(a)||0));
+            refSend(f,[s0, Math.min(d, s0+180)]);
+          });
+        return;
       }
     }
     refSend(f, rng);

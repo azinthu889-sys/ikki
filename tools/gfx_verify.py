@@ -40,7 +40,11 @@ e = e[0]
 #    အလကား ပိတ်ထားရာ ကျသည်。
 args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62)
 kw = None
-if not args:
+# ⚠️ `fill()` က **param မလိုသော** template အတွက် `()` ပြန်ပေးသည် (မှန်သည် —
+#    `gfxcat.fill` ကိုယ်တိုင် "`()` ပြန်ရမည်" ဟု ရေးထားပြီးသား)。 `if not args`
+#    နဲ့ စစ်လျှင် `()` က falsy ဖြစ်၍ **ကျရှုံးဟု မှတ်**သည် ⇒ `trans` ၂၄/၂၄ ·
+#    `motionfx` ၁၄ · `thm.chat_dots` တို့ တစ်ခါမှ မအောင်ခဲ့ (၂၀၂၆-၀၉-၂၄)。
+if args is None:
     try:
         kw = DR._tf_args(dict(kind=eid, text="ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း",
                               items=["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
@@ -68,13 +72,62 @@ for it in fr:
     q = rp(it[0] if isinstance(it,(list,tuple)) else it)
     if not os.path.exists(q) or os.path.getsize(q) < %(MB)d:
         print(json.dumps({"ok":0,"why":"ဖိုင် သေး/မရှိ"})); raise SystemExit
-last = fr[-1]
-im = Image.open(rp(last[0] if isinstance(last,(list,tuple)) else last)).convert("RGBA")
-a = im.split()[3]
-ink = sum(1 for v in a.getdata() if v > 16) / float(im.width*im.height)
+# ⚠️ **နောက်ဆုံး ဖရိမ်းမှာ မှင် ရှိရမည်** ဆိုသော ဂိတ်က **မှား**သည် —
+#    ထွက်ခွာ animation (`*_out` · `wipe_word` · `intro_stinger`) က နောက်ဆုံး
+#    ဖရိမ်းမှာ ဗလာ ဖြစ်တာ **ဒီဇိုင်းအရ မှန်**သည်。 တိုင်းကြည့်ရာ
+#    `kinetic2.pop_out` က အလယ်မှာ ၂၈.၃%% · နောက်ဆုံးမှာ ၀%% ⇒ ဂိတ်က
+#    အလုပ်လုပ်နေသော template ၇ ခုကို မှားပိတ်ခဲ့သည် (၂၀၂၆-၀၉-၂၃)。
+#    ⇒ နမူနာ ဖရိမ်းများထဲက **အမြင့်ဆုံး** မှင်ကို ယူသည်。
+_cand = sorted(set([len(fr)-1, len(fr)//2, len(fr)//3, max(0,len(fr)-2), 1]))
+ink = 0.0
+for _k in _cand:
+    if _k < 0 or _k >= len(fr): continue
+    _it = fr[_k]
+    _im = Image.open(rp(_it[0] if isinstance(_it,(list,tuple)) else _it)).convert("RGBA")
+    _a = _im.split()[3]
+    ink = max(ink, sum(1 for v in _a.getdata() if v > 16) / float(_im.width*_im.height))
+im = _im
+# ⚠️ **bbox ကိုပါ မှတ်ရမည်** — planner ရဲ့ pool ကို လက်ရေး ၃၀ ကနေ ၂၇၁+ သို့
+#    ချဲ့လိုက်သဖြင့် 「ဂရပ်ဖစ်က စာတန်းကို ဖုံးသလား」ကို **တိုင်း**ရမည်。
+#    `place.caption_band()` က keyword pop အတွက်သာ သုံးနေပြီး template event
+#    ကို မစစ်ပါ (၂၀၂၆-၀၉-၂၂ စစ်၍ တွေ့)。 render ပြီးသား frame ရှိနေချိန်မှာ
+#    တိုင်းလျှင် အပို render မလို。
+# ⚠️ frame item က `(png, x, y)` — offset မထည့်လျှင် bbox လွဲမည်。
+try:
+    import numpy as _np
+    _n = len(fr)
+    _idx = sorted(set([_n-1, _n//2, max(0,_n-2), _n//3]))
+    _b = []
+    _W = _H = 0
+    for _j in _idx:
+        _it = fr[_j]
+        _pp, _ox, _oy = (_it[0], _it[1], _it[2]) if isinstance(_it,(list,tuple)) and len(_it)>2 else (_it if isinstance(_it,str) else _it[0], 0, 0)
+        _im = Image.open(rp(_pp)).convert("RGBA")
+        _al = _np.array(_im)[:,:,3]
+        _on = _al > 16
+        if not _on.any(): continue
+        _ys, _xs = _np.nonzero(_on)
+        _b.append((_oy+int(_ys.min()), _oy+int(_ys.max()), _ox+int(_xs.min()), _ox+int(_xs.max())))
+        _W = max(_W, _ox+_im.width); _H = max(_H, _oy+_im.height)
+    # ⚠️ **ဘောင်အရွယ်ကို theme ကနေ ယူရမည်**。 element အများစုက ဘောင်အပြည့်
+    #    PNG ပေမယ့် kinetic/capt/thm.type_* တို့က **strip** PNG ကို
+    #    `(png, x, y)` နဲ့ ချသည် — strip ရဲ့ အောက်စွန်းနဲ့ စားလျှင် အချိုး
+    #    ဖောင်းပြီး 「စာတန်းဇုန် ဖုံးသည်」ဟု **မှားပြ**မည်
+    #    (thm.type_word: တကယ် ၀.၄၅ · စား၍ ၀.၈၅ — ၂၀၂၆-၀၉-၂၄ တွေ့)。
+    try:
+        import theme as _TH
+        _tt = _TH.t(); _W, _H = int(_tt["W"]), int(_tt["H"])
+    except Exception:
+        pass
+    _bb = None
+    if _b and _W and _H:
+        _bb = dict(top=round(min(x[0] for x in _b)/_H,4), bottom=round(max(x[1] for x in _b)/_H,4),
+                   left=round(min(x[2] for x in _b)/_W,4), right=round(max(x[3] for x in _b)/_W,4))
+except Exception:
+    _bb = None
 print(json.dumps({"ok": 1 if ink >= %(MI)f else 0,
                   "why": "" if ink >= %(MI)f else "မှင် %%.4f%%%%" %% (ink*100),
-                  "ink": round(ink,5), "n": len(fr)}))
+                  "ink": round(ink,5), "n": len(fr), "bbox": _bb}))
 ''' % {"HERE": HERE, "MF": MIN_FRAMES, "MB": MIN_BYTES, "MI": MIN_INK}
 
 def main():

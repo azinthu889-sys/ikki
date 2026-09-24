@@ -84,6 +84,36 @@ def _bezier_area(p1x, p1y, p2x, p2y, n=200):
 # spec ရဲ့ easing — နှိုင်းယှဉ်ရန် ပစ်မှတ်
 SPEC_EASE = _bezier_area(0.22, 0.8, 0.24, 1.0)
 
+# Headtop Premium pack ရဲ့ measured timing band။ `SPEC_EASE` က curve spec
+# ဖြစ်ပြီး alpha-only metric နဲ့ တိုက်ရိုက်တူမည်မဟုတ်သဖြင့် 0.30 ကို
+# ship gate အဖြစ် သတ်မှတ်သည် — ဒီအောက်ဆို report မှာလည်း 「စက်ဆန်」ဟု
+# ပြပြီးသား ဖြစ်သည်။
+ENTER_BAND = (0.233, 0.733)
+EXIT_BAND = (0.133, 0.267)
+EASE_MIN = 0.30
+
+
+def premium_checks(measured):
+    """Headtop overlay အတွက် ship/no-ship QC checks ပြန်ပေးသည်。
+
+    ယခင်က motion number ကို report မှာပြရုံသာပြပြီး QC gate မထဲထည့်ခဲ့လို့
+    exit 0.1s, ease 0.15 ရှိသော render ကို `PASS` လို့ပို့မိခဲ့သည်။
+    """
+    m = measured or {}
+    n = int(m.get("n") or 0)
+    ins, outs, ease = m.get("in_s"), m.get("out_s"), m.get("ease")
+    def _inside(v, band):
+        return v is not None and band[0] <= float(v) <= band[1]
+    return [
+        dict(key="motion_measured", ok=n > 0, value=n or "—", want="≥ 1 overlay"),
+        dict(key="motion_enter", ok=_inside(ins, ENTER_BAND), value=ins,
+             want=f"{ENTER_BAND[0]:.3f}–{ENTER_BAND[1]:.3f}s"),
+        dict(key="motion_exit", ok=_inside(outs, EXIT_BAND), value=outs,
+             want=f"{EXIT_BAND[0]:.3f}–{EXIT_BAND[1]:.3f}s"),
+        dict(key="motion_ease", ok=ease is not None and float(ease) >= EASE_MIN,
+             value=ease, want=f"≥ {EASE_MIN:.2f} (ease-out)"),
+    ]
+
 
 def measure(mov):
     """`dict(in_s, out_s, hold_s, ease, frames, fps)` — မရလျှင် `None`

@@ -55,16 +55,32 @@ _MEAS = {}
 
 
 def available():
-    return os.path.exists(CTBIN)
+    if os.path.exists(CTBIN):
+        return True
+    # `cttext` is a macOS/CoreText binary.  The owned Motion Kit includes a
+    # same-contract librsvg/Pango fallback for the Linux render worker.
+    try:
+        if MK not in __import__("sys").path:
+            __import__("sys").path.insert(0, MK)
+        import cttext_rsvg  # noqa: F401
+        return True
+    except Exception:
+        return False
 
 
 def _run(sp):
-    if not os.path.exists(CTBIN):
-        raise RuntimeError(f"cttext မတွေ့: {CTBIN}")
-    r = subprocess.run([CTBIN], input=json.dumps(sp).encode(), capture_output=True)
-    if r.returncode:
-        raise RuntimeError("cttext: " + r.stderr.decode()[:300])
-    return json.loads(r.stdout.decode() or "{}")
+    if os.path.exists(CTBIN):
+        r = subprocess.run([CTBIN], input=json.dumps(sp).encode(), capture_output=True)
+        if r.returncode:
+            raise RuntimeError("cttext: " + r.stderr.decode()[:300])
+        return json.loads(r.stdout.decode() or "{}")
+    if MK not in __import__("sys").path:
+        __import__("sys").path.insert(0, MK)
+    try:
+        import cttext_rsvg
+        return cttext_rsvg.run(sp)
+    except Exception as e:
+        raise RuntimeError(f"cttext Linux fallback မရ: {type(e).__name__}: {e}") from e
 
 
 def measure(text, px, font):

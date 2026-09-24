@@ -164,10 +164,37 @@ def mpu_part_url(key, upload_id, n, expires=7200):
     return presign("PUT", key, expires,
                    query={"partNumber": str(int(n)), "uploadId": upload_id})
 
+def mpu_list_parts(key, upload_id):
+    """Return R2's authoritative multipart parts, not browser memory.
+
+    A renderer crash loses JavaScript state but does not necessarily lose the
+    already-uploaded R2 parts.  ListParts is therefore the only safe resume
+    source: never guess from the old progress bar or from a client claim.
+    """
+    _, _, body = call("GET", key, query={"uploadId": upload_id, "max-parts": "1000"})
+    root = ET.fromstring(body)
+    parts = []
+    for node in root.iter():
+        if node.tag.rsplit("}", 1)[-1] != "Part":
+            continue
+        values = {}
+        for child in node:
+            values[child.tag.rsplit("}", 1)[-1]] = child.text or ""
+        try:
+            parts.append({"n": int(values["PartNumber"]),
+                          "etag": values["ETag"].strip(),
+                          "size": int(values.get("Size") or 0)})
+        except (KeyError, TypeError, ValueError):
+            continue
+    return sorted(parts, key=lambda p: p["n"])
+
 def mpu_complete(key, upload_id, parts):
     """parts: [(n, etag), ...] — n အစီအစဥ်အတိုင်း"""
+    def _etag(v):
+        v = str(v).strip()
+        return v if v.startswith('"') and v.endswith('"') else '"' + v + '"'
     xml = "<CompleteMultipartUpload>" + "".join(
-        f"<Part><PartNumber>{int(n)}</PartNumber><ETag>{e}</ETag></Part>"
+        f"<Part><PartNumber>{int(n)}</PartNumber><ETag>{_etag(e)}</ETag></Part>"
         for n, e in sorted(parts, key=lambda p: int(p[0]))) + "</CompleteMultipartUpload>"
     st, h, b = call("POST", key, body=xml.encode(),
                     query={"uploadId": upload_id}, headers={"content-type": "application/xml"})

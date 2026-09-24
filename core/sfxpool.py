@@ -31,6 +31,17 @@ def _mk():
     return GC.MK
 
 
+def _cue_dir():
+    """Writable normalized-SFX cache.
+
+    Motion Kit is mounted read-only in production so that a render cannot
+    mutate the template library.  Keep generated WAV cues in the job scratch
+    volume instead; on a Mac the historical Motion Kit cache remains the
+    default.
+    """
+    return os.environ.get("IKKI_SFX_CACHE") or os.path.join(_mk(), "audio", "cue")
+
+
 def catalog():
     global _CAT
     if _CAT is None:
@@ -64,6 +75,11 @@ def pool(role, bright=None, max_dur=None, ship=True):
             b = x.get("brightness") or 0
             if not (bright[0] <= b <= bright[1]):
                 continue
+        # A catalog row is not a usable cue until its audio file is present in
+        # this runtime.  The Mac-only legacy bank is intentionally skipped on
+        # the VPS when it was not deployed.
+        if not path(x):
+            continue
         out.append(x)
     out.sort(key=lambda x: (x.get("dur", 9), x.get("id", "")))
     return out
@@ -73,9 +89,17 @@ def path(item):
     """catalog item → တကယ့် ဖိုင် လမ်းကြောင်း (root အလိုက်)"""
     rs = catalog().get("roots") or {}
     r = rs.get(item.get("root"))
-    if not r:
-        return None
-    return os.path.join(r, item["path"])
+    candidate = os.path.join(r, item["path"]) if r else ""
+    if candidate and os.path.isfile(candidate):
+        return candidate
+
+    # The catalog is measured on the Mac and records its original absolute
+    # paths.  Production mounts the owned Motion Kit at IKKI_MOTIONKIT, so
+    # resolve only assets which actually exist in that runtime.  This avoids
+    # selecting an otherwise `ship=true` cue that becomes silent on Linux.
+    mk_root = os.path.join(_mk(), "assets", "sfx")
+    fallback = os.path.join(mk_root, item.get("path", ""))
+    return fallback if os.path.isfile(fallback) else None
 
 
 def pick(role, seed, idx=0, used=(), bright=None, ship=True):
@@ -248,7 +272,7 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     src = path(it)
     if not src or not os.path.exists(src):
         return None, None
-    out = os.path.join(_mk(), "audio", "cue")
+    out = _cue_dir()
     os.makedirs(out, exist_ok=True)
     tag = it["id"].replace("/", "_")
     p = os.path.join(out, f"{th}_{role}_{tag}.wav")

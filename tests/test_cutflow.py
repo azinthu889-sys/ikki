@@ -68,8 +68,7 @@ j = db.one("SELECT * FROM jobs WHERE id=?", JID)
 ck("job ဆောက်ပြီး", j and j["status"] == "review")
 
 print("\n── ① စာတမ်း အတည်ပြု ⇒ **ဖြတ်ချက် proxy** (render မဟုတ်) ──")
-run(M.job_approve(JID, Req({"segs": [{"i": 0, "text": "မင်္ဂလာပါ"},
-                                     {"i": 1, "text": "ဒီနေ့ ပြောမယ်"}]}),
+run(M.job_approve(JID, Req({"segs": [{"i": 0}, {"i": 1}]}),
                   authorization=H))
 j = db.one("SELECT * FROM jobs WHERE id=?", JID)
 ck("status = queued", j["status"] == "queued", j["status"])
@@ -98,6 +97,18 @@ ck("ဖိုင် ရောက်ပြီး", os.path.exists(j["cut_path"]))
 ck("ဖြတ်မှတ် မပါလျှင် 400",
    raises(run, M.w_cut(JID, file=_F(_pv), meta="{}",
                        authorization="Bearer " + M.WTOKEN)) == 400)
+ck("0.60s အတိအကျက float rounding ကြောင့် မပိတ်",
+   M._short_cut_spans([[140.74, 141.34]]) == [], M._short_cut_spans([[140.74, 141.34]]))
+_over_before_refresh = j["over"]
+M.job_cut_refresh(JID, authorization=H)
+j = db.one("SELECT * FROM jobs WHERE id=?", JID)
+ck("preview refresh က user ဆုံးဖြတ်ချက်မပျက်",
+   j["status"] == "queued" and j["mode"] == "cut" and j["over"] == _over_before_refresh,
+   repr(dict(status=j["status"], mode=j["mode"], over=j["over"])))
+db.run("UPDATE jobs SET status='running' WHERE id=?", JID)
+run(M.w_cut(JID, file=_F(_pv),
+            meta=json.dumps(dict(spans=SP, out_dur=4.8, src_dur=7.0, cuts=1)),
+            authorization="Bearer " + M.WTOKEN))
 
 print("\n── ③ အခြား account — မကြည့်ရ · မဆုံးဖြတ်ရ ──")
 ck("proxy ဖတ် ⇒ 404", raises(M.job_cut_file, JID, authorization=H2) == 404)
@@ -122,13 +133,23 @@ ck("cut_review မဟုတ်ဘဲ cutok ⇒ 409",
    raises(run, M.job_cut_ok(JID, Req({}), authorization=H)) == 409)
 
 print("\n── ⑤ ဖြတ်ချက် အိုကေ ⇒ **အေးခဲသော ဖြတ်မှတ်** နဲ့ render ──")
-run(M.job_approve(JID, Req({"segs": [{"i": 0, "text": "မင်္ဂလာပါ"},
-                                     {"i": 1, "text": "ဒီနေ့ ပြောမယ်"}]}),
+run(M.job_approve(JID, Req({"segs": [{"i": 0}, {"i": 1}, {"i": 2}]}),
                   authorization=H))
 db.run("UPDATE jobs SET status='running' WHERE id=?", JID)
 run(M.w_cut(JID, file=_F(_pv),
             meta=json.dumps(dict(spans=SP, out_dur=4.8, src_dur=7.0, cuts=1)),
             authorization="Bearer " + M.WTOKEN))
+# A speech-safe internal fragment may be shorter than the visual delivery
+# minimum.  The app must not silently delete it, but it must refuse the final
+# graphics/SFX render until the user merges/restores the fragment in review.
+BAD_SP = [[0.0, 0.34], [0.70, 2.0]]
+_bad_h, _bad_cn = M._cuthash(BAD_SP)
+db.run("UPDATE jobs SET cut_spans=?,cut_hash=? WHERE id=?",
+       json.dumps(_bad_cn), _bad_h, JID)
+ck("0.60s အောက် cut ⇒ final မထုတ် (422)",
+   raises(run, M.job_cut_ok(JID, Req({}), authorization=H)) == 422)
+db.run("UPDATE jobs SET cut_spans=?,cut_hash=? WHERE id=?",
+       json.dumps(SP), M._cuthash(SP)[0], JID)
 r = run(M.job_cut_ok(JID, Req({}), authorization=H))
 j = db.one("SELECT * FROM jobs WHERE id=?", JID)
 ov = json.loads(j["over"] or "{}")
@@ -152,6 +173,51 @@ print("\n── ⑦ quota — proxy က မကောက်ရ ──")
 _u = db.one("SELECT minutes FROM usage WHERE ym=?", time.strftime("%Y-%m"))
 ck("usage မိနစ် မတိုး", (_u or {"minutes": 0})["minutes"] in (0, 0.0, None),
    (_u or {}).get("minutes"))
+
+print("\n── ⑧ render report — worker ပြန်စလည်း audit မပျောက်ရ ──")
+run(M.w_report(JID, Req({"report": "QC\nMOTION pass\nSFX pass"}),
+               authorization="Bearer " + M.WTOKEN))
+rr = M.job_report(JID, authorization=H)
+ck("ပိုင်ရှင် report ဖတ်ရ", rr.get("report") == "QC\nMOTION pass\nSFX pass")
+ck("အခြား account report မဖတ်ရ",
+   raises(M.job_report, JID, authorization=H2) == 404)
+
+print("\n── ⑨ visual re-render က short cut ကို မကျော်ရ ──")
+_bad_over = {"_spans": BAD_SP}
+db.run("UPDATE jobs SET status='done',over=? WHERE id=?",
+       json.dumps(_bad_over), JID)
+ck("revis short cut ⇒ 422",
+   raises(M.job_revis, JID, authorization=H) == 422)
+
+print("\n── ⑩ အဟောင်း output ကို quality recheck ⇒ raw ASR review ကနေ ပြန်စ ──")
+# Historical output ရဲ့ timeline က မယုံရ။ child job မှာ source/style input ပဲ
+# ကျန်ပြီး အဟောင်း drop/span/event တွေ လုံးဝ မပါရ။
+db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
+       "VALUES(?,?,?,?,?,?,?,?)", "u_x", "raw.mp4", 100, 100, "/tmp/raw.mp4",
+       1, "a_default", time.time())
+db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
+       "VALUES(?,?,?,?,?,?,?,?)", "u_audio", "rec.m4a", 20, 20, "/tmp/rec.m4a",
+       1, "a_default", time.time())
+old = {"_audio": "u_audio", "custom_style": "calm", "_script": "hello",
+       "_drop": [[1, 2]], "_drop_exact": [[3, 4]], "_spans": BAD_SP,
+       "_cuthash": "old", "_keep": [[5, 6]], "_take_map": [], "_ev": {"g1": {}},
+       "_motion": "heavy", "_speed_applied": 1.06}
+db.run("UPDATE jobs SET status='done',title=?,upload_id=?,over=?,src_dur=? WHERE id=?",
+       "historic", "u_x", json.dumps(old), 7.0, JID)
+qr = M.job_quality_recheck(JID, authorization=H)
+child = db.one("SELECT * FROM jobs WHERE id=?", qr["job_id"])
+try: child_over = json.loads(child["over"] or "{}")
+except Exception: child_over = {}
+ck("recheck က review မှာ ရပ်", child and child["status"] == "queued" and child["mode"] == "review")
+ck("parent/source မှန်", child and child["parent"] == JID and child["upload_id"] == "u_x")
+ck("audio/style/script သာ ဆက်ယူ", child_over.get("_audio") == "u_audio" and
+   child_over.get("custom_style") == "calm" and child_over.get("_script") == "hello")
+ck("အဟောင်း cut/graphic/motion timing မကူး",
+   not any(k in child_over for k in ("_drop", "_drop_exact", "_spans", "_cuthash",
+                                      "_keep", "_take_map", "_ev", "_motion", "_speed_applied")),
+   child_over)
+again = M.job_quality_recheck(JID, authorization=H)
+ck("request ထပ်လာလျှင် ASR job အသစ်မပွား", again["job_id"] == qr["job_id"] and again.get("resumed"))
 
 print(f"\n  ⇒ အောင် {OK} · ကျ {FAIL}")
 sys.exit(1 if FAIL else 0)

@@ -23,8 +23,12 @@ MK = os.environ.get("IKKI_MOTIONKIT",
 # ⚠️ **အမျိုးအစား အသစ် ထည့်လျှင် ဒီမှာပါ ထည့်ရမည်**。 ၂၀၂၆-၀၉-၂၀:
 #    `insert` module ကို catalog မှာ မှတ်ပုံတင်ပြီးသော်လည်း `explainer` က
 #    ဒီစာရင်းထဲ မပါ၍ `usable()` က ဖယ်ပစ်ကာ IKKI ဆီ **လုံးဝ မရောက်**ခဲ့。
+# ⚠️ ၂၀၂၆-၀၉-၂၂ — `thm` pack က `ui` အမျိုးအစား အသစ် ယူလာသည် (generic
+#    browser/phone chrome · ပြင်ပ ပုံ **မလို**)。 ဒီစာရင်းထဲ မထည့်လျှင်
+#    `usable()` က ဖယ်ပစ်ကာ ၁၂ ခုလုံး IKKI ဆီ မရောက် — `explainer` နဲ့
+#    အတိအကျ တူသော အမှား ထပ်ဖြစ်မည်。
 USE = ("title", "infographic", "callout", "typography", "text", "chart",
-       "explainer")
+       "explainer", "ui")
 
 _CAT = None
 LAST_ERR = [None]      # catalog() ကျခဲ့လျှင် အကြောင်းရင်း — report အတွက်
@@ -159,7 +163,8 @@ def fill(entry, text, sub="", pct=None, shape=None):
        "ရွေး ၈ ခု · တပ်ပြီး ၄ ခု" ဆိုပြီး တိတ်တဆိတ် ကျသွားခဲ့သည်)。
     """
     texts = [t for t in (text, sub) if t] or [text or "—"]
-    LISTY = ("levels", "stages", "rows", "items", "lines", "bullets",
+    LISTY = ("msgs", "results", "tabs",
+             "levels", "stages", "rows", "items", "lines", "bullets",
              "steps", "points", "cols", "labels", "values", "data")
     args = []
     ti = 0
@@ -211,7 +216,18 @@ def fill(entry, text, sub="", pct=None, shape=None):
             args.append(NUMFILL.get(nm, pct if pct is not None else 3))
             continue
         break
-    while args and args[-1] == "":
+    # ⚠️ နောက်ဆုံး **ဗလာစာသား**တွေ ဖြုတ်တာက `optional` param အတွက်သာ ဖြစ်ရမည်。
+    #    required param ကို ဖြုတ်မိလျှင် template က
+    #    `missing N required positional arguments` နဲ့ ကျသည် — စာသား param
+    #    ၃ ခုအထက် လိုသော template တိုင်း (`text` + `sub` = ၂ ခုသာ ရှိ)。
+    #    ၂၀၂၆-၀၉-၂၂ တိုင်းချက်: thm.cmp_frame · cmp_glass · cmp_meter ·
+    #    cmp_price · cmp_win_a · cmp_win_b · stat_note · hook_count ၈ ခု
+    #    ဒီအတိုင်း တိတ်တဆိတ် ကျခဲ့သည်。
+    _ps = entry.get("params") or []
+    _nreq = 0
+    for _i, _p in enumerate(_ps[:len(args)]):
+        if _p.get("required"): _nreq = _i + 1
+    while len(args) > _nreq and args and args[-1] == "":
         args.pop()
     if args: return tuple(args)
     # ⚠️ ပထမ param ကိုက် `dur`/`auto` ဆိုလျှင် **positional argument မလိုပါ** —

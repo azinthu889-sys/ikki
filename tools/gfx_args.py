@@ -44,7 +44,11 @@ def main():
     import gfxcat as G
     pool = set(l.strip() for l in open(os.path.join(HERE, "assets", "gfx_ok.txt"))
                if l.strip() and not l.startswith("#"))
-    todo = [e for e in G.usable() if e["id"] not in pool]
+    # ⚠️ **စာရင်း param ရှိသူများကိုသာ** စစ်ရမည် — ပုံစံ မလိုသူတွေကို
+    #    ပုံစံ ၅ မျိုးစီ render လုပ်တာ အချိန်ကုန်ရုံသာ (၄၈၃ ခု × ၅ = ၂၄၁၅ render)。
+    def _listy(e):
+        return any(p.get("type") == "list" for p in (e.get("params") or []))
+    todo = [e for e in G.usable() if e["id"] not in pool and _listy(e)]
     print(f"စစ်မည် {len(todo)} ခု × ပုံစံ {len(ORDER)} မျိုး", flush=True)
     found, won = {}, 0
     for i, e in enumerate(todo, 1):
@@ -58,8 +62,17 @@ def main():
                 pass
         if hit: found[e["id"]] = hit; won += 1
         print(f"  [{i:3d}/{len(todo)}] {'✓ '+hit if hit else '✖'}  {e['id']}", flush=True)
-    json.dump(found, open(os.path.join(HERE, "assets", "gfx_args.json"), "w"),
-              ensure_ascii=False, indent=1, sort_keys=True)
+    # ⚠️ **လွှမ်း၍ မရ** — ဒီပြေးချက်က စာရင်း param ရှိသူတွေကိုသာ ထိသည်;
+    #    လွှမ်းလျှင် ရှိပြီးသား ပုံစံတွေ ပျောက်ပြီး template တွေ ပြန်ကျမည်
+    #    (`gfx_verify.py` မှာ အတိအကျ ဒီအမှား ဖြစ်ခဲ့ပြီးသား)。
+    _p = os.path.join(HERE, "assets", "gfx_args.json")
+    try:
+        old = json.load(open(_p, encoding="utf-8")) or {}
+    except Exception:
+        old = {}
+    old.update(found)
+    print(f"  (ရှိပြီးသား {len(old)-len(found)} နဲ့ ပေါင်း ⇒ {len(old)})", flush=True)
+    json.dump(old, open(_p, "w"), ensure_ascii=False, indent=1, sort_keys=True)
     print(f"\nအလုပ်ဖြစ် {won}/{len(todo)}", flush=True)
     import collections
     print("ပုံစံအလိုက်:", dict(collections.Counter(found.values())))

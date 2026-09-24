@@ -1,0 +1,2 @@
+# Used by caption, slide, contrast, geometry, and motion measurement code.
+numpy>=1.26,<3

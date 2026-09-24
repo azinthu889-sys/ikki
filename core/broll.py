@@ -15,8 +15,17 @@
 import base64, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gemguard as G
+from video_codec import h264_args
 
-ROOT  = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "broll")
+# The worker runs both on a creator's Mac and in the Linux render container.
+# An index made on the Mac naturally contains absolute `/Users/.../assets/broll`
+# paths.  Those paths must never make the whole B-roll library disappear on the
+# VPS, where the same curated library is mounted at `/app/assets`.
+ASSETS_ROOT = os.environ.get(
+    "IKKI_ASSETS",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"),
+)
+ROOT  = os.path.join(ASSETS_ROOT, "broll")
 INDEX = os.path.join(ROOT, "index.json")
 MODEL = os.environ.get("IKKI_GEMINI_MODEL", "gemini-3.1-flash-lite")
 MIN_D, MAX_D = 1.5, 60.0
@@ -105,8 +114,24 @@ def _ask(img):
 def load():
     try:
         d = json.load(open(INDEX, encoding="utf-8"))
-        # ⚠️ ကူးထားတဲ့ ဖိုင် မရှိတော့တာတွေ ဖယ်ရမည် — မဖယ်လျှင် render ပျက်သည်
-        d["clips"] = [c for c in d.get("clips") or [] if os.path.exists(c.get("path",""))]
+        clips = []
+        for raw in d.get("clips") or []:
+            c = dict(raw)
+            p = c.get("path", "")
+            # Keep a valid path untouched.  Otherwise rebase only the portion
+            # after `assets/broll/`; that preserves the relative clip layout
+            # while allowing an index built on macOS to work in Docker.
+            if not os.path.exists(p):
+                marker = "/assets/broll/"
+                if marker in p:
+                    p = os.path.join(ROOT, p.split(marker, 1)[1])
+                else:
+                    p = os.path.join(CLIPS, os.path.basename(p))
+                c["path"] = p
+            # ⚠️ ကူးထားတဲ့ ဖိုင် မရှိတော့တာတွေ ဖယ်ရမည် — မဖျက်လျှင် render ပျက်သည်
+            if os.path.exists(c.get("path", "")):
+                clips.append(c)
+        d["clips"] = clips
         return d
     except Exception: return {"clips": []}
 
@@ -183,7 +208,7 @@ def index(folder, limit=None, log=print):
                 "-t",f"{keep:.2f}","-an","-vf","scale=-2:1080:force_divisible_by=2",
                 # ⚠️ B-roll က crop ခံရမှာမို့ 1080 လုံလောက် — 1440 ဆို
                 #    clip တစ်ခု ၁၅ MB ဖြစ်ပြီး ၂၀၀ ခုဆို ၃ GB ကုန်သည်。
-                "-c:v","h264_videotoolbox","-b:v","6M",lp], check=True)
+                *h264_args("6M", crf=18),lp], check=True)
         except Exception as e:
             bad += 1; log(f"  ✗ {os.path.basename(p)[:34]:36} ကူးမရ"); continue
         c = dict(path=lp, src=p, size=sz, dur=round(keep,2), w=m["w"], h=m["h"],
@@ -286,14 +311,14 @@ def prep(clip, W, H, dur, out, fps=30):
             f"x='iw/2-(iw/zoom/2)+(on/{n}-0.5)*iw*0.012':"
             f"y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={fps},"
             f"format=yuv420p",
-            "-c:v","h264_videotoolbox","-b:v","12M",out], check=True)
+            *h264_args("12M", crf=18),out], check=True)
         return out
     ss = max(0.0, min(clip["dur"]-dur, clip["dur"]*0.25))
     subprocess.run(["ffmpeg","-v","error","-y","-ss",f"{ss:.2f}","-i",clip["path"],
         "-t",f"{dur:.2f}","-an",
         "-vf",f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
               f"format=yuv420p,fps={fps}",
-        "-c:v","h264_videotoolbox","-b:v","12M",out], check=True)
+        *h264_args("12M", crf=18),out], check=True)
     return out
 
 if __name__ == "__main__":

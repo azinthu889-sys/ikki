@@ -8,6 +8,10 @@
    ⇒ span တစ်ခုချင်း သီးသန့် ထုတ်ပြီး concat demuxer နဲ့ ပေါင်းရသည်。
 """
 import os, subprocess
+try:
+    from video_codec import h264_args
+except ImportError:  # Allows direct package imports in development tools.
+    from core.video_codec import h264_args
 
 FADE = 0.02   # ⚠️ select/concat ချည်းသုံးလျှင် ဆက်တိုင်း "ကလစ်" ဆိုသည်
 
@@ -61,7 +65,7 @@ def _punch(z, w, h, y=PUNCH_Y, x=0.5):
     return (f"crop={cw}:{ch}:{ox}:{int((h - ch) * y)},scale={w}:{h}")
 
 
-def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
+def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
           fade=FADE, zooms=None, scale=None):
     """ဖြတ်မှတ်အတိုင်း ဖြတ်ပြီး ပြန်ဆက်သည်。
 
@@ -69,6 +73,11 @@ def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
     အတွက် (540p · 1.5M) ဖြစ်ပြီး နောက်ဆုံး render မှာ မသုံးပါ。
     """
     os.makedirs(work, exist_ok=True)
+    # A caller may explicitly request a codec for an experiment.  Normal IKKI
+    # renders must use the platform-safe default: VideoToolbox on macOS and
+    # libx264 on Linux.
+    enc = (["-c:v", vcodec, "-b:v", vb] if vcodec else
+           h264_args(vb, crf=20 if scale else 18))
     parts=[]
     _w, _h = _dim(src) if zooms else (0, 0)
     for i,(a,b) in enumerate(spans):
@@ -89,7 +98,7 @@ def spans(src, spans, out, work, fps=30, vcodec="h264_videotoolbox", vb="10M",
             _sc = f"scale=-2:{int(scale)}"
             vf = f"{vf},{_sc}" if vf else _sc
         if vf: cmd += ["-vf", vf]
-        cmd += ["-r",str(fps),"-c:v",vcodec,"-b:v",vb,"-c:a","aac","-b:a","192k",
+        cmd += ["-r",str(fps),*enc,"-c:a","aac","-b:a","192k",
                 "-avoid_negative_ts","make_zero",p]
         subprocess.run(cmd, check=True)
         parts.append(p)

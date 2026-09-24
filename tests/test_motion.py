@@ -9,9 +9,12 @@
      card_out ၀.၀၀s  ပစ်မှတ် ၀.၂၀၀ [၀.၁၃၃–၀.၂၆၇]  ✗ ← pop ချက်ချင်း ပျောက်
      ease     ၀.၁၁၆  spec ၀.၆၆၇                    ✗ ← မျဉ်းဖြောင့် နီးပါး
 """
-import os, sys, unittest
+import os, sys, tempfile, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Unit tests must not write a report into the developer's home directory.  It
+# also proves the worker honours the durable `IKKI_REPORTS` configuration.
+os.environ["IKKI_REPORTS"] = os.path.join(tempfile.gettempdir(), "ikki-test-reports")
 sys.path.insert(0, os.path.join(ROOT, "core"))
 sys.path.insert(0, os.path.join(ROOT, "worker"))
 import motmeas as MM          # noqa: E402

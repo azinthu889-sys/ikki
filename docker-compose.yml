@@ -2,12 +2,18 @@
 # ⚠️ TOKEN ၂ ခုကို .env ထဲမှာ ပြောင်းပါ — dev-* ကို မသုံးရ
 services:
   ikki:
-    build: .
+    build:
+      context: .
+      target: api
     container_name: ikki
     restart: unless-stopped
     environment:
       IKKI_USER_TOKEN:   ${IKKI_USER_TOKEN}
       IKKI_WORKER_TOKEN: ${IKKI_WORKER_TOKEN}
+      # Local-disk fallback uploads are in `ikki_data`; the worker has the
+      # same volume mounted read-only below, so the API may safely return the
+      # local path without a slow container-to-container HTTP copy.
+      IKKI_SHARED_UPLOADS: "1"
       # ⚠️ R2 (object storage)。 ၄ လုံးလုံး ပြည့်မှ R2 mode ဖွင့်သည် —
       #    မပြည့်လျှင် local disk mode ဖြင့် အလုပ်လုပ်နေမည် (ပျက်မသွားဘူး)。
       R2_ACCOUNT_ID:        ${R2_ACCOUNT_ID:-}
@@ -24,8 +30,50 @@ services:
       - traefik.http.routers.ikki.entrypoints=websecure
       - traefik.http.routers.ikki.tls.certresolver=mytlschallenge
       - traefik.http.services.ikki.loadbalancer.server.port=8080
+  # One worker only: it shares a queue with the API and a single 1080p render
+  # can consume several GB of RAM.  Scale-out would duplicate expensive jobs.
+  ikki-worker:
+    build:
+      context: .
+      target: worker
+    container_name: ikki-worker
+    restart: unless-stopped
+    depends_on:
+      - ikki
+    environment:
+      IKKI_API:          http://ikki:8080
+      IKKI_WORKER_TOKEN: ${IKKI_WORKER_TOKEN}
+      IKKI_WORKER_ID:    vps-render-1
+      IKKI_POLL:         6
+      IKKI_MOTIONKIT:    /motionkit
+      MOTIONKIT:         /motionkit
+      IKKI_ASSETS:       /app/assets
+      IKKI_SCRATCH:      /scratch
+      IKKI_BIG:          /scratch/big
+      IKKI_BUSY:         /scratch/busy
+      IKKI_SFX_CACHE:    /scratch/sfx-cue
+      # Worker `$HOME` is ephemeral; reports must survive a container rebuild.
+      IKKI_REPORTS:      /reports
+      MK_TEXT:           rsvg
+      PYTHONUNBUFFERED:  "1"
+    volumes:
+      # Curated runtime assets are staged by deploy-vps.sh; source/cache files
+      # and the macOS-only text binary are never transferred.
+      - ./runtime/assets:/app/assets:ro
+      - ./runtime/motionkit:/motionkit:ro
+      # Fallback uploads only.  The worker must never write user source data.
+      - ikki_data:/data:ro
+      - ikki_motion_work:/motionkit/work
+      - ikki_worker_scratch:/scratch
+      - ikki_reports:/reports
+    networks: [n8n_default]
+    mem_limit: 6g
+    cpus: "1.8"
 volumes:
   ikki_data:
+  ikki_motion_work:
+  ikki_worker_scratch:
+  ikki_reports:
 networks:
   n8n_default:
     external: true

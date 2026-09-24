@@ -738,8 +738,11 @@ select.inp{ appearance:none; background-image:
 .scard:focus-visible{outline:none;border-color:var(--ac);box-shadow:var(--shac)}
 .scard[aria-pressed="true"]{border-color:var(--ac);box-shadow:var(--shac)}
 .scard .thumb{display:block;width:100%;position:relative;aspect-ratio:4/3;background:var(--sur);overflow:hidden}
-.scard .thumb video,.scard .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.scard .thumb video{opacity:1;transition:opacity .25s var(--ez2)}
+.scard .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+/* The still is the card's immediate, zero-decoder preview.  Video sits above
+   it only while one intentionally selected card is playing. */
+.scard .thumb video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  display:block;opacity:0;transition:opacity .25s var(--ez2)}
 .scard.play .thumb video{opacity:1}
 .scard .meta{display:block;width:100%;padding:10px 12px 12px;box-sizing:border-box}
 .scard .meta b{display:block;font-weight:650;font-size:14px;letter-spacing:-.005em;line-height:1.3}
@@ -853,6 +856,20 @@ select.inp{ appearance:none; background-image:
    (၂၀၂၆-၀၉-၂၁ Zin)。 sr-only က မျက်စိနဲ့ မမြင်ရဘဲ **အလုပ်ဖြစ်နေသည်**。 */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
   overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* App-owned inputs. Native prompt()/confirm() are unavailable in IKKI's
+   embedded browser, so these keep token, payment and reference flows usable. */
+.app-dialog-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;
+  padding:20px;background:rgba(8,10,14,.72);backdrop-filter:blur(8px)}
+.app-dialog{width:min(100%,460px);max-height:calc(100vh - 40px);overflow:auto;
+  border:1px solid var(--line2);border-radius:18px;padding:22px;background:var(--up);
+  color:var(--tx);box-shadow:0 24px 80px rgba(0,0,0,.48)}
+.app-dialog h2{margin:0;font-size:19px;line-height:1.35}.app-dialog-message{margin:8px 0 16px;
+  color:var(--tx2);font-size:13px;line-height:1.6;white-space:pre-line}
+.app-dialog form{display:grid;gap:15px}.app-dialog-input{width:100%;min-height:42px;box-sizing:border-box}
+textarea.app-dialog-input{min-height:104px;resize:vertical}.app-dialog-actions{display:flex;gap:9px;
+  justify-content:flex-end;flex-wrap:wrap}.app-dialog-actions .btn,.app-dialog-actions .cta{min-width:96px}
+@media(max-width:520px){.app-dialog-backdrop{padding:12px}.app-dialog{padding:19px 17px;border-radius:15px}}
 
 /* ── Reference Style DNA card (၂၀၂၆-၀၉-၂၁) ────────────────────
    ⚠️ **ချုံ့ထားရမည်** — Smart Edit တစ်ချက်နှိပ် အလုပ်ဖြစ်မှုကို မပိတ်ဆို့ရ。 */

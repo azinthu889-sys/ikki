@@ -14,6 +14,10 @@
    overlay တင်ရသည်。
 """
 import os, subprocess
+try:
+    from video_codec import h264_args
+except ImportError:  # Allows direct package imports in development tools.
+    from core.video_codec import h264_args
 
 # playbook ရဲ့ base (grade v3)
 LEVELS = dict(imin=0.145, imax=0.72, omin=0.075, omax=1.0)
@@ -126,7 +130,7 @@ def apply(src, out, rc, log=print):
         log("  grade မလုပ် (recipe မှာ မသတ်မှတ်)")
         return src
     subprocess.run(["ffmpeg","-v","error","-y","-i",src,"-vf",fc,
-        "-c:v","h264_videotoolbox","-b:v","16M","-c:a","copy",out], check=True)
+        *h264_args("16M", crf=18),"-c:a","copy",out], check=True)
     log(f"  grade v3 · sat {rc.get('sat',1.05)} · vignette {rc.get('vign',0.60)}"
         + ("" if rc.get("cbal", True) else " · colorbalance ပိတ်"))
     return out

@@ -10,6 +10,7 @@
    ၁၄၀ ခန့်မှာ ပျက်သည်。 ⇒ စာတန်းလိုပဲ **alpha track တစ်ခု** ဆောက်ရမည်。
 """
 import os
+import re
 
 def pick(rc, dur, sil, segs, log=None):
     """(when, kind) စာရင်း — ဂရပ်ဖစ် ဘယ်အချိန် ဘယ်ဟာ ချမလဲ。"""
@@ -506,7 +507,11 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             # ⚠️ **tmplfit ပြန်ဆုတ်လမ်း** — `ARGS`/`_cargs` က ဖြည့်မရလျှင်
             #    catalog ရဲ့ param signature အတိုင်း ဖြည့်ကြည့်သည်。
             #    ဒါက motionkit template အများစုကို ပထမဆုံး သုံးနိုင်စေသည်。
-            if not a:
+            # ⚠️ `()` က **param မလိုသော** template ရဲ့ မှန်ကန်သော အဖြေ —
+            #    `not a` နဲ့ စစ်လျှင် ကျရှုံးဟု မှတ်ပြီး `trans` ၂၄ ခု ·
+            #    `motionfx` ၁၄ ခု · `thm.chat_dots` တို့ **engine ဆီ လုံးဝ
+            #    မရောက်**ခဲ့ (၂၀၂၆-၀၉-၂၄ တိုင်း၍ တွေ့)。
+            if a is None:
                 try:
                     _T = None
                     try:
@@ -525,7 +530,7 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                 except Exception as _te:
                     log and log(f"  ⚠️ tmplfit မရ: {type(_te).__name__}: {_te}")
                     a = None
-            if not a:
+            if a is None:
                 # ⚠️ **မှန်းဆ မဖြည့်ရ** — ကျော်သွားတာကို အကြောင်းရင်းနဲ့ ပြသည်
                 LAST["no_args"] = LAST.get("no_args", 0) + 1
                 log(f"  ⊘ argument မဖြည့်နိုင်: {g['kind']} @ {g.get('at', 0):.1f}s "
@@ -696,11 +701,33 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             except OSError: _sh.copyfile(p, dst)
         ax, ay = el["anim"][0][1] + dx, el["anim"][0][2] + dy
         ins=["-framerate",str(fps),"-i",seq]
-        fc=[f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[b0]"]; last="b0"; n=0
-        for p,x,y,d in el["statics"]:
-            ins += ["-loop","1","-i",p]; n+=1
-            fc.append(f"[{last}][{n}:v]overlay={x+dx}:{y+dy}:enable='gte(t,{d:.2f})'[b{n}]")
-            last=f"b{n}"
+        _is_pack = bool(el.get("pack") and el.get("enter_s") is not None
+                        and el.get("exit_s") is not None and el.get("statics"))
+        if _is_pack:
+            # `anim` = enter + exit၊ `statics` = full-opacity hold frame ဖြစ်သည်။
+            # အရင် legacy path က static ကို `gte(t, hold)` နဲ့ **အဆုံးမှသာ**
+            # တင်မိသဖြင့် hold မရှိ၊ exit က pop ဖြင့် ပျောက်သွားခဲ့သည်။
+            # enter → hold → exit ကို explicit concat လုပ်ရမည်။
+            _sp, _sx, _sy, _sd = el["statics"][0]
+            ins += ["-loop", "1", "-framerate", str(fps), "-i", _sp]
+            _en = float(el["enter_s"])
+            _ex = float(el["exit_s"])
+            _hold = max(0.10, float(el.get("hold_s") or _sd))
+            fc = [
+                f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[pbase]",
+                f"[pbase]trim=duration={_en:.3f},setpts=PTS-STARTPTS[pin]",
+                f"[pbase]trim=start={_en:.3f},setpts=PTS-STARTPTS[pout]",
+                f"[1:v]pad={W}:{H}:{_sx+dx}:{max(0,_sy+dy)}:color=black@0,"
+                f"trim=duration={_hold:.3f},setpts=PTS-STARTPTS[phold]",
+                "[pin][phold][pout]concat=n=3:v=1:a=0[pfull]",
+            ]
+            last="pfull"; n=1
+        else:
+            fc=[f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[b0]"]; last="b0"; n=0
+            for p,x,y,d in el["statics"]:
+                ins += ["-loop","1","-i",p]; n+=1
+                fc.append(f"[{last}][{n}:v]overlay={x+dx}:{y+dy}:enable='gte(t,{d:.2f})'[b{n}]")
+                last=f"b{n}"
         y0, y1 = _ybox(el, H); y0 += dy; y1 += dy
         mov = os.path.join(work, f"g{i}.mov")
         # ⚠️ ကတ်ကို **ကြာကြာ ရပ်စေရန်** — template ရဲ့ ကိုယ်ပိုင် အရှည်က
@@ -715,6 +742,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    ယခင်အတိုင်း global `hold`。
         _h = g.get("hold")
         hold = float(_h) if _h else hold
+        if _is_pack:
+            # Pack ရဲ့ hold ကိုအပေါ်က concat ထဲမှာပြီးသား ဆောက်ထားသည်။
+            hold = None
         if hold and hold > gdur + 0.05:
             fc2.append(f"[{last2}]tpad=stop_mode=clone:"
                        f"stop_duration={hold-gdur:.2f}[hp]")
@@ -725,18 +755,24 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    အဟောင်းလမ်းကြောင်းသို့ ပြန်ဆုတ်သည် (job မကျအောင်)。
             done_v2 = False
             _r = _r2()
-            if _r is not None and os.environ.get("IKKI_GFX_V2", "1") != "0":
+            # `render2.clip_alpha()` က generic MotionKit element အတွက်သာ
+            # anim + statics sequence ကိုနားလည်သည်။ Headtop pack က entry/hold/
+            # exit ကိုသီးသန့်ထားသဖြင့် legacy concat လမ်းကြောင်းကိုသုံးရမည်;
+            # မဟုတ်လျှင် hold ပြီးမှ exit မဟုတ်ဘဲ flicker ပြန်ဖြစ်မည်။
+            if (_r is not None and not _is_pack
+                    and os.environ.get("IKKI_GFX_V2", "1") != "0"):
                 try:
                     el2 = dict(el)
                     el2["anim"] = [(p_, x_ + dx, y_ + dy) for (p_, x_, y_) in el["anim"]]
                     el2["statics"] = [(p_, x_ + dx, y_ + dy, d_) for (p_, x_, y_, d_) in el.get("statics", [])]
                     base_mov = mov.replace(".mov", "_v2.mov")
-                    # ⚠️ `src_fps` က **အပေါ်က `hifps(60)` နဲ့ တွဲနေသည်** —
-                    #    builder ကို ၆၀ နဲ့ ဆောက်ခိုင်းထားသဖြင့် ဒီမှာလည်း ၆၀。
-                    #    တစ်ဖက် ပြောင်းလျှင် နှစ်ဖက်လုံး ပြောင်းရမည် — မဟုတ်လျှင်
-                    #    anim က မြန်/နှေး ဖြစ်ပြီး ခဲသွားမည် (slide မှာ တကယ် ဖြစ်ခဲ့)。
+                    # ⚠️ pack adapter က `P.frames(..., fps)` နဲ့ timeline fps
+                    #    အတိုင်း frame ဆောက်သည်။ regular MotionKit builder
+                    #    လို `hifps(60)` အတွင်း မပြေးပါ။ အရင်က src_fps=60
+                    #    ဟု hard-code လုပ်ခဲ့လို့ 30fps pack motion ကို နှစ်ဆ
+                    #    မြန်ကာ exit 0.1s / linear ဆန်သွားခဲ့သည်。
                     _f2, _sub2 = _v2fps(fps)
-                    _r.clip_alpha(el2, base_mov, hold=0.02, fps=_f2, sub=_sub2, src_fps=60,
+                    _r.clip_alpha(el2, base_mov, hold=0.02, fps=_f2, sub=_sub2, src_fps=fps,
                                    look=dict(grain=1.1,
                                              tone=getattr(_r, "LOOK2026", {}).get("tone")),
                                    camera=(1.0, 1.015))
@@ -914,8 +950,10 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
             if _r2v is None:
                 return None
             _f3, _sub3 = _v2fps(fps)
+            # `pack_el` ကို timeline fps ဖြင့် frame ဆောက်ထားသည်။ MotionKit
+            # global FPS ကိုပေးလျှင် 24/25fps job တွေရဲ့ entry/exit လွဲမည်။
             _r2v.clip_alpha(el, base2, hold=0.02, fps=_f3, sub=_sub3,
-                            src_fps=_mk_fps(_r2v),
+                            src_fps=fps,
                             look=dict(grain=1.1,
                                       tone=getattr(_r2v, "LOOK2026", {}).get("tone")),
                             camera=(1.0, 1.015))
@@ -1348,8 +1386,13 @@ def _subject_pool():
 # ⚠️ **အချိန်ကို မရွှေ့ရ** — cue က ဂရပ်ဖစ်နဲ့ တွဲနေသည်。 အသံကိုသာ လျှော့သည်。
 # ⚠️ playbook — 「SFX ကို သတိထားမိလောက်အောင် ကြားရရင် ၆ dB ကျယ်နေပြီ」
 #    ⇒ စကားပေါ်မှာ SFX က စကားအောက် ၆ dB ရှိရမည်。
-DUCK_MARGIN = 6.0        # စကားအောက် ဘယ်နှစ် dB ထားမလဲ
-DUCK_MAX = 12.0          # ဒီထက် ပို မလျှော့ရ — လျှော့လွန်းလျှင် မကြားရတော့
+# `-6 dB` ချန်ထားလျှင် safety အတွက် ကောင်းသလို ထင်ရပေမယ့်၊ headtop ရဲ့
+# music bed + master ပြီးနောက်မှာ SFX ကို လုံးဝ မကြားရတော့ခဲ့သည်
+# (`j_1f9561de04b3`: cue ၁၂ ခုထဲ ၈ ခု duck ခံရ)။ စကားနားလည်မှုကို
+# မပျက်စေဘဲ impact ရရန် 4 dB margin နှင့် attenuation floor ကို သတ်မှတ်သည်။
+DUCK_MARGIN = 4.0        # စကားအောက် ဘယ်နှစ် dB ထားမလဲ
+DUCK_MAX = 7.0           # ဒီထက် ပို မလျှော့ရ — လျှော့လွန်းလျှင် မကြားရတော့
+DUCK_DB_FLOOR = -22      # role asset normalise ပြီးနောက် cue gain အနည်းဆုံး
 DUCK_WIN = 0.40          # cue ပတ်လည် ဘယ်လောက် တိုင်းမလဲ (s)
 
 
@@ -1409,10 +1452,14 @@ def duck_cues(cues, wav, sfx_db=None, log=None):
         if lv <= want:
             out.append(c); continue
         cut = min(DUCK_MAX, lv - want)
-        out.append((at, role, int(round(float(db) - cut))))
+        # `db` က asset normalisation ပြီးနောက် ထပ်လျှော့မည့် gain ဖြစ်သည်။
+        # −27 dB လို ဆုတ်သွားလျှင် stem မှာရှိသော်လည်း music/master အောက်မှာ
+        # မကြားရတော့ဘူး။ floor ကိုမကျော်စေဘဲ စကားပေါ်မှာသာ duck လုပ်သည်။
+        next_db = max(DUCK_DB_FLOOR, int(round(float(db) - cut)))
+        out.append((at, role, next_db))
         n += 1
         log and log(f"    ↓ SFX {at:6.2f}s {role:11} {db:+d} → "
-                    f"{int(round(float(db)-cut)):+d} dB "
+                    f"{next_db:+d} dB "
                     f"(စကား {sp:.0f} dB — ဖုံးမည် ဖြစ်၍)")
     return out, n
 
@@ -1433,6 +1480,35 @@ PACK_FN = {"headtop.ht_concept_card": "concept_card",
 
 
 _PRIMS = {}
+
+
+def _pack_ease(progress, spec):
+    """Motion Kit token ရဲ့ cubic-bezier ကို frame progress အဖြစ်ပြောင်းသည်。
+
+    Pack primitives ရဲ့ fallback easing ကို သုံးလိုက်လျှင် rendered alpha
+    curve က spec ရဲ့ ease-out နီးပါးမရခဲ့ (`ease=0.073`)။ Token ကိုဖတ်ပြီး
+    x(t) ကို binary-search ဖြင့်ဖြေကာ y(t) ကိုသုံးသည် — timing token ကို
+    code ထဲမှာ ပြန် hard-code မလုပ်ရ။
+    """
+    x = max(0.0, min(1.0, float(progress)))
+    m = re.search(r"cubic-bezier\(\s*([-.\d]+)\s*,\s*([-.\d]+)\s*,\s*([-.\d]+)\s*,\s*([-.\d]+)\s*\)",
+                  str(spec or ""))
+    if not m:
+        return x
+    x1, y1, x2, y2 = (float(v) for v in m.groups())
+
+    def _b(t, a, b):
+        mt = 1.0 - t
+        return 3.0 * mt * mt * t * a + 3.0 * mt * t * t * b + t * t * t
+
+    lo, hi = 0.0, 1.0
+    for _ in range(20):
+        mid = (lo + hi) / 2.0
+        if _b(mid, x1, x2) < x:
+            lo = mid
+        else:
+            hi = mid
+    return _b((lo + hi) / 2.0, y1, y2)
 
 
 def _over_subject(kind):
@@ -1519,7 +1595,13 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
         return None
     en = float(PK.tok(_t, "motion", "enter", default=0.467))
     ex = float(PK.tok(_t, "motion", "exit", default=0.200))
+    # Alpha metric က `94% → 6%` ကိုသာတိုင်းသည်။ Token 0.200s ကို frame
+    # ခြောက်ခုနဲ့ တိုက်ရိုက်ဖြန့်လျှင် တကယ်မြင်ရတဲ့ fade အပိုင်း 0.100s ပဲ
+    # ကျန်ခဲ့သည်။ Reference ရဲ့ measured band 0.133–0.267s အတွင်းရရန်
+    # rendering span ကို 1.5× ချဲ့ပြီး token ကို visual midpoint အဖြစ်ထားသည်။
+    ex_render = ex * 1.5
     hold = float(dur or PK.tok(_t, "motion", "hold", default=1.8))
+    easing = PK.tok(_t, "motion", "easing", default="")
     try:
         if fn == "concept_card":
             base = CD.concept_card(props.get("head") or "", props.get("sub") or "",
@@ -1550,7 +1632,7 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
         return None
     os.makedirs(work, exist_ok=True)
     ni = P.frames(en, fps)
-    no = P.frames(ex, fps)
+    no = P.frames(ex_render, fps)
     anim, statics = [], []
 
     def _w(im, k):
@@ -1558,8 +1640,12 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
         im.save(q); return q
 
     for i in range(ni + 1):
-        a = P.at(P.fade, i, ni, dur=en)
-        s = P.at(P.scale, i, ni, dur=en)
+        # Token easing ကို alpha နဲ့ scale နှစ်ခုလုံးမှာ သုံးရမည်။ မဟုတ်လျှင်
+        # report က entry အချိန်မှန်သော်လည်း visual curve က မျဉ်းဖြောင့်ဆန်ပြီး
+        # premium reference ရဲ့ settle မရတော့ဘူး။
+        e = _pack_ease(i / float(ni), easing)
+        a = e
+        s = 0.94 + 0.06 * e
         im = base if abs(s - 1.0) < 1e-4 else base.resize(
             (max(1, int(W * s)), max(1, int(H * s))), Image.LANCZOS)
         if im.size != (W, H):                 # ⚠️ ဘောင် အလယ်မှာ ထားရမည်
@@ -1572,9 +1658,23 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
     # ⚠️ ရပ်ချိန်ကို frame အပြည့် မရေးရ — ဖိုင် ထောင်ချီ ထွက်မည် ⇒ statics
     statics.append((anim[-1][0], 0, 0, max(0.1, hold)))
     for j in range(1, no + 1):
-        a = P.at(P.fade, j, no, dur=ex, out=True)
-        im = base.copy()
-        im.putalpha(base.split()[3].point(lambda v, _a=a: int(v * _a)))
+        # Exit ကို enter နဲ့ curve တစ်ဖက်တည်း မသုံးရ။ ease-out fade မှာ
+        # alpha က ပထမ frames မှာတင် ပျောက်သွားပြီး `out_s=0.067` ထွက်ခဲ့သည်။
+        # Reverse curve (ease-in opacity) သုံးမှ 0.200s token အတွင်း အဆုံးမှာ
+        # သဘာဝကျစွာဆုတ်သွားသည်။
+        e = 1.0 - _pack_ease(1.0 - j / float(no), easing)
+        a = 1.0 - e
+        s = 1.0 + 0.04 * e
+        im = base if abs(s - 1.0) < 1e-4 else base.resize(
+            (max(1, int(W * s)), max(1, int(H * s))), Image.LANCZOS)
+        if im.size != (W, H):
+            c = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            c.paste(im, ((W - im.size[0]) // 2, (H - im.size[1]) // 2)); im = c
+        else:
+            im = im.copy()
+        # Scale ပြီးသား alpha ကိုသုံးရမည်။ base ရဲ့ alpha ကိုပြန်သုံးလျှင်
+        # RGB ပဲကျယ်ပြီး mask မကျယ်သဖြင့် scale motion မမြင်ရတော့ဘူး။
+        im.putalpha(im.split()[3].point(lambda v, _a=a: int(v * _a)))
         anim.append((_w(im, ni + j), 0, 0))
-    return dict(anim=anim, statics=statics, dur=round(en + hold + ex, 3),
-                kind=tid, pack=True)
+    return dict(anim=anim, statics=statics, dur=round(en + hold + ex_render, 3),
+                enter_s=en, hold_s=hold, exit_s=ex_render, kind=tid, pack=True)

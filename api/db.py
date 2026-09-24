@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS jobs(
   recipe TEXT, font TEXT, status TEXT, stage INTEGER DEFAULT 0, stage_name TEXT,
   err TEXT, src_dur REAL, out_dur REAL, out_path TEXT, cuts INTEGER,
   captions INTEGER, flags INTEGER DEFAULT 0, minutes REAL DEFAULT 0,
+  report TEXT, report_at REAL,
   created REAL, claimed REAL, finished REAL);
 
 CREATE TABLE IF NOT EXISTS versions(
@@ -117,10 +118,20 @@ def init():
     for extra, ddl in (("sync","TEXT"), ("vplan","TEXT")):
         if extra not in cols:
             c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
+    # A render is not auditable if its measured QC report disappears with a
+    # worker container.  Keep the concise report with the job as well as the
+    # worker-side file/volume, so support can inspect exactly what shipped.
+    for extra, ddl in (("report", "TEXT"), ("report_at", "REAL")):
+        if extra not in cols:
+            c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
     for extra, ddl in (("cut_path","TEXT"), ("cut_key","TEXT"),
                        ("cut_dur","REAL"), ("cut_src","REAL"),
                        ("cut_hash","TEXT"), ("cut_spans","TEXT"),
-                       ("cut_n","INTEGER"), ("cut_ok","REAL")):
+                       ("cut_n","INTEGER"), ("cut_ok","REAL"),
+                       # A cut preview may restore tiny source context to
+                       # avoid a visible flash.  Keep that explanation with
+                       # the job rather than hiding the change in a log.
+                       ("cut_note","TEXT")):
         if extra not in cols:
             c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
     # ⚠️ brand ရဲ့ logo — ဖိုင်နာမည်သာ သိမ်းသည် (ဖိုင်က DATA/logos/ ထဲ)
@@ -149,7 +160,9 @@ def init():
         if _c not in jcols2: c.execute(f"ALTER TABLE jobs ADD COLUMN {_c} {_d}")
     ucols = [r[1] for r in c.execute("PRAGMA table_info(uploads)")]
     for extra, ddl in (("key","TEXT"), ("mpu","TEXT"),
-                       ("local","INTEGER DEFAULT 0")):
+                       # 8 MiB is safely above R2's 5 MiB multipart minimum
+                       # and avoids holding a 32 MiB body in a browser renderer.
+                       ("part_size","INTEGER"), ("local","INTEGER DEFAULT 0")):
         if extra not in ucols:
             c.execute(f"ALTER TABLE uploads ADD COLUMN {extra} {ddl}")
     # ⚠️ notify ဆက်တင် — Telegram chat id

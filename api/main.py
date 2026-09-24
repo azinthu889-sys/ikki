@@ -49,6 +49,21 @@ for d in (UP, OUT, LOGO, THUMB, BROLLIN): os.makedirs(d, exist_ok=True)
 db.init()
 app = FastAPI(title="IKKI")
 
+@app.middleware("http")
+async def ikki_token_header(request: Request, call_next):
+    """Bridge the browser-only token header before FastAPI resolves params.
+
+    The production Traefik route drops the standard Authorization header on
+    its HTTPS hop. `X-IKKI-Token` reaches that route; only inside IKKI does it
+    become the regular Bearer header consumed by `auth()`.
+    """
+    raw = list(request.scope.get("headers", []))
+    has_auth = any(k.lower() == b"authorization" for k, _ in raw)
+    token = next((v for k, v in raw if k.lower() == b"x-ikki-token"), b"").strip()
+    if not has_auth and token:
+        request.scope["headers"] = raw + [(b"authorization", b"Bearer " + token)]
+    return await call_next(request)
+
 def auth(h, tok):
     """token စစ်သည်。
 
@@ -99,6 +114,19 @@ def mine(h, jid, t2=""):
     if not j or (j.get("acct") or "a_default") != aid(h, t2):
         raise HTTPException(404, "မတွေ့ပါ")
     return j
+
+
+def my_upload(h, uid, t2=""):
+    """Return an upload only to its owner.
+
+    Multipart URLs are capability URLs, so issuing one for another account's
+    upload would expose that source file.  Keep every upload and resume route
+    account-scoped, just like jobs are.
+    """
+    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    if not u or (u.get("acct") or "a_default") != aid(h, t2):
+        raise HTTPException(404, "မတွေ့ပါ")
+    return u
 
 
 @app.get("/api/accounts")
@@ -159,27 +187,36 @@ async def up_init(req: Request, authorization: str = Header(None)):
     b = await req.json()
     uid = db.nid("u_")
     ext = os.path.splitext(b.get("name",""))[1][:8]
-    # ⚠️ worker ရဲ့ စက်ထဲ ဤဖိုင် ရှိပြီးသားဆို **တစ် byte မှ မတင်ရ**。
-    #    အညွှန်းက ၁ နာရီထက် ဟောင်းလျှင် မယုံ (ဖိုင် ရွှေ့/ဖျက်ထားနိုင်)。
+    # A worker-index hit is only safe in a true single-host local setup.  In
+    # production the API can receive an index from a Mac while the VPS worker
+    # claims the job; saving that Mac pathname as `local=1` produces a job
+    # which is marked uploaded but can never be rendered.  Prefer R2 whenever
+    # it is configured.  The local optimisation remains available only after
+    # R2 is disabled *and* this API process can see the exact file itself.
     _lp = _WIDX.get((b.get("name",""), int(b.get("size",0) or 0)))
-    if _lp and (time.time() - _WIDX_AT[0]) < 3600:
-        db.run("INSERT INTO uploads(id,name,size,received,path,done,created,acct,local)"
-               " VALUES(?,?,?,?,?,1,?,?,1)",
-               uid, b.get("name",""), int(b.get("size",0)), int(b.get("size",0)),
-               _lp, time.time(), aid(authorization))
-        return {"upload_id": uid, "received": int(b.get("size",0)),
-                "size": int(b.get("size",0)), "mode": "have", "chunk": 8*1024*1024}
     if ST.on():
         # ⚠️ R2 mode — browser က R2 ကို **တိုက်ရိုက်** တင်သည်。 VPS မဖြတ်ဘူး。
         #    ၄၁၉ MB ဖိုင်တစ်ခုက VPS ကို ၄ ခါ ဖြတ်ခဲ့ပြီး ဆွဲချရုံ ၈ မိနစ်
         #    ကြာခဲ့သည် (တိုင်းထားသည်)。
         key = f"uploads/{uid}{ext}"
         mpu = ST.mpu_create(key, "video/mp4")
-        db.run("INSERT INTO uploads(id,name,size,received,path,done,created,key,mpu,acct)"
-               " VALUES(?,?,?,0,'',0,?,?,?,?)",
-               uid, b.get("name",""), int(b.get("size",0)), time.time(), key, mpu,
+        # R2 needs 5 MiB minimum parts (except the last).  8 MiB keeps browser
+        # memory bounded on phones and embedded browsers without changing video
+        # quality or requiring the VPS to proxy bytes.  Store it per upload so
+        # an older 32 MiB multipart session can still resume correctly.
+        part_size = 8*1024*1024
+        db.run("INSERT INTO uploads(id,name,size,received,path,done,created,key,mpu,part_size,acct)"
+               " VALUES(?,?,?,0,'',0,?,?,?,?,?)",
+               uid, b.get("name",""), int(b.get("size",0)), time.time(), key, mpu, part_size,
                aid(authorization))
-        return {"upload_id": uid, "received": 0, "chunk": 32*1024*1024, "mode": "r2"}
+        return {"upload_id": uid, "received": 0, "chunk": part_size, "mode": "r2"}
+    if _lp and (time.time() - _WIDX_AT[0]) < 3600 and os.path.isfile(_lp):
+        db.run("INSERT INTO uploads(id,name,size,received,path,done,created,acct,local)"
+               " VALUES(?,?,?,?,?,1,?,?,1)",
+               uid, b.get("name",""), int(b.get("size",0)), int(b.get("size",0)),
+               _lp, time.time(), aid(authorization))
+        return {"upload_id": uid, "received": int(b.get("size",0)),
+                "size": int(b.get("size",0)), "mode": "have", "chunk": 8*1024*1024}
     p = os.path.join(UP, uid + ext)
     open(p, "wb").close()
     db.run("INSERT INTO uploads(id,name,size,received,path,done,created,acct)"
@@ -187,11 +224,62 @@ async def up_init(req: Request, authorization: str = Header(None)):
            uid, b.get("name",""), int(b.get("size",0)), p, time.time(), aid(authorization))
     return {"upload_id": uid, "received": 0, "chunk": 8*1024*1024, "mode": "local"}
 
+
+def _r2_resume(u):
+    """Build a restart-safe multipart state directly from R2."""
+    if not ST.on():
+        raise HTTPException(503, "R2 မချိတ်နိုင်သေးပါ")
+    try:
+        parts = ST.mpu_list_parts(u["key"], u["mpu"])
+    except Exception as e:
+        # Do not create another multipart upload when R2 cannot be verified:
+        # doing so would make the user upload duplicate bytes after a crash.
+        raise HTTPException(502, "R2 upload ကို အတည်မပြုနိုင်သေးပါ — ခဏနေရင် ပြန်ကြိုးစားပါ") from e
+    size = int(u.get("size") or 0)
+    # Existing uploads predate `part_size` and were created with 32 MiB parts.
+    part_size = int(u.get("part_size") or 32*1024*1024)
+    if part_size < 5*1024*1024 or part_size > 128*1024*1024:
+        raise HTTPException(409, "R2 part size မမှန်ပါ")
+    max_part = (size + part_size - 1) // part_size if size else 10000
+    parts = [p for p in parts if 1 <= p["n"] <= max_part and p["size"] > 0]
+    received = sum(p["size"] for p in parts)
+    db.run("UPDATE uploads SET received=? WHERE id=?", received, u["id"])
+    return {"upload_id": u["id"], "name": u["name"], "size": size,
+            "received": received, "done": bool(u["done"]), "mode": "r2",
+            "chunk": part_size, "parts": parts}
+
+
+@app.get("/api/uploads/resumable")
+def up_resumable(name: str = "", size: int = 0, authorization: str = Header(None)):
+    """Find this account's newest incomplete R2 upload of the same file.
+
+    The browser cannot re-open a local file after a renderer crash.  Once the
+    user reselects that same file, this route recovers even old pages that had
+    not yet written a local resume key.
+    """
+    auth(authorization, UTOKEN)
+    if not name or size <= 0:
+        raise HTTPException(400, "ဖိုင်အမည်နဲ့ အရွယ် လိုသည်")
+    u = db.one("SELECT * FROM uploads WHERE acct=? AND name=? AND size=? "
+               "AND done=0 AND mpu IS NOT NULL AND mpu<>'' "
+               "ORDER BY created DESC LIMIT 1", aid(authorization), name, int(size))
+    return {"upload": _r2_resume(u) if u else None}
+
+
+@app.get("/api/upload/{uid}/resume")
+def up_resume(uid: str, authorization: str = Header(None)):
+    auth(authorization, UTOKEN)
+    u = my_upload(authorization, uid)
+    if not u.get("mpu") or u.get("done"):
+        raise HTTPException(409, "ဆက်တင်နိုင်သော R2 upload မဟုတ်ပါ")
+    return _r2_resume(u)
+
 @app.get("/api/upload/{uid}")
 def up_state(uid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
-    if not u: raise HTTPException(404, "no upload")
+    u = my_upload(authorization, uid)
+    if u.get("mpu") and not u.get("done"):
+        return _r2_resume(u)
     # ⚠️ DB မဟုတ်ဘဲ **ဖိုင်အရွယ်ကို တိုင်း**ရမည် — chunk တစ်ခု ရေးပြီး DB မရေးမီ
     #    ပြတ်သွားလျှင် ကိန်း ၂ ခု ကွဲသည်。
     got = os.path.getsize(u["path"]) if os.path.exists(u["path"]) else 0
@@ -200,8 +288,7 @@ def up_state(uid: str, authorization: str = Header(None)):
 @app.put("/api/upload/{uid}/chunk")
 async def up_chunk(uid: str, req: Request, offset: int = 0, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
-    if not u: raise HTTPException(404, "no upload")
+    u = my_upload(authorization, uid)
     got = os.path.getsize(u["path"]) if os.path.exists(u["path"]) else 0
     if offset != got:
         return JSONResponse({"error":"offset", "received": got}, status_code=409)
@@ -221,7 +308,7 @@ def up_part(uid: str, n: int = 1, authorization: str = Header(None)):
        complete က ကျဘမ်း ဖြစ်မည် (tools/r2_setup.py က သတ်မှတ်ပေးသည်)。
     """
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    u = my_upload(authorization, uid)
     if not u or not u.get("mpu"): raise HTTPException(404, "no upload")
     if n < 1 or n > 10000: raise HTTPException(400, "part မှား")
     return {"url": ST.mpu_part_url(u["key"], u["mpu"], n)}
@@ -236,7 +323,7 @@ def up_parts(uid: str, frm: int = 1, n: int = 50, authorization: str = Header(No
        ⇒ အစုလိုက် တောင်းလျှင် ၅၆၂ ကြိမ် → ၁၂ ကြိမ်。
     """
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    u = my_upload(authorization, uid)
     if not u or not u.get("mpu"): raise HTTPException(404, "no upload")
     n = max(1, min(100, int(n)))
     if frm < 1 or frm + n - 1 > 10000: raise HTTPException(400, "part မှား")
@@ -246,7 +333,7 @@ def up_parts(uid: str, frm: int = 1, n: int = 50, authorization: str = Header(No
 @app.post("/api/upload/{uid}/complete")
 async def up_complete(uid: str, req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    u = my_upload(authorization, uid)
     if not u or not u.get("mpu"): raise HTTPException(404, "no upload")
     b = await req.json()
     parts = [(int(x["n"]), str(x["etag"])) for x in (b.get("parts") or []) if x.get("etag")]
@@ -261,7 +348,7 @@ async def up_complete(uid: str, req: Request, authorization: str = Header(None))
 @app.post("/api/upload/{uid}/abort")
 def up_abort(uid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+    u = my_upload(authorization, uid)
     if u and u.get("mpu"): ST.mpu_abort(u["key"], u["mpu"])
     return {"ok": True}
 
@@ -441,8 +528,73 @@ def job_retry(jid: str, authorization: str = Header(None)):
         db.run("UPDATE usage SET minutes=max(0,minutes-?) WHERE ym=?",
                back, time.strftime("%Y-%m"))
     db.run("UPDATE jobs SET status='queued',stage=0,minutes=0,err=NULL,"
-           "claimed=NULL,finished=NULL WHERE id=?", jid)
+           "claimed=NULL,finished=NULL,report=NULL,report_at=NULL WHERE id=?", jid)
     return {"ok": True, "refunded": round(back, 2)}
+
+
+@app.post("/api/jobs/{jid}/quality-recheck")
+def job_quality_recheck(jid: str, authorization: str = Header(None)):
+    """Start a fresh, transcript-first quality check from an old render's source.
+
+    This is deliberately *not* a re-render.  A historical job can contain an
+    unsafe cut timeline (or, for pre-cut-review jobs, no frozen timeline at
+    all).  Reusing it would reproduce the same timing and pacing defects.
+    The child therefore starts in ``review`` mode and stops after ASR; it can
+    only reach graphics/SFX after the user approves the new cut preview.
+    """
+    auth(authorization, UTOKEN)
+    par = mine(authorization, jid)
+    if par.get("status") not in ("done", "failed", "cancelled"):
+        raise HTTPException(409, f"Quality recheck ကို ဒီအဆင့်မှာ မစနိုင်ပါ ({par.get('status')})")
+    src = db.one("SELECT * FROM uploads WHERE id=?", par.get("upload_id"))
+    if not src or not src.get("done"):
+        raise HTTPException(410, "မူရင်း video မရှိတော့ပါ — ပြန်တင်ပါ")
+
+    # Do not create many ASR jobs when a user retries a slow browser request.
+    title = (par.get("title") or src.get("name") or "Video") + " · quality recheck"
+    live = db.one(
+        "SELECT id,status FROM jobs WHERE parent=? AND title=? "
+        "AND status IN ('queued','running','review') ORDER BY created DESC LIMIT 1",
+        jid, title)
+    if live:
+        return {"job_id": live["id"], "mode": "review", "resumed": True}
+
+    try: old_over = json.loads(par.get("over") or "{}") or {}
+    except Exception: old_over = {}
+    if not isinstance(old_over, dict): old_over = {}
+
+    # These entries are decisions/calculations from the bad run, not style
+    # preferences.  Carrying any of them forward can skip transcript review,
+    # recreate short flash cuts, or put graphics at obsolete timestamps.
+    derived = {
+        "_drop", "_drop_exact", "_spans", "_cuthash", "_keep", "_take_map",
+        "_ev", "_motion", "_speed_applied",
+    }
+    over = {k: v for k, v in old_over.items() if k not in derived}
+
+    # A selected recorder track / extra camera takes are inputs, not an old
+    # edit decision.  Verify that they are still retrievable before queuing;
+    # otherwise the worker would fail after spending time downloading video.
+    for uid in ([over.get("_audio")] if over.get("_audio") else []) + list(over.get("_sources") or []):
+        extra = db.one("SELECT * FROM uploads WHERE id=?", uid)
+        if not extra or not extra.get("done"):
+            raise HTTPException(410, "အသံ သို့မဟုတ် additional take မရှိတော့ပါ — ပြန်တင်ပါ")
+    # Empty placeholders have no source meaning and should not be copied into
+    # the audit snapshot (they made a clean recheck look configured for audio).
+    if not over.get("_audio"): over.pop("_audio", None)
+    if not over.get("_sources"): over.pop("_sources", None)
+
+    nid = db.nid("j_")
+    db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
+           "mode,vfmt,parent,over,acct,created) "
+           "VALUES(?,?,?,?,?,?,?,?,'queued',0,'review',?,?,?,?,?)",
+           nid, title, par.get("upload_id"), par.get("brand_id"), par.get("recipe"),
+           par.get("font") or "", par.get("fmt") or "", par.get("cap") or "",
+           par.get("vfmt") or "", jid,
+           json.dumps(over, ensure_ascii=False) if over else None,
+           par.get("acct") or aid(authorization), time.time())
+    return {"job_id": nid, "mode": "review", "resumed": False,
+            "source_seconds": par.get("src_dur")}
 
 
 @app.get("/api/jobs/{jid}/file")
@@ -490,7 +642,15 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     for k in keep:
         i = k.get("i")
         if i is None or i not in obyid: raise HTTPException(400, "စာကြောင်း အသစ် ထည့်လို့ မရပါ")
-        o = obyid[i]; t = (k.get("text") or "").strip()
+        o = obyid[i]
+        # Script Editor က စာသားပြင်ခွင့် မရှိပါ။ UI က user ရွေးထားသော
+        # **မူရင်းဝါကျ index** ပဲပို့ပြီး server က canonical transcript ကို
+        # ပြန်ယူရမည်။ client က ပြန်ပို့သော text ကိုယုံလျှင် Unicode/space
+        # normalization ကြောင့် မပြင်ထားတဲ့ “Casper” လို ဝါကျတောင်
+        # 「စာလုံးအသစ်」ဟု မှားငြင်းနိုင်သည်။ old client / API caller က text
+        # ပို့လာလျှင်သာ ယခင် strict validation ကို ဆက်လုပ်သည်။
+        supplied = k.get("text")
+        t = ((o.get("text") or "") if supplied is None else supplied).strip()
         if not t: continue                      # ဖျက်လိုက်တာ
         # ⚠️ space ဖယ်ပြီး အက္ခရာစဉ် တထပ်တည်း တူရမည် — မတူလျှင် ဖွဲ့ထားသည်
         if t.replace(" ","") not in o["text"].replace(" ",""):
@@ -509,7 +669,11 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     if not clean: raise HTTPException(400, "အားလုံး ဖျက်ထားသည်")
     # ⚠️ ဖျက်လိုက်သော စာကြောင်းတွေရဲ့ **အချိန်အပိုင်း**ကို worker ဆီ ပို့ရမည် —
     #    မပို့လျှင် စာတန်းပဲ ပျောက်ပြီး ရုပ်နဲ့ အသံ ကျန်နေမည် (တကယ် ဖြစ်ခဲ့)。
-    kept_i = {k.get("i") for k in keep if (k.get("text") or "").strip()}
+    # index-only Script Editor payload မှာ `text` မပါခြင်းက “ချန်” ဟု
+    # ဆိုလိုသည်; legacy caller က text="" ပို့မှသာ “ဖျက်” ဟုယူသည်။
+    kept_i = {k.get("i") for k in keep
+              if k.get("i") is not None and
+              (k.get("text") is None or (k.get("text") or "").strip())}
     drop = [[float(o["start"]), float(o["end"])]
             for i, o in enumerate(orig) if i not in kept_i]
     ym = time.strftime("%Y-%m")
@@ -865,7 +1029,8 @@ async def w_plan(jid: str, req: Request, authorization: str = Header(None)):
     if not isinstance(review_flags, list): review_flags = []
     # ⚠️ `segs_all` = ASR ရဲ့ **အပြည့်** — ဘယ်တော့မှ မပြောင်းရ (ပြန်ပြင်ရန်)
     db.run("UPDATE jobs SET status='review',stage=2,stage_name='စာတမ်း အတည်ပြုရန်',"
-           "segs=?,segs_all=?,keep_n=NULL,plan=?,src_dur=?,flags=?,flag_list=?,minutes=0 WHERE id=?",
+           "segs=?,segs_all=?,keep_n=NULL,plan=?,src_dur=?,flags=?,flag_list=?,minutes=0,"
+           "report=NULL,report_at=NULL WHERE id=?",
            json.dumps(segs, ensure_ascii=False),
            json.dumps(segs, ensure_ascii=False),
            json.dumps(plan, ensure_ascii=False),
@@ -887,7 +1052,13 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     if j.get("status") != "review":
         raise HTTPException(409, f"အတည်ပြုရန် အဆင့်မှာ မရှိပါ ({j.get('status')})")
     b = await req.json()
-    try: orig = json.loads(j.get("segs") or "[]")
+    # Script Editor က ပြန်ဖြတ်/ပြန်ချန်လို့ရရန် `segs_all` (ASR အပြည့်)
+    # ကိုပြသည်။ cut preview ပြန်ပြင်ပြီး review ဆီပြန်ရောက်သော job မှာ
+    # `segs` က အရင်ချန်ခဲ့သမျှသာ ဖြစ်နိုင်သည်။ `segs` ကိုသာစစ်လျှင် user က
+    # UI ပေါ်မြင်ရသော အရင်ဖြတ်ထားတဲ့ [14]–[17] ကိုပြန်ချန်ချိန်
+    # 「စာကြောင်း အသစ်」ဟု မှားငြင်းမိသည်။ user ရွေးချက်ကို full canonical
+    # transcript နဲ့ပဲ နှိုင်းရမည်。
+    try: orig = json.loads(j.get("segs_all") or j.get("segs") or "[]")
     except Exception: orig = []
     if not orig: raise HTTPException(400, "မူရင်း စာတမ်း မရှိ")
     keep = b.get("segs")
@@ -944,7 +1115,8 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     covered |= {int(t["i"]) - 1 for cid, k in cpick.items() if k
                 for t in cls[cid]["takes"] if str(t["n"]) != k}
     # ⚠️ လက်ခံထားသော ပြန်စ ဝါကျကို ချန်ထားလျှင် **ဆန့်ကျင်** — ဘယ်ဟာ မှန်လဲ မခွဲနိုင်
-    if any(k.get("i") in covered and (k.get("text") or "").strip() for k in keep):
+    if any(k.get("i") in covered and
+           (k.get("text") is None or (k.get("text") or "").strip()) for k in keep):
         raise HTTPException(400, "လက်ခံထားသော ပြန်စ ဝါကျကို ချန်ထား၍ မရ")
     exact = [[float(r["at"]), float(r["to"])] for r in acc if float(r["to"]) > float(r["at"])]
     exact += [[float(a), float(bb)] for a, bb in cl_exact if float(bb) > float(a)]
@@ -954,7 +1126,14 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
         i = k.get("i")
         if i is None or i not in obyid:
             raise HTTPException(400, "စာကြောင်း အသစ် ထည့်လို့ မရပါ")
-        o = obyid[i]; t = (k.get("text") or "").strip()
+        o = obyid[i]
+        # Script Editor မှာ user ဆုံးဖြတ်ချက်က ချန်/ဖြတ်မည့် မူရင်းဝါကျ
+        # index ဖြစ်သည်။ UI က editable transcript မဟုတ်သဖြင့် text မပါလာလျှင်
+        # server ရှိ canonical ASR စာသားကိုသာယူသည်။ ဒီနည်းက browser-side
+        # Unicode/space serialization ကြောင့် “Casper” ကို စာလုံးအသစ်ဟု
+        # မှားငြင်းမိခြင်းကို မဖြစ်စေဘဲ delete-only စည်းကမ်းကို ထိန်းသည်။
+        supplied = k.get("text")
+        t = ((o.get("text") or "") if supplied is None else supplied).strip()
         if not t: continue
         if t.replace(" ", "") not in o["text"].replace(" ", ""):
             raise HTTPException(400, f"စာလုံး အသစ် ပါနေသည်: {t[:30]}")
@@ -966,7 +1145,11 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
             e["fix"] = fx
         clean.append(e)
     if not clean: raise HTTPException(400, "အားလုံး ဖျက်ထားသည်")
-    kept_i = {k.get("i") for k in keep if (k.get("text") or "").strip()}
+    # index-only Script Editor payload မှာ `text` မပါခြင်းက “ချန်” ဟု
+    # ဆိုလိုသည်; legacy caller က text="" ပို့မှသာ “ဖျက်” ဟုယူသည်။
+    kept_i = {k.get("i") for k in keep
+              if k.get("i") is not None and
+              (k.get("text") is None or (k.get("text") or "").strip())}
     # ⚠️ လက်ခံထားသော ပြန်စ ဝါကျ — ဝါကျ start/end (မတိကျ) **မသုံး** · retake ရဲ့ [at,to] သာ
     drop = [[float(o["start"]), float(o["end"])]
             for i, o in enumerate(orig) if i not in kept_i and i not in covered]
@@ -1010,7 +1193,8 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     # ⚠️ `segs` က worker အတွက် (ချန်ထားသည်) · `segs_all` က **မထိရ** ·
     #    `keep_n` = ချန်ခဲ့သော နံပါတ် ⇒ ပြန်ဖွင့်လျှင် အရင် ဖျက်ချက် ပြန်မြင်ရ。
     _kn = sorted({int(k.get("i")) + 1 for k in keep
-                  if k.get("i") is not None and (k.get("text") or "").strip()})
+                  if k.get("i") is not None and
+                  (k.get("text") is None or (k.get("text") or "").strip())})
     # ── ⚠️ **clean-cut preview ကို အရင် ထုတ်သည်** (၂၀၂၆-၀၉-၂၁ Zin) ──
     #    ယခင်က `mode='go'` ⇒ စာတမ်း အတည်ပြုလိုက်တာနဲ့ ဂရပ်ဖစ် · တီးလုံး ·
     #    SFX · စာတန်း အားလုံး ပါသော **နောက်ဆုံး ဗီဒီယို** တန်းထွက်ခဲ့သည် —
@@ -1020,7 +1204,8 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     db.run("UPDATE jobs SET status='queued',mode='cut',stage=0,stage_name=NULL,"
            "segs=?,keep_n=?,over=?,approved=?,"
            "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
-           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL WHERE id=?",
+           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "report=NULL,report_at=NULL WHERE id=?",
            json.dumps(clean, ensure_ascii=False),
            json.dumps(_kn),
            json.dumps(over, ensure_ascii=False) if over else None,
@@ -1108,13 +1293,20 @@ def w_src2(jid: str, authorization: str = Header(None)):
     if not uid: raise HTTPException(404, "no audio")
     u = db.one("SELECT * FROM uploads WHERE id=?", uid)
     if not u: raise HTTPException(404, "no audio")
-    # ⚠️ worker ရဲ့ စက်ထဲက ဖိုင်ဆို **ဆွဲချစရာ မလို** — လမ်းကြောင်း ပဲ ပေးသည်
-    if u.get("local"):
-        return {"local": u["path"], "size": u["size"]}
+    # API storage and the renderer do not necessarily share a filesystem.
+    # Stream any file that the API can really read; returning `/data/...` as a
+    # worker-local pathname made otherwise valid fallback uploads fail on VPS.
+    if u.get("path") and os.path.isfile(u["path"]):
+        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
+            return {"local": u["path"], "size": u["size"]}
+        return FileResponse(u["path"])
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
-    if not u["path"] or not os.path.exists(u["path"]): raise HTTPException(404, "no audio")
-    return FileResponse(u["path"])
+    # The old zero-byte Mac-worker path optimisation is disabled by default:
+    # the worker that later claims this job may be the VPS, not that Mac.
+    if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
+        return {"local": u["path"], "size": u["size"]}
+    raise HTTPException(404, "no audio")
 
 
 @app.get("/api/w/src/{jid}")
@@ -1130,17 +1322,19 @@ def w_src(jid: str, authorization: str = Header(None), url: int = 0):
     j = db.one("SELECT * FROM jobs WHERE id=?", jid)
     u = db.one("SELECT * FROM uploads WHERE id=?", j["upload_id"]) if j else None
     if not u: raise HTTPException(404, "no source")
-    # ⚠️ **worker ရဲ့ စက်ထဲက ဖိုင်** — လမ်းကြောင်း ပဲ ပေးရမည်。 ဤစစ်ချက်ကို
-    #    အရင်က `w_src2` (အသံ route) ထဲ ထည့်မိပြီး ဒီမှာ ကျန်ခဲ့သဖြင့် —
-    #    Mac လမ်းကြောင်းက VPS မှာ မရှိသည်အတွက် `os.path.exists` က False ဖြစ်ကာ
-    #    **404** ပြန်ခဲ့သည်。 upload ကျော်တဲ့ လမ်းကြောင်း သုံးတိုင်း job ကျခဲ့
-    #    (Zin ၂၀၂၆-၀၉-၂၀ · ၄ ကြိမ် · "ဘာလို့ တင်လို့ မရတာလဲ")。
-    if u.get("local"):
-        return {"local": u["path"], "size": u["size"]}
+    # A path inside the API container is not automatically visible inside the
+    # worker container.  Serve it through the private API instead; the worker
+    # downloads over the Docker network and never receives a bogus Mac/VPS
+    # pathname.  R2 remains the normal zero-VPS-hop upload path.
+    if u.get("path") and os.path.isfile(u["path"]):
+        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
+            return {"local": u["path"], "size": u["size"]}
+        return FileResponse(u["path"])
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
-    if not u["path"] or not os.path.exists(u["path"]): raise HTTPException(404, "no source")
-    return FileResponse(u["path"])
+    if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
+        return {"local": u["path"], "size": u["size"]}
+    raise HTTPException(404, "no source")
 
 
 @app.get("/api/w/src/{jid}/take/{n}")
@@ -1155,13 +1349,15 @@ def w_src_take(jid: str, n: int, authorization: str = Header(None)):
     if n > len(ids): raise HTTPException(404, "no take")
     u = db.one("SELECT * FROM uploads WHERE id=?", ids[n - 1])
     if not u: raise HTTPException(404, "no take")
-    if u.get("local"):
-        return {"local": u["path"], "size": u["size"]}
+    if u.get("path") and os.path.isfile(u["path"]):
+        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
+            return {"local": u["path"], "size": u["size"]}
+        return FileResponse(u["path"])
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
-    if not u.get("path") or not os.path.exists(u["path"]):
-        raise HTTPException(404, "no take")
-    return FileResponse(u["path"])
+    if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
+        return {"local": u["path"], "size": u["size"]}
+    raise HTTPException(404, "no take")
 
 @app.post("/api/w/{jid}/puturl")
 def w_puturl(jid: str, authorization: str = Header(None)):
@@ -1187,6 +1383,31 @@ def _cuthash(spans):
         json.dumps(cn, separators=(",", ":")).encode()).hexdigest()[:16], cn
 
 
+# `core.cut` may retain a very short speech fragment while it protects a word
+# boundary.  That is valid internally, but it is not a valid *visible shot* in
+# a delivered edit: 0.34s/0.38s fragments made the previous Western Union
+# render look like broken flashes.  Never silently remove or merge a user's
+# approved speech.  Instead, stop the final-render handoff and return the
+# exact spans that must be restored or merged in Cut Review.
+CUT_FINAL_MIN_SHOT = 0.60
+
+
+def _short_cut_spans(spans, minimum=CUT_FINAL_MIN_SHOT):
+    bad = []
+    for raw in spans or []:
+        try:
+            a, b = float(raw[0]), float(raw[1])
+        except (TypeError, ValueError, IndexError):
+            bad.append((None, None, None))
+            continue
+        d = b - a
+        # JSON floats such as 141.34 - 140.74 are represented as
+        # 0.599999…; a visible 0.60s span must not fail its own stated gate.
+        if d < minimum - 0.001:
+            bad.append((round(a, 2), round(b, 2), round(d, 2)))
+    return bad
+
+
 @app.post("/api/w/{jid}/cut")
 async def w_cut(jid: str, file: UploadFile = File(None), meta: str = Form("{}"),
                 authorization: str = Header(None)):
@@ -1208,13 +1429,23 @@ async def w_cut(jid: str, file: UploadFile = File(None), meta: str = Form("{}"),
         with open(pth, "wb") as f: shutil.copyfileobj(file.file, f)
     # ⚠️ **quota မကောက်ရ** — ဒါက ခေတ္တ ကြည့်ရန် proxy ဖြစ်၍ နောက်ဆုံး render
     #    နဲ့ **နှစ်ခါ** ကောက်လျှင် သုံးစွဲသူက အနစ်နာခံရမည် (Zin ရဲ့ လိုအပ်ချက်)。
+    stable = m.get("stabilized") if isinstance(m.get("stabilized"), list) else []
+    blocked = m.get("blocked") if isinstance(m.get("blocked"), list) else []
+    note = None
+    if stable:
+        note = (f"အသံမဖျက်ဘဲ micro clip {len(stable)} ခုကို surrounding source "
+                f"padding ဖြင့် 0.80s အထိ ထိန်းထားပါတယ်")
+    if blocked:
+        tail = f"visible cut {len(blocked)} ခုက သင်ဖြတ်ထားသော နယ်နိမိတ်ကြောင့် တိုနေဆဲပါ"
+        note = f"{note} · {tail}" if note else tail
     db.run("UPDATE jobs SET status='cut_review',stage=3,stage_name='ဖြတ်ချက် ကြည့်ရန်',"
            "cut_path=?,cut_key=?,cut_dur=?,cut_src=?,cut_hash=?,cut_spans=?,"
-           "cut_n=?,minutes=0 WHERE id=?",
+           "cut_n=?,cut_note=?,minutes=0 WHERE id=?",
            pth, (okey or None), float(m.get("out_dur", 0)),
            float(m.get("src_dur", 0)), h,
-           json.dumps(cn, separators=(",", ":")), len(cn), jid)
-    return {"ok": True, "hash": h, "n": len(cn)}
+           json.dumps(cn, separators=(",", ":")), len(cn), note, jid)
+    return {"ok": True, "hash": h, "n": len(cn), "stabilized": len(stable),
+            "blocked": len(blocked)}
 
 
 @app.get("/api/jobs/{jid}/cut")
@@ -1582,8 +1813,22 @@ def job_revis(jid: str, authorization: str = Header(None)):
     except Exception: over = {}
     if not over.get("_spans"):
         raise HTTPException(409, "အေးခဲသော ဖြတ်မှတ် မရှိ — ဖြတ်ချက်ကနေ ပြန်စပါ")
+    # A visual-only re-render must not bypass Cut Review.  Older completed
+    # jobs can contain the same 0.34s flashes that the new cutok gate blocks;
+    # sending those frozen spans straight to the worker would reproduce the
+    # bad edit while giving the user a false sense that it was re-checked.
+    short = _short_cut_spans(over.get("_spans"))
+    if short:
+        sample = ", ".join(
+            "မမှန်သော span" if a is None else f"{a:.2f}–{b:.2f}s ({d:.2f}s)"
+            for a, b, d in short[:5])
+        raise HTTPException(
+            422,
+            f"Premium re-render ကို ရပ်ထားသည် — {CUT_FINAL_MIN_SHOT:.2f}s အောက်"
+            f" cut {len(short)} ခုရှိသည်: {sample}။ "
+            "အရင် Cut Review ကိုပြန်သွားပြီး ဖြတ်ချက်ပြင်ပါ။")
     db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
-           "err=NULL,claimed=NULL,finished=NULL WHERE id=?", jid)
+           "err=NULL,claimed=NULL,finished=NULL,report=NULL,report_at=NULL WHERE id=?", jid)
     return {"ok": True, "spans": len(over["_spans"])}
 
 
@@ -1649,6 +1894,18 @@ async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(
     if j.get("cut_hash") and h != j.get("cut_hash"):
         # ⚠️ ဖြစ်လျှင် **ရပ်ရမည်** — အတည်ပြုခဲ့တာနဲ့ မတူတော့သည်
         raise HTTPException(409, "ဖြတ်မှတ် hash မကိုက် — ဖြတ်ချက်ကို ပြန်ထုတ်ပါ")
+    short = _short_cut_spans(cn)
+    if short:
+        sample = ", ".join(
+            "မမှန်သော span" if a is None else f"{a:.2f}–{b:.2f}s ({d:.2f}s)"
+            for a, b, d in short[:5])
+        more = f" · နောက်ထပ် {len(short)-5} ခု" if len(short) > 5 else ""
+        raise HTTPException(
+            422,
+            f"Premium export ကို ရပ်ထားသည် — {CUT_FINAL_MIN_SHOT:.2f}s အောက်"
+            f" cut {len(short)} ခုရှိသည်: {sample}{more}။ "
+            "Cut Review / Transcript Editor မှာ စာကြောင်းကို ပြန်ချန်ပါ၊ "
+            "သို့မဟုတ် နီးစပ်သော အပိုင်းနဲ့ ပေါင်းပြီး preview ကို ပြန်ထုတ်ပါ။")
     over = {}
     try: over = json.loads(j.get("over") or "{}") or {}
     except Exception: over = {}
@@ -1667,7 +1924,7 @@ async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(
     over.pop("_motion", None)
     if mv != "auto": over["_motion"] = mv
     db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
-           "over=?,cut_ok=? WHERE id=?",
+           "over=?,cut_ok=?,report=NULL,report_at=NULL WHERE id=?",
            json.dumps(over, ensure_ascii=False), time.time(), jid)
     return {"ok": True, "hash": h, "spans": len(cn), "motion": mv}
 
@@ -1703,9 +1960,31 @@ def job_recut(jid: str, authorization: str = Header(None)):
     db.run("UPDATE jobs SET status='review',mode='review',stage=2,"
            "stage_name='စာတမ်း အတည်ပြုရန်',err=NULL,minutes=0,over=?,"
            "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
-           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL WHERE id=?",
+           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "report=NULL,report_at=NULL WHERE id=?",
            json.dumps(over, ensure_ascii=False) if over else None, jid)
     return {"ok": True}
+
+
+@app.post("/api/jobs/{jid}/cut-refresh")
+def job_cut_refresh(jid: str, authorization: str = Header(None)):
+    """Rebuild only the clean-cut proxy, preserving every user decision.
+
+    This is intentionally narrower than ``recut``.  It is used when IKKI has
+    improved a preview-only safety/preflight rule: transcript choices, manual
+    drops, and retained pauses remain untouched, while a new proxy is produced
+    for the user to review again before graphics/SFX may start.
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    if j.get("status") != "cut_review" or j.get("mode") != "cut":
+        raise HTTPException(409, "ပြန်ထုတ်ရန် clean-cut preview အဆင့်မှာ မရှိပါ")
+    db.run("UPDATE jobs SET status='queued',mode='cut',stage=0,stage_name=NULL,"
+           "err=NULL,claimed=NULL,finished=NULL,minutes=0,"
+           "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "report=NULL,report_at=NULL WHERE id=?", jid)
+    return {"ok": True, "preserved": True}
 
 
 @app.post("/api/w/{jid}/stage")
@@ -1729,6 +2008,40 @@ async def w_fail(jid: str, req: Request, authorization: str = Header(None)):
     db.run("UPDATE jobs SET status='failed',err=?,finished=?,minutes=0 WHERE id=?",
            b.get("err","")[:2000], time.time(), jid)
     return {"ok": True}
+
+
+@app.post("/api/w/{jid}/report")
+async def w_report(jid: str, req: Request, authorization: str = Header(None)):
+    """Persist the worker's measured render report for this exact job.
+
+    A filesystem report alone is not sufficient: a worker container can be
+    rebuilt after delivery, which used to make a bad render impossible to
+    audit.  The worker token is required; the browser can only read its own
+    job report through the owner-protected route below.
+    """
+    auth(authorization, WTOKEN)
+    _beat()
+    if not db.one("SELECT id FROM jobs WHERE id=?", jid):
+        raise HTTPException(404, "job မတွေ့")
+    b = await req.json()
+    report = str((b or {}).get("report") or "").replace("\x00", "").strip()
+    if not report:
+        raise HTTPException(400, "report ဗလာ")
+    if len(report) > 160000:
+        raise HTTPException(413, "report ကြီးလွန်းသည်")
+    now = time.time()
+    db.run("UPDATE jobs SET report=?,report_at=? WHERE id=?", report, now, jid)
+    return {"ok": True, "bytes": len(report), "at": now}
+
+
+@app.get("/api/jobs/{jid}/report")
+def job_report(jid: str, authorization: str = Header(None), t: str = ""):
+    """Return a quality report only to the job owner (or tokenized download UI)."""
+    auth(authorization or (f"Bearer {t}" if t else None), UTOKEN)
+    j = mine(authorization, jid, t)
+    if not j.get("report"):
+        raise HTTPException(404, "ဒီ render အတွက် quality report မရှိသေး")
+    return {"job": jid, "report": j["report"], "at": j.get("report_at")}
 
 @app.post("/api/w/{jid}/result")
 async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}"),
