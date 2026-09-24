@@ -52,8 +52,15 @@ ck("နာမည် ဗလာ မရှိ", all(str(i["name"]).strip() for i in
 
 print("\n── ③ **path မယိုစိမ့်ကြောင်း** ──")
 blob = json.dumps(d, ensure_ascii=False)
-for bad in ("/Users", "/Applications", "/Volumes", "motionkit/", ".py", "8765"):
+for bad in ("/Users", "/Applications", "/Volumes", "motionkit/", "8765"):
     ck(f"«{bad}» မပါ", bad not in blob)
+# ⚠️ `.py` ကို **substring နဲ့ မရှာရ** — `infogfx.pyramid` လို template id မှာ
+#    「.py」 ပါနေသည် (၂၀၂၆-၀၉-၂၄ တွေ့)。 ဖိုင်အမည်သာ ဖမ်းရန် နောက်က
+#    **စာလုံး မဟုတ်မှ** ဟု သတ်မှတ်သည် — ဂိတ် မလျှော့ပါ、တိကျစေရုံသာ。
+import re as _re
+ck("«.py» ဖိုင်အမည် မပါ", not _re.search(r"\.py(?![A-Za-z])", blob),
+   (_re.search(r".{0,40}\.py(?![A-Za-z]).{0,20}", blob) or [""])[0]
+   if _re.search(r"\.py(?![A-Za-z])", blob) else "")
 ck("slot ထဲ file/path type မပါ",
    not [s for i in d["items"] for s in i["slots"]
         if s["type"] in ("file", "path", "image")])

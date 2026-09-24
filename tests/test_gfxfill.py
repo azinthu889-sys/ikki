@@ -27,7 +27,29 @@ W = open(os.path.join(_R, "worker", "run.py"), encoding="utf-8").read()
 D = open(os.path.join(_R, "core", "dress.py"), encoding="utf-8").read()
 
 print("── ① text မရှိသော event ⇒ transcript ကနေ ဖြည့် ──")
-ck("ဖြည့်ချက် ရှိ", '_g["text"] = str(_best["text"])' in W)
+# ⚠️ **ကုဒ်စာသား အတိအကျ နဲ့ မစစ်ရ** — ၂၀၂၆-၀၉-၂၄ မှာ ဖြည့်ချက်ကို
+#    အတိုချုံးအောင် ပြင်လိုက်သည်နှင့် ဤ test က ကျခဲ့သည် (အပြုအမူ မပျက်ဘဲ)。
+#    ⇒ **ရည်ရွယ်ချက်** ကို စစ်သည် — ဖြည့်ချက် ရှိ · အတိုချုံးသည်。
+ck("ဖြည့်ချက် ရှိ", '_g["text"] =' in W and "_nofill += 1" in W)
+ck("ဝါကျ အပြည့် မတင် (စာတန်းနဲ့ မထပ်စေရန်)",
+   "GFX_TEXT_WORDS" in W and '_w[:GFX_TEXT_WORDS]' in W)
+# ⚠️ Zin ၂၀၂၆-၀၉-၂၄: 「စာသားအားလုံး ၄ လုံး ကန့်သတ်ပါ」— back-fill လမ်းကြောင်း
+#    တစ်ခုတည်း မဟုတ်ဘဲ **ဂရပ်ဖစ် အားလုံး** ဖြစ်ရမည် (planner ကနေ စာသား
+#    ပါလာသူတွေက v7 မှာ ဝါကျ အပြည့် ပြပြီး ၂ ကြောင်း ကျိုးခဲ့သည်)。
+ck("စာသား ကန့်သတ်ချက် **ဂရပ်ဖစ် အားလုံး** အတွက်",
+   '" ".join(_w[:GFX_TEXT_WORDS])' in W and "_cut_n" in W)
+# ⚠️ Zin ၂၀၂၆-၀၉-၂၄: 「scrim ခံပြီးတင်ပါ」— B-roll လင်းလင်းပေါ် outline
+#    ဂရပ်ဖစ် မဖတ်ရသဖြင့် **ထပ်နေသော အပိုင်းမှာ** scrim ခံရမည်。
+# ⚠️ **overlay ၃ မျိုးလုံး** ဖြစ်ရမည် — `gmov` တစ်ခုတည်း စစ်ခဲ့ရာ v9 မှာ
+#    ၄၈.၈s က ဂရပ်ဖစ် (`pmov`/`rmov`) က scrim လုံးဝ မခံခဲ့。
+ck("B-roll ပေါ် ဂရပ်ဖစ်အတွက် scrim",
+   "_scrim_wins" in W and "bmov and (gmov or pmov or rmov)" in W)
+ck("scrim က overlay ၃ မျိုးလုံးကို ဖုံး",
+   all(f"for x in ({v} or [])" in W for v in ("gmov", "pmov", "rmov")))
+# ⚠️ `SC.track` က v10 မှာ ထွက်ဖိုင်ပေါ် မသက်ရောက်ခဲ့ (အလင်း ကွာဟမှု ၀.၀ ·
+#    နမူနာ ၁၂၂ ခု) ⇒ **`drawbox` တစ်ကြောင်းတည်း** နဲ့ လုပ်သည်。
+ck("scrim က drawbox နဲ့ (သက်ရောက်မှု တိုင်းပြီး)",
+   "SCRIM_ALPHA" in W and "drawbox=x=0:y=" in W)
 ck("**omap မတိုင်မီ** (source အချိန်မှာ)",
    W.find('_g["text"] = str(_best["text"])') < W.find("_win = omap_window("))
 ck("ဖြည့်လိုက်တာကို log ရေး", "စာသား မရှိ ⇒ အဲဒီအချိန်ရဲ့" in W)
@@ -63,6 +85,17 @@ else:
         a = DR._tf_args(dict(kind=tid, text=TXT),
                         accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
         ck(f"{tid} — tmplfit ဖြည့်နိုင်", a is not None, a)
+
+print("\n── ⑤ မထွက်ခဲ့သော အကြောင်းရင်း — **၂ မျိုး ခွဲရမည်** ──")
+# ⚠️ ၂၀၂၆-၀၉-၂၂: coverage ဘောင်အတွက် ဖယ်လိုက်တာကို `DR.LAST` ရဲ့
+#    「overlap 1」နဲ့ မှားပြခဲ့သည် — သုံးစွဲသူက 「ထပ်နေလို့」ထင်မည်。
+ck("`_built_at` မှတ်ထား (fit မတိုင်မီ)", "_built_at" in W)
+ck("coverage အတွက် ဖယ်တာ သီးသန့် စာသား",
+   "coverage) အတွက် ဖယ်ထား" in W)
+ck("မဆောက်နိုင်တာ သီးသန့် စာသား", "ဆောက်၍ မရ —" in W)
+ck("log မှာ ၂ မျိုး ခွဲပြ", "coverage ဘောင်အတွက် ဖယ်" in W and "မဆောက်နိုင်" in W)
+ck("REPORT မှာ fit အလံ", '"fit": ' in W or "fit=bool(_near_built(k))" in W)
+ck("REPORT gfx_fit_trim", 'REPORT["gfx_fit_trim"]' in W)
 
 print(f"\n  ⇒ အောင် {OK} · ကျ {FAIL}")
 sys.exit(1 if FAIL else 0)

@@ -126,12 +126,26 @@ def fit(entry, c, accent=None, dur=None, ink=None, dim=None):
         # ── ဂဏန်း — **transcript မှာ ရှိမှ** ──
         if typ in ("number", "int", "float") or low in NUM:
             if low in NUM or (req and not has_d):
-                if num is None:
+                _n2 = num
+                # ⚠️ **ရာခိုင်နှုန်း slot ကို ရာခိုင်နှုန်းနဲ့သာ ဖြည့်ရ** —
+                #    ၂၀၂၆-၀၉-၂၄ v5 render မှာ `ht_stat_ring` ရဲ့ `pct` ကို
+                #    「စက်တင်ဘာလ **၂၉** ရက်နေ့」ဆိုသော **ရက်စွဲ** ကနေ ဖြည့်မိပြီး
+                #    အဝါစက်ဝိုင်းထဲ label မပါဘဲ 「၂၉」ချည်း ပေါ်ခဲ့သည် —
+                #    ကြည့်သူအတွက် **အဓိပ္ပာယ် လုံးဝ မရှိ**。
+                #    ⇒ `%` သို့မဟုတ် ရာခိုင်နှုန်း စကားလုံး မပါလျှင် **ငြင်း**
+                #    (ကိန်း မတီထွင်တဲ့ မူဝါဒနဲ့ တစ်ထပ်တည်း)。
+                if low in ("pct", "percent"):
+                    _src = " ".join(x for x in (head, sub) if x)
+                    if not ("%" in _src or "ရာခိုင်နှုန်း" in _src
+                            or "percent" in _src.lower()):
+                        _n2 = None
+                if _n2 is None:
                     if req and not has_d:
                         return None
                     continue
-                out[name] = int(float(num.replace(",", ""))) if typ == "int" \
-                    else float(num.replace(",", ""))
+                num_use = _n2
+                out[name] = int(float(num_use.replace(",", ""))) if typ == "int" \
+                    else float(num_use.replace(",", ""))
                 got = True
             continue
 

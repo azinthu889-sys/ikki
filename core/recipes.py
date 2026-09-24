@@ -167,7 +167,12 @@ R = {
 #    ပေါ်ချိန် ၇၂% · အမြင့် အလယ်တန်း ၃.၆%·H (p75 ၅.၇%) · အလယ် y ၇၂%。
 #    ⚠️ `cap_base` ကို **အောက်ခြေမှ ၇–၉%** ဟု spec မှာ သတ်မှတ်ထားသဖြင့်
 #       ၀.၉၂ (= အောက်ခြေမှ ၈%) ထားသည် — QC `cap_max` ၀.၉၃ အောက်。
- "headtop": dict( gfx_gap_max=6.0,
+ # ⚠️ `gfx_gap_max` ၆.၀ ⇒ **၄.၂** (၂၀၂၆-၀၉-၂၄)။ `planner.py:949` ရဲ့
+ #    တိုင်းချက် — reference ၆ ပုဒ်မှာ မြင်ကွင်း ပြောင်းလဲမှု ၉.၃–၁၄.၃/min
+ #    ⇒ အကွာ ၄.၂–၆.၅s၊ IKKI က ၇.၅/min (၆၇%) သာ ရှိခဲ့သည်။ ၄.၂ က
+ #    **reference ရဲ့ တိုင်းထားသော အောက်ဘောင်** — မှန်းဆချက် မဟုတ်။
+ #    Zin: 「graphic များများပါလေ သဘောကျလေ」(၂၀၂၆-၀၉-၂၄)။
+ "headtop": dict( gfx_gap_max=4.2,
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
      motionkit_profile="premium", broll_strict=True,

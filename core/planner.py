@@ -170,6 +170,76 @@ def _rotate(cands, used, seed="", k=NOREPEAT):
     return fresh + stale
 
 
+# ══ catalog အပြည့် သုံးခြင်း ═══════════════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၂ တိုင်းချက် — `PROFILE_PREFER` နဲ့ `PREFER` က **လက်နဲ့ရေးထားသော
+#    id စာရင်း**သာ ဖြစ်ပြီး profile တစ်ခုလျှင် ~၁၀ ခုသာ ပါသည်。 catalog မှာ
+#    ၅၉၆ ခု · render စစ်ပြီးသား ၂၇၂ ခု ရှိပါလျက် planner က **~၃၀ ခု**ကိုသာ
+#    ထိသည် ⇒ ဗီဒီယိုတိုင်း တစ်ပုံစံတည်း ဖြစ်ခဲ့ခြင်း ([[ikki-template-pools]])。
+#    Zin: 「IKKI ကို motionkit 100% အသုံးပြုခွင့်ပေးလိုက်ပါ」
+# ⇒ လက်ရေး စာရင်းကို **ရှေ့မှာ အတိအကျ ထား**ပြီး (အရည်အသွေး အစဉ်လိုက် မပျက်စေရန်)
+#   catalog ကနေ ကျန်သမျှကို **နောက်က ဆက်တွဲ**သည်。 ဖယ်ထုတ်ခြင်း မရှိ。
+# ⚠️ ဂိတ် ၃ ခု မဖြစ်မနေ ဖြတ်ရမည် — ① render စစ်ပြီးသား (`mkcat.verified()`)
+#    ② `STRUCTURED` မဟုတ် (ASR စာသားကနေ ဖွဲ့စည်းပုံ data မမှန်းရ)
+#    ③ `mockup`/`transition`/`motion` မပါ — အဲဒါတွေက overlay မဟုတ်、
+#      role သီးသန့် လမ်းကြောင်း လိုသည် (ပုံ လို · ဘောင်အပြည့် ဖုံး)。
+_AUTO_RULES = (
+    ("number",    r"stat|num|count|pct|percent|metric|delta|roll|ring|score|price|big"),
+    ("steps",     r"step|list|flow|order|process|timeline|stage|phase|seq"),
+    ("checklist", r"check|tick|todo|task|done|correct"),
+    ("compare",   r"cmp|vs|versus|compare|before|after|two|split|win|swap|pair"),
+    ("hook",      r"hook|question|stop|scroll|open|intro|punch|q$|big_q"),
+    ("section",   r"title|chapter|topic|section|third|ident|header|bumper|kicker|lower"),
+    ("warning",   r"red|warn|alert|strike|wrong|error|risk|danger|caution"),
+    ("location",  r"location|place|map|pin|geo|city|country"),
+    ("screen",    r"brows|browser|phone|app|window|search|notif|tab|cursor|ui_|screen"),
+    ("fact",      r"call|note|fact|quote|statement|key|tag|under|box|pill|hl|"
+                  r"emphas|highlight|type_|word|line|text|caption"),
+)
+_AUTO = None
+
+
+def _auto_candidates(label):
+    """catalog ကနေ **စစ်ပြီးသား** template များကို semantic အညွှန်းအလိုက် ခွဲသည်。"""
+    global _AUTO
+    if _AUTO is not None:
+        return _AUTO.get(label, [])
+    import re
+    try:
+        import gfxcat as GC, mkcat as MK
+    except ImportError:
+        from core import gfxcat as GC, mkcat as MK
+    try:
+        ok = MK.verified()
+        cat = GC.catalog()
+    except Exception:
+        _AUTO = {}
+        return []
+    out = {k: [] for k in FAMILY}
+    for e in cat:
+        tid = e.get("id") or ""
+        if tid not in ok or tid in STRUCTURED:
+            continue
+        if e.get("category") in ("mockup", "transition", "motion"):
+            continue
+        nm = tid.split(".", 1)[-1]
+        labs = {lab for lab, pat in _AUTO_RULES if re.search(pat, nm)}
+        if e.get("category") == "ui":
+            labs.add("screen")
+        if e.get("category") == "chart":
+            labs |= {"number", "compare"}
+        # ⚠️ ဘယ်အညွှန်းနဲ့မှ မကိုက်လျှင် **ဘယ်တော့မှ သုံးဖြစ်မည် မဟုတ်** ⇒
+        #    ယေဘုယျ အညွှန်း `fact` ထဲ ထည့်သည်。
+        if not labs:
+            labs = {"fact"}
+        for lab in labs:
+            if lab in out:
+                out[lab].append(tid)
+    for v in out.values():
+        v.sort()
+    _AUTO = out
+    return _AUTO.get(label, [])
+
+
 def _profile_candidates(label, profile, last_id=None):
     """Profile + semantic label → allowed template IDs.
 
@@ -179,10 +249,12 @@ def _profile_candidates(label, profile, last_id=None):
     candidate list ကနေသာ ရွေးသည်။
     """
     prof = PROFILE_PREFER.get(str(profile or "premium"))
-    cands = (prof or {}).get(label)
+    cands = list((prof or {}).get(label) or [])
     if not cands:
         fam = FAMILY.get(label)
-        cands = PREFER.get(label) or (MF.HEADTOP.get(fam) if fam else []) or []
+        cands = list(PREFER.get(label) or (MF.HEADTOP.get(fam) if fam else []) or [])
+    seen = set(cands)
+    cands += [c for c in _auto_candidates(label) if c not in seen]
     return [c for c in cands if c != last_id]
 
 # ── စွမ်းအင် အဆင့် ──────────────────────────────────────────
@@ -478,6 +550,12 @@ def _full_frame(tid):
         return False
 
 
+# ⚠️ pack template ရဲ့ စာသား slot — **စကားလုံး အများဆုံး**。 manifest ရဲ့
+#    `maxChars` က စာလုံးရေ ဖြစ်ပြီး မြန်မာစာမှာ ဗျည်းတွဲ/သရ က code point
+#    သီးသန့် ဖြစ်၍ ရှည်နေသည် ⇒ စကားလုံး အရေအတွက်နဲ့ ထပ်ကန့်သတ်သည်。
+PACK_TEXT_WORDS = 4
+
+
 def _pack_props(tid, lab, txt):
     """pack template ရဲ့ **required props** ဖြည့်သည် — မရလျှင် `None`
 
@@ -502,7 +580,15 @@ def _pack_props(tid, lab, txt):
                 it = [x for x in (two or []) if x][:int(spec.get("maxItems") or 5)]
                 if len(it) < 2:
                     return None
-                out[k] = [_short(x, mx) for x in it]
+                # ⚠️ **စာရင်း item တွေလည်း ၄ လုံး ကန့်သတ်ရမည်** —
+                #    「စာသားအားလုံး」(Zin ၂၀၂၆-၀၉-၂၄)。 list branch က
+                #    `continue` နဲ့ စောစီးစွာ ထွက်သဖြင့် အောက်က ကန့်သတ်ချက်
+                #    မထိမိခဲ့ (`ht_check_list` မှာ တိုင်းပြီး တွေ့)。
+                def _cap4(_x):
+                    _xw = _short(_x, mx).split()
+                    return " ".join(_xw[:PACK_TEXT_WORDS]) \
+                        if len(_xw) > PACK_TEXT_WORDS else _short(_x, mx)
+                out[k] = [_cap4(x) for x in it]
                 continue
             if spec.get("type") != "text":
                 continue
@@ -516,6 +602,16 @@ def _pack_props(tid, lab, txt):
                 num = _first_number(txt)
                 if not num:
                     return None
+                # ⚠️ **ရက်စွဲ/ကိန်းသေး ကို stat အဖြစ် မပြရ** — ၂၀၂၆-၀၉-၂၄
+                #    v5 render မှာ `ht_stat_ring` ရဲ့ အဝါစက်ဝိုင်းထဲ
+                #    「စက်တင်ဘာလ **၂၉** ရက်နေ့」ကနေ ယူထားသော 「၂၉」ချည်း
+                #    ပေါ်ခဲ့ပြီး label မပါ ⇒ ကြည့်သူအတွက် အဓိပ္ပာယ် မရှိ。
+                #    ⇒ `keyword()` နဲ့ **တူညီသော စည်းမျဉ်း** — `%` ပါလျှင်
+                #    ဒါမှမဟုတ် ဂဏန်း ၃ လုံးအထက် (ခုနှစ် · ပမာဏ) မှ လက်ခံ。
+                _d = str(num).strip().strip("%").strip()
+                if "%" not in str(txt) and "ရာခိုင်နှုန်း" not in str(txt) \
+                        and len(_d) < 3:
+                    return None
                 out[k] = _short(str(num), mx)
                 continue
             # ⚠️ `left`/`right` က **နှစ်ပိုင်း ခွဲ**ရမည် — တစ်ခုတည်း ထည့်လျှင်
@@ -526,6 +622,16 @@ def _pack_props(tid, lab, txt):
                 v = _short(two[0] if k == "left" else two[1], mx)
             else:
                 v = _short(txt, mx)
+            # ⚠️ **စကားလုံး ၄ လုံး ကန့်သတ်** (Zin ၂၀၂၆-၀၉-၂၄:「စာသားအားလုံး
+            #    ၄ လုံး ကန့်သတ်ပါ」)。 `worker/run.py` ရဲ့ ကန့်သတ်ချက်က
+            #    `gfx[*]["text"]` မှာသာ သက်ရောက်ပြီး **headtop pack** က
+            #    ဤနေရာကနေ ဝါကျကို တိုက်ရိုက် ယူသဖြင့် မထိမိခဲ့ —
+            #    v7 · v8 ၄၈.၈s မှာ `ht_outline_title` က ဝါကျ အပြည့် ပြပြီး
+            #    အောက်က စာတန်းနဲ့ စာကြောင်းတူကာ ၂ ကြောင်း ကျိုးခဲ့သည်。
+            # ⚠️ space နဲ့ ခွဲသည် — code point နဲ့ ဖြတ်လျှင် မြန်မာ ဗျည်းတွဲ ပျက်。
+            _vw = (v or "").split()
+            if len(_vw) > PACK_TEXT_WORDS:
+                v = " ".join(_vw[:PACK_TEXT_WORDS])
             if not v:
                 return None
             out[k] = v
@@ -571,9 +677,18 @@ def keyword(text):
     t = " ".join((text or "").split())
     if not t:
         return None
+    # ⚠️ **ဂဏန်းချည်းသက်သက် မယူရ** — ၂၀၂၆-၀၉-၂၄ render မှာ 「၂၉」ကို pop
+    #    လုပ်ခဲ့ပြီး မျက်နှာပြင်ပေါ် **အဓိပ္ပာယ်မဲ့ အဝါကွက်** ဖြစ်ခဲ့သည်
+    #    (မူရင်းဝါကျ — 「စက်တင်ဘာလ ၂၉ ရက်နေ့」)。 reference ရဲ့ နမူနာတွေက
+    #    `2.DEVELOP` · `S.W.O.T` — **အကြောင်းအရာ တွဲပါ**သည်、ဂဏန်းချည်း မဟုတ်。
+    #    ⇒ လက်ခံသည် — `%` ပါလျှင် (ရာခိုင်နှုန်း) · ဂဏန်း ၃ လုံးအထက်
+    #    (ခုနှစ် · ပမာဏ — `၂၀၂၆` · `100`)。 ကျန်တာ Latin လမ်းကြောင်းသို့。
     for m in _NUM.finditer(t):
         v = m.group(0).strip()
-        if len(v.strip("%")) >= 2:          # တစ်လုံးတည်း ဂဏန်း မယူ
+        _d = v.strip("%").strip()
+        if "%" in v and len(_d) >= 1:
+            return v
+        if len(_d) >= 3:
             return v
     # ⚠️ **စကားလုံးအလိုက် ခွဲပြီးမှ** stop word ဖယ်ရမည် — အရင်က regex ရဲ့
     #    ၂ လုံးတွဲကို အတုံးလိုက် စစ်ခဲ့သဖြင့် `the team` က `the` ကြောင့်

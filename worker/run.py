@@ -11,13 +11,20 @@ import hashlib, json, math, os, re, shutil, subprocess, sys, time, traceback, ur
 
 API    = os.environ.get("IKKI_API", "http://127.0.0.1:8080")
 TOKEN  = os.environ.get("IKKI_WORKER_TOKEN", "dev-worker")
-SCRATCH= os.path.expanduser("~/.ikki/scratch")
+SCRATCH= os.environ.get("IKKI_SCRATCH") or os.path.expanduser("~/.ikki/scratch")
 # ⚠️ render လုပ်နေစဉ် ရှိနေမည့် အမှတ်ဖိုင် — `deploy.sh` က ဒါကို စစ်သည်。
-BUSY   = os.path.expanduser("~/.ikki/busy")
+BUSY   = os.environ.get("IKKI_BUSY") or os.path.expanduser("~/.ikki/busy")
 # ⚠️ motionkit ကတ်တစ်ခုရဲ့ **အတိုဆုံး သဘာဝ အရှည်** (တိုင်းထားသည်:
 #    median ၂.၄s · min ၁.၈s · max ၃.၀s — j_e45a95bd33ea ရဲ့ report)。
 #    ကတ် ဘယ်နှစ်ခုအထိ ထုတ်လို့ ရမလဲ တွက်ရာမှာ သုံးသည်。
 CARD_NAT_MIN = 1.8
+# ⚠️ ဂရပ်ဖစ် ကတ်ပေါ် တင်မယ့် စာသား — **စကားလုံး အများဆုံး** (code point မဟုတ်)。
+#    ဝါကျ အပြည့် တင်လျှင် အောက်က စာတန်းနဲ့ စာကြောင်းတူပြီး ကြည့်သူက ၂ ခါ
+#    ဖတ်ရသည် (၂၀၂၆-၀၉-၂၄ v6 render မှာ တွေ့)。
+GFX_TEXT_WORDS = 4
+# ⚠️ B-roll ပေါ် ဂရပ်ဖစ် ရှိချိန် ခံမည့် scrim ရဲ့ အလင်းပိတ်မှု。
+#    ၀.၄၅ — offline တိုင်းချက်: window အတွင်း အလင်း −၃၅…−၄၁ (ဖတ်ရသည်)。
+SCRIM_ALPHA = 0.45
 LAST_FIT = []          # `_fit_gfx` ရဲ့ မှတ်ချက် — report အတွက်
 # ── ဖိုင်ကြီးများကို သီးသန့် disk မှာ ထားနိုင်သည် ──────────────
 # ⚠️ **ဖိုင်ကြီး သာ** ပြင်ပ disk မှာ ထားရမည် (မူရင်း · proxy)。 PNG ထောင်ချီ
@@ -50,6 +57,7 @@ POLL   = int(os.environ.get("IKKI_POLL", "6"))
 os.makedirs(SCRATCH, exist_ok=True)
 sys.path.insert(0, MK)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "core"))
+from video_codec import h264_args, preferred_codec
 
 # ⚠️ **ယာယီ အမှားကြောင့် render တစ်ခုလုံး မဆုံးရှုံးရ**。
 #    ၂၀၂၆-၀၉-၂၀: deploy က API container ကို ပြန်ဆောက်နေစဉ် Caddy က
@@ -100,6 +108,50 @@ def _flash_shots(path, log=None, smin=SHOT_MIN, thr=SHOT_SCENE):
         if 0 < i < len(edges) - 2 and d < smin:
             out.append((round(edges[i], 2), round(d, 2)))
     return out
+
+
+def _sfx_moment_count(cues, layer=0.60):
+    """Count perceptual SFX moments, not individual layered cue tracks."""
+    ts = []
+    for cue in cues or []:
+        try:
+            ts.append(float(cue[0] if isinstance(cue, (tuple, list))
+                            else cue.get("at")))
+        except (TypeError, ValueError, IndexError, AttributeError):
+            continue
+    moments = []
+    for at in sorted(ts):
+        if not moments or at - moments[-1] > float(layer):
+            moments.append(at)
+    return len(moments)
+
+
+def _premium_sfx_checks(cues, mixed, audible, silent, policy, dur):
+    """Hard evidence gate for Headtop sound design.
+
+    Planned timestamps are not evidence that a sound made it into the file.
+    The old pipeline counted them as if they were rendered, so missing assets
+    or a failed ffmpeg mix could ship as a silent "premium" edit.  The profile
+    target is measured (six moments/minute); very short videos require one
+    audible moment rather than being extrapolated to a full minute.  Layered
+    tracks are still one perceived sound moment.
+    """
+    p = policy or {}
+    want = max(1, int(float(p.get("per_min") or 0) * float(dur or 0) / 60.0))
+    got = _sfx_moment_count(cues, p.get("layer") or 0.60)
+    planned = len(cues or [])
+    return [
+        dict(key="headtop_sfx_moments", ok=got >= want, value=got,
+             want=f"≥ {want} rendered moments"),
+        dict(key="headtop_sfx_mix", ok=int(mixed or 0) > 0, value=int(mixed or 0),
+             want="≥ 1 resolved SFX asset"),
+        dict(key="headtop_sfx_audible",
+             ok=(planned > 0 and audible is not None and int(audible) >= planned
+                 and int(silent or 0) == 0),
+             value=(f"{audible if audible is not None else '—'}/{planned} audible · "
+                    f"silent {silent if silent is not None else '—'}"),
+             want="every planned cue audible in SFX stem"),
+    ]
 
 
 # ⚠️ ရုပ်ကို **အသက်ဝင်စေရန်** တဖြည်းဖြည်း ချုံ့/ချဲ့ခြင်း (Zin ၂၀၂၆-၀၉-၂၀:
@@ -417,6 +469,225 @@ def _fade_out(src, dst, a, b, d=0.18):
     st_out = max(float(a) + 0.02, float(b) - d - 0.10)
     return (f"[{src}]format=yuva420p,"
             f"fade=t=out:st={st_out:.2f}:d={d:.2f}:alpha=1[{dst}]")
+
+
+# ⚠️ **တိုင်းပြီး ရွေးထားသော ကိန်း** (၂၀၂၆-၀၉-၂၃ · ဖြစ်နိုင်ချေ ၂၀ မျိုး စမ်း):
+#      din=0.80 · pw=5 ⇒ ဝင် ၀.၃၃၃ ✓ · ထွက် ၀.၁၆၇ ✓ · ease ၀.၃၄ ✓
+#      (ဂိတ် — ဝင် ၀.၂၃၃–၀.၇၃၃ · ထွက် ၀.၁၃၃–၀.၂၆၇ · ease ≥၀.၃၀ · margin +၀.၀၃၄)
+#    pw=3 (cubic) က ease ၀.၂၉၈ သာ ရပြီး ဂိတ်ကို ၀.၀၀၂ နဲ့ လွဲသည်။
+EASE_DIN, EASE_PW, EASE_DOUT = 1.60, 5, 0.20
+
+
+def _ease_alpha(src, dst, a, b, ein=EASE_DIN, eout=EASE_DOUT, pw=EASE_PW):
+    """overlay clip ကို **ease-out ဝင်ချိန် + ထွက်ချိန်** ပေးသည်。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၃ တိုင်းချက် (QC `motion_exit` · `motion_ease` ကျ):
+         ဝင် ၀.၂၆၇–၀.၇၀၀s ✓ · **ထွက် ၀.၁၀၀s ✗** (ဘောင် ၀.၁၃၃–၀.၂၆၇) ·
+         **ease ၀.၁၅ ✗** (ဂိတ် ≥၀.၃၀)
+       ဂရပ်ဖစ် clip တွေမှာ compositor က fade **လုံးဝ မတပ်**ခဲ့သဖြင့်
+       template ရဲ့ ကိုယ်ပိုင် ၃ ဖရိမ်း (၀.၁၀s) ramp ကိုသာ ရပြီး
+       မျဉ်းဖြောင့်နီးပါး ဖြစ်နေသည်。
+    ⚠️ `motmeas.measure()` က `ease` ကို **ဝင်ချိန် ramp ရဲ့ ပုံသဏ္ဌာန်**
+       ကနေသာ တွက်သည် (alpha ၆%→၉၄%) ⇒ ဝင်ချိန်ကို ease-out ပေးလျှင်
+       ဂိတ် မလျှော့ဘဲ ပြေလည်သည်。
+    ⚠️ `-itsoffset` သုံးထားသဖြင့် `T` က **timeline အချိန်** ⇒ clip အတွင်း
+       အချိန်ကို `T-a` နဲ့ တွက်ရမည် (ဒါ မလုပ်လျှင် ramp က ဗီဒီယို အစမှာ
+       ကုန်သွားပြီး ဘာမှ မဖြစ်)。
+    """
+    import math as _m
+    dur = max(0.2, float(b) - float(a))
+    din = max(0.20, min(float(ein), dur * 0.55))
+    dout = max(0.14, min(float(eout), dur * 0.30))
+    din = _m.floor(din * 100.0) / 100.0
+    dout = _m.floor(dout * 100.0) / 100.0
+    st_out = max(float(a) + din + 0.05, float(b) - dout - 0.05)
+    # ⚠️ ease-out cubic: p(t) = 1-(1-t)^3 — အစမှာ သွက် · အဆုံးမှာ ငြိမ်。
+    #    alpha ကို **မြှောက်**သည် (template ရဲ့ ကိုယ်ပိုင် ramp ကို မဖျက်)。
+    _t = f"max(0\,min(1\,(T-{float(a):.3f})/{din:.3f}))"
+    return (f"[{src}]format=yuva420p,"
+            f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
+            f"a='alpha(X,Y)*(1-pow(1-{_t}\,{int(pw)}))',"
+            f"fade=t=out:st={st_out:.2f}:d={dout:.2f}:alpha=1[{dst}]")
+
+
+# ⚠️ **တိုင်းပြီး ရွေးထားသော ကိန်း** (၂၀၂၆-၀၉-၂၄ · တကယ့် clip ပေါ်မှာ စမ်း):
+#      ent=0.45 · pw=5 ⇒ ဝင် ၀.၄၅ (ဘောင် ၀.၂၃၃–၀.၇၃၃ အလယ်) ·
+#      ထွက် ၀.၁၆၇–၀.၂၀ ✓ · ease ၀.၆၄–၀.၇၀ (ဂိတ် ≥၀.၃၀ — အလွန် ကျယ်သော margin)
+EASE_ENT, EASE_PW2, EASE_EX, EASE_EXP = 0.45, 5.0, 0.20, 1.6
+
+
+def _clip_bounds(mov):
+    """`(ti0, ti1, tj0, tj1, dur, fps)` — alpha ပျမ်းမျှကနေ ဝင်/ထွက် ဘောင်ဂ
+
+    `motmeas.measure()` နဲ့ တူညီသော သတ်မှတ်ချက် သုံးသည် — ဂိတ် တိုင်းတာနဲ့
+    ပြင်တာ **တစ်ထပ်တည်း** ဖြစ်စေရန်ဂ
+    """
+    try:
+        import motmeas as _MM
+        vals, fps = _MM.alpha_series(mov)
+        if not vals or fps <= 0:
+            return None
+        n = len(vals); pk = max(vals)
+        if pk <= _MM.FLOOR:
+            return None
+        on, full = _MM.ON * pk, _MM.FULL * pk
+        i0 = next((i for i, v in enumerate(vals) if v > on), 0)
+        i1 = next((i for i in range(i0, n) if vals[i] >= full), None)
+        j1 = next((i for i in range(n - 1, -1, -1) if vals[i] > on), n - 1)
+        j0 = next((i for i in range(j1, -1, -1) if vals[i] >= full), None)
+        if i1 is None or j0 is None or j0 <= i1:
+            return None
+        return (i0 / fps, i1 / fps, j0 / fps, j1 / fps, n / fps, fps)
+    except Exception:
+        return None
+
+
+def _ease_fc_remap(b, ent, ex, pw):
+    """**အချိန်ကို ease-out ပုံစံနဲ့ ပြန်ချိန်**သော filter — ramp ရှည်လျှင် အကောင်းဆုံးဂ
+
+    source အချိန် t ⇒ output အချိန် τ = E·(1-(1-t/t₁)^(1/pw)) ⇒
+    alpha(τ) = 1-(1-τ/E)^pw ⇒ **တကယ့် ease-out**ဂ
+    """
+    ti0, ti1, tj0, tj1, cdur, fps = b
+    has_ex = (tj1 - tj0) > 1.0 / fps
+    hold = cdur - ent - (ex if has_ex else 0.0)
+    if hold <= 0.1 or ti1 - ti0 <= 0.5 / fps:
+        return None
+    if not has_ex:
+        tj0 = tj1 = cdur
+    sb = hold / max(1e-6, tj0 - ti1)
+    e1 = (f"{ent:.4f}*(1-pow(max(0\,1-(T-{ti0:.4f})/{ti1-ti0:.4f})"
+          f"\,{1.0/pw:.5f}))")
+    e2 = f"{ent:.4f}+(T-{ti1:.4f})*{sb:.6f}"
+    e3 = (f"{ent+hold:.4f}+{ex:.4f}*pow(min(1\,max(0\,(T-{tj0:.4f})"
+          f"/{max(1e-6, tj1-tj0):.4f}))\,{EASE_EXP:.4f})")
+    if has_ex:
+        expr = (f"if(lt(T\,{ti1:.4f})\,{e1}\,"
+                f"if(lt(T\,{tj0:.4f})\,{e2}\,{e3}))")
+    else:
+        expr = f"if(lt(T\,{ti1:.4f})\,{e1}\,{e2})"
+    _fd = "" if has_ex else (f",fade=t=out:st={max(ent+0.05, cdur-ex-0.05):.2f}"
+                             f":d={ex:.2f}:alpha=1")
+    return (f"[0:v]format=rgba,setpts='({expr})/TB',fps={fps:.4f},"
+            f"tpad=stop_mode=clone:stop_duration=0.5,"
+            f"trim=0:{cdur:.3f},setpts=PTS-STARTPTS,format=yuva420p{_fd}[o]")
+
+
+def _ease_fc_curve(b, ent, ex, pw, k=3, din=None):
+    """**alpha ကို curve နဲ့ မြှောက်**သော filter — ramp တို (ဖရိမ်း ၃ ခု) မှာ လိုသည်ဂ
+
+    ⚠️ template ရဲ့ ကိုယ်ပိုင် ramp ကို `min(255, alpha*k)` နဲ့ ကြိုတိုစေပြီး
+       ကျွန်တော်တို့ curve က လွှမ်းမိုးစေသည်ဂ
+    """
+    _ti0, _ti1, _tj0, _tj1, cdur, _fps = b
+    # ⚠️ တိုင်းပြီး — din ၁.၆s က ဖရိမ်း ၃ ခု ramp မှာ ease ≥၀.၃၀ ပေးသည်；
+    #    ၁.၃၅s ဆိုလျှင် ၀.၂၉၃ သာ ရပြီး ဂိတ်ကို ၀.၀၀၇ နဲ့ လွဲသည် (၂၀၂၆-၀၉-၂၄)。
+    din = max(0.20, min(float(din if din else ent * 3.6), cdur * 0.55))
+    dout = max(0.14, min(ex, cdur * 0.30))
+    st_out = max(din + 0.05, cdur - dout - 0.05)
+    t = f"max(0\,min(1\,T/{din:.3f}))"
+    a = f"alpha(X,Y)" if k <= 1 else f"min(255\,alpha(X,Y)*{int(k)})"
+    return (f"[0:v]format=yuva420p,"
+            f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
+            f"a='{a}*(1-pow(1-{t}\,{int(pw)}))',"
+            f"fade=t=out:st={st_out:.2f}:d={dout:.2f}:alpha=1[o]")
+
+
+def _ease_score(m):
+    """ဂိတ် ဘယ်နှစ်ခု ကျလဲ (နည်းလေး ကောင်းလေး) — တန်းတူဆို ease များတာ ကောင်းဂ"""
+    import motmeas as _MM
+    if not m:
+        return (9, 0.0)
+    n = 0
+    n += 0 if _MM.ENTER_BAND[0] <= (m["in_s"] or 0) <= _MM.ENTER_BAND[1] else 1
+    n += 0 if _MM.EXIT_BAND[0] <= (m["out_s"] or 0) <= _MM.EXIT_BAND[1] else 1
+    n += 0 if (m["ease"] or 0) >= _MM.EASE_MIN else 1
+    return (n, -float(m["ease"] or 0))
+
+
+def _ease_clip(mov, dur, log=None, ent=None, ex=None, pw=None):
+    """overlay clip ရဲ့ ဝင်/ထွက် လှုပ်ရှားမှုကို **ဂိတ်ပြေအောင်** ပြင်သည်ဂ
+
+    ⚠️ QC (`motmeas.summary`) က **clip .mov ကို တိုက်ရိုက် တိုင်း**သည် —
+       composite ထွက်ဖိုင်ပေါ် မဟုတ်ပါဂ ဒါကြောင့် composite filter မှာ
+       တပ်လျှင် ဂိတ်က **ဘယ်တော့မှ မပြေလည်** (၂၀၂၆-၀၉-၂၃ ၂ ခါ ကျပြီးမှ တွေ့)ဂ
+
+    ဖြေရှင်းချက်ကို ရောက်ရန် တိုင်းချက် ၃ ဆင့် လိုခဲ့သည် —
+    ⚠️ ① **alpha ကို မြှောက်ရုံ မရ** (ကိန်း ၁၀ မျိုး စမ်း · အားလုံး ကျ) —
+         `alpha_series()` က frame ရဲ့ **alpha ပျမ်းမျှ** ကို တိုင်းသည်ဂ
+         template က အပိုင်းလိုက် ပေါ်လာသဖြင့် မပေါ်သေးသော pixel က ၀ ⇒
+         ၀×K = ၀ ဂ တကယ်တွေ့: `sl/w00` ဝင် ၃.၃၃၃s ⇒ K=10 နဲ့တောင် ၃.၂၆၇sဂ
+    ⚠️ ② **အချိန် ချုံ့ရုံ မရ** — ဝင်/ထွက် ဘောင်ထဲ ရောက်သော်လည်း ease
+         ၀.၀၃၈–၀.၁၆၇ သာဂ ဖော်ပြမှုက **မျဉ်းဖြောင့်** ဖြစ်ပြီး မျဉ်းဖြောင့်ကို
+         curve နဲ့ မြှောက်လျှင် မျဉ်းဖြောင့်ပဲ ပြန်ရသည် (x·(1-(1-x)^5) ≈ x)ဂ
+    ⚠️ ③ ⇒ **အချိန်ကိုယ်တိုင်** ease-out ဖြစ်ရမည် (`_ease_fc_remap`) —
+         တိုင်းပြီး ease ၀.၆၄–၀.၇၇ ရသည်ဂ
+
+    ⚠️ သို့သော် ramp က **ဖရိမ်း ၃ ခုသာ** ရှိလျှင် ဆန့်လိုက်သောအခါ လှေကားထစ်
+       ဖြစ်ပြီး ease **အနုတ်** (−၀.၀၅၉) ⇒ အဲဒီအခါ `_ease_fc_curve` က ပိုကောင်းဂ
+    ⚠️ ဘယ်နည်းက ကောင်းလဲ **မမှန်းရ** — ၂ ခုလုံး ထုတ်ပြီး တိုင်းကာ ရွေးသည်ဂ
+    ⚠️ clip ရဲ့ **ကြာချိန် မပြောင်းရ** — အချိန်မှတ်တွေ ရေးဆွဲပြီးသားဂ
+    ⚠️ ဘာမှ မတိုးတက်လျှင် **မူရင်းကို ပြန်သုံး**သည် (render မကျစေရ)ဂ
+    """
+    ent = EASE_ENT if ent is None else float(ent)
+    ex = EASE_EX if ex is None else float(ex)
+    pw = EASE_PW2 if pw is None else float(pw)
+    try:
+        import motmeas as _MM
+        b = _clip_bounds(mov)
+        if not b:
+            return mov
+        base = _MM.measure(mov)
+        cands = []
+        # ⚠️ **အစဉ်လိုက် စမ်းပြီး ဂိတ်ပြေတာနဲ့ ရပ်**သည် — candidate တိုင်းကို
+        #    ffmpeg တစ်ခါစီ ခေါ်ရသဖြင့် အားလုံး စမ်းလျှင် render ချိန် ကုန်သည်。
+        #    အစဉ်က တိုင်းချက်အရ — remap က ramp ရှည်မှာ အကောင်းဆုံး (ease
+        #    ၀.၆၅–၀.၇၀)、 curve က ramp တိုမှာ လိုအပ်သည်。
+        _CANDS = (("remap", lambda: _ease_fc_remap(b, ent, ex, pw)),
+                  ("curve", lambda: _ease_fc_curve(b, ent, ex, 5)),
+                  ("curve7", lambda: _ease_fc_curve(b, ent, ex, 7)),
+                  ("curve9", lambda: _ease_fc_curve(b, ent, ex, 9,
+                                                    din=ent * 4.8)))
+        for tag, _mk in _CANDS:
+            fc = _mk()
+            if not fc:
+                continue
+            out = mov.replace(".mov", f"_{tag}.mov")
+            if out == mov:
+                out = mov + f"_{tag}.mov"
+            r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", mov,
+                                "-filter_complex", fc, "-map", "[o]",
+                                "-c:v", "qtrle", "-pix_fmt", "argb", out],
+                               capture_output=True, text=True)
+            if r.returncode or not os.path.exists(out) or os.path.getsize(out) < 1024:
+                log and log(f"  ⚠️ ease {tag} မရ: {(r.stderr or '')[-80:]}")
+                continue
+            _sc = _ease_score(_MM.measure(out))
+            cands.append((_sc, tag, out))
+            if _sc[0] == 0:            # ဂိတ် ၃ ခုလုံး ပြေပြီ ⇒ ဆက်မစမ်းတော့
+                break
+        if not cands:
+            return mov
+        cands.sort(key=lambda x: x[0])
+        best, btag, bout = cands[0]
+        # ⚠️ **တိုးတက်မှန်း တိုင်းပြီးမှ** လဲရမည် — မှန်းဆချက်နဲ့ မလဲရ
+        if best > _ease_score(base):
+            log and log(f"  ⚠️ ease ပြင်၍ ဆိုးသွား၍ မူရင်း ဆက်သုံး "
+                        f"({os.path.basename(mov)})")
+            for _s, _t, _o in cands:
+                try: os.remove(_o)
+                except OSError: pass
+            return mov
+        for _s, _t, _o in cands:
+            if _o != bout:
+                try: os.remove(_o)
+                except OSError: pass
+        try: os.remove(mov)
+        except OSError: pass
+        return bout
+    except Exception as e:
+        log and log(f"  ⚠️ ease ပြင်၍ မရ: {type(e).__name__}: {e}")
+        return mov
 
 
 def _fade(src, dst, a, b, hard=False):
@@ -809,7 +1080,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         px = _pxname(job["id"], speech_speed); t_px = time.time()
         subprocess.run(["ffmpeg","-v","error","-y","-i",src,
             "-vf",f"scale={pw}:{ph}","-r",str(rc["fps"]),
-            "-c:v","h264_videotoolbox","-b:v",_vbr(pw, ph, rc["fps"]),
+            *h264_args(_vbr(pw, ph, rc["fps"]), crf=20),
             "-c:a","aac","-b:a","192k",px],check=True)
         log(f"  proxy {m['w']}×{m['h']}@{m['fps']:.0f} → {pw}×{ph}@{rc['fps']} · {time.time()-t_px:.0f}s")
         src = px; m = probe(src)
@@ -1233,6 +1504,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
         else:
             log("  ⚠️ အေးခဲသော ဖြတ်မှတ် မသုံးနိုင် (အလွတ်) — ③ ရဲ့ ရလဒ် သုံးသည်")
 
+    # ── clean-cut preview preflight ─────────────────────────────────
+    # A kept 0.30s spoken run is not disposable just because it would flash
+    # on screen.  Before making the user review a proxy, restore a little
+    # adjacent *engine-cut* context so the same spoken content is visible as a
+    # stable shot.  User-selected drops are hard fences.  This is deliberately
+    # only for the pre-approval cut preview; after approval `frozen_spans`
+    # remains the exact user-reviewed ground truth.
+    visual_stabilized, visual_blocked = [], []
+    if (job.get("mode") or "") == "cut":
+        _fences = list(user_drop or []) + list(user_drop_exact or [])
+        spans, visual_stabilized, visual_blocked = CUT.stabilize_visible_spans(
+            spans, explicit_drops=_fences, dur=float(m["dur"]))
+        if visual_stabilized:
+            log(f"  ✦ flash မဖြစ်စေရန် စကားမဖျက်ဘဲ micro clip "
+                f"{len(visual_stabilized)} ခုကို source context ဖြင့် "
+                f"{CUT.VISUAL_TARGET_SHOT:.2f}s ထိ ချဲ့ထား")
+        if visual_blocked:
+            log(f"  ⚠️ user ဖြတ်ချက်နယ်နိမိတ်ကြောင့် visible floor မမီသေးသော "
+                f"clip {len(visual_blocked)} ခု — Cut Review မှာ ပြန်စစ်ရန် လို")
+
     # ── cut preview — **ပုံဖြတ်ချက် + အသံသာ** ပါသော proxy ────────────
     # ⚠️ ဂရပ်ဖစ် · B-roll · တီးလုံး · SFX · စာတန်း · grade **တစ်ခုမှ မပါရ**。
     #    「ဖြတ်ချက် အိုကေလား」ဆိုတာကိုသာ သုံးစွဲသူ ဆုံးဖြတ်ရန်。
@@ -1248,7 +1539,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
         post_cut(job["id"], _cpv,
                  dict(spans=[[round(a, 3), round(b, 3)] for a, b in spans],
                       out_dur=round(_od, 2), src_dur=round(float(m["dur"]), 2),
-                      cuts=int(st.get("cuts", 0))), log=log)
+                      cuts=int(st.get("cuts", 0)),
+                      stabilized=visual_stabilized,
+                      blocked=visual_blocked), log=log)
         raise CutStop()
 
     # ⚠️ **မူရင်း အချိန် → ဖြတ်ပြီး အချိန်**。 ဂရပ်ဖစ်/SFX ကို ဖြတ်ပြီးသား
@@ -1716,11 +2009,46 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _best = _sg; break
                 if _best is None and _s0 > _a: _best = _sg; break
             if _best and str(_best.get("text") or "").strip():
-                _g["text"] = str(_best["text"]).strip()[:120]
+                # ⚠️ **ဝါကျ အပြည့် မထည့်ရ** — ၂၀၂၆-၀၉-၂၄ v6 render မှာ
+                #    `ht_outline_title` က 「ပြည်ပကနေ ချစ်ရသူတွေကို Western
+                #    Union နဲ့ ငွေလွှဲပြီး」ဟု **အောက်က စာတန်းနဲ့ စာကြောင်းတူ**
+                #    ပြခဲ့သည် ⇒ ကြည့်သူက တူညီသော စာကြောင်းကို ၂ ခါ ဖတ်ရသည်。
+                #    ⇒ **ပထမ ပုဒ်ဖြတ် အထိသာ** ယူပြီး cluster-safe ဖြတ်သည်。
+                _tx = " ".join(str(_best["text"]).split())
+                for _sep in ("၊", "။", ",", " — ", " – "):
+                    _i = _tx.find(_sep)
+                    if 6 <= _i:
+                        _tx = _tx[:_i]; break
+                # ⚠️ **code point နဲ့ မဖြတ်ရ** — မြန်မာစာမှာ ဗျည်းတွဲ/သရ က
+                #    code point သီးသန့် ဖြစ်၍ စာလုံးရေ နဲ့ တိုင်းလျှင် မမှန်
+                #    (`planner._short(28)` က ဝါကျတစ်ခုလုံး ပြန်ပေးခဲ့သည်)。
+                #    ⇒ **space နဲ့ ခွဲပြီး စကားလုံး ၄ လုံး** သာ ယူသည် —
+                #    ဗျည်းတွဲ ဘယ်တော့မှ မပျက်、ဗီဒီယိုမှာ တစ်ကြောင်းတည်း ဝင်。
+                _w = _tx.split()
+                _tx = " ".join(_w[:GFX_TEXT_WORDS]) if len(_w) > GFX_TEXT_WORDS \
+                    else _tx
+                _g["text"] = _tx.strip() or str(_best["text"]).strip()[:60]
                 _nofill += 1
         if _nofill:
             log(f"  ✎ ဂရပ်ဖစ် {_nofill} ခုမှာ စာသား မရှိ ⇒ အဲဒီအချိန်ရဲ့ "
                 f"ဝါကျကနေ ဖြည့်ပြီး (tmplfit ဖြည့်နိုင်ရန်)")
+        # ⚠️ **ဂရပ်ဖစ် စာသား အားလုံးကို ကန့်သတ်ရမည်** (Zin ၂၀၂၆-၀၉-၂၄:
+        #    「စာသားအားလုံး ၄ လုံး ကန့်သတ်ပါ」)。 အရင်က back-fill လမ်းကြောင်း
+        #    တစ်ခုတည်းသာ ကန့်သတ်ခဲ့သဖြင့် planner ကနေ စာသား ပါလာသော
+        #    ဂရပ်ဖစ်တွေက **ဝါကျ အပြည့်** ပြပြီး အောက်က စာတန်းနဲ့ စာကြောင်းတူ
+        #    ဖြစ်ကာ ၂ ကြောင်း ကျိုးခဲ့သည် (v7 ၄၈.၈s)。
+        _cut_n = 0
+        for _g in gfx:
+            _t0 = " ".join(str(_g.get("text") or "").split())
+            if not _t0:
+                continue
+            _w = _t0.split()
+            if len(_w) > GFX_TEXT_WORDS:
+                _g["text"] = " ".join(_w[:GFX_TEXT_WORDS])
+                _cut_n += 1
+        if _cut_n:
+            log(f"  ✂️ ဂရပ်ဖစ် စာသား {_cut_n} ခု ⇒ စကားလုံး "
+                f"{GFX_TEXT_WORDS} လုံး ကန့်သတ် (စာတန်းနဲ့ မထပ်စေရန်)")
         _n0 = len(gfx); _mapped = []
         for g in gfx:
             _a = float(g.get("at") or 0)
@@ -1756,7 +2084,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _od = sum(b - a for a, b in spans) or float(m["dur"])
             if _sh and gfx:
                 _tgt = (float(_sh[0]) + float(_sh[1])) / 2.0 * _od
-                _hold = max(1.5, min(10.0, _tgt / len(gfx)))
+                # ⚠️ အနိမ့်ဆုံး ၁.၅s ⇒ **၁.၀၅s** (၂၀၂၆-၀၉-၂၄ · Zin:
+                #    「graphic များများပါလေ သဘောကျလေ」)。 `card_len` ဂိတ်က
+                #    ၁.၀–၁၀.၅s ⇒ ၁.၀၅ က ဘောင်ထဲ ရှိသည် — **ဂိတ် မလျှော့ပါ**。
+                #    ၆၀s ထွက်ဖိုင်မှာ share ၀.၂၅ ဆိုလျှင် ကတ် ၆ ခု (၂.၁s)
+                #    အစား **၁၄ ခု** ဝင်ဆံ့သည် ⇒ talking-head motion ပုံစံ
+                #    ပိုပြီး သွက်လက်သည်。
+                _hold = max(1.05, min(10.0, _tgt / len(gfx)))
                 log(f"  ကတ် ရပ်ချိန် {_hold:.1f}s × {len(gfx)} ခု "
                     f"→ share ~{_hold*len(gfx)/_od:.3f} "
                     f"(ပစ်မှတ် {_sh[0]:.2f}–{_sh[1]:.2f} · ဖြတ်ပြီး {_od:.0f}s)")
@@ -1773,6 +2107,66 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _av = (_av[0], _av[1], float(_sb[0]), float(_sb[1]))
             except Exception as _be:
                 log(f"  ⚠️ ပြောသူ ဘောင် မတိုင်းရ ({type(_be).__name__})")
+            # ⚠️ **ကိန်းလိုသော template ကို ကြိုလဲရမည်** — `tmplfit` က ကိန်း
+            #    မရှိလျှင် မှန်ကန်စွာ ငြင်းပြီး `gfxcat.fill()` က စာသားကို
+            #    ကိန်းနေရာ ထည့်၍ `TypeError: str / float` ကျသည်
+            #    (၂၀၂၆-၀၉-၂၄ · `prem2.stat_ring` render ၃ ခေါက်လုံး)。
+            #    ⇒ ဖြည့်လို့ ရသော template နဲ့ လဲသည် — ကိန်း **မတီထွင်ပါ**。
+            try:
+                _acc = (brand or {}).get("accent") or rc.get("accent") or "#FFE000"
+                # ⚠️ `_tf_args is None` နဲ့ **မစစ်ရ** — `ht_outline_title`
+                #    လို template အများအပြားက None ပြန်ပေမယ့် `gfxcat.fill()`
+                #    လမ်းကြောင်းနဲ့ ကောင်းကောင်း ဆောက်လို့ ရသည် ⇒ အဲဒါနဲ့
+                #    စစ်လျှင် **ကောင်းနေတာတွေကို လဲပစ်**မည် (တိုင်းပြီး တွေ့)。
+                #    ⇒ `mkcat` ရဲ့ slot metadata (`type=number · req=true`)
+                #    ကိုသာ ယုံရသည် — module import စရာလည်း မလို。
+                # ⚠️ **namespace ၂ မျိုး ရှိသည်** — `dress._verified()` က အမည်တို
+                #    ၂၇၂ ခု、`gfxcat.catalog()` က `module.fn` id ⇒ **ထပ်တာ ၀**。
+                #    ⇒ လဲမယ့် pool ကို **id namespace တူအောင်** `mkcat` ကနေ ယူသည်。
+                import mkcat as _MK2
+                _items = _MK2.build(job.get("fmt") or "16:9").get("items") or []
+                def _needs_num(_x):
+                    return any(_s.get("req") and _s.get("type") == "number"
+                               for _s in (_x.get("slots") or []))
+                _meta = {_x["id"]: _x for _x in _items}
+                _pool_n = [_x["id"] for _x in _items if not _needs_num(_x)]
+                def _buildable(_k, _g):
+                    _x = _meta.get(_k)
+                    if not _x or not _needs_num(_x):
+                        return True          # ကိန်း မလို ⇒ မထိပါ
+                    try:
+                        return DR._tf_args(dict(_g, kind=_k), accent=_acc,
+                                           ink="#FFFFFF", dim="#8B8B8B") is not None
+                    except Exception:
+                        return False
+                # ⚠️ **လှည့်ရမည်** — အမြဲ ပထမဆုံးဟာကို ရွေးလျှင် swap တိုင်း
+                #    တူညီသော template ဖြစ်ပြီး ဗီဒီယိုထဲ ထပ်နေမည်
+                #    (၂၀၂၆-၀၉-၂၁ `ht_stat_ring` ၄ ခါ ပေါ်ခဲ့ဖူးသည်)。
+                import hashlib as _hl
+                _seedv = str(rc.get("_seed") or job.get("id") or "")
+                _used_alt = set()
+                _nnum = 0
+                for _gi, _g in enumerate(gfx):
+                    _k = _g.get("kind")
+                    if not _k or _buildable(_k, _g):
+                        continue
+                    _off = int(_hl.md5(f"{_seedv}:{_gi}".encode()).hexdigest()[:8], 16)
+                    _rot = (_pool_n[_off % len(_pool_n):] +
+                            _pool_n[:_off % len(_pool_n)]) if _pool_n else []
+                    _alt = next((k2 for k2 in _rot
+                                 if k2 != _k and k2 not in _used_alt
+                                 and _buildable(k2, _g)), None)
+                    if _alt:
+                        _used_alt.add(_alt)
+                    if _alt:
+                        log(f"  ↻ {_k} — ဤဝါကျမှာ ဖြည့်၍ မရ ⇒ {_alt}")
+                        _g["kind"] = _alt; _nnum += 1
+                if _nnum:
+                    REPORT["gfx_numswap"] = _nnum
+                    log(f"  ↻ ကိန်းလိုသော template {_nnum} ခု ကြိုလဲပြီး "
+                        f"(ဆောက်မရဘဲ ပျောက်မသွားစေရန်)")
+            except Exception as _nse:
+                log(f"  ⚠️ ကိန်း ကြိုစစ်ချက် မရ: {type(_nse).__name__}: {_nse}")
             gfx, _nsw = DR.swap_fit(gfx, _av, cap_top, TH["H"],
                                     seed=rc.get("_seed") or "",
                                     fmt=(job.get("fmt") or "16:9"), log=log,
@@ -1858,6 +2252,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ ထုတ်ပြီးမှ **တကယ့် အရှည်နဲ့ ပြန်တိုင်း**ရမည် — `hold` က
             #    တိုအောင် မလုပ်နိုင်သဖြင့် ပစ်မှတ်ထက် ကျော်နိုင်သည်。
             #    ဖယ်တာက ကတ်ဖိုင်ကို ပြန်မထုတ်ရ ⇒ အချိန် မကုန်ပါ。
+            # ⚠️ **ease ramp — clip ဖိုင်ကိုယ်တိုင်မှာ** တပ်ရမည်ဂ
+            #    QC က clip .mov ကို တိုက်ရိုက် တိုင်းသဖြင့် ဒီမှာ မတပ်လျှင်
+            #    `motion_exit` (၀.၁၀၀s) · `motion_ease` (၀.၁၅) ကျမည်ဂ
+            if gmov:
+                _ez0 = time.time()
+                gmov = [(a_, _ease_clip(m_, d_, log=log), d_, y0_, y1_)
+                        for a_, m_, d_, y0_, y1_ in gmov]
+                log(f"  ↩ ease ပြန်ချိန် · ဂရပ်ဖစ် {len(gmov)} ခု "
+                    f"(ဝင် {EASE_ENT}s · pw {EASE_PW2:.0f} · ထွက် {EASE_EX}s) · "
+                    f"{time.time()-_ez0:.0f}s")
+            # ⚠️ `_fit_gfx` မတိုင်မီ **တကယ် ဆောက်ပြီးသား** စာရင်းကို မှတ်ရမည် —
+            #    မမှတ်လျှင် coverage ဘောင်အတွက် ဖယ်လိုက်တာကို `DR.LAST` ရဲ့
+            #    「overlap」စသည်နဲ့ **အကြောင်းရင်း မှားပြ**မည် (၂၀၂၆-၀၉-၂၂)。
+            _built_at = {round(float(_x[0]), 2) for _x in (gmov or [])}
             if _sh and gmov:
                 # ⚠️ နာမည်ကို `_wg` **မသုံးရ** — အဲဒါက အပေါ်မှာ 「ဂရပ်ဖစ်
                 #    ဘယ်နှစ်ခု လိုချင်လဲ」ကိန်း ဖြစ်ပြီး report က အဲဒါကို
@@ -1884,19 +2292,33 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _why = {kk: vv for kk, vv in (DR.LAST or {}).items()
                             if kk in ("no_template", "build_fail", "no_room",
                                       "out_of_frame", "overlap", "no_args") and vv}
+                    # ⚠️ **အကြောင်းရင်း ၂ မျိုး ခွဲရမည်**:
+                    #    ① ဆောက်ပြီးသား ဒါပေမယ့် coverage ဘောင်အတွက် ဖယ်
+                    #    ② လုံးဝ မဆောက်နိုင် (`DR.LAST` ရဲ့ အကြောင်းရင်း)
+                    #    မခွဲလျှင် ① ကို 「overlap」ဟု မှားပြသည် (Zin ရဲ့ render)。
+                    _bld = sorted(_built_at)
+                    def _near_built(k):
+                        return any(abs(k - b) <= 0.75 for b in _bld)
+                    _rsn_build = ", ".join(f"{k} {v}" for k, v in _why.items()) or "မသိ"
+                    _n_fit = sum(1 for k in _miss if _near_built(k))
                     log(f"  ⚠️ ဂရပ်ဖစ် {len(_miss)} ခု **မထွက်ခဲ့** — "
-                        + (", ".join(f"{k} {v}" for k, v in _why.items()) or "အကြောင်းရင်း မသိ"))
+                        f"coverage ဘောင်အတွက် ဖယ် {_n_fit} · "
+                        f"မဆောက်နိုင် {len(_miss)-_n_fit} ({_rsn_build})")
                     REPORT["gfx_missing"] = [
-                        dict(at=k, tpl=_vp_meta.get(k, ("", "", False))[0]) for k in _miss]
+                        dict(at=k, tpl=_vp_meta.get(k, ("", "", False))[0],
+                             fit=bool(_near_built(k))) for k in _miss]
                     REPORT["gfx_why"] = _why
+                    REPORT["gfx_fit_trim"] = _n_fit
                     # ⚠️ **သုံးစွဲသူကိုပါ ပြရမည်** — log ထဲမှာပဲ ရှိလျှင်
                     #    「ဘာလို့ ဒီနေရာမှာ ဘာမှ မရှိတာလဲ」မသိရ。
-                    _rsn = ", ".join(f"{k} {v}" for k, v in _why.items()) or "မသိ"
                     for k in _miss:
                         _tp, _tx, _us = _vp_meta.get(k, ("", "", False))
-                        _vp.append(dict(id="g%.2f" % k, at=k, dur=0.0,
-                                        tpl=_tp, text=_tx, user=_us,
-                                        missing=True, why=_rsn))
+                        _vp.append(dict(
+                            id="g%.2f" % k, at=k, dur=0.0,
+                            tpl=_tp, text=_tx, user=_us, missing=True,
+                            why=("ဂရပ်ဖစ် အချိန် ဘောင် (coverage) အတွက် ဖယ်ထား"
+                                 if _near_built(k) else
+                                 f"ဆောက်၍ မရ — {_rsn_build}")))
                 st["vplan"] = sorted(_vp, key=lambda x: x["at"])
                 log(f"  ✦ Visual Plan · တကယ် တပ်ရ {len(_vp)} ခု "
                     f"(ရွေး {len(_vp_want)})")
@@ -2327,6 +2749,97 @@ def render(job, brand, src, out, stage, log=print, over=None):
             log(f"  ⚠️ slide မရ: {e}")
             slides = []
 
+    # ⚠️ **pop နဲ့ slide ကိုပါ ease ပြန်ချိန်ရမည်** — QC (`motmeas.summary`) က
+    #    `gmov + pmov + slides` အားလုံးကနေ **အလယ်တန်း** ယူသည် ⇒ ဂရပ်ဖစ်ပဲ
+    #    ပြင်ထားလျှင် slide တွေက အလယ်တန်းကို ဆွဲချသည်ဂ
+    #    ၂၀၂၆-၀၉-၂၄ တိုင်းချက် — `sl/w00` ဝင် ၃.၃၃၃s · ease ၀.၁၁၆ ·
+    #    `sl/w01` ဝင် ၀.၉၆၇s · `sl/w02` ထွက် ၃.၈၆၇s ⇒ ၃ ခုလုံး ဂိတ် မမီဂ
+    #    ပြန်ချိန်ပြီး — ဝင် ၀.၄၀–၀.၅၀ ✓ · ထွက် ၀.၁၆၇–၀.၂၀ ✓ · ease ၀.၄၈–၀.၇၇ ✓
+    # ⚠️ **ဘောင်အပြည့် slide နဲ့ ထပ်နေသော ဘေးကတ်ကို ဖယ်ရမည်** — v3 render
+    #    ၉.၅s မှာ slide ရဲ့ စာသားက `ht_stat_ring` ကို ဖြတ်သွားပြီး
+    #    အဝါစက်ဝိုင်း တစ်ဝက် ကွယ်ခဲ့သည် (၂၀၂၆-၀၉-၂၄ တိုင်းပြီး တွေ့)。
+    #    report ရဲ့ 「ထပ် ၀」က **ကတ်အချင်းချင်းသာ** စစ်သည်。
+    try:
+        _gc_win = [(float(_a), float(_b)) for _p, _a, _b, _l in (slides or [])
+                   if str(_p).lower().endswith(".mov")]
+        if _gc_win and gmov:
+            def _gclash(_at, _d):
+                _x0, _x1 = float(_at), float(_at) + float(_d)
+                for _a, _b in _gc_win:
+                    if min(_x1, _b) - max(_x0, _a) > 0.20:   # ၀.၂s ထက် ထပ်
+                        return True
+                return False
+            # ⚠️ **အမည် ထူးခြားရမည်** — `_drop` က `render()` ထဲမှာ
+            #    **function ရှိပြီးသား** (line ~3413 `_drop(cutv)`) ⇒ list နဲ့
+            #    လွှမ်းမိလျှင် render တစ်ခုလုံး ကျသည်
+            #    (`TypeError: 'list' object is not callable` · ၂၀၂၆-၀၉-၂၄)。
+            _gc_n0 = len(gmov)
+            _gc_keep, _gc_drop = [], []
+            for _gc_it in gmov:
+                (_gc_drop if _gclash(_gc_it[0], _gc_it[2])
+                 else _gc_keep).append(_gc_it)
+            if _gc_drop:
+                # ⚠️ **ဖျက်တာထက် ရွှေ့တာ ကောင်းသည်** — Zin: 「graphic
+                #    များများပါလေ သဘောကျလေ」(၂၀၂၆-၀၉-၂၄)。 ဖျက်လျှင်
+                #    v4 မှာ ဂရပ်ဖစ် ၄ → ၃ လျော့ခဲ့သည်。 ⇒ slide ပြီးသည့်
+                #    နောက် လွတ်နေရာ ရှိလျှင် အဲဒီကို ရွှေ့သည်、မရမှ ဖျက်。
+                _gc_od = sum(b - a for a, b in spans) or float(m["dur"])
+                _gc_busy = [(float(x[0]), float(x[0]) + float(x[2]))
+                            for x in _gc_keep] + list(_gc_win)
+                def _gc_free(_t, _d):
+                    if _t < 0 or _t + _d > _gc_od - 0.5:
+                        return False
+                    for _a, _b in _gc_busy:
+                        if min(_t + _d, _b) - max(_t, _a) > 0.20:
+                            return False
+                    return True
+                _mv, _rm = 0, 0
+                for _gc_it in _gc_drop:
+                    _at, _mvp, _d = float(_gc_it[0]), _gc_it[1], float(_gc_it[2])
+                    _new = None
+                    for _a, _b in sorted(_gc_win):
+                        if _b > _at and _gc_free(_b + 0.35, _d):
+                            _new = _b + 0.35; break
+                    if _new is None and _gc_free(_at - _d - 0.35, _d):
+                        _new = _at - _d - 0.35
+                    if _new is None:
+                        log(f"  ⊘ slide နဲ့ ထပ်ပြီး လွတ်နေရာ မရှိ၍ ဖယ် — "
+                            f"ဂရပ်ဖစ် @ {_at:.1f}s")
+                        try: os.remove(_mvp)
+                        except OSError: pass
+                        _rm += 1
+                        continue
+                    log(f"  ↔ slide နဲ့ ထပ်၍ ရွှေ့ — ဂရပ်ဖစ် "
+                        f"{_at:.1f}s → {_new:.1f}s")
+                    _gc_busy.append((_new, _new + _d))
+                    _gc_keep.append((round(_new, 2),) + tuple(_gc_it[1:]))
+                    _mv += 1
+                gmov = sorted(_gc_keep, key=lambda x: float(x[0]))
+                REPORT["gfx_slide_clash"] = {"ရွှေ့": _mv, "ဖယ်": _rm}
+                log(f"  ⊙ slide နဲ့ ထပ်သော ဂရပ်ဖစ် — ရွှေ့ {_mv} · ဖယ် {_rm} "
+                    f"({_gc_n0} → {len(gmov)})")
+    except Exception as _sce:
+        log(f"  ⚠️ slide ထပ်မှု မစစ်နိုင်: {type(_sce).__name__}: {_sce}")
+
+    try:
+        _ez1 = time.time(); _ezn = 0
+        if pmov:
+            pmov = [(a_, _ease_clip(m_, d_, log=log), d_, x_, t_)
+                    for a_, m_, d_, x_, t_ in pmov]
+            _ezn += len(pmov)
+        if slides:
+            _sl3 = []
+            for _p, _a, _b, _l in slides:
+                if str(_p).lower().endswith(".mov"):
+                    _p = _ease_clip(_p, _b - _a, log=log); _ezn += 1
+                _sl3.append((_p, _a, _b, _l))
+            slides = _sl3
+        if _ezn:
+            log(f"  ↩ ease ပြန်ချိန် · pop/slide {_ezn} ခု · "
+                f"{time.time()-_ez1:.0f}s")
+    except Exception as _eze:
+        log(f"  ⚠️ pop/slide ease ပြန်ချိန် မရ: {type(_eze).__name__}: {_eze}")
+
     # ── စာတန်း track (ဂရပ်ဖစ် သိပြီးမှ — ဖျောက်ရန်) ──
     capv = os.path.join(work, "caps.mov") if (caps and csize) else None
     if capv:
@@ -2630,8 +3143,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  ⚠️ အပိုင်းလိုက် grade မရ ({type(_e).__name__}: {_e})")
         if _sg:
             ff(["ffmpeg", "-v", "error", "-y", "-i", cutv, "-vf", _sg,
-                "-c:v", "h264_videotoolbox",
-                "-b:v", _vbr(_TH["W"], _TH["H"], rc["fps"]), "-c:a", "copy", gv])
+                *h264_args(_vbr(_TH["W"], _TH["H"], rc["fps"]), crf=18),
+                "-c:a", "copy", gv])
             cutv = gv
             log(f"  grade · အပိုင်းလိုက် {len(_segs)} ပိုင်း")
         else:
@@ -2745,6 +3258,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     f"ဆက်တိုက် {_mx} ခါ တူနေသည် — {dict(_Ct(_roles))}")
         except Exception:
             pass
+    # `cues` alone is merely a plan.  Keep independent evidence of whether
+    # ffmpeg actually resolved/mixed assets and whether the isolated stem made
+    # every cue audible.  Headtop's ship gate consumes these values below.
     nsfx = 0
     if cues:
         try:
@@ -2823,12 +3339,57 @@ def render(job, brand, src, out, stage, log=print, over=None):
         fc.append(f"[{last}][bf{n}]overlay=0:0:eof_action=pass:"
                   f"enable='between(t,{at:.2f},{at+bd:.2f})'[v{n}]")
         last = f"v{n}"
+    # ⚠️ **B-roll ပေါ်မှာ outline ဂရပ်ဖစ် မဖတ်ရ** — ၂၀၂၆-၀၉-၂၄ v7 render
+    #    ရဲ့ ၄၈.၈s မှာ အဝါ outline စာလုံး ပါးပါးက လေဆိပ် B-roll လင်းလင်း
+    #    ပေါ် ရောသွားပြီး **လုံးဝ မဖတ်ရ**ခဲ့သည် (ဂရပ်ဖစ် တစ်ခု အလဟဿ)。
+    #    Zin ၏ ဆုံးဖြတ်ချက်: 「scrim ခံပြီးတင်ပါ」。
+    # ⚠️ **ထပ်နေသော အပိုင်းမှာသာ** ခံရမည် — ဂရပ်ဖစ် တစ်ခုလုံး ခံလျှင်
+    #    ပြောသူပေါ်က ဂရပ်ဖစ်တွေပါ မှောင်သည် (recipe က `scrim=False`)。
+    _scrim_wins = []
     if rc.get("scrim") and gmov:
+        _scrim_wins = [(at, at + d, y0, y1) for at, _m, d, y0, y1 in gmov]
+    elif bmov and (gmov or pmov or rmov):
+        # ⚠️ **overlay ၃ မျိုးလုံး** စစ်ရမည် — v9 မှာ `gmov` တစ်ခုတည်း
+        #    စစ်ခဲ့ရာ ၄၈.၈s က ဂရပ်ဖစ်က `pmov`/`rmov` ကနေ လာသဖြင့်
+        #    scrim လုံးဝ မခံခဲ့ဘဲ B-roll လင်းလင်းပေါ် မဖတ်ရခဲ့သည်。
+        # ⚠️ `pmov`/`rmov` မှာ y-band မရှိ ⇒ **ဘောင်အပြည့်** ခံသည်。
+        #    B-roll ပေါ် စာရှိလျှင် မှောင်စေတာ ပုံမှန် လုပ်ထုံး ဖြစ်သည်。
+        _ov = ([(float(x[0]), float(x[0]) + float(x[2]), x[3], x[4])
+                for x in (gmov or [])]
+               + [(float(x[0]), float(x[0]) + float(x[2]), 0, TH["H"])
+                  for x in (pmov or [])]
+               + [(float(x[0]), float(x[0]) + float(x[2]), 0, TH["H"])
+                  for x in (rmov or [])])
+        for _a0, _a1, _y0, _y1 in _ov:
+            for _bat, _bp, _bd, _bt in (bmov or []):
+                _s0 = max(_a0, float(_bat))
+                _s1 = min(_a1, float(_bat) + float(_bd))
+                if _s1 - _s0 > 0.15:
+                    _scrim_wins.append((_s0, _s1, _y0, _y1))
+        if _scrim_wins:
+            log(f"  ▦ B-roll ပေါ် ဂရပ်ဖစ် {len(_scrim_wins)} နေရာ ⇒ scrim ခံမည် "
+                f"(ဖတ်ရအောင်)")
+    # ⚠️ **B-roll အတွက် `drawbox` ကို သုံးသည် — `SC.track` မဟုတ်**。
+    #    ၂၀၂၆-၀၉-၂၄ v10 render: `SC.track` က ဖိုင် ဆောက်ပြီး overlay လည်း
+    #    ထည့်ခဲ့သော်လည်း **ထွက်ဖိုင်ပေါ် လုံးဝ မသက်ရောက်**ခဲ့ (v9 ↔ v10
+    #    အလင်း ကွာဟမှု ၀.၀ · နမူနာ ၁၂၂ ခု တိုင်းပြီး)。 အကြောင်းရင်း
+    #    မတွေ့သေး ⇒ အလွှာ တစ်ခု လျှော့ပြီး **filter တစ်ကြောင်းတည်း** နဲ့
+    #    လုပ်သည်。 offline စမ်းချက် — window အတွင်း အလင်း **−၃၅…−၄၁**、
+    #    အပြင်မှာ ၀.၁ (မထိ) ⇒ သေချာ သက်ရောက်သည်。
+    if _scrim_wins and not rc.get("scrim"):
+        _db = []
+        for _a, _b, _y0, _y1 in _scrim_wins[:8]:
+            _y0i = max(0, int(_y0)); _hh = max(80, int(_y1) - _y0i)
+            _hh = min(_hh, TH["H"] - _y0i)
+            _db.append(f"drawbox=x=0:y={_y0i}:w=iw:h={_hh}"
+                       f":color=black@{SCRIM_ALPHA}:t=fill"
+                       f":enable='between(t,{_a:.2f},{_b:.2f})'")
+        fc.append(f"[{last}]" + ",".join(_db) + "[scb]")
+        last = "scb"
+        log(f"  ▦ scrim · drawbox {len(_db)} နေရာ · black@{SCRIM_ALPHA}")
+    elif _scrim_wins:
         try:
-            # ⚠️ scrim ကို **ဂရပ်ဖစ် ရှိချိန်မှာသာ** ပေါ်စေရမည် — တစ်ခုလုံး
-            #    ခံလျှင် ပြောသူ shot တွေပါ မှောင်သည် (N5 က ၁၄၉↔၂၃၆ ကြား
-            #    ပြောင်းနေသည်၊ IKKI က ၁၈၇ ငြိမ်နေခဲ့သည် — တိုင်းထားသည်)。
-            wins = [(at, at+d, y0, y1) for at, _m, d, y0, y1 in gmov]
+            wins = _scrim_wins
             sv = SC.track(wins, os.path.join(work, "scrim.mov"),
                           os.path.join(work, "sc"), TH["W"], TH["H"], TH["NAVY"],
                           fps=rc["fps"], total=probe(cutv)["dur"])
@@ -2852,6 +3413,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
         fc.append(f"[{last}][{n}:v]overlay=0:{cy}:shortest=0:repeatlast=0[v{n}]")
         last=f"v{n}"
     # ⚠️ ဂရပ်ဖစ် တစ်ခုချင်း alpha .mov ဖြစ်ပြီးသား — input အနည်းငယ်သာ
+    # ⚠️ **ဂရပ်ဖစ် clip တွေမှာ fade လုံးဝ မတပ်ခဲ့** ⇒ QC `motion_exit`
+    #    (၀.၁၀၀s · ဘောင် ၀.၁၃၃–၀.၂၆၇) နဲ့ `motion_ease` (၀.၁၅ · ဂိတ် ≥၀.၃၀)
+    #    ကျခဲ့သည် (၂၀၂၆-၀၉-၂၃ Zin ရဲ့ render)။ ⇒ ease-out alpha ramp တပ်သည်။
+    # ⚠️ ease ramp ကို **clip ဖိုင်ကိုယ်တိုင်** မှာ တပ်ပြီးသား (`_ease_clip`) —
+    #    QC က composite ထွက်ဖိုင် မဟုတ်ဘဲ **clip .mov ကို တိုက်ရိုက် တိုင်း**သဖြင့်
+    #    ဒီမှာ တပ်လျှင် တိုင်းချက်ထဲ ဘယ်တော့မှ မပါ (၁၀၂၆-၀၉-၂၃ တွေ့)ဂ
     for at, mov, d, _y0, _y1 in (gmov or [])[:12]:
         ins += ["-itsoffset",f"{at:.2f}","-i",mov]; n+=1
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass[v{n}]"); last=f"v{n}"
@@ -2963,7 +3530,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ -t ကို **output** မှာ ထားရမည် — -loop 1 က PNG ကို အဆုံးမရှိ ထုတ်သည်。
     ff(["ffmpeg","-v","error","-y","-i",cutv]+ins+[
         "-filter_complex",";".join(fc),"-map",f"[{last}]","-map","0:a?",
-        "-t",f"{mc['dur']:.2f}","-c:v","h264_videotoolbox","-b:v","10M",
+        "-t",f"{mc['dur']:.2f}",*h264_args("10M", crf=18),
         "-c:a","aac","-b:a","192k",raw], f"ဂရပ်ဖစ် ထပ်ခြင်း ({len(ins)//2} input)")
     _drop(cutv)                       # ⚠️ raw ထွက်ပြီး — cutv နောက် မသုံးတော့
     # ⚠️ သီချင်းကို **loudnorm မလုပ်ခင်** ထပ်ရမည် — ပြီးမှ ထပ်လျှင်
@@ -3122,6 +3689,31 @@ def render(job, brand, src, out, stage, log=print, over=None):
     ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
                         share=rc.get("gfx_share"))
+    # Headtop က `motion` number ကို report သီးသန့်အဖြစ်သာထားလျှင် 2/10
+    # overlay ရှိသော်လည်း audio/size QC အောင်တာနဲ့ final ကိုပို့မိနိုင်သည်。
+    # Premium pack အတွက် actual overlay timing နဲ့ minimum realised graphics
+    # ကို release gate ထဲ ထည့်ရမည်။ အတည်မပြုနိုင်လျှင် ပို့မည်မဟုတ်။
+    if (job.get("recipe") or rc.get("_id")) == "headtop":
+        try:
+            import motmeas as _MM2
+            _mchecks = _MM2.premium_checks(REPORT.get("motion"))
+        except Exception as _mce:
+            _mchecks = [dict(key="motion_measured", ok=False, value="—",
+                             want=f"motion QC error: {type(_mce).__name__}")]
+        _real_gfx = len(gmov or [])
+        _need_gfx = 2 if float(mo_dur or 0) < 45.0 else 3
+        _mchecks.append(dict(key="headtop_gfx", ok=_real_gfx >= _need_gfx,
+                             value=_real_gfx, want=f"≥ {_need_gfx} realised overlays"))
+        _schecks = _premium_sfx_checks(
+            cues, nsfx, REPORT.get("sfx_audible"), REPORT.get("sfx_silent"),
+            _qpol, mo_dur)
+        _mchecks.extend(_schecks)
+        REPORT["sfx_required"] = max(
+            1, int(float((_qpol or {}).get("per_min") or 0) *
+                   float(mo_dur or 0) / 60.0))
+        REPORT["sfx_moments_actual"] = _schecks[0]["value"]
+        checks.extend(_mchecks)
+        ok = all(c.get("ok") for c in checks)
     log("  QC · " + QC.summary(checks))
     # ⚠️ skill `ikki-presentation` §10 — **REFERENCE အတန်းက မဖြစ်မနေ**。
     #    ဘာကူးလိုက်ပြီး ဘာကို တမင် မကူးဘဲ ချန်ထားလဲ ပြရသည်。
@@ -3455,7 +4047,7 @@ def join_takes(jid, paths, take_rows, log=print):
     chain = "".join(f"[v{i}][a{i}]" for i in range(len(paths)))
     fc.append(f"{chain}concat=n={len(paths)}:v=1:a=1[v][a]")
     ff(args + ["-filter_complex", ";".join(fc), "-map", "[v]", "-map", "[a]",
-               "-c:v", "h264_videotoolbox", "-b:v", _vbr(W, H, fps),
+               *h264_args(_vbr(W, H, fps), crf=18),
                "-c:a", "aac", "-b:a", "192k", out], "take များ ပေါင်းခြင်း")
     # Use the actual joined duration for the final edge; codec/frame rounding
     # should never leave a transcript line apparently beyond the video.
@@ -3496,8 +4088,8 @@ def speed_source(jid, src, speed, log=print):
     # before motion/SFX planning prevents the familiar subtitle/SFX drift.
     ff(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex",
         f"[0:v]setpts=PTS/{float(speed):.2f}[v];[0:a]atempo={float(speed):.2f}[a]",
-        "-map", "[v]", "-map", "[a]", "-c:v", "h264_videotoolbox",
-        "-b:v", _vbr(m["w"], m["h"], m["fps"]), "-c:a", "aac", "-b:a", "192k", out],
+        "-map", "[v]", "-map", "[a]", *h264_args(_vbr(m["w"], m["h"], m["fps"]), crf=18),
+        "-c:a", "aac", "-b:a", "192k", out],
        "speech speed ပြောင်းခြင်း")
     log(f"  ✓ စကားပြောအရှိန် {speed:.2f}× · pitch မပြောင်း")
     return out
@@ -3531,7 +4123,9 @@ KEEP_WORK = os.environ.get("IKKI_KEEP_WORK") == "1"
 KEEP_LAST = 3          # ⚠️ နောက်ဆုံး job ဒီအရေအတွက်အထိ work/ ချန်သည်
 
 
-REPORTS = os.path.expanduser("~/.ikki/reports")
+# In a container, `$HOME` is ephemeral.  Production mounts `/reports`; local
+# workers retain the old location unless an operator explicitly chooses one.
+REPORTS = os.environ.get("IKKI_REPORTS") or os.path.expanduser("~/.ikki/reports")
 REPORT = {}            # ⚠️ render() က ဖြည့် · handle() က ဖိုင်ထုတ်
 
 
@@ -3623,6 +4217,49 @@ def write_report(jid, R):
     _lf = [f"{k}: {v['last']}" for k, v in gt.items() if v.get("last")]
     A(f"          ကျ {sum(v['fail'] for v in gt.values()) if gt else '—'} ကြိမ် · "
       f"နောက်ဆုံး: {_lf[0] if _lf else '—'}")
+    # ⚠️ **အပြင်ဘက် အခြေအနေကို ပြရမည်** — 「Gemini မရ」ချည်း ပြလျှင်
+    #    IKKI ရဲ့ အမှားလို့ မှားယူဆမည် (၂၀၂၆-၀၉-၂၄ မှာ ၂ ခါ မှားခဲ့)。
+    #    503 = model ဝန်ပို · 429 = quota ကုန် · 404 = model မရှိ ⇒ ၃ မျိုးလုံး
+    #    **IKKI ဘက်မှာ ပြင်စရာ မရှိ** — heuristic နဲ့ ဆက်သွားတာ မှန်သည်。
+    try:
+        import json as _js, time as _tm
+        _fp = os.path.expanduser(os.environ.get(
+            "IKKI_GEMINI_FAIL_LOG", "~/.ikki/gemini_fail.jsonl"))
+        if os.path.exists(_fp):
+            _cut = _tm.time() - 7200.0          # ဒီ render ရဲ့ ၂ နာရီ အတွင်း
+            _codes = {}
+            for _ln in open(_fp, encoding="utf-8").read().split("\n")[-400:]:
+                if not _ln.strip():
+                    continue
+                try: _d = _js.loads(_ln)
+                except Exception: continue
+                try:
+                    _ts = _tm.mktime(_tm.strptime(_d.get("t", ""),
+                                                  "%Y-%m-%dT%H:%M:%S"))
+                except Exception:
+                    continue
+                if _ts < _cut:
+                    continue
+                _c = _d.get("code")
+                if not _c:
+                    _e = str(_d.get("err") or "")
+                    for _cc in ("503", "429", "404", "403", "500"):
+                        if _cc in _e:
+                            _c = int(_cc); break
+                if _c:
+                    _codes[int(_c)] = _codes.get(int(_c), 0) + 1
+            if _codes:
+                _WHY = {503: "model ဝန်ပို (အပြင်ဘက် · ခဏနေ ပြန်ရ)",
+                        429: "quota ကုန် (အပြင်ဘက်)",
+                        404: "model မရှိ (proxy သတ်မှတ်ချက်)",
+                        403: "key ပြဿနာ", 500: "အပြင်ဘက် အမှား"}
+                _top = sorted(_codes.items(), key=lambda x: -x[1])
+                A("          အပြင်ဘက် — " + " · ".join(
+                    f"HTTP {c} ×{n} ({_WHY.get(c, '')})" for c, n in _top[:3]))
+                A("          ⇒ IKKI ဘက်မှာ ပြင်စရာ မရှိ — heuristic နဲ့ "
+                  "ဆက်သွားသည် (B-roll တွဲခြင်း ရပ်သည်)")
+    except Exception:
+        pass
     A("")
     # ⚠️ **slide နဲ့ gfx overlay က မတူ** — အရင် report မှာ ရောပြီး
     #    "တောင်း 6 → Gemini 14 → တပ်ပြီး 6" ဆိုပြီး မဆီမဆိုင် ဖြစ်ခဲ့သည်。
@@ -3686,6 +4323,9 @@ def write_report(jid, R):
           f"{_mk(g('sfx_skipped') or 0)}")
     A(f"SOUND     SFX cue {_mk(g('sfx_n'))} -> အသံဖြစ်ရပ် {_mk(mv)} · "
       f"{_mk(v)}/min       [{_mk(w)}]" + _tick(ok))
+    if g("sfx_required") is not None:
+        A(f"          Headtop premium — တကယ်ဖြစ်ရပ် {_mk(g('sfx_moments_actual'))} / "
+          f"လို {_mk(g('sfx_required'))}")
     v, w, ok = _rv(g("checks"), "sfx_spacing")
     A(f"          အနီးဆုံး အကွာ {_mk(v)}s      [{_mk(w)}]" + _tick(ok))
     # ⚠️ **variant ကွဲမကွဲ ပြရမည်** — role တစ်ခုလျှင် ဖိုင်တစ်ခုတည်း
@@ -3710,6 +4350,11 @@ def write_report(jid, R):
     with open(p, "w", encoding="utf-8") as f:
         f.write(txt + "\n")
     return p, txt
+
+
+def post_report(jid, text):
+    """Persist the measured report without letting a report outage fail a render."""
+    return req(f"/api/w/{jid}/report", {"report": text})
 
 
 def sweep_scratch(keep=None, failed=False):
@@ -4040,6 +4685,14 @@ def handle(d):
             rp, rtxt = write_report(jid, REPORT)
             print(rtxt, flush=True)
             print(f"  📄 report · {rp}", flush=True)
+            try:
+                post_report(jid, rtxt)
+            except Exception as _post_e:
+                # The durable local volume still holds the report.  Do not
+                # convert a good delivered render into a failed job merely
+                # because the API is briefly unavailable at cleanup time.
+                print(f"  ⚠️ report API မသိမ်းနိုင်: "
+                      f"{type(_post_e).__name__}: {_post_e}", flush=True)
         except Exception as _e:
             print(f"  ⚠️ report မထုတ်နိုင်: {type(_e).__name__}: {_e}", flush=True)
         # ⚠️ **ကျဘမ်းဖြစ်လည်း ရှင်းရမည်**。 အရင်က အောင်မြင်မှသာ src/out ဖျက်ပြီး

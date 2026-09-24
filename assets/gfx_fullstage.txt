@@ -1,0 +1,42 @@
+# ဘောင်အပြည့် ဖုံးသော template — **overlay အဖြစ် မသုံးရ**。
+# planner က `_layout="full"` (full-stage / cutaway) သို့ ပို့ရမည်。
+# ထုတ်သူ: tools/gfx_gate.py — bbox တိုင်းချက်ကနေ (မှန်းမရေး)。
+callouts.spot_call
+insert.insert_flow
+insert.insert_label
+motionfx.bg_gradient
+motionfx.bg_rays
+motionfx.hud_corners
+motionfx.scanlines
+motionfx.shape_wipe
+motionfx.sweep_light
+prem.glass_stat
+prem.list_reveal
+prem.split_hero
+prem2.big_number
+prem2.split_compare
+prem2.word_pop
+prem3.marquee_band
+prem3.serif_quote
+prem3.step_bar
+prem4.arrow_point
+prem4.pov_label
+prem4.stop_scroll
+prem4.three_reasons
+prem4.wait_for_it
+prem5.bounce_cap
+prem5.box_cap
+prem5.hl_word_cap
+prem5.karaoke_cap
+prem5.line_by_line
+prem5.word_pop_cap
+prem6.poll_sticker
+prem6.save_reminder
+prem6.social_proof
+prem7.end_grid
+retro.frame_box
+retro.rec_dot
+retro.tape_wipe
+titles2.wipe_word
+typew.grad_card
+typew.split_grad

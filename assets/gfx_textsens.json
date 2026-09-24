@@ -1,0 +1,4029 @@
+[
+ {
+  "id": "callouts.arc_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26747,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.arrow_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.27832,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.box_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24983,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.bracket_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.634,
+  "aa": 0.0,
+  "ink": 0.16327,
+  "why": ""
+ },
+ {
+  "id": "callouts.bubble_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23064,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.crosshair",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26121,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.curve_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26747,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.dash_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26988,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.line_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.27832,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.magnify_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26897,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.numbered_pin",
+  "category": "callout",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 3)"
+ },
+ {
+  "id": "callouts.pin_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23979,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.pulse_dot",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.27212,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.ribbon_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.22887,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.scan_box",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.6276,
+  "aa": 0.0,
+  "ink": 0.12999,
+  "why": ""
+ },
+ {
+  "id": "callouts.side_note",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26456,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.spot_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.94735,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.stack_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.276,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.tag_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.1802,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "callouts.underline_call",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.64,
+  "aa": 0.0,
+  "ink": 0.13245,
+  "why": ""
+ },
+ {
+  "id": "capt.box_hl",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.25358,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.fade_pair",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.08369,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.hl_phrase",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.17932,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.line_by_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07305,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.multi_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07194,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.one_word",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.08788,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.soft_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.13726,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.two_col",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.14776,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.underline_hl",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.16834,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "capt.word_swap",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.1864,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "charts.area_chart",
+  "category": "chart",
+  "ok": 0,
+  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
+ },
+ {
+  "id": "charts.battery",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.6301,
+  "aa": 0.0,
+  "ink": 0.37408,
+  "why": ""
+ },
+ {
+  "id": "charts.bubble_chart",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.column_chart",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.gantt",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 3)"
+ },
+ {
+  "id": "charts.heat_grid",
+  "category": "chart",
+  "ok": 0,
+  "why": "TypeError: '<' not supported between instances of 'str' and 'float'"
+ },
+ {
+  "id": "charts.kpi_tiles",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.line_chart",
+  "category": "chart",
+  "ok": 0,
+  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
+ },
+ {
+  "id": "charts.matrix4",
+  "category": "chart",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.51102,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "charts.org_chart",
+  "category": "chart",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.43176,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "charts.pct_grid",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.6301,
+  "aa": 0.0,
+  "ink": 0.5931,
+  "why": ""
+ },
+ {
+  "id": "charts.pie",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.ranking",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.scatter",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.sparkline",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.6301,
+  "aa": 0.0,
+  "ink": 0.42296,
+  "why": ""
+ },
+ {
+  "id": "charts.speedo",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.6301,
+  "aa": 0.0,
+  "ink": 0.189,
+  "why": ""
+ },
+ {
+  "id": "charts.stacked_bar",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "charts.thermometer",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.6301,
+  "aa": 0.0,
+  "ink": 0.14693,
+  "why": ""
+ },
+ {
+  "id": "charts.venn2",
+  "category": "chart",
+  "ok": 1,
+  "diff": 0.676,
+  "aa": 0.0,
+  "ink": 0.63087,
+  "why": ""
+ },
+ {
+  "id": "charts.waterfall",
+  "category": "chart",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "cine.font_card",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.14905,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "cine.font_reel",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23302,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "cine.letterbox",
+  "category": "typography",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "cine.title_stack",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07943,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "dash.avatar_row",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.1136,
+  "aa": 0.0,
+  "ink": 0.07649,
+  "why": ""
+ },
+ {
+  "id": "dash.bar_chart",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: unsupported operand type(s) for /: 'str' and 'str'"
+ },
+ {
+  "id": "dash.card_grid",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "dash.compare_bar",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: unsupported operand type(s) for /: 'str' and 'str'"
+ },
+ {
+  "id": "dash.donut",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.14899,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "dash.funnel",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "dash.kpi_card",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.2123,
+  "aa": 0.0,
+  "ink": 0.07753,
+  "why": ""
+ },
+ {
+  "id": "dash.line_chart",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: unsupported operand type(s) for -: 'str' and 'str'"
+ },
+ {
+  "id": "dash.progress_row",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "dash.tile_pop",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "glitch.block_reveal",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.78347,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.echo_ghost",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26952,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.flicker_word",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23442,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.jitter_caps",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.22031,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.noise_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.25874,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.rgb_split",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.25627,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.scan_wipe",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.43871,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.slice_jump",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.21835,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.strike_red",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.2435,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "glitch.two_line_hit",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.17269,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "infogfx.arrow",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.82352,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "infogfx.bars",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "infogfx.big_number",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6577,
+  "aa": 0.0,
+  "ink": 0.87269,
+  "why": ""
+ },
+ {
+  "id": "infogfx.callout",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6312,
+  "aa": 0.0,
+  "ink": 0.99882,
+  "why": ""
+ },
+ {
+  "id": "infogfx.checklist",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5726,
+  "aa": 0.0,
+  "ink": 0.06272,
+  "why": ""
+ },
+ {
+  "id": "infogfx.compare_bar",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 3)"
+ },
+ {
+  "id": "infogfx.counter",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.525,
+  "aa": 0.0,
+  "ink": 0.19684,
+  "why": ""
+ },
+ {
+  "id": "infogfx.donut",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: not enough values to unpack (expected 2, got 1)"
+ },
+ {
+  "id": "infogfx.funnel",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.5763,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "infogfx.gauge",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5239,
+  "aa": 0.0,
+  "ink": 0.14224,
+  "why": ""
+ },
+ {
+  "id": "infogfx.grid",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "infogfx.pyramid",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6815,
+  "aa": 0.0,
+  "ink": 0.60809,
+  "why": ""
+ },
+ {
+  "id": "infogfx.quote",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6326,
+  "aa": 0.0,
+  "ink": 0.91577,
+  "why": ""
+ },
+ {
+  "id": "infogfx.radial",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "infogfx.ring",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6126,
+  "aa": 0.0,
+  "ink": 0.1878,
+  "why": ""
+ },
+ {
+  "id": "infogfx.stat_row",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "infogfx.steps",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5818,
+  "aa": 0.0,
+  "ink": 0.11202,
+  "why": ""
+ },
+ {
+  "id": "infogfx.tag_cloud",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.46826,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "infogfx.timeline",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "infogfx.versus",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.9569,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "insert.insert_flow",
+  "category": "explainer",
+  "ok": 1,
+  "diff": 0.0253,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "insert.insert_label",
+  "category": "explainer",
+  "ok": 1,
+  "diff": 0.027,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "kin4.alt_side",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07402,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.corner_tag",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.16175,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.drop_words",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07396,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.huge_caps",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.2279,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.push_up",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06908,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.rot_enter",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.08476,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.stack_mix",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07975,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.two_tone",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.1166,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.wide_track",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23758,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kin4.zoom_word",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.27639,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic.blur_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7135,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.cascade",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5974,
+  "aa": 0.0,
+  "ink": 0.11394,
+  "why": ""
+ },
+ {
+  "id": "kinetic.count_up",
+  "category": "text",
+  "ok": 0,
+  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
+ },
+ {
+  "id": "kinetic.drop_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6174,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.flicker",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5868,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.focus",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6299,
+  "aa": 0.0,
+  "ink": 0.1975,
+  "why": ""
+ },
+ {
+  "id": "kinetic.line_rise",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6319,
+  "aa": 0.0,
+  "ink": 0.0373,
+  "why": ""
+ },
+ {
+  "id": "kinetic.punch",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6696,
+  "aa": 0.0,
+  "ink": 0.45694,
+  "why": ""
+ },
+ {
+  "id": "kinetic.slide_alt",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5852,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.spotlight",
+  "category": "text",
+  "ok": 0,
+  "why": "TypeError: unsupported operand type(s) for -: 'float' and 'str'"
+ },
+ {
+  "id": "kinetic.stack",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6319,
+  "aa": 0.0,
+  "ink": 0.0373,
+  "why": ""
+ },
+ {
+  "id": "kinetic.swap",
+  "category": "text",
+  "ok": 0,
+  "why": "TypeError: swap() missing 1 required positional argument: 'words'"
+ },
+ {
+  "id": "kinetic.sweep",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.695,
+  "aa": 0.0,
+  "ink": 0.23673,
+  "why": ""
+ },
+ {
+  "id": "kinetic.tighten",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5809,
+  "aa": 0.0,
+  "ink": 0.10319,
+  "why": ""
+ },
+ {
+  "id": "kinetic.typewriter",
+  "category": "text",
+  "ok": 0,
+  "why": "TypeError: unsupported operand type(s) for -: 'list' and 'int'"
+ },
+ {
+  "id": "kinetic.underline",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7495,
+  "aa": 0.0,
+  "ink": 0.15261,
+  "why": ""
+ },
+ {
+  "id": "kinetic.wave",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5915,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.wipe",
+  "category": "text",
+  "ok": 0,
+  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'work/kt/s1_full.png', "
+ },
+ {
+  "id": "kinetic.word_pop",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5851,
+  "aa": 0.0,
+  "ink": 0.10316,
+  "why": ""
+ },
+ {
+  "id": "kinetic.zoom_out",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6045,
+  "aa": 0.0,
+  "ink": 0.06447,
+  "why": ""
+ },
+ {
+  "id": "kinetic2.blur_out",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.16819,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.box_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.13516,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.count_roll",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.37022,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.emphasis",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.1289,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.gravity",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.16072,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.highlight_bar",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.34811,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.karaoke",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.15213,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.letter_pop",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.17522,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.line_split",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10118,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.mask_rise",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.34477,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.neon_flicker",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.21738,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.pop_out",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.29018,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.quote_marks",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09724,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.shadow_split",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.17338,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.stagger_out",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.02816,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.strike_in",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10914,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.subtitle_2line",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.8103,
+  "aa": 0.0,
+  "ink": 0.0461,
+  "why": ""
+ },
+ {
+  "id": "kinetic2.type_cursor",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10419,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic2.vert_roll",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7719,
+  "aa": 0.0,
+  "ink": 0.12526,
+  "why": ""
+ },
+ {
+  "id": "kinetic2.wipe_out",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.04268,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.accent_word",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24424,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.burst_scale",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.33803,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.color_block",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.12193,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.flip_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24034,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.kicker_big_tail",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.19577,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.rot_slam",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.08478,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.rule_pair",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.12619,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.size_riot",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07889,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.slam_squash",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24034,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "kinetic3.spin_stack",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.05303,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "maps.connect_web",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "maps.country_fill",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: '<=' not supported between instances of 'str' and 'float'"
+ },
+ {
+  "id": "maps.multi_pins",
+  "category": "infographic",
+  "ok": 0,
+  "why": "IndexError: string index out of range"
+ },
+ {
+  "id": "maps.photo_inset",
+  "category": "infographic",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "maps.pin_label",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: can only concatenate str (not \"float\") to str"
+ },
+ {
+  "id": "maps.plane_path",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: can only concatenate str (not \"float\") to str"
+ },
+ {
+  "id": "maps.region_zoom",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: can only concatenate str (not \"float\") to str"
+ },
+ {
+  "id": "maps.route_arc",
+  "category": "infographic",
+  "ok": 0,
+  "why": "TypeError: can only concatenate str (not \"float\") to str"
+ },
+ {
+  "id": "maps.stat_map",
+  "category": "infographic",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "maps.world_dots",
+  "category": "infographic",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "odo.big_stat",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6665,
+  "aa": 0.0,
+  "ink": 0.03654,
+  "why": ""
+ },
+ {
+  "id": "odo.count_pill",
+  "category": "infographic",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "odo.count_up",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+ },
+ {
+  "id": "odo.label_num",
+  "category": "infographic",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "odo.money",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+ },
+ {
+  "id": "odo.odometer",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5672,
+  "aa": 0.0,
+  "ink": 0.02718,
+  "why": ""
+ },
+ {
+  "id": "odo.percent_ring",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.0881,
+  "aa": 0.0,
+  "ink": 0.069,
+  "why": ""
+ },
+ {
+  "id": "odo.split_flap",
+  "category": "infographic",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "odo.tick_row",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "odo.timer",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.06594,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.chapter",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.cta_outro",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.glass_stat",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.1055,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem.hero_line",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.list_reveal",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0351,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem.logo_reveal",
+  "category": "title",
+  "ok": 0,
+  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂျပန်မှာ အလုပ်', '-vf'"
+ },
+ {
+  "id": "prem.lower_third",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.metric_trio",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "prem.quote_card",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem.split_hero",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0316,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem2.bento_grid",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "prem2.big_number",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0968,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem2.chip_row",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem2.split_compare",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0362,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem2.stat_ring",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem2.tilt_card",
+  "category": "title",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "prem2.timeline_flow",
+  "category": "title",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "prem2.word_pop",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0224,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem3.countdown",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem3.end_card",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem3.feature_grid",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "prem3.logo_wall",
+  "category": "title",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "prem3.marquee_band",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0366,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem3.photo_card",
+  "category": "title",
+  "ok": 0,
+  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂျပန်မှာ အလုပ်', '-vf'"
+ },
+ {
+  "id": "prem3.price_card",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem3.serif_quote",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0435,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem3.step_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0313,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem3.testimonial",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.012,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.012)"
+ },
+ {
+  "id": "prem4.arrow_point",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0418,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem4.big_question",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "prem4.mistake_hook",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem4.pov_label",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0395,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem4.shock_stat",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "prem4.stop_scroll",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0473,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem4.tap_reveal",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem4.this_or_that",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem4.three_reasons",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0453,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem4.wait_for_it",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0441,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.bounce_cap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0313,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.box_cap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0362,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.chip_cap",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem5.cinema_cap",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0141,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.014)"
+ },
+ {
+  "id": "prem5.hl_word_cap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0238,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.karaoke_cap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0248,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.line_by_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0342,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem5.number_cap",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem5.speaker_cap",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem5.word_pop_cap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0292,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem6.comment_pop",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem6.follow_cta",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem6.like_burst",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem6.poll_sticker",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.0866,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem6.progress_ring_cta",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem6.rating_stars",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem6.save_reminder",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.0313,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem6.share_row",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.015,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.015)"
+ },
+ {
+  "id": "prem6.social_proof",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.0477,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem6.swipe_hint",
+  "category": "callout",
+  "ok": 0,
+  "diff": 0.0084,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.008)"
+ },
+ {
+  "id": "prem7.audio_wave",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0069,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.007)"
+ },
+ {
+  "id": "prem7.checklist_tick",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0158,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.016)"
+ },
+ {
+  "id": "prem7.compare_bar",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "prem7.end_grid",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.0392,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "prem7.location_tag",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem7.note_card",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0105,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.010)"
+ },
+ {
+  "id": "prem7.price_badge",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "prem7.spec_list",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "prem7.step_badge",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: invalid literal for int() with base 10: 'ဂျပန်မှာ အလုပ်'"
+ },
+ {
+  "id": "prem7.timer_badge",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0021,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.002)"
+ },
+ {
+  "id": "qcard.bar_quote",
+  "category": "title",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "qcard.corner_note",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4435,
+  "aa": 0.0,
+  "ink": 0.07325,
+  "why": ""
+ },
+ {
+  "id": "qcard.hl_word",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5528,
+  "aa": 0.0,
+  "ink": 0.11892,
+  "why": ""
+ },
+ {
+  "id": "qcard.lower_quote",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4653,
+  "aa": 0.0,
+  "ink": 0.11154,
+  "why": ""
+ },
+ {
+  "id": "qcard.num_point",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0099,
+  "ink": 0.16033,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.010)"
+ },
+ {
+  "id": "qcard.quote_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4116,
+  "aa": 0.0,
+  "ink": 0.22753,
+  "why": ""
+ },
+ {
+  "id": "qcard.side_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.374,
+  "aa": 0.0,
+  "ink": 0.06603,
+  "why": ""
+ },
+ {
+  "id": "qcard.split_quote",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.713,
+  "aa": 0.0,
+  "ink": 0.02458,
+  "why": ""
+ },
+ {
+  "id": "qcard.stack_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4111,
+  "aa": 0.0,
+  "ink": 0.22753,
+  "why": ""
+ },
+ {
+  "id": "qcard.tag_pill",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6895,
+  "aa": 0.0,
+  "ink": 0.02437,
+  "why": ""
+ },
+ {
+  "id": "retro.count_tape",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.05,
+  "aa": 0.0,
+  "ink": 0.04338,
+  "why": ""
+ },
+ {
+  "id": "retro.dual_tone",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5239,
+  "aa": 0.0,
+  "ink": 0.0668,
+  "why": ""
+ },
+ {
+  "id": "retro.frame_box",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5523,
+  "aa": 0.0,
+  "ink": 0.05647,
+  "why": ""
+ },
+ {
+  "id": "retro.label_strip",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.1677,
+  "aa": 0.0906,
+  "ink": 0.08489,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.091 (A/B 0.168)"
+ },
+ {
+  "id": "retro.noise_card",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "retro.rec_dot",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.089,
+  "aa": 0.0,
+  "ink": 0.04672,
+  "why": ""
+ },
+ {
+  "id": "retro.scan_title",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.6616,
+  "aa": 0.6452,
+  "ink": 0.52737,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.645 (A/B 0.662)"
+ },
+ {
+  "id": "retro.tape_wipe",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0544,
+  "aa": 0.0037,
+  "ink": 0.43858,
+  "why": ""
+ },
+ {
+  "id": "retro.vhs_title",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "retro.warp_word",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "thm.chat_badge",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5725,
+  "aa": 0.0,
+  "ink": 0.13755,
+  "why": ""
+ },
+ {
+  "id": "thm.chat_dots",
+  "category": "infographic",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "thm.chat_one",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5454,
+  "aa": 0.0,
+  "ink": 0.12111,
+  "why": ""
+ },
+ {
+  "id": "thm.chat_pair",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.05483,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.chat_quote",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5919,
+  "aa": 0.0,
+  "ink": 0.03458,
+  "why": ""
+ },
+ {
+  "id": "thm.chat_react",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.548,
+  "aa": 0.0,
+  "ink": 0.12119,
+  "why": ""
+ },
+ {
+  "id": "thm.chat_stack",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5134,
+  "aa": 0.0,
+  "ink": 0.03559,
+  "why": ""
+ },
+ {
+  "id": "thm.chat_tail",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "thm.chat_thread",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "thm.chat_type",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6272,
+  "aa": 0.0,
+  "ink": 0.0248,
+  "why": ""
+ },
+ {
+  "id": "thm.cmp_bad_good",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.03558,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_before",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.409,
+  "aa": 0.6498,
+  "ink": 0.00641,
+  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.650 (A/B 0.409)"
+ },
+ {
+  "id": "thm.cmp_frame",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.03119,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_glass",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.16057,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_meter",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.05203,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_price",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.16057,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_rows",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 3)"
+ },
+ {
+  "id": "thm.cmp_split",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.04008,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_stack",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "thm.cmp_vs",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.08276,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_win_a",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.16057,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.cmp_win_b",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.16057,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.hook_count",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6498,
+  "aa": 0.0,
+  "ink": 0.00193,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_frame",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6229,
+  "aa": 0.0,
+  "ink": 0.0064,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_glass",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.0625,
+  "aa": 0.0,
+  "ink": 0.04037,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_num",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.11278,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.hook_punch",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5579,
+  "aa": 0.0,
+  "ink": 0.00487,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_q",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.04199,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.hook_red",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5579,
+  "aa": 0.0,
+  "ink": 0.00487,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_side",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6088,
+  "aa": 0.0,
+  "ink": 0.0041,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_strike",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.0487,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.hook_tag",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7138,
+  "aa": 0.0,
+  "ink": 0.02287,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_two",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6763,
+  "aa": 0.0,
+  "ink": 0.01699,
+  "why": ""
+ },
+ {
+  "id": "thm.hook_wipe",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.5977,
+  "aa": 0.0,
+  "ink": 0.00401,
+  "why": ""
+ },
+ {
+  "id": "thm.key_boxed",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3756,
+  "aa": 0.0,
+  "ink": 0.12447,
+  "why": ""
+ },
+ {
+  "id": "thm.key_bracket",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3637,
+  "aa": 0.0,
+  "ink": 0.11773,
+  "why": ""
+ },
+ {
+  "id": "thm.key_count",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.071,
+  "aa": 0.0,
+  "ink": 0.11288,
+  "why": ""
+ },
+ {
+  "id": "thm.key_drop",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3752,
+  "aa": 0.0,
+  "ink": 0.11291,
+  "why": ""
+ },
+ {
+  "id": "thm.key_hl",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3202,
+  "aa": 0.0,
+  "ink": 0.20078,
+  "why": ""
+ },
+ {
+  "id": "thm.key_note",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3773,
+  "aa": 0.0,
+  "ink": 0.11361,
+  "why": ""
+ },
+ {
+  "id": "thm.key_ok",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3703,
+  "aa": 0.0,
+  "ink": 0.12056,
+  "why": ""
+ },
+ {
+  "id": "thm.key_pieces",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7099,
+  "aa": 0.0,
+  "ink": 0.01113,
+  "why": ""
+ },
+ {
+  "id": "thm.key_pop",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3752,
+  "aa": 0.0,
+  "ink": 0.11291,
+  "why": ""
+ },
+ {
+  "id": "thm.key_red",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3202,
+  "aa": 0.0,
+  "ink": 0.20078,
+  "why": ""
+ },
+ {
+  "id": "thm.key_shake",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3752,
+  "aa": 0.0,
+  "ink": 0.11291,
+  "why": ""
+ },
+ {
+  "id": "thm.key_slide",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3752,
+  "aa": 0.0,
+  "ink": 0.11291,
+  "why": ""
+ },
+ {
+  "id": "thm.key_strike",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3775,
+  "aa": 0.0,
+  "ink": 0.11331,
+  "why": ""
+ },
+ {
+  "id": "thm.key_swap",
+  "category": "text",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.04105,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.key_under",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3703,
+  "aa": 0.0,
+  "ink": 0.12056,
+  "why": ""
+ },
+ {
+  "id": "thm.list_arrow",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6261,
+  "aa": 0.0,
+  "ink": 0.02553,
+  "why": ""
+ },
+ {
+  "id": "thm.list_big",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5936,
+  "aa": 0.0,
+  "ink": 0.04097,
+  "why": ""
+ },
+ {
+  "id": "thm.list_dot",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6235,
+  "aa": 0.0,
+  "ink": 0.02524,
+  "why": ""
+ },
+ {
+  "id": "thm.list_flow",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.4652,
+  "aa": 0.0,
+  "ink": 0.00845,
+  "why": ""
+ },
+ {
+  "id": "thm.list_num",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6489,
+  "aa": 0.0,
+  "ink": 0.02868,
+  "why": ""
+ },
+ {
+  "id": "thm.list_tick",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6501,
+  "aa": 0.0,
+  "ink": 0.02892,
+  "why": ""
+ },
+ {
+  "id": "thm.list_two",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.4894,
+  "aa": 0.0,
+  "ink": 0.01354,
+  "why": ""
+ },
+ {
+  "id": "thm.media_window",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.1579,
+  "aa": 0.0,
+  "ink": 0.24151,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_bar",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6286,
+  "aa": 0.0,
+  "ink": 0.12624,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_bars",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "thm.stat_big",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6087,
+  "aa": 0.0,
+  "ink": 0.12008,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_delta",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.21,
+  "aa": 0.0,
+  "ink": 0.46736,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_frame",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.658,
+  "aa": 0.0,
+  "ink": 0.14416,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_glass",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.2413,
+  "aa": 0.0,
+  "ink": 0.4232,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_note",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.24,
+  "aa": 0.0,
+  "ink": 0.42397,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_ok",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6286,
+  "aa": 0.0,
+  "ink": 0.12624,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_pct",
+  "category": "infographic",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.01691,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.stat_red",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.6286,
+  "aa": 0.0,
+  "ink": 0.12624,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_roll",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5034,
+  "aa": 0.0,
+  "ink": 0.11643,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_solid",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.5737,
+  "aa": 0.0,
+  "ink": 0.42139,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_tag",
+  "category": "infographic",
+  "ok": 1,
+  "diff": 0.2868,
+  "aa": 0.0,
+  "ink": 0.39402,
+  "why": ""
+ },
+ {
+  "id": "thm.stat_trio",
+  "category": "infographic",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "thm.tag_arrow",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.5859,
+  "aa": 0.0,
+  "ink": 0.03419,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_circle",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.5736,
+  "aa": 0.0,
+  "ink": 0.03792,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_corner",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.6953,
+  "aa": 0.0,
+  "ink": 0.09372,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_note",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.5752,
+  "aa": 0.0,
+  "ink": 0.11579,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_pill",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.6173,
+  "aa": 0.0,
+  "ink": 0.09946,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_time",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.6072,
+  "aa": 0.0,
+  "ink": 0.03694,
+  "why": ""
+ },
+ {
+  "id": "thm.tag_under",
+  "category": "callout",
+  "ok": 1,
+  "diff": 0.6685,
+  "aa": 0.0,
+  "ink": 0.03918,
+  "why": ""
+ },
+ {
+  "id": "thm.type_alt",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06694,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_blur",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10324,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_box",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.7665,
+  "aa": 0.0,
+  "ink": 0.02019,
+  "why": ""
+ },
+ {
+  "id": "thm.type_char",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09632,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_drop",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09419,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_focus",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09632,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_gather",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06532,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_hot",
+  "category": "text",
+  "ok": 0,
+  "why": "TypeError: not all arguments converted during string formatting"
+ },
+ {
+  "id": "thm.type_rule",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6627,
+  "aa": 0.0,
+  "ink": 0.02511,
+  "why": ""
+ },
+ {
+  "id": "thm.type_scatter",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.0816,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_stack",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6738,
+  "aa": 0.0,
+  "ink": 0.02611,
+  "why": ""
+ },
+ {
+  "id": "thm.type_swap",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.3199,
+  "aa": 0.0,
+  "ink": 0.03169,
+  "why": ""
+ },
+ {
+  "id": "thm.type_track",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06184,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_wave",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09814,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_word",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09798,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.type_write",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06193,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "thm.ui_app",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.0878,
+  "aa": 0.0,
+  "ink": 0.41202,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_badge",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.1004,
+  "aa": 0.0,
+  "ink": 0.41388,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_browser",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.0878,
+  "aa": 0.0,
+  "ink": 0.41202,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_cursor",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.0883,
+  "aa": 0.0,
+  "ink": 0.41202,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_notif",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.5056,
+  "aa": 0.0,
+  "ink": 0.13505,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_phone",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.0509,
+  "aa": 0.0,
+  "ink": 0.71265,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_progress",
+  "category": "ui",
+  "ok": 1,
+  "diff": 0.059,
+  "aa": 0.0,
+  "ink": 0.10689,
+  "why": ""
+ },
+ {
+  "id": "thm.ui_search",
+  "category": "ui",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.26523,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.ui_steps",
+  "category": "ui",
+  "ok": 0,
+  "diff": 0.017,
+  "ink": 0.22656,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.017)"
+ },
+ {
+  "id": "thm.ui_tabs",
+  "category": "ui",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.01396,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "thm.ui_toggle",
+  "category": "ui",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.08145,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "titles.badge",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6991,
+  "aa": 0.0,
+  "ink": 0.99784,
+  "why": ""
+ },
+ {
+  "id": "titles.bumper",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6305,
+  "aa": 0.0,
+  "ink": 0.2427,
+  "why": ""
+ },
+ {
+  "id": "titles.chapter",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5275,
+  "aa": 0.0,
+  "ink": 0.71195,
+  "why": ""
+ },
+ {
+  "id": "titles.corner_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.9992,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles.countdown",
+  "category": "title",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 0.19398,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "titles.end_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6127,
+  "aa": 0.0,
+  "ink": 0.78669,
+  "why": ""
+ },
+ {
+  "id": "titles.kicker_title",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.86329,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles.label_pill",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.93624,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles.list_title",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5884,
+  "aa": 0.0,
+  "ink": 0.11696,
+  "why": ""
+ },
+ {
+  "id": "titles.logo_sting",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6072,
+  "aa": 0.0,
+  "ink": 0.25115,
+  "why": ""
+ },
+ {
+  "id": "titles.lower_third",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.98312,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles.name_plate",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.627,
+  "aa": 0.0,
+  "ink": 0.63386,
+  "why": ""
+ },
+ {
+  "id": "titles.quote_title",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6344,
+  "aa": 0.0,
+  "ink": 0.77778,
+  "why": ""
+ },
+ {
+  "id": "titles.section",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5788,
+  "aa": 0.0,
+  "ink": 0.71429,
+  "why": ""
+ },
+ {
+  "id": "titles.side_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6518,
+  "aa": 0.0,
+  "ink": 0.96422,
+  "why": ""
+ },
+ {
+  "id": "titles.split_title",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6168,
+  "aa": 0.0,
+  "ink": 0.79912,
+  "why": ""
+ },
+ {
+  "id": "titles.stat_title",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6939,
+  "aa": 0.0,
+  "ink": 0.79857,
+  "why": ""
+ },
+ {
+  "id": "titles.ticker",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6343,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "titles.title_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5772,
+  "aa": 0.0,
+  "ink": 0.80364,
+  "why": ""
+ },
+ {
+  "id": "titles.topic_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6725,
+  "aa": 0.0,
+  "ink": 0.96868,
+  "why": ""
+ },
+ {
+  "id": "titles2.agenda",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.589,
+  "aa": 0.0,
+  "ink": 0.72751,
+  "why": ""
+ },
+ {
+  "id": "titles2.alert_strip",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.99825,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.big_number",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5824,
+  "aa": 0.0,
+  "ink": 0.21955,
+  "why": ""
+ },
+ {
+  "id": "titles2.breaking",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6293,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "titles2.callout",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.5884,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.chips",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.31036,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.clock_strip",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.compare_bars",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "titles2.credits",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "titles2.cta_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6739,
+  "aa": 0.0,
+  "ink": 0.9993,
+  "why": ""
+ },
+ {
+  "id": "titles2.data_strip",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: not enough values to unpack (expected 2, got 1)"
+ },
+ {
+  "id": "titles2.donut_stat",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5131,
+  "aa": 0.0,
+  "ink": 0.06676,
+  "why": ""
+ },
+ {
+  "id": "titles2.fact_box",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6655,
+  "aa": 0.0,
+  "ink": 0.99987,
+  "why": ""
+ },
+ {
+  "id": "titles2.glass_third",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23363,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.headline_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.headline_stack",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5562,
+  "aa": 0.0,
+  "ink": 0.11203,
+  "why": ""
+ },
+ {
+  "id": "titles2.id_strip",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.28461,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.locator",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.51845,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.next_up",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6368,
+  "aa": 0.0,
+  "ink": 0.99905,
+  "why": ""
+ },
+ {
+  "id": "titles2.price_tag",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.657,
+  "aa": 0.0,
+  "ink": 0.95217,
+  "why": ""
+ },
+ {
+  "id": "titles2.progress_bar",
+  "category": "title",
+  "ok": 0,
+  "why": "TypeError: '<' not supported between instances of 'int' and 'str'"
+ },
+ {
+  "id": "titles2.pull_quote",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6577,
+  "aa": 0.0,
+  "ink": 0.0733,
+  "why": ""
+ },
+ {
+  "id": "titles2.rating",
+  "category": "title",
+  "ok": 0,
+  "why": "TypeError: '<' not supported between instances of 'int' and 'str'"
+ },
+ {
+  "id": "titles2.score_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4702,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "titles2.social_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.5998,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.sponsor_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4737,
+  "aa": 0.0,
+  "ink": 0.04767,
+  "why": ""
+ },
+ {
+  "id": "titles2.step_flow",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.7281,
+  "aa": 0.0,
+  "ink": 0.09181,
+  "why": ""
+ },
+ {
+  "id": "titles2.timeline",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.08744,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles2.vs_split",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6597,
+  "aa": 0.0,
+  "ink": 0.94863,
+  "why": ""
+ },
+ {
+  "id": "titles2.wipe_word",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6144,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "titles3.address_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6081,
+  "aa": 0.0,
+  "ink": 0.965,
+  "why": ""
+ },
+ {
+  "id": "titles3.chapter_split",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.4422,
+  "aa": 0.0,
+  "ink": 0.25892,
+  "why": ""
+ },
+ {
+  "id": "titles3.episode_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6248,
+  "aa": 0.0,
+  "ink": 0.94656,
+  "why": ""
+ },
+ {
+  "id": "titles3.intro_stinger",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.lower_bar_ticker",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.0225,
+  "aa": 0.0,
+  "ink": 0.99973,
+  "why": ""
+ },
+ {
+  "id": "titles3.map_locator",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.93001,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.minimal_third",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.25471,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.name_tag_jp",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.opening_bars",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.85459,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.outro_cta",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.96763,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.phone_cta",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.97436,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.photo_third",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.5208,
+  "aa": 0.0,
+  "ink": 0.99576,
+  "why": ""
+ },
+ {
+  "id": "titles3.poll_bar",
+  "category": "title",
+  "ok": 1,
+  "diff": 0.6657,
+  "aa": 0.0,
+  "ink": 0.8358,
+  "why": ""
+ },
+ {
+  "id": "titles3.price_compare",
+  "category": "title",
+  "ok": 0,
+  "why": "ထွက်ချက် ဗလာ"
+ },
+ {
+  "id": "titles3.qa_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.89098,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.schedule_row",
+  "category": "title",
+  "ok": 0,
+  "why": "ValueError: too many values to unpack (expected 2)"
+ },
+ {
+  "id": "titles3.stat_ribbon",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.subscribe_bug",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.97845,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.topic_dots",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.97702,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "titles3.warning_card",
+  "category": "title",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.97016,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.code_block",
+  "category": "text",
+  "ok": 0,
+  "why": "150s ကျော်"
+ },
+ {
+  "id": "typew.cursor_blink",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23086,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.grad_card",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.053,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "typew.hl_bar",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.23447,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.prompt_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.2003,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.split_grad",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.1583,
+  "aa": 0.0,
+  "ink": 1.0,
+  "why": ""
+ },
+ {
+  "id": "typew.type_delete",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.22219,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.type_line",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.21717,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typew.type_stack",
+  "category": "text",
+  "ok": 1,
+  "diff": 0.6736,
+  "aa": 0.0,
+  "ink": 0.07385,
+  "why": ""
+ },
+ {
+  "id": "typew.word_fill",
+  "category": "text",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.25254,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.badge_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.35647,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.bracket_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09478,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.circle_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07656,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.depth_hero",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.5937,
+  "aa": 0.0,
+  "ink": 0.05948,
+  "why": ""
+ },
+ {
+  "id": "typo.echo_repeat",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.21343,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.flat_beat",
+  "category": "typography",
+  "ok": 0,
+  "diff": 0.0,
+  "ink": 1.0,
+  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
+ },
+ {
+  "id": "typo.glitch_type",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.14892,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.gradient_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10656,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.hero_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.26473,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.image_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.11654,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.kern_wide",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.8647,
+  "aa": 0.0,
+  "ink": 0.06476,
+  "why": ""
+ },
+ {
+  "id": "typo.kicker_stack",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.15951,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.long_shadow",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.24955,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.mask_bar_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.40122,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.neon_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.32979,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.number_hero",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6569,
+  "aa": 0.0,
+  "ink": 0.29843,
+  "why": ""
+ },
+ {
+  "id": "typo.outline_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.07697,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.quote_block",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.09239,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.scale_ramp",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.5658,
+  "aa": 0.0,
+  "ink": 0.03194,
+  "why": ""
+ },
+ {
+  "id": "typo.slab_block",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6574,
+  "aa": 0.0,
+  "ink": 0.12117,
+  "why": ""
+ },
+ {
+  "id": "typo.split_color",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.10656,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.stack3",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6297,
+  "aa": 0.0,
+  "ink": 0.04519,
+  "why": ""
+ },
+ {
+  "id": "typo.ticker_type",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.5986,
+  "aa": 0.0,
+  "ink": 0.16156,
+  "why": ""
+ },
+ {
+  "id": "typo.two_tone_line",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.11343,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.underline_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.11211,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "id": "typo.vertical_jp",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6203,
+  "aa": 0.0,
+  "ink": 0.01451,
+  "why": ""
+ },
+ {
+  "id": "typo.word_cascade",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6237,
+  "aa": 0.0,
+  "ink": 0.02128,
+  "why": ""
+ },
+ {
+  "id": "typo2.arc_labels",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6761,
+  "aa": 0.0,
+  "ink": 0.00294,
+  "why": ""
+ },
+ {
+  "id": "typo2.ghost_word",
+  "category": "typography",
+  "ok": 1,
+  "diff": 0.6319,
+  "aa": 0.0,
+  "ink": 0.11055,
+  "why": ""
+ },
+ {
+  "id": "typo2.logo_flip",
+  "category": "typography",
+  "ok": 0,
+  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂ', '-vf', 'scale=267:"
+ },
+ {
+  "id": "typo2.orbit_dots",
+  "category": "typography",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "typo2.subject_rise",
+  "category": "typography",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "typo2.title_lift",
+  "category": "typography",
+  "ok": 1,
+  "diff": 1.0,
+  "aa": 0.0,
+  "ink": 0.06969,
+  "why": "အရွယ် ကွာ"
+ }
+]
