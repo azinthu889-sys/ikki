@@ -2060,7 +2060,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
         _n0 = len(gfx); _mapped = []
         for g in gfx:
             _a = float(g.get("at") or 0)
-            _hold0 = float(g.get("hold") or 0)
+            # ⚠️ **`hold` က ဤအဆင့်မှာ မရှိသေး** (၂၀၂၆-၀၉-၂၅)。 ကတ် ရပ်ချိန်ကို
+            #    အောက်မှာ `gfx_share` ကနေ ပြန်တွက်သည် ⇒ ဒီမှာ `0` ဖြစ်ကာ
+            #    `omap_window(a, a+0)` က `b <= a` နဲ့ **None** ပြန်သဖြင့်
+            #    **ဂရပ်ဖစ် အားလုံး ပယ်ခံ**ခဲ့သည် — ZAE render (j_8af784926e78)
+            #    မှာ 「၁၁ ခု ဗီဒီယို အဆုံးကျော်၍ ဖယ်」 ⇒ တပ်ပြီး **၀ ခု**。
+            # ⚠️ ဒီမှာ လိုတာက 「ဖြတ်ပြီး timeline ပေါ် ဒီ ဂရပ်ဖစ် ကျန်သေးလား」
+            #    စစ်ဖို့သာ ⇒ ပုံမှန် ကတ်အရှည် (~၂s) နဲ့ စစ်သည်。 တကယ့် hold ကို
+            #    အောက်မှာ ပြန်သတ်မှတ်သဖြင့် ဤတန်ဖိုးက နောက်ဆုံး ရလဒ်ကို မထိပါ。
+            _hold0 = float(g.get("hold") or 0) or 2.0
             _win = omap_window(_a, _a + _hold0)
             if _win is None:
                 continue
@@ -3501,6 +3509,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
         # ⚠️ စာတန်းကို BOT အထက် အနီးမှာ ချရမည် — BOT က TikTok UI နှင့်
         #    ဖုံးမခံစေရန် တိုင်းထားသော ကန့်သတ်ချက်ပါ (ZAE 940 · ZJL 830)。
         base = rc.get("cap_base")
+        # ⚠️ **`cap_base` က `cap_max` ကို မကျော်ရ** (၂၀၂၆-၀၉-၂၅)。 QC က
+        #    `cap_h = int(H*cap_base) ≤ int(H*cap_max)` ဟု စစ်သည် —
+        #    `short-video` မှာ `cap_base=0.877` ဖြစ်ပြီး `cap_max=0.87` ⇒
+        #    recipe ကိုယ်တိုင် ကိုယ့်ကန့်သတ်ချက်ကို ကျော်နေသဖြင့် ZAE render
+        #    တိုင်း `caption_zone` နဲ့ **အမြဲ ကျ**မည် (j_8af784926e78:
+        #    ၁၂၆၂ > ၁၂၅၂)。 ⚠️ ဂိတ် မလျှော့ — ထုတ်သူကို ဂိတ်အတွင်း ထားခြင်း。
+        #    (ကန့်သတ်ချက်က TikTok UI ဖုံးသော အောက်ခြေကနေ တိုင်းထားသည်)
+        _cmax = rc.get("cap_max")
+        if base and _cmax and float(base) > float(_cmax):
+            log(f"  ⚠️ cap_base {base} > cap_max {_cmax} ⇒ {_cmax} သို့ ချိန်သည် "
+                f"(TikTok UI ဇုန် မကျော်ရန်)")
+            base = float(_cmax)
         cy = int(TH["H"]*base) - cband if base else TH["BOT"] - cband
         cy = max(0, min(TH["H"]-cband, cy))
         # ⚠️ `repeatlast=0` မပါလျှင် စာတန်း track ကုန်သွားသည်နှင့် နောက်ဆုံး
