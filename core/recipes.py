@@ -281,7 +281,14 @@ R = {
     #      ကနေ −17.7 ပြန်ရွေးလို့ ရသည်。
     # ⚠️ reference တိုင်းချက် — B-roll **၃၃%** (studio မဟုတ်သော frame)。
     #    ယခင် ၀.၅၁ က များလွန်းသည်。
-    lufs=-14.5, cap_max=0.870, cap_wide=0.63, sfx=False, scrim=True, broll=10, broll_pct=0.33, broll_max=4.5,
+    # ⚠️ **SFX ကို ဖွင့်ပြီး** (Zin ၂၀၂၆-၀၉-၂၅ 「SFX ဖွင့်ပေးပါ」)。 ယခင်က
+    #    `sfx=False` ဖြစ်ခဲ့ရခြင်း အကြောင်းရင်းက 「ZAE house bed ထဲ SFX
+    #    ပါပြီးသား ⇒ ထပ်ထည့်လျှင် နှစ်ထပ်」 ဟူ၍ ဖြစ်သည် — ဒါပေမယ့် QC report
+    #    ကိုယ်တိုင်က reference ၂ ခုကို **၀.၆ နဲ့ ၁.၁ SFX/မိနစ်** ဟု တိုင်းပြသည်
+    #    (REF-A 1.1 · REF-B 0.6) ⇒ reference မှာ တကယ် ရှိသည်。
+    # ⚠️ `sfx_per_min=0.9` က အဲဒီ ၂ ခုရဲ့ **အလယ်** — ဂိတ်က `≤ 0.9/min` ဖြစ်၍
+    #    house bed နဲ့ ပေါင်းလည် သိပ်သည်းမှု ဘောင် မကျော်ပါ。
+    lufs=-14.5, cap_max=0.870, cap_wide=0.63, sfx=True, scrim=True, broll=10, broll_pct=0.33, broll_max=4.5,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=0.9,
     # ⚠️ imin ၀.၁၀ က **အရိပ်ကို ချေမှုန်း**သည် — tokutei (ZAE source အစစ်) မှာ
     #    မူရင်း ၀.၀၄% ⇒ ၁.၂၆% · p05 ၅၂ ⇒ ၂၉ (၂၀၂၆-၀၉-၂၀ တိုင်း၍ တွေ့)。
