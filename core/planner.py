@@ -181,11 +181,15 @@ def _rotate(cands, used, seed="", k=NOREPEAT):
             _gen = set(_auto_candidates("fact"))
         except Exception:
             _gen = set()
-        k2 = 0
-        for _c in fresh:
-            if _c in _gen:
-                break
-            k2 += 1
+        # ⚠️ **ရှေ့ကနေ ရေတွက်၍ မရ** — label-specific စာရင်းထဲမှာပင်
+        #    ယေဘုယျ pool နဲ့ ထပ်နေသူ ပါနိုင်သည် (`screen` ရဲ့ index ၁ က
+        #    `kinetic2.type_cursor` — ၂ ခုလုံးမှာ ပါသည်) ⇒ ပထမတစ်ခုမှာ
+        #    ရပ်လျှင် k2=1 ဖြစ်ကာ fallback က ယေဘုယျအထိ လှည့်မိသည်。
+        # ⇒ ယေဘုယျ pool က **အဆုံးမှာ တစ်စပ်တည်း** ဆက်တွဲထားသဖြင့်
+        #   **နောက်ကနေ** ရေတွက်ပြီး အဲဒီ အစွန်းကို နယ်နိမိတ် ထားသည်。
+        k2 = len(fresh)
+        while k2 > 0 and fresh[k2 - 1] in _gen:
+            k2 -= 1
         if k2 < 2:                      # label က ယေဘုယျ pool ကိုပဲ သုံးသည်
             k2 = min(len(fresh), 12)
         k2 = max(1, min(k2, len(fresh)))

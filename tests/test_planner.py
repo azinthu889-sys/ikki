@@ -105,16 +105,20 @@ def main():
     #    ဗီဒီယိုတိုင်း template တစ်ခုတည်း မဖြစ်စေရန် လှည့်ခြင်းက ရည်ရွယ်ချက်
     #    ဖြစ်သည် (Zin: 「မထပ်အောင်」) ⇒ ဂိတ်က **UI မျိုးရိုး** ကို စစ်ရမည်、
     #    id တစ်ခုတည်းကို မဟုတ်。 ဂိတ် လျှော့ခြင်း မဟုတ် — မှန်ရာကို စစ်ခြင်း。
+    # ⚠️ category နဲ့ စစ်၍လည်း မရ — `thm.media_window` က `screen` ရဲ့
+    #    ကိုယ်ပိုင် စာရင်းထဲ ပါပေမယ့် category က `infographic` ဖြစ်သည်。
+    #    ⇒ စစ်ရမည့် **ဂုဏ်သတ္တိ**က 「`screen` ရဲ့ ကိုယ်ပိုင် pool ထဲကလား」
+    #      ဖြစ်သည် — ယေဘုယျ pool (label တိုင်း နောက်က ဆက်တွဲထားသည်) ကနေ
+    #      လာလျှင် semantic ရွေးချယ်မှု ပျက်ပြီဟု ဆိုလိုသည်。
     _uid = ui_ev[0]["motionKitTemplateId"] if ui_ev else ""
-    try:
-        import gfxcat as _GC
-        _ucat = {e["id"]: (e.get("category") or "") for e in _GC.catalog()}
-    except Exception:
-        _ucat = {}
-    check("UI event က UI/mockup မျိုးရိုး template ရွေးသည်",
-          bool(ui_ev) and (_ucat.get(_uid) in ("ui", "mockup")
-                           or _uid.startswith(("brows.", "thm.ui_"))),
-          f"{_uid} · category={_ucat.get(_uid)}")
+    _sc = PL._profile_candidates("screen", "premium", None)
+    _gen = set(PL._auto_candidates("fact"))
+    _k = len(_sc)
+    while _k > 0 and _sc[_k - 1] in _gen:      # ယေဘုယျ အမြီးကို ဖြတ်
+        _k -= 1
+    check("UI event က `screen` ရဲ့ ကိုယ်ပိုင် pool ကနေ ရွေးသည်",
+          bool(ui_ev) and _uid in set(_sc[:_k]),
+          f"{_uid} · screen pool {_sc[:_k]}")
     check("UI event ကို full-stage အဖြစ် route လုပ်သည်",
           bool(ui_ev) and ui_ev[0]["style"].get("layout") == "full", ui_ev)
     ui_after_hook = PL.build([

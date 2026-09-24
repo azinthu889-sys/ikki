@@ -530,6 +530,30 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                 except Exception as _te:
                     log and log(f"  ⚠️ tmplfit မရ: {type(_te).__name__}: {_te}")
                     a = None
+            # ⚠️ **၃ ခုမြောက် လမ်းကြောင်း — `demoargs` ရဲ့ ပုံစံ** (၂၀၂၆-၀၉-၂၅)。
+            #    `fill()` ရော `tmplfit` ရော param ရဲ့ **တည်ဆောက်ပုံ**ကို
+            #    နာမည်တစ်ခုတည်းနဲ့ မှန်း၍ မရသော template ၅၅ ခု ရှိသည် —
+            #    `charts.heat_grid(grid)` က ကိန်း ၂ ဆင့် · `maps.route_arc(a)`
+            #    က (lat,lon) ဖြစ်လျက် `prem7.compare_bar(a)` က (နာမည်,ကိန်း)。
+            #    ⇒ `motionkit/demoargs.py` ကို **ပုံစံပြ** အဖြစ်သာ ယူပြီး
+            #    စာသား အကွက်တွေကို **card ရဲ့ စာသား**နဲ့ အစားထိုးသည်。
+            # ⚠️ demo စာသား ကျန်ခဲ့လျှင် ZAE ကြော်ငြာစာ အသုံးပြုသူ ဗီဒီယိုထဲ
+            #    ရောက်မည် — `argshape._sub()` က စာသား အကွက်တိုင်းကို
+            #    အစားထိုးပြီးမှ ပြန်ပေးသည် (ကုန်လျှင် လှည့်ပြန်သုံး)。
+            if a is None:
+                try:
+                    _tx = [x for x in (g.get("text"), g.get("sub"), label, brand)
+                           if x] or [label or brand or "-"]
+                    _tx = list(dict.fromkeys([str(x) for x in _tx]))
+                    if isinstance(g.get("items"), (list, tuple)):
+                        _tx = [str(x) for x in g["items"] if x] + _tx
+                    a = _GC_fill_kw(g, _tx, img=g.get("img") or g.get("img_path"))
+                    if a:
+                        LAST["demoshape"] = LAST.get("demoshape", 0) + 1
+                        log and log(f"  ✎ {g['kind']} - demoargs shape "
+                                    f"({len(a)} param)")
+                except Exception as _de:
+                    log and log(f"  ⚠ demoargs shape fail: {type(_de).__name__}: {_de}")
             if a is None:
                 # ⚠️ **မှန်းဆ မဖြည့်ရ** — ကျော်သွားတာကို အကြောင်းရင်းနဲ့ ပြသည်
                 LAST["no_args"] = LAST.get("no_args", 0) + 1
@@ -577,6 +601,28 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                                     f"tmplfit နဲ့ ပြန်ဆောက်ပြီး")
                 except Exception as _e4:
                     _retry = None
+            # ⚠️ **၂ ကြိမ်မြောက် ပြန်စမ်းချက် — `demoargs` ပုံစံ** (၂၀၂၆-၀၉-၂၅)။
+            #    `fill()` က **တဝက်တစ်ပြက်** args ပြန်ပေးတတ်သည် — `charts.scatter`
+            #    ကို `(title,)` တစ်ခုတည်း ⇒ `a is None` မဖြစ်သဖြင့် အပေါ်က
+            #    demoargs လမ်းကြောင်း အလုပ်မလုပ်ပါ — `missing 1 required
+            #    positional argument` နဲ့ ၂၀ ခု ကျန်ခဲ့သည်။
+            if not _retry and not isinstance(e, _PackDone):
+                try:
+                    _tx2 = [x for x in (g.get("text"), g.get("sub"), label, brand)
+                            if x] or [label or brand or "-"]
+                    _tx2 = list(dict.fromkeys([str(x) for x in _tx2]))
+                    if isinstance(g.get("items"), (list, tuple)):
+                        _tx2 = [str(x) for x in g["items"] if x] + _tx2
+                    _a2 = _GC_fill_kw(g, _tx2, img=g.get("img") or g.get("img_path"),
+                                      nums=_content_nums(g), strict=True)
+                    if _a2 and _a2 != a:
+                        el = _call_template(fn, g["kind"], f"g{i}", _a2)
+                        _retry = True
+                        LAST["demoshape_retry"] = LAST.get("demoshape_retry", 0) + 1
+                        log and log(f"  ✎ {g['kind']} — {type(e).__name__} ⇒ "
+                                    f"demoargs shape နဲ့ ပြန်ဆောက်ပြီး")
+                except Exception as _e5:
+                    _retry = _retry or None
             if not _retry:
                 LAST["build_fail"] += 1
                 log(f"  ⊘ ဆောက်မရ: {g['kind']} @ {g.get('at',0):.1f}s "
@@ -588,6 +634,14 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #      ဖြစ်၍ ရွှေ့လို့ ရသည်)。 N5 က ဂရပ်ဖစ်ကို ခေါင်းအထက်
         #      နံရံဗလာမှာ ချသည် ⇒ အပေါ်ကို ဦးစားပေး。
         dy = dx = 0
+        # ⚠️ **ဘေးလွတ်နေရာထက် ကျယ်လျှင် ချုံ့ရမည်** (၂၀၂၆-၀၉-၂၅)。
+        #    `titles.stat_title` က မှင် ၃၁၀px မြင့်ပြီး ဘေးလွတ်နေရာ ၄၄၀px
+        #    ထက် ကျယ်သဖြင့် ဘေးမှာလည်း မဝင်、ဒေါင်လိုက်မှာလည်း မဝင် —
+        #    မျက်နှာဇုန် (၁၅၁–၇၅၆) နဲ့ စာတန်းထိပ် (၇၅၇) ကြားမှာ **၁px** သာ
+        #    လွတ်သဖြင့် ⇒ ပယ်ခံခဲ့သည် (「နေရာ မတည့်」)。
+        #    ⚠️ ချုံ့ရာမှာ **ဖတ်ရလွယ်မှု ကြမ်းခင်း** ထားရသည် — ၀.၇၀ အောက်
+        #       ဆိုလျှင် စာလုံး သေးလွန်း၍ မဖတ်နိုင်တော့ပါ ⇒ ပယ်တာ ကောင်းသည်。
+        gsc = 1.0
         # ⚠️ **ဘေးနေရာ ရှိလျှင် အဲဒီကို ရွှေ့သည်** — ဒါက အဓိက ဖြေရှင်းချက်。
         #    ပြောသူက အကျယ်ရဲ့ ၅၇% သာ ယူပြီး ကျန်တစ်ဖက်မှာ ၈၂၄px လွတ်နေသည်
         #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。 ဒေါင်လိုက်သာ ရွှေ့နေလျှင် ၃၃px သာ
@@ -627,6 +681,14 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                     _iw = _hi - _lo
             except Exception:
                 _iw, _ix0, _ix1 = 0, 0, 0
+            # ⚠️ ကျယ်လွန်းလျှင် **ချုံ့ပြီး** ဘေးမှာ ချသည် (ပယ်တာထက် ကောင်း)
+            if _iw and _sr > 0 and _iw > _sr and (_sr / float(_iw)) >= 0.70:
+                gsc = _sr / float(_iw)
+                _ix0 = int(_ix0 * gsc); _ix1 = int(_ix1 * gsc)
+                _iw = _ix1 - _ix0
+                _y0b = int(_y0b * gsc); _y1b = int(_y1b * gsc)
+                log(f"  ⤡ {g['kind']} — ဘေးနေရာ {_sr}px ထဲ ဝင်အောင် "
+                    f"×{gsc:.2f} ချုံ့သည် (မှင် {_iw}px)")
             if _iw and _iw <= _sr:
                 # ဘယ်/ညာ — ကျယ်တဲ့ဘက်
                 if _x0 * W >= (1.0 - _x1) * W:
@@ -699,7 +761,11 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             if os.path.exists(dst): continue
             try: os.link(p, dst)
             except OSError: _sh.copyfile(p, dst)
-        ax, ay = el["anim"][0][1] + dx, el["anim"][0][2] + dy
+        # ⚠️ ချုံ့လျှင် **နေရာကိုပါ ချုံ့ရမည်** — မချုံ့လျှင် ink က
+        #    တွက်ထားတဲ့ နေရာနဲ့ လွဲသွားမည်。
+        _pre = f"scale=iw*{gsc:.4f}:ih*{gsc:.4f}," if gsc < 0.999 else ""
+        ax = int(el["anim"][0][1] * gsc) + dx
+        ay = int(el["anim"][0][2] * gsc) + dy
         ins=["-framerate",str(fps),"-i",seq]
         _is_pack = bool(el.get("pack") and el.get("enter_s") is not None
                         and el.get("exit_s") is not None and el.get("statics"))
@@ -714,21 +780,25 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             _ex = float(el["exit_s"])
             _hold = max(0.10, float(el.get("hold_s") or _sd))
             fc = [
-                f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[pbase]",
+                f"[0:v]{_pre}pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[pbase]",
                 f"[pbase]trim=duration={_en:.3f},setpts=PTS-STARTPTS[pin]",
                 f"[pbase]trim=start={_en:.3f},setpts=PTS-STARTPTS[pout]",
-                f"[1:v]pad={W}:{H}:{_sx+dx}:{max(0,_sy+dy)}:color=black@0,"
+                f"[1:v]{_pre}pad={W}:{H}:{int(_sx*gsc)+dx}:"
+                f"{max(0,int(_sy*gsc)+dy)}:color=black@0,"
                 f"trim=duration={_hold:.3f},setpts=PTS-STARTPTS[phold]",
                 "[pin][phold][pout]concat=n=3:v=1:a=0[pfull]",
             ]
             last="pfull"; n=1
         else:
-            fc=[f"[0:v]pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[b0]"]; last="b0"; n=0
+            fc=[f"[0:v]{_pre}pad={W}:{H}:{ax}:{max(0,ay)}:color=black@0[b0]"]
+            last="b0"; n=0
             for p,x,y,d in el["statics"]:
                 ins += ["-loop","1","-i",p]; n+=1
-                fc.append(f"[{last}][{n}:v]overlay={x+dx}:{y+dy}:enable='gte(t,{d:.2f})'[b{n}]")
+                fc.append(f"[{last}][{n}:v]{_pre}overlay={int(x*gsc)+dx}:"
+                          f"{int(y*gsc)+dy}:enable='gte(t,{d:.2f})'[b{n}]")
                 last=f"b{n}"
-        y0, y1 = _ybox(el, H); y0 += dy; y1 += dy
+        y0, y1 = _ybox(el, H)
+        y0 = int(y0 * gsc) + dy; y1 = int(y1 * gsc) + dy
         mov = os.path.join(work, f"g{i}.mov")
         # ⚠️ ကတ်ကို **ကြာကြာ ရပ်စေရန်** — template ရဲ့ ကိုယ်ပိုင် အရှည်က
         #    ~၂.၂s ပဲ ရှိသည်。 reference ရဲ့ full-screen slide က ကြာကြာ
@@ -1100,7 +1170,12 @@ def _fn(name):
                 try:
                     if GC.MK not in _s.path: _s.path.insert(0, GC.MK)
                     os.chdir(GC.MK)
-                    f = getattr(importlib.import_module(e["module"]), name, None)
+                    _m = importlib.import_module(e["module"])
+                    # ⚠️ factory ကနေ ဆောက်ထားသော template (`trans` ၂၄ ခု) က
+                    #    `BUILDERS` ထဲမှာသာ ရှိသည် — module attribute မဟုတ် ⇒
+                    #    `getattr` တစ်ခုတည်းဆိုလျှင် engine ကလည်း မတွေ့。
+                    f = (getattr(_m, "BUILDERS", {}) or {}).get(name) \
+                        or getattr(_m, name, None)
                 finally:
                     try: os.chdir(cwd)
                     except Exception: pass
@@ -1678,3 +1753,49 @@ def pack_el(tid, props, work, tag, W, H, fps=30, dur=None, mmf=None, log=None):
         anim.append((_w(im, ni + j), 0, 0))
     return dict(anim=anim, statics=statics, dur=round(en + hold + ex_render, 3),
                 enter_s=en, hold_s=hold, exit_s=ex_render, kind=tid, pack=True)
+
+
+def _content_nums(g):
+    """card အကြောင်းအရာထဲက **ကိန်းများ** — demo ကိန်း အစားထိုးရန်။
+
+    ⚠️ မရှိလျှင် `strict` က template ကို ပ၁ယ်မည် — demo ထဲက `၈၂` · `၁,၂၀၀`
+       တွေကို အသုံးပြုသူရဲ့ ဗီဒီယိုထဲ ထည့်လိုက်လျှင် **အချက်အလက် လိမ်မည်**။
+    """
+    import re as _re
+    out = []
+    if g.get("num") not in (None, ""):
+        out.append(g["num"])
+    src = " ".join(str(x) for x in (g.get("text"), g.get("sub")) if x)
+    for it in (g.get("items") or []):
+        src += " " + str(it)
+    for m in _re.finditer(r"\d[\d,\.]*", src):
+        out.append(m.group(0).replace(",", ""))
+    return out
+
+
+def _GC_fill_kw(g, texts, img=None, nums=None, strict=False):
+    """`gfxcat.fill_kw` ကို `kind` ကနေ catalog entry ရှာပြီး ခေါ်သည်。
+
+    ⚠️ `_CIDX` က `_cargs()` ပထမဆုံး ခေါ်ချိန်မှာသာ ဆောက်သည် ⇒ ဗလာ ဖြစ်နိုင်၍
+       ဒီမှာ ကိုယ်တိုင် ပြန်ဆောက်သည်။ မဆောက်လျှင် demoargs လမ်းကြောင်း
+       တစ်ခါမှ အလုပ် မဖြစ်ပါ。
+    """
+    tid = g.get("kind") or ""
+    try:
+        from core import gfxcat as _GC0
+    except Exception:
+        import gfxcat as _GC0
+    # ⚠️ `_CIDX` က **`fn` နာမည်**နဲ့ key လုပ်ထားသည် (`e["fn"]`) —
+    #    `kind` ကတော့ `"thm.media_card"` လို **id အပြည့်** ဖြစ်သည် ⇒ တိုက်ရိုက်
+    #    ရှာလျှင် ဘယ်တော့မှ မတွေ့ပါ။ `fn` key ကလည်း module ကြား ထပ်နိုင်သည်
+    #    — `compare_bar` က infogfx · dash · prem7 မှာ သုံးမျိုး ရှိသည်။
+    e = next((x for x in _GC0.catalog() if x.get("id") == tid), None)
+    if not e:
+        e = next((x for x in _GC0.catalog() if x.get("fn") == tid), None)
+    if not e:
+        return None
+    try:
+        from core import gfxcat as _GC
+    except Exception:
+        import gfxcat as _GC
+    return _GC.fill_kw(e, texts, img=img, nums=nums, strict=strict)
