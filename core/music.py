@@ -36,8 +36,53 @@ GENRE = {
 #       "sidechain မလုပ်ဘဲ တစ်သမတ်တည်း ထားသည် · reference အတိုင်း")。
 HOUSE = {"zae": ("ZAE_house_bed", 0.0)}
 NODUCK = ("zae",)
+# WARN **the hand-made ZAE bed is excluded from selection** (2026-09-25).
+#    It was cut out of Zin's own edited `3 2.MP4`, so his SFX are baked into
+#    it -- measured **81 HF transients, 49.7/min**, which is SFX density, not
+#    music. Those bake-ins double up with the engine's own cues; Zin heard it
+#    and asked for a different bed ("BG music ကိုအခြားဟာပြောင်းသုံးတာ
+#    ကောင်းမယ် ... sound effect ပါနေတာပါ").
+#    The file stays in `assets/music/` -- only selection skips it, so putting
+#    it back is one line. `GENRE["zae"]` cannot simply be emptied: an empty
+#    name filter makes `pool()` accept **every** catalog item.
+EXCLUDE = {"zae": ("ZAE_house_bed",)}
+# WARN **Zin picked this bed himself** (2026-09-25). He auditioned five
+#    candidates drawn from the Motion Kit CC0 bank and chose #3:
+#    `electronic/ELEC-055_243s.m4a` -- 3.2 HF transients/min (lower quartile of
+#    the 124-track ZAE pool, against 49.7 for the old hand-made bed) and 243 s
+#    long, so a 78 s video never reaches a loop seam.
+#    A pin overrides the seeded rotation, so every ZAE video gets the same bed.
+#    Remove the entry to go back to rotating across the 124-track pool.
+# WARN Zin auditioned five candidates and chose #3,
+#    `electronic/ELEC-055_243s.m4a`, then asked for **other tracks in the same
+#    vein** rather than one fixed bed ("ဒီလိုပုံစံမျိုး insperation ထဲက
+#    အခြားသီချင်းတွေသုံးပေးပါ"). There is no "inspiration" folder -- the vein
+#    is his pick, so it had to be measured.
+# WARN measured across all 44 electronic tracks: transient/min p25 2.4, **p50
+#    45.9**, p75 65.2 -- the distribution is bimodal, so "electronic" alone is
+#    not a style. His pick sits at 3.2/min with a 2,478 Hz centroid. The set
+#    below is transient <=8/min AND centroid 1200-4200 Hz AND at least 78 s
+#    long, so a ~78 s video never reaches a loop at all.
+#    Four tracks, rotated by seed: the same job always gets the same bed, and
+#    different videos differ. Remove the entry to open the full 124-track pool.
+PIN = {"zae": ("mk:electronic/ELEC-055_243s.m4a",
+               "mk:electronic/ELEC-035_234s.m4a",
+               "mk:electronic/ELEC-048_172s.m4a",
+               "mk:electronic/ELEC-060_134s.m4a")}
 LEVEL = {"zae": 0.0, "trending": -16.0, "upbeat": -17.0, "calm": -20.0,
          "folk": -21.0, "corporate": -18.0}
+# WARN **`LEVEL` is a fixed dB offset, so swapping the bed changes the mix.**
+#    Found 2026-09-25 while replacing the ZAE bed. `LEVEL["zae"] = 0.0` means
+#    "pass the file through untouched", which was only right because the
+#    hand-made bed measures **-28.62 LUFS** -- Zin had already balanced it
+#    inside his own edit. A bank track sits at about -23 LUFS, so the same
+#    0 dB offset would have put the music **5.3 dB too loud** over speech, and
+#    ZAE does not duck (`NODUCK`), so nothing downstream would pull it back.
+#    => for a genre with a measured target, the gain is computed per track from
+#    its own measured `lufs`. -28.6 reproduces exactly what shipped and what he
+#    approved (the module note above measures the reference at -28...-29 dBFS
+#    in gaps). Genres without a target keep their tuned fixed offset.
+TARGET_LUFS = {"zae": -28.6}
 
 # ══ catalog (Music audit P0) ══════════════════════════════════════
 # ⚠️ `pick()` က ကိုက်ညီသော **ပထမဖိုင်** ကို ပြန်ပေးခဲ့သည် ⇒ ဗီဒီယိုတိုင်း
@@ -84,15 +129,26 @@ MK_MUSIC = (_LOCAL_BANK if os.path.isdir(_LOCAL_BANK)
             else os.path.join(_mk_root(), "assets", "music", "cc0_2026"))
 
 # motionkit ဖိုဒါ → IKKI genre
+# WARN **`zae` was pinned to one hand-made bed** until 2026-09-25. Zin asked
+#    for the Motion Kit library to be usable ("Motion Kit ထဲကသီးချင်းတွေကို
+#    သုံးလို့၇အောင်လုပ်ပေးပါ") because `ZAE_house_bed` carries **sound effects
+#    baked into it** -- it was cut out of his own edited `3 2.MP4`, and the
+#    module comment says so ("သူ့ SFX တွေ bed ထဲ ပါပြီးသား"). Measured: the
+#    bed has **81 HF transients / 49.7 per minute**, which is SFX density, not
+#    music. Those bake-ins collide with the engine's own cues, which is what he
+#    heard ("BG music ... ဟာကြီးပါလာ ... sound effect ပါနေတာပါ").
+# WARN the Motion Kit bank is **already measured and gated** -- 384 of 511
+#    tracks pass `tools/music_index.py` (loop seam <=1 dB, lufs, true peak),
+#    all CC0 1.0. Nothing new had to be downloaded or generated.
 MOOD = {
-    "electronic": ("trending", "upbeat"),
-    "epic":       ("trending", "upbeat"),
+    "electronic": ("trending", "upbeat", "zae"),
+    "epic":       ("trending", "upbeat", "zae"),
     "lofi_chill": ("calm",),
     "piano":      ("calm",),
     "ambient_cine": ("calm",),
     "folk":       ("folk",),
     "acoustic":   ("folk",),
-    "corporate":  ("corporate",),
+    "corporate":  ("corporate", "zae"),
     "dark":       ("corporate",),
 }
 AUD = (".m4a", ".mp3", ".wav", ".aac", ".ogg")
@@ -188,6 +244,8 @@ def pool(genre):
                 continue
         elif want and not any(w in tid.lower() for w in want):
             continue
+        if any(w.lower() in tid.lower() for w in EXCLUDE.get(genre, ())):
+            continue
         key = SAME.get(tid, tid)
         if key in seen:
             continue
@@ -203,6 +261,15 @@ def choose(genre, seed="", used=()):
     ⚠️ တူညီသော seed ⇒ တူညီသော သီချင်း (render ပြန်လုပ်လျှင် တူရမည်)。
     """
     ps = pool(genre)
+    # WARN a pinned bed wins over the seeded rotation -- see `PIN`.
+    _pin = PIN.get(genre)
+    if _pin:
+        _want = (_pin,) if isinstance(_pin, str) else tuple(_pin)
+        _hit = [x for x in ps if (x.get("id") or "") in _want]
+        if _hit:
+            # WARN keep it seeded, not first-match: one bed on every video is
+            #    what the variant pools exist to avoid.
+            ps = _hit
     if not ps:
         p = pick(genre)
         return p, (entry(os.path.splitext(os.path.basename(p))[0]) if p else None)
@@ -282,6 +349,13 @@ def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=()):
         subprocess.run(["ffmpeg","-v","error","-y","-i",video,"-c","copy",out],check=True)
         return out, None
     lvl = LEVEL.get(genre, -18.0)
+    _tgt = TARGET_LUFS.get(genre)
+    _tlu = (_it or {}).get("lufs")
+    if _tgt is not None and _tlu is not None:
+        # WARN clamp it: a badly measured track must not swing the mix wildly.
+        lvl = max(-24.0, min(6.0, float(_tgt) - float(_tlu)))
+        log(f"  သီချင်း အား · ပစ်မှတ် {_tgt} LUFS − ဖိုင် {_tlu} "
+            f"⇒ {lvl:+.1f} dB (တိုင်းချက်ကနေ · LEVEL ပုံသေ မဟုတ်)")
     if genre in NODUCK:
         # ⚠️ ZAE က ducking **မလုပ်** — reference မှာ သီချင်းက စကားပြောချိန်
         #    မှာပါ တစ်သမတ်တည်း ရှေ့ရောက်နေသည်。 sidechain ထည့်လျှင်
