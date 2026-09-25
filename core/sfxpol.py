@@ -61,6 +61,38 @@ MEASURED = {
                      src="reference ၈ ပုဒ် — ၆.၂၅–၈.၅၀/min · အကွာ အလယ် ၄.၇s"),
     "ref-talk": dict(per_min=6.0, gap=2.0,
                      src="headtop နဲ့ တူညီသော reference"),
+    # WARN measured 2026-09-25 on Zin's own two ZAE references
+    #    (`~/Downloads/1.mp4`, `2.mp4`) because the default 1.5/min left a
+    #    78 s render with **one** sound moment for six graphics, and he asked
+    #    for the gate to be raised **from a measurement**, not by hand.
+    # WARN counting SFX inside a finished mix is impossible -- four attempts,
+    #    four implausible answers ([[ikki-eleven-references]]). So this does
+    #    NOT count sounds. It measures, with one detector across all three
+    #    files: at each visual change (scene score > 0.30), is there an HF
+    #    transient within +/-0.20 s? Yes/no only.
+    #      ZAE ref 1  21 changes @ 21.55/min -> **43%** carry a sound
+    #      ZAE ref 2  27 changes @ 18.89/min -> **56%**
+    #      IKKI v6    24 changes @ 18.55/min -> **21%**
+    #    The change RATE already matches (18.6 vs 18.9-21.6); only the sound
+    #    coverage differs. IKKI's 21% is its floor, since that render carried
+    #    exactly one SFX moment -- the rest is music and B-roll audio landing
+    #    on cuts. Lifting 24 changes from 5 sounded to ~12 (the reference's
+    #    ~50%) needs about 7 more moments in 77.6 s = **5.4/min**, so 6.0
+    #    admits it with a little room and matches the `headtop` profile.
+    # WARN spacing is measured too, not guessed: the gaps between sounded
+    #    changes run min 0.67-1.03 s, p10 1.03-1.60 s, median 4.47-5.30 s.
+    #    2.0 s is therefore slightly TIGHTER than the references (2-3 of their
+    #    events sit closer than that) -- it is not a loosening.
+    # WARN the 43/56% figures are solid; any "SFX per minute" split out of them
+    #    assumes IKKI's 21% non-SFX coincidence rate also holds for the
+    #    references, which cannot be checked without their stems. Stated, not
+    #    hidden.
+    "short-video": dict(per_min=6.0, gap=2.0,
+                        src="ZAE reference ၂ ပုဒ် (1.mp4 · 2.mp4) — "
+                            "ရုပ်ပြောင်းချိန်မှာ အသံပါမှု ၄၃% / ၅၆% ↔ "
+                            "IKKI ၂၁% · ပြောင်းနှုန်း ၂၁.၅၅ / ၁၈.၈၉ ↔ ၁၈.၅၅ · "
+                            "အကွာ အလယ်တန်း ၄.၄၇–၅.၃၀s (အနည်းဆုံး ၀.၆၇) · "
+                            "harness scratchpad/sfxgate.py"),
 }
 
 

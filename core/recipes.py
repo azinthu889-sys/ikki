@@ -789,6 +789,13 @@ def listing():
 #    မတက်စေရ (မတက်ရင် render က QC မအောင်ဘဲ ပိတ်မိမည်)。
 LEVELS = ("auto", "minimal", "balanced", "high")
 SFX_CEIL = 1.5              # = qc.SFX_MAX_PER_MIN (import ဝိုင်း မဖြစ်စေရန်)
+# WARN **`short-video` no longer gets its rate from here.** 2026-09-25 a
+#    measured profile was recorded at `sfxpol.MEASURED["short-video"]`
+#    (per_min 6.0, gap 2.0, measured on Zin's own two ZAE references), and
+#    `sfxpol.clamp()` takes per_min/gap from MEASURED and ignores the recipe
+#    value for such a style. So leaving 1.5 below is harmless and NOT a bug to
+#    "fix" -- raising it here would only trip the SFX_CEIL check in
+#    `tests/test_motionlv.py` for no effect on the render.
 GFX_CEIL = 24               # ကတ် အရေအတွက် — ဒီထက် ပိုလျှင် တစ်ခုချင်း
                             # ကြာချိန် `card_len` ဂိတ် (၁.၀s) အောက် ကျနိုင်
 ZOOM_CEIL = 0.12            # punch-in — ဒီထက် ပိုလျှင် မျက်စိ ရှုပ်သည်

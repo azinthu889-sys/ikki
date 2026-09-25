@@ -65,10 +65,25 @@ EXCLUDE = {"zae": ("ZAE_house_bed",)}
 #    long, so a ~78 s video never reaches a loop at all.
 #    Four tracks, rotated by seed: the same job always gets the same bed, and
 #    different videos differ. Remove the entry to open the full 124-track pool.
-PIN = {"zae": ("mk:electronic/ELEC-055_243s.m4a",
-               "mk:electronic/ELEC-035_234s.m4a",
-               "mk:electronic/ELEC-048_172s.m4a",
-               "mk:electronic/ELEC-060_134s.m4a")}
+PIN = {"zae": ("mk:corporate/CORP-022_78s.m4a",)}
+# WARN **the first swap was picked on the wrong criterion and Zin rejected it**
+#    ("BG music ကလုံး၀အဆင်မပြေပါဘူး"). I had ranked candidates by *low
+#    transient density*, which only says "leaves room for the cues" -- it says
+#    nothing about whether the music sounds like ZAE. Measured afterwards
+#    against the hand-made bed, the track that shipped in v6
+#    (`ELEC-060`) ranks **90th of 124** on musical character.
+# WARN the right reference was there all along: the hand-made bed's *music* is
+#    what he likes -- only the SFX baked into it were the problem. Measured on
+#    the bed: centroid **2428 Hz**, bass ratio **0.654**, dynamic range
+#    **7.9 dB**. Ranking all 124 tracks by distance on those (plus mid ratio)
+#    puts `CORP-022_78s` at 0.196 (3rd): centroid 2043, bass 0.715, dyn 10.5.
+#    Zin auditioned the top four against the bed and chose it.
+#    Its 78.1 s also clears a 77.6 s video, so no loop is ever reached.
+# WARN **BPM estimates here are not trustworthy** -- autocorrelation returned
+#    round numbers (60.0 / 120.0 / 200.0), i.e. it locked onto harmonics, so
+#    tempo was left out of the ranking. Centroid / bass / dynamics carried it.
+#    To rotate instead of pinning, list the other close matches here:
+#    `ELEC-034_132s` (0.168) · `ELEC-047_81s` (0.187) · `ELEC-035_234s` (0.208).
 LEVEL = {"zae": 0.0, "trending": -16.0, "upbeat": -17.0, "calm": -20.0,
          "folk": -21.0, "corporate": -18.0}
 # WARN **`LEVEL` is a fixed dB offset, so swapping the bed changes the mix.**
