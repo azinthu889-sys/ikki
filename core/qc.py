@@ -140,7 +140,7 @@ def _subject_gone(p, fps=2.0):
 
 
 def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
-        sfx_pol=None, pops=None):
+        sfx_pol=None):
     """(ok, checks) — checks က UI ရဲ့ QC ကတ်တွေအတွက်"""
     m = _probe(out)
     I, tp = _lufs(out)
