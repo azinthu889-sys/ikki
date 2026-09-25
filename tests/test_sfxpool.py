@@ -33,8 +33,24 @@ def main():
     check("root ၂ ခု", len(c.get("roots") or {}) == 2, c.get("roots"))
 
     print("\n── ၂ · role တိုင်းမှာ ရွေးစရာ ၂ ခုအထက် ──")
-    thin = {r: len(SP.role_pool(r)) for r in SP.MAP if len(SP.role_pool(r)) < 2}
-    check("role အားလုံး variant ရှိ", not thin, thin)
+    # WARN `shutter` က **တမင် ပိတ်ထားသည်** — render ၄၃ ခုမှာ ၀ ကြိမ် ပစ်ဖူးပြီး
+    #    band gate အောင်သော asset ၀ ခု (pool ၁၀ ခုလုံး အလယ်-ထိပ်)。
+    #    Zin: 「မှားတဲ့ အသံ ထည့်တာထက် တိတ်နေတာ ပိုကောင်း · အစားထိုး အသံ
+    #    တိတ်တခိုး မထည့်ရ」 ⇒ `sfxpool.DROP_ROLES`。
+    # WARN ဒါက ဂိတ် လျှော့တာ **မဟုတ်** — ပိတ်ထားသော role က တကယ် **တိတ်**
+    #    ကြောင်း (legacy ဖိုင် ပြန်မကျကြောင်း) ကို အောက်မှာ ထပ်စစ်သည်。
+    _drop = set(SP.DROP_ROLES) if SP.BAND_GATE else set()
+    thin = {r: len(SP.role_pool(r)) for r in SP.MAP
+            if SP.MAP[r][0] not in _drop and len(SP.role_pool(r)) < 2}
+    check("role အားလုံး variant ရှိ (ပိတ်ထားသူ မပါ)", not thin, thin)
+    _leak = {}
+    for r in SP.MAP:
+        if SP.MAP[r][0] not in _drop:
+            continue
+        _p, _it = SP.wav(r, "t", 0)
+        if _p or _it:
+            _leak[r] = _it and _it.get("id")
+    check("ပိတ်ထားသော role က တကယ် တိတ် (fallback မရှိ)", not _leak, _leak)
 
     print("\n── ၃ · deterministic (render ပြန်လုပ်လျှင် တူရမည်) ──")
     a = [SP.pick("whoosh", "s1", i)["id"] for i in range(8)]

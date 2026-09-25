@@ -90,6 +90,11 @@ def pool(role, bright=None, max_dur=None, ship=True):
                 continue
         elif x.get("role") != role:
             continue
+        # S1 — အလယ်ဘန်း ထိပ်ဖြစ်သော asset ပယ် · `shutter` role ထုတ်
+        if not band_ok(x):
+            continue
+        if BAND_GATE and (x.get("role") or "") in DROP_ROLES:
+            continue
         if ship and not x.get("ship", False):
             continue
         # ⚠️ **ကြားရသော အရှည် (`dur_eff`) နဲ့ စစ်ရမည်** — ဖိုင်အရှည် မဟုတ်
@@ -130,6 +135,57 @@ def pool(role, bright=None, max_dur=None, ship=True):
         out.append(x)
     out.sort(key=lambda x: (x.get("dur", 9), x.get("id", "")))
     return out
+
+
+_BAND = None
+# WARN **band gate (S1)** — asset တစ်ခုချင်းရဲ့ အလယ်ဘန်း (၅၀၀–၄k) သည်
+#    အကြီးဆုံး ဘန်း **မဖြစ်ရ**。 Zin ရဲ့ reference (`fHLNwz3aS-g`) ကနေ
+#    တိုင်းထားသော SFX ၃ ခုမှာ အလယ်ဘန်း ထိပ် **တစ်ခါမှ မဖြစ်**ပါ
+#    (နိမ့် ၉၁% · နိမ့် ၇၆% · မြင့် ၄၅%)、v11 က အလယ် ၇၅–၉၅% — **အမြဲ ထိပ်**。
+#    ⇒ reference ၃/၃ အောင်ပြီး v11 ၀/၁၂ အောင်သော ဂိတ်、ကိုယ်ပိုင် ရွေးထားသော
+#    ကိန်း မပါ。 asset ၂,၃၆၈ ခုမှာ **၁,၃၄၅ ခု (၅၇%)** အောင်သည်。
+# WARN pool ကို **မထိပါ** — ရွေးချယ်မှုမှာသာ filter。 `IKKI_SFX_BAND=0`
+#    နဲ့ ပြန်ပိတ်လို့ ရသည် (A/B အတွက်)。
+# WARN `shutter` role — render ၄၃ ခုမှာ **၀ ကြိမ်** ပစ်ဖူးပြီး ဂိတ်အောင်
+#    asset လည် ၀ ခု ⇒ ထုတ်ပစ်သည် (တိတ်)。 အစားထိုး အသံ **မထည့်ရ**。
+BAND_GATE = os.environ.get("IKKI_SFX_BAND", "1") != "0"
+DROP_ROLES = ("shutter",)
+# reference ရဲ့ အချိုး ၂:၁ (နိမ့် ၂ · မြင့် ၁) ⇒ ၃ ခုမှာ ၁ ခု မြင့် ခွင့်ပြု
+HI_EVERY = 3
+
+
+def band():
+    """asset id → (နိမ့်, အလယ်, မြင့်) — `assets/sfx_band.json`"""
+    global _BAND
+    if _BAND is None:
+        q = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "assets", "sfx_band.json")
+        try:
+            with open(q, encoding="utf-8") as f:
+                _BAND = (json.load(f) or {}).get("items") or {}
+        except (OSError, ValueError):
+            _BAND = {}
+    return _BAND
+
+
+def top_band(tid):
+    """`lo` / `mid` / `hi` / `None` (မတိုင်းရသေး)"""
+    v = band().get(tid)
+    if not v:
+        return None
+    return max((("lo", v["lo"]), ("mid", v["mid"]), ("hi", v["hi"])),
+               key=lambda x: x[1])[0]
+
+
+def band_ok(x):
+    """S1 — အလယ်ဘန်း ထိပ် မဖြစ်ရ。 မတိုင်းရသေးလျှင် **ခွင့်ပြု**
+
+    ⚠️ မတိုင်းရသေးသူကို ပယ်လျှင် catalog အသစ် ထည့်တိုင်း အသံ ပျောက်မည်。
+    """
+    if not BAND_GATE:
+        return True
+    t = top_band(x.get("id"))
+    return t != "mid"
 
 
 _FAV = None
@@ -194,6 +250,24 @@ def prefer_fav(free, n=0, idx=None):
     return _p if (n % 100) < int(FAV_SHARE * 100) else _rest
 
 
+def prefer_low(free, n=0, idx=None):
+    """S2b — **နိမ့်-ထိပ် အများစု** ဖြစ်စေရန် ရွေးချယ်မှုကို ခွဲသည်
+
+    ⚠️ reference က နိမ့် ၂ · မြင့် ၁ (၂:၁) သုံးသည် ⇒ ၃ ခုမှာ ၁ ခု မြင့်။
+       အားလုံး နိမ့် ထားလျှင် reference ရဲ့ ကွဲပြားမှု ပျောက်မည်、
+       ကျပန်း ထားလျှင် နိမ့် အများစု မဖြစ်ကြောင်း အာမ မခံနိုင်ပါ ⇒
+       `idx` နဲ့ **သေချာ** ခွဲသည် (render တိုင်း ထပ်ရသည်)。
+    """
+    if not BAND_GATE:
+        return free
+    lo = [x for x in free if top_band(x.get("id")) == "lo"]
+    hi = [x for x in free if top_band(x.get("id")) == "hi"]
+    un = [x for x in free if top_band(x.get("id")) is None]
+    if idx is not None and int(idx) % HI_EVERY == HI_EVERY - 1 and hi:
+        return hi
+    return lo or (un + hi) or free
+
+
 def path(item):
     """catalog item → တကယ့် ဖိုင် လမ်းကြောင်း (root အလိုက်)"""
     rs = catalog().get("roots") or {}
@@ -224,7 +298,8 @@ def pick(role, seed, idx=0, used=(), bright=None, ship=True):
     recent = {x for x in list(used)[-NOREPEAT:]}
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
     n = int.from_bytes(h[:4], "big")
-    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, n, idx)
+    free = prefer_low([x for x in ps if x["id"] not in recent] or ps, n, idx)
+    free = prefer_fav(free, n, idx)
     return free[n % len(free)]
 
 
@@ -407,7 +482,8 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     recent = {x for x in list(used)[-NOREPEAT:]}
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
     _n = int.from_bytes(h[:4], "big")
-    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, _n, idx)
+    free = prefer_low([x for x in ps if x["id"] not in recent] or ps, _n, idx)
+    free = prefer_fav(free, _n, idx)
     it = free[_n % len(free)]
     src = path(it)
     if not src or not os.path.exists(src):

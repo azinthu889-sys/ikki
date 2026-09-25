@@ -1883,7 +1883,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      # ⚠️ **စည်းချက်** — ကွက်လပ် ရှည်လျှင် ဂရပ်ဖစ် ဖြည့်သည်
                      gfx_gap_max=rc.get("gfx_gap_max") or 0,
                      log=log),
-                video_id=job["id"], log=log)
+                # WARN A/B အတွက် **seed ကို pin** လုပ်နိုင်ရမည် —
+                #    `video_id` က ဂရပ်ဖစ် rotation ရဲ့ seed ဖြစ်၍ job id
+                #    ပြောင်းလျှင် ဂရပ်ဖစ်/သီချင်း ပါ ကွဲသွားမည်。 အဲဒါဆို
+                #    「SFX တစ်ခုတည်း ကွဲ」 ဆိုသော A/B မဖြစ်တော့ပါ。
+                video_id=(os.environ.get("IKKI_SEED") or job["id"]), log=log)
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
             #    ထပ်တင်အဖြစ် တစ်ခါ ကြိုးစားပြီး 「နေရာ မတည့်」နဲ့ ကျမည်
@@ -3429,7 +3433,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
             except Exception as _de:
                 log(f"  ⚠️ SFX duck မရ ({type(_de).__name__}) — မလျှော့ဘဲ ဆက်သည်")
             _CUE_USED.clear()
-            _sd = rc.get("_seed") or job.get("id") or "ikki"
+            # ⚠️ A/B — SFX seed ကိုပါ pin လုပ်ရမည် (ဂရပ်ဖစ်/သီချင်း နဲ့ တူ)
+            _sd = (os.environ.get("IKKI_SEED")
+                   or rc.get("_seed") or job.get("id") or "ikki")
             # ⚠️ **SFX stem** — `nsfx` က ဖိုင် ရှိမရှိ ရေတွက်ချက်သာ。
             #    ဖိုင် ရှိပြီး အသံ မရှိတာ · အချိန် လွဲတာ ဘယ်တော့မှ မဖမ်းမိပါ。
             _stem = os.path.join(work, "sfx_stem.wav")
@@ -3722,7 +3728,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             mv = os.path.join(work, "mus.mp4")
             MU.bed(raw, mv, rc["music"], probe(raw)["dur"], log=log,
-                   seed=rc.get("_seed") or job.get("id") or "")
+                   seed=(os.environ.get("IKKI_SEED")
+                         or rc.get("_seed") or job.get("id") or ""))
             pre = mv; _drop(raw)
         except Exception as e:
             log(f"  ⚠️ သီချင်း မရ: {e}")

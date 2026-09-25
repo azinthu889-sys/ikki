@@ -44,9 +44,23 @@ class SfxRole(unittest.TestCase):
         self.assertEqual(bad[:5], [], f"{len(bad)} ခု မကိုက် — ပြန်ဆောက်လျှင် ပျက်မည်")
 
     def test_no_empty_role_pool(self):
-        """role ၂၃ ခုလုံး ဖိုင် ရရမည် — ဗလာဆို legacy ဖိုင် တစ်ခုတည်း ပြန်ဖြစ်မည်"""
-        empty = [r for r in SP.MAP if not SP.role_pool(r, th="ikki", ship=True)]
+        """role တိုင်း ဖိုင် ရရမည် — ဗလာဆို legacy ဖိုင် တစ်ခုတည်း ပြန်ဖြစ်မည်
+
+        WARN `sfxpool.DROP_ROLES` (`shutter`) is deliberately silenced: it
+        fired 0 times across 43 renders and no asset of that role passes the
+        band gate, because a camera shutter IS a mid-band sound. Zin's rule is
+        that a wrong sound is worse than none, and that nothing may be quietly
+        substituted -- so the exemption is checked, not assumed: the second
+        assertion proves the role really produces silence.
+        """
+        _drop = set(SP.DROP_ROLES) if SP.BAND_GATE else set()
+        empty = [r for r in SP.MAP
+                 if SP.MAP[r][0] not in _drop
+                 and not SP.role_pool(r, th="ikki", ship=True)]
         self.assertEqual(empty, [], f"ဗလာ role: {empty}")
+        leak = {r: SP.wav(r, "t", 0)[1] for r in SP.MAP
+                if SP.MAP[r][0] in _drop and SP.wav(r, "t", 0)[0]}
+        self.assertEqual(leak, {}, f"ပိတ်ထားသော role က အသံ ပြန်ပေးသည်: {leak}")
 
     def test_reach_improved(self):
         """ရနိုင်သော ဖိုင် ၂၉၀ ကျော်ရမည် (ပြင်မတိုင်ခင် ၂၂၇ ဖြစ်ခဲ့)"""
