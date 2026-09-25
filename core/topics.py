@@ -198,19 +198,39 @@ def trim(t, n=GTXT):
     sp = cut.rfind(" ")
     return (cut[:sp] if sp >= n*0.5 else cut).rstrip(" ·,။")
 
+# Curated templates whose second slot is the brand name.
+USES_SUB = {"title_card", "kicker_title", "split_title", "end_card", "bumper"}
+
+def _blank(a):
+    """an arg tuple with an empty / placeholder text slot"""
+    for x in (a or ()):
+        if isinstance(x, str) and x.strip() in ("", "—"): return True
+        if isinstance(x, (list, tuple)) and any(isinstance(y, str) and y.strip() in ("", "—") for y in x):
+            return True
+    return False
+
 def targs(name, text, sub=""):
-    """template ရဲ့ argument — curated ရှိလျှင် အဲဒါ၊ မရှိမှ catalog ကနေ"""
+    """template ရဲ့ argument — curated ရှိလျှင် အဲဒါ၊ မရှိမှ catalog ကနေ
+
+    WARN no brand name (Smart Edit: brand row is None) -> **never** fill the
+    slot with "IKKI" (it printed a yellow "IKKI" pill and "Class 1 vs IKKI"
+    on customer videos, 2026-09-26). A template that needs that second text
+    returns None so the caller picks another template.
+    """
     text = trim(text)
     f = CURATED.get(name)
     if f:
-        try: return f(text, sub or "IKKI")
+        if not sub and name in USES_SUB: return None
+        try: return f(text, sub)
         except Exception: pass
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import gfxcat as GC
         for e in GC.catalog():
             if e["fn"] == name:
-                return GC.fill(e, text, sub) or (text,)
+                a = GC.fill(e, text, sub)
+                if not sub and _blank(a): return None
+                return a or (text,)
     except Exception:
         pass
     return (text, sub) if sub else (text,)

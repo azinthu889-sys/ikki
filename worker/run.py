@@ -1993,7 +1993,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ seed ကို **job id** ကနေ ယူသည် — ဗီဒီယိုအလိုက် ကွဲပြားပြီး
             #    တူညီသော job ကို ပြန်ထုတ်လျှင် တူညီသော ရလဒ် ရစေရန်。
             seed = sum(ord(c) for c in str(job.get("id") or ""))
-            bname = (brand or {}).get("name", "IKKI")
+            bname = ((brand or {}).get("name") or "").strip()
             used = set()
             for i, t in enumerate(tops):
                 # ⚠️ **ပထမ ဂရပ်ဖစ်က ခေါင်းစဉ်ကတ် ဖြစ်ရမည်** — N5 reference က
@@ -2012,8 +2012,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 # ⚠️ **အကြောင်းအရာ စာသားကို ပါသွားစေရမည်** — template လဲရာမှာ
                 #    လိုသည်。 မပါလျှင် လဲလိုက်တာက recipe နာမည် (「Headtop」)
                 #    ကို မျက်နှာပြင်ပေါ် တင်မိပြီး အဓိပ္ပာယ်မဲ့ ဖြစ်သည်。
+                _ga = TP.targs(nm, t["text"], bname)
+                # no brand name -> templates needing a 2nd text return None;
+                # try others from the same pool rather than print a placeholder
+                _k = 0
+                while _ga is None and _k < 8:
+                    _k += 1
+                    nm = TP.templ(t["kind"], seed + i + _k * 7, used)
+                    used.add(nm)
+                    _ga = TP.targs(nm, t["text"], bname)
+                if _ga is None:
+                    log(f"  ⊘ {t['kind']} @ {t['at']:.1f}s skipped — every template needs a brand name")
+                    continue
                 gfx.append(dict(at=t["at"], kind=nm, text=t.get("text") or "",
-                                args=TP.targs(nm, t["text"], bname)))
+                                args=_ga))
             # ⚠️ **explainer insert ကို ဒီမှာပါ ထည့်ရမည်** — `DR.pick()` က
             #    ပြန်ဆုတ်လမ်းသာ ဖြစ်၍ ဒီအဓိကလမ်းမှာ မထည့်လျှင် insert
             #    တစ်ခုမှ မဝင်ပါ (၂၀၂၆-၀၉-၂၀ ref-talk render မှာ တကယ် ဖြစ်)。
@@ -2282,7 +2294,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _vp_want = list(_vp_meta)
             def _mk_track(_h, _tag="gx"):
                 return DR.track(gfx, None, os.path.join(work, _tag), TH["W"], TH["H"],
-                                rc["fps"], T1, T2, (brand or {}).get("name", "IKKI"),
+                                rc["fps"], T1, T2, ((brand or {}).get("name") or ""),
                                 rc["label"], log,
                                 avoid=_av,
                                 capy=cap_top, hold=_h,
@@ -2832,7 +2844,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 # ── slide ကို **motionkit template** နဲ့ ပြန်ထုတ် ──
                 # ⚠️ Zin ၂၀၂၆-၀၉-၂၀: IKKI ကိုယ်ပိုင် ဖြူဖြူ slide မသုံးတော့。
                 #    မရလျှင် PNG အတိုင်း ချန်သည် (job မကျစေရန်)。
-                _bn = (brand or {}).get("name") or "IKKI"
+                _bn = (brand or {}).get("name") or rc["label"]
                 # ⚠️ **ပုံသေက စာရွက်ပုံစံ (အလင်း) slide** — ၂၀၂၆-၀၉-၂၀ Zin ရဲ့
                 #    reference (`01BnhfTaQoo`) ကို တိုင်းတော့ ဘောင်အပြည့် ကတ်က
                 #    **တောက်ပမှု ၂၃၆/၂၅၅** (စာရွက် · အစက်ကွက် · မှောင်သော စာ)。
