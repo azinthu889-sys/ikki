@@ -1034,6 +1034,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             log(f"  ⚠️ reference မသုံးနိုင် ({type(_re).__name__}: {_re}) ⇒ IKKI ပုံသေ")
             ref_notes = [f"{type(_re).__name__}"]
     rc = RC.apply(job.get("recipe"), over)
+    # Recipe may carry a delivery format (short-916 -> 9:16). Only fills an
+    # empty job fmt -- a size the user picked always wins.
+    if not (job.get("fmt") or "").strip() and rc.get("fmt"):
+        job["fmt"] = rc["fmt"]
+        log(f"  format · recipe default {rc['fmt']}")
     if motion_lv not in ("", "auto"):
         _b4 = (rc.get("gfx"), rc.get("sfx_per_min"), rc.get("zoom_amt"), rc.get("broll"))
         rc = RC.motion(rc, motion_lv)
@@ -2982,6 +2987,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    hold=float(rc.get("cap_hold") or 4.0),
                    gap_pct=float(rc.get("cap_gap") or 0.18),
                    wide=float(rc.get("cap_wide") or 0.86),
+                   # short-916: one short line per card (refs: 1-3 words)
+                   max_lines=int(rc.get("cap_lines") or 2),
                    fade=float(rc.get("cap_fade") or 0.14),
                    # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်း ဖျောက်ရသည် (Zin: "Infography
                    #    ဝင်လာရင် subtitle ဖျောက်ထားပေး") — ဒါပေမယ့် **စာတန်းဇုန်နဲ့

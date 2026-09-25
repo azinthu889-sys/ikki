@@ -265,7 +265,7 @@ R = {
  #    ⚠️ ZAE ရဲ့ footage cutaway ကိန်း (ပေါ်ချိန် ၂၄.၆% · ကြာချိန် အလယ်
  #    ၂.၅s · p25 ၂.၀ · p75 ၃.၀ · ၁.၅–၅.၀) ကို Zin မချမှတ်ရသေး ⇒
  #    footage-backed cutaway ပြန်ထည့်လျှင် အဲဒီကိန်းတွေနဲ့ ပြန်ချိန်ရန်。
- "short-video": dict(label="Short Video · ZAE", theme="zae", fps=30,
+ "short-video": dict(label="ZAE Short", theme="zae", fps=30,
                      gfx_scale=1.15, gfx_cutaway=0.0,
     # ⚠️ reference မှာ ဂရပ်ဖစ် ကတ်ကြီး **မရှိသလောက်** — စာတန်းနဲ့ B-roll ချည်းပဲ。
     keep_pause=0.18, min_sil=0.34, captions="zae", gfx=2, music="zae",
@@ -344,6 +344,43 @@ R = {
     #    ၃၀% ပုံသေ ထားတုန်းက ရုပ်ကြမ်း ၅.၅% ပဲ ထွက်ခဲ့ပြီး reference နှင့်
     #    လုံးဝ မတူခဲ့。 ဒါက ဒီပုံစံရဲ့ **အဓိက ကွာဟချက်** ဖြစ်သည်。
     # ⚠️ ZAE spec: B-roll **၂၂–၃၂%** — ၆၀s မှာ ~၆ ခု (တိုင်းထားသည်)
+ # -- Short Video 9:16 (general, every IKKI customer) -- 2026-09-26
+ #    Zin: "Short Video style / 9:16 TikTok-Reels / for all IKKI customers",
+ #    then four reference shorts (~/Downloads/YTDown.com_Shorts_*):
+ #    AF8PYw2canM (15s) · 2eCdR8AJRcw (62s) · SmsNAtaLR9I (42s) · fHLNwz3aS-g (17s).
+ #    The ZAE 3:4 recipe above stays untouched (old jobs + ZAE brand use it).
+ # MEASURED (scene>0.06, changes <0.35s apart merged into one event):
+ #      events/min 31 · 34 · 21 · 61   median shot 1.50 · 1.30 · 1.79 · 0.72 s
+ #      shots under 2 s: 78 · 66 · 50 · 94 %
+ #    -> the look is "something changes every ~1.5 s", made of graphics,
+ #       B-roll, UI mockups and punch-ins over continuous speech -- not of
+ #       audio cuts. So gfx/broll/zoom carry it; cutting stays "snappy".
+ #    Captions (frames looked at, r2 measured by white-ink rows):
+ #      ONE line of 1-3 words, never a sentence; r2 ink centre 0.50·H,
+ #      cap-height 3.4 %·H, width 0.40-0.44·W; r1/r3/r4 sit 0.55-0.79·H when
+ #      screen content is above. -> cap_lines 1, cap_wide 0.50 (chunks of a
+ #      few words), cap_base 0.64 (ink centre ~0.60, clear of the face and of
+ #      the TikTok bottom UI at 0.833).
+ #    Loudness -22.6 / -20.0 / -14.9 / -14.0 LUFS -- inconsistent, so the
+ #      house -14 is kept, not copied.
+ # WARN not reproduced (no mechanism yet): coloured accent words (red/green/
+ #    yellow keyword inside the line -- `cap_accent` is still a label only),
+ #    full-frame kinetic-type slides (r4), app-UI mockups (r3).
+ # WARN SFX stays at the house ceiling 1.5/min: no SFX measurement exists
+ #    for these refs, and sfxpol only lets a *measured* style exceed it.
+ "short-916": dict(label="Short Video", theme="ikki", fps=30, fmt="9:16",
+    keep_pause=0.18, min_sil=0.34,          # "snappy"
+    captions="big", mmf="Pyidaungsu-Bold", latin="Figtree-Black",
+    cap_pct=0.042, cap_base=0.64, cap_max=0.833, cap_wide=0.50, cap_lines=1,
+    stroke="brand", stroke_w=0.10, cap_gap=0.18, cap_fade=0.06,
+    cap_cover=1.0, cap_hold=1.6, scrim=False,
+    cap_typo=0.20,
+    gfx=14, gfx_scale=1.0, gfx_in_speech=True, gfx_min_sil=0.22,
+    gfx_cutaway=0.0,
+    broll=10, broll_pct=0.30, broll_max=2.5, broll_gap=1.5,
+    zoom_amt=0.08,
+    music="upbeat", lufs=-14.0, sfx=True, sfx_per_min=1.5,
+    natural=True),
  "promotional": dict(label="Promotional", theme="zae", fps=30,
     keep_pause=0.22, min_sil=0.40, captions="big", gfx=8, music="corporate",
     mmf="NotoSansMyanmar", latin="Manrope",
@@ -651,6 +688,8 @@ BOUNDS = dict(
  cap_stroke= ("hex",),
  cap_gap  = ("float", 0.05, 0.80),
  cap_wide = ("float", 0.35, 0.95),
+ # lines per caption card -- short-916 uses 1 (word-chunk captions)
+ cap_lines= ("int", 1, 2),
  cap_fade = ("float", 0.0, 0.60),
  # ⚠️ ဘောင် 0.6–1.2/min — REF-A 1.1 · REF-B 0.6 (တိုင်းထားသည်)。
  #    1.5 ကျော်လျှင် skill ရဲ့ P3 က ထုတ်ခွင့် ပိတ်သည်。

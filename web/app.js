@@ -36,7 +36,10 @@ var STYLES={creator:[
   /* ⚠️ "· ZAE" ကို ဖယ်ထားသည် — brand စာရင်းမှာ **ZAE ဟု နာမည်ပေးထားသော
      သီးသန့် brand** ရှိပြီး (id b_94ad…) ဤ style ရဲ့ theme `zae` နှင့် မတူ。
      နာမည် တူနေသဖြင့် ဘယ်ဟာ ရွေးမှန်း မသိရခဲ့သည်。 */
-  ["short-video","Short Video","3:4 · စာတန်းကြီး + navy အနားသတ်",
+  /* 9:16 general short (2026-09-26) — recipe `short-916`; ZAE 3:4 kept below */
+  ["short-916","Short Video","9:16 · TikTok/Reels · စာတန်းကြီး · ပြတ်သား",
+   "9:16 · TikTok/Reels · bold captions · snappy","Pyidaungsu Bold","9:16"],
+  ["short-video","ZAE Short","3:4 · စာတန်းကြီး + navy အနားသတ်",
    "3:4 · big captions, navy outline","Pyidaungsu Bold","3:4"]],
  biz:[["promotional","Promotional","logo sting · CTA · ဈေးနှုန်း",
    "Logo sting · CTA · pricing","Noto Sans Myanmar","30–90s"],
@@ -57,7 +60,7 @@ var STYLE_PREVIEW={
   'cinematic-vlog':'stock/cinematic-vlog', 'vlog':'stock/vlog',
   'podcast':'stock/podcast', 'knowledge':'stock/knowledge',
   'headtop':'stock/headtop', 'ref-talk':'stock/ref-talk',
-  'short-video':'stock/short-video', 'promotional':'stock/promotional',
+  'short-video':'stock/short-video', 'short-916':'stock/short-916', 'promotional':'stock/promotional',
   'brand-review':'stock/brand-review', 'short-biz':'stock/short-biz',
   'course':'stock/course'
 };
@@ -75,11 +78,11 @@ var STHEME={'cinematic-vlog':'zjl','vlog':'zjl','podcast':'zjl',
      theme map မှာတော့ ထားရမည် — မရှိလျှင် ပုံစံ ပြန်ဖွင့်တဲ့အခါ ပျက်မည်。 */
   'headtop':'ikki','ref-talk':'ikki','ref-slides':'zjl','ref-fast':'zjl',
   'knowledge':'zjl','brand-review':'zjl','course':'zjl',
-  'short-video':'zae','promotional':'zae','short-biz':'zae'};
+  'short-video':'zae','short-916':'ikki','promotional':'zae','short-biz':'zae'};
 /* ⚠️ style အချို့မှာ brand ရဲ့ native အရွယ်နဲ့ **မတူ**。 `short-biz` က
    CTA/ဆက်သွယ်ရန် ကတ် အတွက် 9:16 (TikTok/Reels) ဖြစ်ပြီး zae ရဲ့ native
    က 3:4 — ဒါကြောင့် သီးသန့် သတ်မှတ်ပေးရသည်。 */
-var SSIZE={'short-biz':'9:16'};
+var SSIZE={'short-biz':'9:16','short-916':'9:16'};
 function styleDefaults(){
   var want=STHEME[state.style];
   if(!want) return false;
@@ -106,7 +109,7 @@ var SKEY='ikki_prefs';
    အရင်က ပုံသေက `zae` (ပိုင်ရှင်ရဲ့ preset) ဖြစ်ခဲ့သဖြင့် account အသစ်တိုင်း
    သူတစ်ပါးရဲ့ brand နဲ့ စခဲ့သည်。 */
 var SMART='ikki';
-var state={style:'short-video', family:'', mode:'smart', brand:SMART, font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
+var state={style:'short-916', family:'', mode:'smart', brand:SMART, font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
   ref:'', ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
   ['style','brand','font','fmt','cap','vfmt','speed','mode','ref'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });

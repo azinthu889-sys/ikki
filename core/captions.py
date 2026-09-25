@@ -149,7 +149,7 @@ def plan(segs, spans, max_lines=2):
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
-          plate=None):
+          plate=None, max_lines=2):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -271,7 +271,7 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     line_h = int(size*2.2)
     timed=[]; k=0
     for c in caps:
-        for lines, a, b, sz in cards(c, size, maxw, MW, font, hold=hold):
+        for lines, a, b, sz in cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold):
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")
