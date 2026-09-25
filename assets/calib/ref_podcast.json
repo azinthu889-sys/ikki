@@ -156,5 +156,71 @@
    "len_median": 11.8
   },
   "captions": "Burmese gold, bottom — partial (not every line)"
+ },
+ "bhone_mWaj-grcB3I": {
+  "title": "Podcast with Ma Su Phone Mo — Bhone Nyan Soe (Notion By Bhone)",
+  "format": "2-person remote (video call) · host camera + guest webcam",
+  "dur": 6344.6,
+  "fps": 25,
+  "lufs_i": -16.1,
+  "lra": 9.2,
+  "cuts_per_min_all": 8.36,
+  "cuts_per_min_by_min": [
+   35,
+   30,
+   21,
+   16,
+   13,
+   9,
+   11,
+   10
+  ],
+  "cold_open_s": [
+   0,
+   100
+  ],
+  "body_from_300s": {
+   "split": {
+    "share": 0.638,
+    "n": 318,
+    "median": 10.12,
+    "p25": 5.5,
+    "p75": 16.75,
+    "max": 40.0
+   },
+   "G_full": {
+    "share": 0.201,
+    "n": 229,
+    "median": 4.62,
+    "p25": 3.25,
+    "p75": 6.88,
+    "max": 18.5
+   },
+   "H_full": {
+    "share": 0.141,
+    "n": 201,
+    "median": 3.5,
+    "p25": 2.25,
+    "p75": 4.88,
+    "max": 21.5
+   },
+   "other": {
+    "share": 0.021,
+    "n": 22
+   }
+  },
+  "transitions_body": {
+   "G_full<->split": 326,
+   "H_full<->split": 287,
+   "H_full<->G_full": 114
+  },
+  "listening_share": {
+   "G_full": 0.03,
+   "H_full": 0.8,
+   "n": 40,
+   "thr_lip_change": 0.1,
+   "_note": "bimodal — H_full lip median 0.030 vs G_full 0.159"
+  },
+  "captions": "cold open only — small Burmese line + big English keyword (BUSINESS/REVENUE/EGO), some behind subject; none in body (8/8 random frames)"
  }
 }
