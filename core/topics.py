@@ -294,6 +294,84 @@ def emphasis(segs, want=8, log=print):
     return out
 
 
+# == keyword colour inside a caption line (short-916) ==================
+# Refs (4 shorts, 2026-09-26): one word or short phrase inside the caption
+# line is recoloured (red / green / yellow), roughly one caption in three.
+# Gemini picks it; every pick must be an EXACT substring of that caption,
+# otherwise the colour would land on the wrong glyphs -> dropped.
+KW_PROMPT = """အောက်တွင် မြန်မာဗီဒီယိုတစ်ခု၏ စာတန်းစာကြောင်းများကို နံပါတ်နှင့် ပေးထားသည်။
+
+စာတန်းထဲမှ **အဓိကစကားလုံး** ကို အရောင်ပြောင်းပြီး အလေးပေးပြမည်။
+ဘယ်စာကြောင်း၏ ဘယ်စကားလုံးကို အရောင်ပြောင်းမလဲ ရွေးပေးပါ။
+
+စည်းကမ်း:
+- စာကြောင်း %d ကြောင်းအထိသာ ရွေးပါ၊ ဗီဒီယိုတစ်လျှောက် ဖြန့်ပါ
+- စာကြောင်းတစ်ကြောင်းလျှင် စကားလုံး/စကားစု **တစ်ခုတည်း**
+- ကိန်းဂဏန်း · နာမည် · နေရာ · English အရေးကြီးစကားလုံး · အဓိပ္ပာယ်အဓိက စကားလုံး
+- "word" သည် ထိုစာကြောင်းထဲမှ **စာလုံးပေါင်း အတိအကျ ကူးယူ**ထားရမည် (မပြင်ရ)
+- အက္ခရာ ၂ လုံးမှ ၁၄ လုံးအထိ၊ ဆက်စပ်စကား ("ပြီးတော့" · "အဲဒါ") မရွေးရ
+- JSON array ကိုသာ ပြန်ပါ: [{"line": 3, "word": "..."}]
+
+စာကြောင်းများ:
+%s"""
+
+_KW_RX = re.compile(r"[0-9\u1040-\u1049][0-9\u1040-\u1049,.%]*|[A-Za-z][A-Za-z0-9'+-]{2,}")
+
+def _kw_fallback(caps, want):
+    """numbers and Latin terms -- the refs colour those most often"""
+    out = {}
+    for i, c in enumerate(caps):
+        m = _KW_RX.search(c.get("text") or "")
+        if m: out[i] = [m.group(0)]
+        if len(out) >= want: break
+    return out
+
+def keywords(caps, share=0.33, log=print):
+    """{caption index: [exact substring, ...]} -- at most `share` of captions"""
+    if not caps or share <= 0: return {}
+    want = max(1, int(round(len(caps) * share)))
+    lines = "\n".join(f"{i+1}. {c['text']}" for i, c in enumerate(caps[:160]))
+    body = {"contents": [{"parts": [{"text": KW_PROMPT % (want, lines)}]}],
+            "generationConfig": {"temperature": 0.2}}
+    for i in range(2):
+        G.throttle()
+        r = urllib.request.Request(G.endpoint(MODEL), data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(r, timeout=180) as f:
+                d = json.loads(f.read())
+            txt = "".join(p.get("text", "") for p in d["candidates"][0]["content"]["parts"])
+            m = re.search(r"\[.*\]", txt, re.S)
+            if not m:
+                G.log_fail("keywords", i + 1, 2, None, "no JSON", final=True); break
+            out, bad = {}, 0
+            for x in json.loads(m.group(0)):
+                try: n = int(x.get("line", 0)) - 1
+                except (TypeError, ValueError): bad += 1; continue
+                w = str(x.get("word") or "").strip()
+                if not (0 <= n < len(caps)) or len(w) < 2 or len(w) > 24 \
+                        or w not in caps[n]["text"] or w == caps[n]["text"].strip():
+                    bad += 1; continue
+                out.setdefault(n, [w])
+                if len(out) >= want: break
+            G.tally("keywords", True)
+            log(f"  keyword colour · {len(out)}/{len(caps)} captions"
+                + (f" · {bad} rejected (not an exact substring)" if bad else ""))
+            if out: return out
+            break
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8", "replace")
+            G.log_fail("keywords", i + 1, 2, e.code, raw, final=G.fatal(e.code, raw) or i == 1)
+            if G.fatal(e.code, raw): break
+            time.sleep(6 * (i + 1))
+        except Exception as e:
+            G.log_fail("keywords", i + 1, 2, None, f"{type(e).__name__}: {e}", final=(i == 1))
+            time.sleep(4 * (i + 1))
+    out = _kw_fallback(caps, want)
+    log(f"  keyword colour · fallback (numbers/Latin) {len(out)} captions")
+    return out
+
+
 # ══ full-frame slide အတွက် အကြောင်းအရာ ═══════════════════════
 # ⚠️ `ask()` က **စာလုံး ၂–၅ လုံး** ခေါင်းစဉ်တိုလေးတွေ ပြန်ပေးသည် —
 #    lower-third အသေးလေးအတွက် လုံလောက်ပေမယ့် **full-frame slide အတွက်

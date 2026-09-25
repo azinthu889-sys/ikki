@@ -149,7 +149,7 @@ def plan(segs, spans, max_lines=2):
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
-          plate=None, max_lines=2):
+          plate=None, max_lines=2, accent=None):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -175,7 +175,18 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
             fill="#00000000", unit="cluster", align="center",
             frames=[{"out":blank, "words":[]}]))
 
-    def _sp(txt, sz, outp, h=None):
+    def _acc(txt, kws):
+        """keyword colour runs for one rendered line -- UTF-16 offsets for cttext.
+        A keyword split across two lines is skipped rather than half-coloured."""
+        out = []
+        for w in (kws or []):
+            i = txt.find(w)
+            if i < 0: continue
+            u = lambda x: len(x.encode("utf-16-le")) // 2
+            out.append(dict(s=u(txt[:i]), n=u(w), fill=accent))
+        return out
+
+    def _sp(txt, sz, outp, h=None, kws=None):
         d = dict(text=txt, font=font, fallback=fallback, size=sz, w=W, h=h or band_h,
                  fill=fill, unit="cluster", align="center",
                  # ⚠️ အရိပ်က **ဖတ်ရလွယ်မှုအတွက်** — အလှအတွက် မဟုတ်。
@@ -187,6 +198,9 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
                  shadow=dict(dx=0, dy=max(1, int(sz*0.055)), blur=max(2, int(sz*0.14)),
                              alpha=0.72),
                  frames=[{"out":outp, "words":[]}])
+        if accent and kws:
+            _a = _acc(txt, kws)
+            if _a: d["accents"] = _a
         if stroke and stroke_w:
             d["stroke"] = stroke; d["strokeWidth"] = max(2, int(sz*stroke_w))
         return d
@@ -275,7 +289,7 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")
-                ct(_sp(txt, sz, q, h=line_h)); parts.append(q)
+                ct(_sp(txt, sz, q, h=line_h, kws=c.get("kw"))); parts.append(q)
             p = os.path.join(work, f"c{k:04d}.png"); k += 1
             if not _stack(parts, sz, p):
                 # ⚠️ PIL မရလျှင် ယခင်နည်း (ဘောင်အပြည့် ထပ်) ကို ပြန်သုံးသည်

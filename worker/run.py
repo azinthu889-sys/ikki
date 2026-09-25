@@ -2972,6 +2972,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
           #    ကျမှ ဖွင့်သည် — တစ်ကြောင်းနှစ်ကြောင်းအတွက် တစ်ဗီဒီယိုလုံး
           #    အကွက် ခံလျှင် ပိုဆိုးသည်。
           _plate = _plate_decide(src, caps, cap_top, TH["H"], rc, log)
+          # Keyword colour inside the line (short-916; refs recolour ~1 caption
+          # in 3). Colour = recipe `cap_accent` or the brand accent (GOLD).
+          _kwc = None
+          if float(rc.get("cap_kw") or 0) > 0:
+              try:
+                  for _i, _w in TP.keywords(caps, float(rc["cap_kw"]), log=log).items():
+                      caps[_i]["kw"] = _w
+                  _kwc = rc.get("cap_accent") or TH.get("GOLD")
+              except Exception as _ke:
+                  log(f"  ⚠️ keyword colour skipped: {type(_ke).__name__}: {_ke}")
           CP.track(caps, capv, os.path.join(work,"cp"),
                    # ⚠️ အရောင်ကို recipe က ပြင်နိုင်သည် — မပြင်လျှင် theme ရဲ့ ပုံသေ
                    TH["W"], TH["H"], csize,
@@ -2989,6 +2999,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    wide=float(rc.get("cap_wide") or 0.86),
                    # short-916: one short line per card (refs: 1-3 words)
                    max_lines=int(rc.get("cap_lines") or 2),
+                   accent=_kwc,
                    fade=float(rc.get("cap_fade") or 0.14),
                    # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်း ဖျောက်ရသည် (Zin: "Infography
                    #    ဝင်လာရင် subtitle ဖျောက်ထားပေး") — ဒါပေမယ့် **စာတန်းဇုန်နဲ့

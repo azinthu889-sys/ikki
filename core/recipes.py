@@ -376,6 +376,7 @@ R = {
     keep_pause=0.18, min_sil=0.34,          # "snappy"
     captions="big", mmf="Pyidaungsu-Bold", latin="Figtree-Black",
     cap_pct=0.042, cap_base=0.64, cap_max=0.833, cap_wide=0.50, cap_lines=1,
+    cap_kw=0.33,                            # keyword colour ~1 caption in 3
     stroke="brand", stroke_w=0.10, cap_gap=0.18, cap_fade=0.06,
     cap_cover=1.0, cap_hold=1.6, scrim=False,
     cap_typo=0.20,
@@ -694,6 +695,9 @@ BOUNDS = dict(
  cap_wide = ("float", 0.35, 0.95),
  # lines per caption card -- short-916 uses 1 (word-chunk captions)
  cap_lines= ("int", 1, 2),
+ # share of captions with one recoloured keyword (0 = off)
+ cap_kw   = ("float", 0.0, 0.6),
+ cap_accent=("hex",),
  cap_fade = ("float", 0.0, 0.60),
  # ⚠️ ဘောင် 0.6–1.2/min — REF-A 1.1 · REF-B 0.6 (တိုင်းထားသည်)。
  #    1.5 ကျော်လျှင် skill ရဲ့ P3 က ထုတ်ခွင့် ပိတ်သည်。
