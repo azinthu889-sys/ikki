@@ -3863,9 +3863,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
         REPORT["motion"] = _MM.summary(_movs, log=log)
     except Exception as _me:
         log(f"  ⚠️ လှုပ်ရှားမှု မတိုင်းနိုင်: {type(_me).__name__}: {_me}")
+    # WARN pop text has to reach QC or `pop_dup` cannot be measured --
+    #    `cards` is only `(at, dur)`.
+    _qpops = [((e.get("props") or {}).get("text"),
+               float(e.get("startTime") or 0), float(e.get("endTime") or 0))
+              for e in (_PLAN.get("templateEvents") or [])
+              if (e.get("style") or {}).get("kind") == "pop"]
     ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
-                        share=rc.get("gfx_share"))
+                        share=rc.get("gfx_share"), pops=_qpops)
     # Headtop က `motion` number ကို report သီးသန့်အဖြစ်သာထားလျှင် 2/10
     # overlay ရှိသော်လည်း audio/size QC အောင်တာနဲ့ final ကိုပို့မိနိုင်သည်。
     # Premium pack အတွက် actual overlay timing နဲ့ minimum realised graphics

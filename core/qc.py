@@ -39,8 +39,60 @@ def _probe(p):
     j = json.loads(o); s = j["streams"][0]
     return dict(w=s["width"], h=s["height"], dur=float(j["format"]["duration"]))
 
+# WARN **the eleven gates never looked at the picture.** 2026-09-25 two
+#    renders passed QC while being visibly broken: a 6.0 s near-black card
+#    holding one line of text (the speaker gone), and 4.5 s of unkeyed green
+#    screen B-roll. Every gate measured loudness, density, spacing and
+#    placement -- none measured what is on screen.
+# WARN both detectors below were validated on files whose answer was known
+#    BEFORE being wired in (the rule I keep relearning):
+#      TH  OP6Nl6TC7SJSYkRhPC6O3A.mp4  near-black run **6.00 s** · green 0.1%
+#      ZAE yrbcSfMrjsrmSwCh92ibgg.mp4  near-black run **0.00 s** · green 61.6%
+#    Clean separation, no overlap.
+BLACK_MAX_S = 0.3       # ၀.၃s ထက် ကြာသော အနက် ⇒ ကျ
+BLACK_SHARE = 0.85      # frame ရဲ့ pixel ဘယ်လောက် အနက်နီးပါး ဆိုလျှင် ရေတွက်
+BLACK_LUM = 45          # အနက်နီးပါး ဟု သတ်မှတ်သော တောက်ပမှု
+GREEN_SHARE = 0.25      # G−R>40 pixel ၂၅% ကျော် ⇒ key မလုပ်ရသေးသော အစိမ်း
+GREEN_DELTA = 40
+
+
+def _look(p, fps=2.0, w=160):
+    """ထွက်ဖိုင်ကို ၂fps နမူနာယူပြီး (အနက် အရှည်ဆုံး, အစိမ်း အများဆုံး) ပြန်ပေး
+
+    ⚠️ ffmpeg တစ်ကြိမ်တည်း — frame တစ်ခုချင်း ဆွဲလျှင် ၇၀s ဗီဒီယိုမှာ
+       ၁၄၀ ကြိမ် ခေါ်ရမည်。 ၁၆၀px ချုံ့တာက အချိုးကို မထိပါ。
+    """
+    import numpy as _np
+    try:
+        o = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                            "-show_entries", "stream=width,height",
+                            "-of", "csv=p=0", p],
+                           capture_output=True, text=True).stdout.strip().split(",")
+        W0, H0 = int(o[0]), int(o[1])
+        hh = int(round(w * H0 / W0 / 2)) * 2
+        r = subprocess.run(["ffmpeg", "-v", "error", "-i", p, "-vf",
+                            f"fps={fps},scale={w}:-2", "-pix_fmt", "rgb24",
+                            "-f", "rawvideo", "-"], capture_output=True)
+        n = w * hh * 3
+        k = len(r.stdout) // n
+        if k < 2:
+            return None, None
+        a = _np.frombuffer(r.stdout[:k * n], _np.uint8)
+        a = a.reshape(k, hh, w, 3).astype(_np.int16)
+    except Exception:
+        return None, None
+    lum = 0.299 * a[:, :, :, 0] + 0.587 * a[:, :, :, 1] + 0.114 * a[:, :, :, 2]
+    dark = (lum < BLACK_LUM).mean(axis=(1, 2))
+    run = best = 0
+    for d in dark:
+        run = run + 1 if d >= BLACK_SHARE else 0
+        best = max(best, run)
+    grn = ((a[:, :, :, 1] - a[:, :, :, 0]) > GREEN_DELTA).mean(axis=(1, 2))
+    return best / float(fps), float(grn.max())
+
+
 def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
-        sfx_pol=None):
+        sfx_pol=None, pops=None):
     """(ok, checks) — checks က UI ရဲ့ QC ကတ်တွေအတွက်"""
     m = _probe(out)
     I, tp = _lufs(out)
@@ -137,6 +189,37 @@ def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
         add("sfx_spacing", not close,
             (min(gaps) if gaps else "—"), f"≥ {_gp}s ခြား")
         add("sfx_moments", True, len(moments), f"cue {len(ts)} → အသံဖြစ်ရပ်")
+    # ── မြင်ရသော ပျက်စီးမှု (၂၀၂၆-၀၉-၂၅ ထပ်ထည့်) ──────────────────
+    _blk, _grn = _look(out)
+    if _blk is not None:
+        add("black_frames", _blk <= BLACK_MAX_S, round(_blk, 2),
+            f"≤ {BLACK_MAX_S}s")
+    if _grn is not None:
+        add("chroma_green", _grn < GREEN_SHARE, f"{_grn:.1%}",
+            f"< {GREEN_SHARE:.0%}")
+    # ── pop က စာတန်းကို ထပ်ပြခြင်း ─────────────────────────────────
+    # WARN Zin, with frames, 2026-09-25: the TH render pops "Western Union",
+    #    "Casper Mobile" and "account level" while the caption underneath
+    #    shows the same words. `planner` now refuses such a pop at source;
+    #    this is the net that catches it if the source rule is ever bypassed.
+    if pops is not None:
+        def _n(t):
+            return re.sub(r"[\s·.,!?;:()\[\]\-–—\"'“”‘’]+", "",
+                          str(t or "").lower())
+        _dup = []
+        for _pt, _pa, _pb in (pops or []):
+            _k = _n(_pt)
+            if not _k:
+                continue
+            for _c in (caps or []):
+                try:
+                    _ct, _ca, _cb = _c[0], float(_c[1]), float(_c[2])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                if _ca < float(_pb) and _cb > float(_pa) and _k in _n(_ct):
+                    _dup.append(str(_pt))
+                    break
+        add("pop_dup", not _dup, (len(_dup) or 0), "0 (စာတန်းနဲ့ မထပ်ရ)")
     ok = all(c["ok"] for c in C)
     return ok, C
 

@@ -627,7 +627,8 @@ def quality(c, ar=0.75):
        clip က ၄.၂ ရသည်၊ တကယ် ထွက်လာတဲ့ frame မှာတော့ ၂.၈ ပဲ (v25 မှာ
        တကယ် ဖြစ်ခဲ့ — gate ကို ဖြတ်သွားခဲ့သည်)。
     """
-    if c.get("lum") is not None and c.get("det") is not None:
+    if (c.get("lum") is not None and c.get("det") is not None
+            and c.get("grn") is not None):
         return float(c["lum"]), float(c["det"])
     try:
         import numpy as np
@@ -635,7 +636,7 @@ def quality(c, ar=0.75):
     except Exception:
         return 255.0, 99.0                      # တိုင်းလို့ မရလျှင် ခွင့်ပြု
     d = float(c.get("dur") or 3.0)
-    lums=[]; dets=[]
+    lums=[]; dets=[]; grns=[]
     for f in (0.25, 0.5, 0.75):
         q = os.path.join(ROOT, "_q.png")
         try:
@@ -649,19 +650,48 @@ def quality(c, ar=0.75):
         lum = (a[:,:,0]*299 + a[:,:,1]*587 + a[:,:,2]*114)//1000
         lums.append(float(lum.mean()))
         dets.append(float(np.abs(np.diff(lum.astype(float), axis=1)).mean()))
+        # WARN **unkeyed chroma-key green shipped in a render.** 2026-09-25,
+        #    ZAE 40.5-44.5 s: a cartoon illustration still on a raw green
+        #    screen, 61.6% of pixels with G-R > 40, used as B-roll with
+        #    captions over it. Nothing in the pipeline looked at colour.
+        #    Measured: inside that clip G-R mean +82, p95 140; everywhere else
+        #    in the same render -2 to -5, and the TH render peaks at 0.7%.
+        #    ⇒ same three frames already sampled here, no extra ffmpeg call.
+        grns.append(float(((a[:,:,1] - a[:,:,0]) > 40).mean()))
     if not lums: return 255.0, 99.0
     c["lum"] = round(sum(lums)/len(lums), 1)
     c["det"] = round(sum(dets)/len(dets), 1)
+    # ⚠️ **အမြင့်ဆုံး** ကို ယူသည် — clip ရဲ့ တစ်ပိုင်းသာ အစိမ်း ဖြစ်နိုင်သည်。
+    c["grn"] = round(max(grns), 3) if grns else 0.0
     return c["lum"], c["det"]
+
+
+GREEN_MAX = 0.25        # G−R>40 pixel ဘယ်လောက်ဆိုလျှင် key မလုပ်ရသေးသလဲ
+
+
+def green(c):
+    """clip ရဲ့ အစိမ်း အချိုး — မတိုင်းရသေးလျှင် တိုင်းသည်"""
+    if c.get("grn") is None:
+        quality(c)
+    return float(c.get("grn") or 0.0)
 
 def screen(clips, log=print):
     """မှောင်လွန်း/ဗလာလွန်းသော clip များကို ဖယ်သည်。"""
-    ok=[]; cut=[]
+    ok=[]; cut=[]; grn=[]
     for c in clips:
         lum, det = quality(c)
         if lum < QLUM or det < QDET:
             cut.append((c, lum, det)); continue
+        # ⚠️ key မလုပ်ရသေးသော chroma အစိမ်း ⇒ ပယ်。 `qc.chroma_green` က
+        #    ထွက်ဖိုင်မှာ ဖမ်းသည် — ဒီမှာက **ဝင်ခါနီးမှာ** တားခြင်း。
+        if green(c) >= GREEN_MAX:
+            grn.append(c); continue
         ok.append(c)
+    if grn:
+        log(f"  B-roll · chroma အစိမ်း (G−R>40 ≥{GREEN_MAX:.0%}) ဖယ် "
+            f"{len(grn)} ခု — "
+            + " · ".join(f"{(c.get('my') or ['?'])[0][:12]}({green(c):.0%})"
+                         for c in grn[:4]))
     if cut:
         log(f"  B-roll · ရုပ်အရည် မမီ၍ ဖယ် {len(cut)} ခု "
             + " · ".join(f"{(c.get('my') or ['?'])[0][:10]}(လင်း{l:.0f}/သေး{d:.1f})"
@@ -672,6 +702,8 @@ def screen(clips, log=print):
             for c in clips:
                 if c["path"] in by and c.get("lum") is not None:
                     by[c["path"]]["lum"] = c["lum"]; by[c["path"]]["det"] = c["det"]
+                    if c.get("grn") is not None:
+                        by[c["path"]]["grn"] = c["grn"]
             json.dump(db, open(INDEX,"w",encoding="utf-8"), ensure_ascii=False, indent=1)
         except Exception: pass
     return ok

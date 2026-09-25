@@ -1067,12 +1067,34 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     #    reference ရဲ့ cutaway အလယ်ကြာချိန် **၅.၂–၇.၅s**。 ၃.၂s ဆိုလျှင်
     #    ဘတ်ဂျက် ပြည့်ပါလျက် ပေါ်ချိန် **၁၅% ဘယ်တော့မှ မရောက်**နိုင်ပါ
     #    (၆.၀s လိုသည့်နေရာ ၃.၂s ⇒ ၅၃% သာ)。 ဘေးကတ်က ၃.၂s အတိုင်း ထားသည်。
-    _FF_COVER, _FF_LEN, _FF_MAXLEN = 0.15, 6.0, 6.5
+    # WARN **the full-frame cutaway shipped a 6 s dead screen and is now off.**
+    #    2026-09-25, TH render `OP6Nl6TC7SJSYkRhPC6O3A.mp4` 2.80-9.13 s:
+    #    a near-black full-frame card carrying ONE line of text, held 6.1 s,
+    #    the speaker gone. Measured: mean luminance 19-24, and 97% of pixels
+    #    under 45 -- `blackdetect` reports it as 6.33 s of black. Zin: "လုံးဝ
+    #    အဆင်မပြေ".
+    # WARN **my own error, not a tuning miss.** I set 0.15 coverage / 6.0 s
+    #    from the reference measurement (cutaway median 5.2-7.5 s), but the
+    #    reference's cutaways are FOOTAGE filling the frame. IKKI's are text
+    #    cards that draw their own dark background (`thm._cut_bg`). Holding a
+    #    line of text on black for 6 s is not the same edit at all.
+    # WARN it cannot simply be shortened: `qc.black_frames` now fails any
+    #    near-black stretch over 0.3 s, so ANY duration of this card fails --
+    #    which is the correct verdict. A cutaway is only a cutaway when there
+    #    is something to cut TO.
+    #    ⇒ re-enable by setting `gfx_cutaway` on the recipe, once a cutaway
+    #      card can be composited over B-roll footage instead of its own black
+    #      panel. The rotation, budget and spacing code below all still work.
+    _FF_COVER = float((opts or {}).get("gfx_cutaway") or 0.0)
+    _FF_LEN, _FF_MAXLEN = 6.0, 6.5
     # ⚠️ **တကယ့်ကြာချိန်နဲ့ တွက်ရမည်** — `_FF_LEN` (၆.၀) နဲ့ `round()` သုံးလျှင်
     #    ၆၀s ဗီဒီယိုမှာ ၂ ခု ⇒ ၂×၆.၅ = ၁၃s = **၂၁.၇%** (ပန်းတိုင် ၁၅% ကျော်)。
     #    အောက်လျှော (`int`) + `_FF_MAXLEN` နဲ့ ၁ ခု ⇒ ၁၀.၈%。 ကျော်တာက
     #    လျော့တာထက် ပိုဆိုးသည် — ဖုံးလွန်လျှင် ပြောသူနဲ့ ဆက်သွယ်မှု ပြတ်သည်。
-    _ff_max = max(1, int(_FF_COVER * float(dur or 0) / _FF_MAXLEN))
+    # ⚠️ `max(1, …)` ကြမ်းခင်းက coverage ၀ ဖြစ်လျှင်လည် ၁ ခု အာမခံသည်
+    #    ⇒ ပိတ်ထားပါလျက် ဘောင်အပြည့် တစ်ခု ထွက်နေမည်。
+    _ff_max = (max(1, int(_FF_COVER * float(dur or 0) / _FF_MAXLEN))
+               if _FF_COVER > 0 else 0)
     _ff_n = 0               # ⚠️ ယခုအထိ သုံးပြီးသော ဘောင်အပြည့် အရေအတွက်
     # ⚠️ **ဘတ်ဂျက်က အမြင့်ဆုံးသာ — ပန်းတိုင် မဟုတ်**。 ၂၀၂၆-၀၉-၂၄ တိုင်းချက်:
     #    ဘတ်ဂျက် ၂၀ ဖွင့်ပေးပြီးမှ ၇၈၀s ဗီဒီယိုမှာ ဘောင်အပြည့် **၁ ခုသာ**
@@ -1411,6 +1433,45 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             continue
         kw = keyword(s2.get("text") or "")
         if not kw:
+            continue
+        # WARN **the pop was always a duplicate of the caption.** Zin, with
+        #    frames, 2026-09-25: the TH render pops "Western Union",
+        #    "Casper Mobile" and "account level" while the caption below
+        #    already shows those same words.
+        # WARN it is structural, not bad luck: `kw` comes from
+        #    `keyword(s2["text"])` -- the very sentence the caption renders.
+        #    The ZAE report shows captions on 18 of 19 lines, so essentially
+        #    EVERY pop duplicates. This check therefore removes most pops
+        #    while captions are on, which is the correct consequence, not a
+        #    side effect: the same word twice on one frame is the defect.
+        #    `qc.pop_dup` is the safety net; this is the prevention.
+        def _norm(t):
+            # ⚠️ မြန်မာ/လက်တင် ရောသဖြင့် အောက်သို့ + space/ပုဒ်ဖြတ် ဖယ်ရုံသာ
+            return re.sub(r"[\s·.,!?;:()\[\]\-–—\"'“”‘’]+", "",
+                          str(t or "").lower())
+        def _captext(c):
+            # ⚠️ caption template အလိုက် key ကွဲသည် — `text` · `head` ·
+            #    `before`/`hot` (highlight) · `lines` (စာရင်း)。 တစ်ခုတည်း
+            #    ကြည့်လျှင် စစ်ချက် တိတ်တဆိတ် သေမည် (ပထမ ကြိုးစားမှုမှာ
+            #    တကယ် ဖြစ်ခဲ့ — `Western Union` ထပ်နေဆဲ)。 ⇒ အားလုံး ပေါင်း。
+            out = []
+            def _walk(v):
+                if isinstance(v, str):
+                    out.append(v)
+                elif isinstance(v, (list, tuple)):
+                    for x in v:
+                        _walk(x)
+                elif isinstance(v, dict):
+                    for x in v.values():
+                        _walk(x)
+            _walk(c.get("props") or {})
+            return " ".join(out)
+        _kwn = _norm(kw)
+        if _kwn and any(
+                _kwn in _norm(_captext(c))
+                for c in (p.get("captions") or [])
+                if float(c.get("startTime") or 0) < b
+                and float(c.get("endTime") or 0) > a):
             continue
         # ⚠️ ကြာချိန် — တိုင်းထားသော p25–p75 ထဲ、ဝါကျထက် မကျော်ရ
         hold = max(2.8, min(5.2, b - a))
