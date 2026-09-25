@@ -110,9 +110,10 @@ var SKEY='ikki_prefs';
    သူတစ်ပါးရဲ့ brand နဲ့ စခဲ့သည်。 */
 var SMART='ikki';
 var state={style:'short-916', family:'', mode:'smart', brand:SMART, font:'', fmt:'', cap:'', vfmt:'', speed:'1.00', job:null, poll:null, up:null,
+  sub:'my', pace:'normal',
   ref:'', ovrBrand:false, ovrFmt:false};
 try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
-  ['style','brand','font','fmt','cap','vfmt','speed','mode','ref'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
+  ['style','brand','font','fmt','cap','vfmt','speed','mode','ref','sub','pace'].forEach(function(k){ if(_p[k]!=null) state[k]=_p[k] });
   /* ⚠️ **ရှိပြီးသား သုံးစွဲသူရဲ့ ရွေးချယ်မှုကို မလွှမ်းရ** — `mode` မသိမ်းဘဲ
      `brand` သိမ်းထားသူက Smart Edit ဆီ ရုတ်တရက် ပြောင်းသွားလျှင် သူ့ brand
      ပျောက်သွားသလို ခံစားမည် ⇒ `ikki` မဟုတ်လျှင် 「ကိုယ်ပိုင် brand」ဟု
@@ -122,7 +123,34 @@ try{ var _p=JSON.parse(localStorage.getItem(SKEY)||'{}');
 function savePrefs(){
   try{ localStorage.setItem(SKEY, JSON.stringify({style:state.style,brand:state.brand,
     font:state.font,fmt:state.fmt,cap:state.cap,vfmt:state.vfmt,speed:state.speed,
-    mode:state.mode,ref:state.ref})) }catch(e){}
+    mode:state.mode,ref:state.ref,sub:state.sub,pace:state.pace})) }catch(e){}
+}
+/* Cinematic Vlog runs a different engine (core/cine.py): many clips in, no
+   transcript review, caption language + pace instead of video kind / speed /
+   recorder audio.  The server enforces the same split (api/main.py). */
+var CINE_MAX=60;
+function isCine(){ return state.style==='cinematic-vlog' }
+function paintCine(){
+  var on=isCine();
+  var box=$('cinebox'); if(box) box.hidden=!on;
+  ['vfmthead','vfmtbox','vfmtnote','speedbox','audiobox'].forEach(function(id){
+    var n=$(id); if(n) n.hidden=on; });
+  [].forEach.call(document.querySelectorAll('[data-sub]'),function(b){
+    b.setAttribute('aria-pressed', b.getAttribute('data-sub')===state.sub?'true':'false'); });
+  [].forEach.call(document.querySelectorAll('[data-pace]'),function(b){
+    b.setAttribute('aria-pressed', b.getAttribute('data-pace')===state.pace?'true':'false'); });
+  var dn=$('dropnote'), ul=$('uplede');
+  function put(n,my,en){ if(!n) return; n.setAttribute('data-my',my); n.setAttribute('data-en',en);
+    n.textContent=cur==='my'?my:en; }
+  if(on){
+    put(dn,'clip '+CINE_MAX+' ခုအထိ တစ်ခါတည်း ရွေးပါ · MP4 · MOV · 4K','Select up to '+CINE_MAX+' clips at once · MP4 · MOV · 4K');
+    put(ul,'Engine က clip တွေထဲက ကောင်းတဲ့ အပိုင်းကို ရွေး၊ ရိုက်ခဲ့တဲ့ အချိန်အတိုင်း စီပြီး တန်းထုတ်ပေးပါမယ်။ ဘယ် shot ယူခဲ့လဲ report မှာ ကြည့်နိုင်ပါတယ်။',
+        'The engine picks the best moments, orders them as they were filmed and renders straight through. The report lists every shot it used.');
+  } else {
+    put(dn,'MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)','MP4 · MOV · 4K · up to 4 takes (8 GB each)');
+    put(ul,'တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။',
+        'After upload, review every AI edit suggestion in the Transcript Editor.');
+  }
 }
 /* ကိုယ်ပိုင် kit များသာ — `is_system` (IKKI Smart Edit) ကို ဖယ်သည် */
 function ownKits(){ return (BRANDS||[]).filter(function(b){ return !b.is_system }) }
@@ -446,6 +474,7 @@ function paintStyles(){
    + esc(pick[4])+' · '+esc(pick[5])+'</p>';
   el.innerHTML=h;
   paintAdv();
+  paintCine();
 
   var cards=[].slice.call(el.querySelectorAll('.scard'));
   var playing=null;
@@ -879,11 +908,17 @@ function start(input){
     ? [].slice.call(input) : [input]);
   files=files.filter(Boolean);
   if(!files.length) return;
-  if(files.length>4){
+  var cine=isCine();
+  if(cine){
+    if(files.length>CINE_MAX){
+      alert(cur==='my'?('clip '+CINE_MAX+' ခုအထိသာ တစ်ခါတည်း ထည့်နိုင်ပါတယ်'):('You can add up to '+CINE_MAX+' clips at once'));
+      return;
+    }
+  } else if(files.length>4){
     alert(cur==='my'?'take ၄ ခုအထိသာ တစ်ခါတည်း ထည့်နိုင်ပါတယ်':'You can add up to four takes at once');
     return;
   }
-  if(files.length>1 && AUD){
+  if(!cine && files.length>1 && AUD){
     alert(cur==='my'
       ? 'take များစွာနဲ့ recorder အသံတစ်ဖိုင်ကို မညှိနိုင်သေးပါ။ recorder အသံကို ဖယ်ပြီး camera audio သုံးပါ၊ သို့မဟုတ် take တစ်ခုတည်း တင်ပါ။'
       : 'A single recorder track cannot be aligned safely across multiple takes. Clear it, or upload one take only.');
@@ -891,7 +926,7 @@ function start(input){
   }
   // ⚠️ ပုံစံ မရွေးဘဲ မတင်ရ — ပြန်စ ရှာဖွေမှုက «ကင်မရာကို ပြောတာ» မှသာ အလုပ်ဖြစ်သည်
   //    (vlog ၅/၅ အောင် · podcast ကျ ၇၉.၆%)。 မရွေးလျှင် server က ပိတ်ထားမည်。
-  if(!state.vfmt){
+  if(!cine && !state.vfmt){
     alert(cur==='my'?'ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ ရွေးပေးပါ':'Please pick what kind of video this is');
     var vb=$('vfmtbox'); if(vb&&vb.scrollIntoView) vb.scrollIntoView({behavior:'smooth',block:'center'});
     return;
@@ -906,14 +941,16 @@ function start(input){
   nextTake().then(function(videoIds){
     // ⚠️ dual-system audio has one timeline only.  The API explicitly rejects
     // it with multi-take projects instead of silently aligning it to take one.
-    if(!AUD) return {upload_ids:videoIds, audio:null};
+    if(!AUD || cine) return {upload_ids:videoIds, audio:null};
     return upload(AUD).then(function(a){ return {upload_ids:videoIds, audio:a.upload_id} });
   }).then(function(d){
     return api('/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({upload_id:d.upload_ids[0],source_upload_ids:d.upload_ids,
-                           audio_upload_id:d.audio||'',speech_speed:state.speed,
+                           audio_upload_id:d.audio||'',speech_speed:cine?'1.00':state.speed,
                            recipe:state.style,brand_id:state.brand,fmt:state.fmt,cap:state.cap,
-                           font:state.font,title:files[0].name,vfmt:state.vfmt,
+                           font:state.font,vfmt:cine?'':state.vfmt,
+                           title:cine?('Cinematic · '+files.length+' clips'):files[0].name,
+                           sub_lang:cine?state.sub:undefined,pace:cine?state.pace:undefined,
                            /* ⚠️ reference က **optional** — မရွေးလျှင် ဗလာ ⇒
                               IKKI Smart Edit ပုံသေအတိုင်း (မပြောင်း)。 */
                            ref_id:state.ref||''})});
@@ -1762,6 +1799,13 @@ document.addEventListener('click',function(e){
   if(rd){ rtDecide(rd); return; }
   var ck=t && t.closest && t.closest('[data-clk]');
   if(ck && !ck.disabled){ clPick(ck); return; }
+  var sb=t && t.closest && t.closest('[data-sub],[data-pace]');
+  if(sb){
+    if(sb.hasAttribute('data-sub')) state.sub=sb.getAttribute('data-sub');
+    else state.pace=sb.getAttribute('data-pace');
+    savePrefs(); paintCine();
+    return;
+  }
   var vf=t && t.closest && t.closest('[data-vfmt]');
   if(vf){
     state.vfmt=vf.getAttribute('data-vfmt');

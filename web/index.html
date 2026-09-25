@@ -120,7 +120,31 @@
         <section class="setup-section project-video" aria-labelledby="videostep">
           <div class="setup-head"><span>03</span><div><p class="eyebrow" data-my="SOURCE VIDEO" data-en="SOURCE VIDEO">SOURCE VIDEO</p>
             <h2 id="videostep" data-my="ဗီဒီယိုတင်ပြီး Transcript ထဲကနေဆုံးဖြတ်ပါ" data-en="Upload, then decide in the transcript">ဗီဒီယိုတင်ပြီး Transcript ထဲကနေဆုံးဖြတ်ပါ</h2></div></div>
-<div class="sech"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
+<!-- Cinematic Vlog — many clips, shots chosen by the engine (core/cine.py).
+             Caption language is chosen per audience: Zin's five vlogs use none /
+             Burmese / Japanese+English / English.  Shown only for that style. -->
+        <div id="cinebox" hidden>
+          <div class="sech"><h3 data-my="စာတန်း ဘာသာ" data-en="Caption language">စာတန်း ဘာသာ</h3></div>
+          <div class="chips" style="margin-bottom:8px">
+            <button class="chip" data-sub="my" aria-pressed="false" data-my="မြန်မာ" data-en="Burmese">မြန်မာ</button>
+            <button class="chip" data-sub="en" aria-pressed="false" data-my="English" data-en="English">English</button>
+            <button class="chip" data-sub="ja_en" aria-pressed="false" data-my="ဂျပန် + English" data-en="Japanese + English">ဂျပန် + English</button>
+            <button class="chip" data-sub="none" aria-pressed="false" data-my="မထည့်" data-en="None">မထည့်</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--tx2);margin:0 0 12px"
+            data-my="စကားပြောတဲ့ clip တွေကိုပဲ စာတန်းထိုးပါတယ် — တစ်ကြောင်း၊ အဖြူ၊ အောက်ခြေ (ZJL vlog တိုင်းထားတဲ့ အတိုင်း)။ English / ဂျပန်က မြန်မာ စကားကနေ ဘာသာပြန်ပါတယ်။"
+            data-en="Only speaking clips get captions — one white line near the bottom, as measured on the ZJL vlogs. English / Japanese are translated from the Burmese speech.">စကားပြောတဲ့ clip တွေကိုပဲ စာတန်းထိုးပါတယ် — တစ်ကြောင်း၊ အဖြူ၊ အောက်ခြေ (ZJL vlog တိုင်းထားတဲ့ အတိုင်း)။ English / ဂျပန်က မြန်မာ စကားကနေ ဘာသာပြန်ပါတယ်။</p>
+          <div class="sech"><h3 data-my="ဖြတ်နှုန်း" data-en="Cutting pace">ဖြတ်နှုန်း</h3></div>
+          <div class="chips" style="margin-bottom:8px">
+            <button class="chip" data-pace="fast" aria-pressed="false" data-my="မြန် · shot ~1.6s" data-en="Fast · ~1.6 s shots">မြန် · shot ~1.6s</button>
+            <button class="chip" data-pace="normal" aria-pressed="false" data-my="ပုံမှန် · ~3s" data-en="Normal · ~3 s">ပုံမှန် · ~3s</button>
+            <button class="chip" data-pace="calm" aria-pressed="false" data-my="ငြိမ် · ~4.5s" data-en="Calm · ~4.5 s">ငြိမ် · ~4.5s</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--tx2);margin:0 0 14px"
+            data-my="ဘယ်အရှိန်ရွေးရွေး 10 စက္ကန့်ကျော် shot ~15% ကို ချန်ထားပါတယ် — ZIN JAPAN LIFE vlog ၅ ပုဒ်လုံးမှာ ပြောင်းမသွားတဲ့ အချက်ပါ။"
+            data-en="Whatever the pace, about 15% of shots stay over 10 s — the one thing all five ZIN JAPAN LIFE vlogs share.">ဘယ်အရှိန်ရွေးရွေး 10 စက္ကန့်ကျော် shot ~15% ကို ချန်ထားပါတယ် — ZIN JAPAN LIFE vlog ၅ ပုဒ်လုံးမှာ ပြောင်းမသွားတဲ့ အချက်ပါ။</p>
+        </div>
+<div class="sech" id="vfmthead"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
         <div class="chips" id="vfmtbox" style="margin-bottom:8px">
           <button class="chip vfmt" data-vfmt="camera" aria-pressed="false"
             data-my="ကင်မရာကို ပြောတာ" data-en="Talking to camera">ကင်မရာကို ပြောတာ</button>
@@ -135,7 +159,7 @@
 
         <!-- Speed is deliberately opt-in.  A global "make it faster" default is
              wrong for education, business, emotional delivery and podcasts. -->
-        <div style="margin:0 0 14px">
+        <div id="speedbox" style="margin:0 0 14px">
           <label for="speed" style="display:block;font-size:13.5px;font-weight:650;margin:0 0 5px"
             data-my="စကားပြော အရှိန်" data-en="Speaking pace">စကားပြော အရှိန်</label>
           <select id="speed" style="max-width:330px">
@@ -175,7 +199,7 @@
         </div>
         <div class="project-upload">
           <div><span class="eyebrow" data-my="READY WHEN YOU ARE" data-en="READY WHEN YOU ARE">READY WHEN YOU ARE</span>
-            <p data-my="တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။"
+            <p id="uplede" data-my="တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။"
               data-en="After upload, review every AI edit suggestion in the Transcript Editor.">တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။</p></div>
           <button class="dropbig" id="drop">
             <div class="ring"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M3.5 15.5v2.8A2.2 2.2 0 0 0 5.7 20.5h12.6a2.2 2.2 0 0 0 2.2-2.2v-2.8"/></svg></div>
@@ -183,7 +207,7 @@
               <!-- ⚠️ ၂၀ GB ဟု မရေးရ — server ဘက် ကန့်သတ်ချက် မပြောင်းပါ、worker ရဲ့
                    disk guard က ဗီဒီယိုအရွယ်နဲ့ အချိုးကျ နေရာ တောင်းသည်。 စမ်းပြီး
                    အတည်ပြုထားသော ကိန်း = ၈ GB (၂၀၂၆-၀၉-၂၁)。 -->
-              <p data-my="MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)" data-en="MP4 · MOV · 4K · up to 4 takes (8 GB each)">MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)</p></div>
+              <p id="dropnote" data-my="MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)" data-en="MP4 · MOV · 4K · up to 4 takes (8 GB each)">MP4 · MOV · 4K · take ၄ ခုအထိ (တစ်ခုချင်း 8 GB အထိ)</p></div>
           </button>
           <input type="file" id="file" accept="video/*" multiple hidden>
         </div>

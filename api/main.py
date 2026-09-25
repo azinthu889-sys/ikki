@@ -397,6 +397,11 @@ def up_abort(uid: str, authorization: str = Header(None)):
     return {"ok": True}
 
 # ══ job ═══════════════════════════════════════════════════
+# Cinematic Vlog limits (see core/cine.py)
+CINE_MAX_CLIPS = int(os.environ.get("IKKI_CINE_MAX_CLIPS", "60"))
+CINE_SUB_LANGS = ("none", "my", "en", "ja_en")
+CINE_PACES = ("fast", "normal", "calm")
+
 @app.post("/api/jobs")
 async def job_new(req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
@@ -412,8 +417,15 @@ async def job_new(req: Request, authorization: str = Header(None)):
     else:
         raise HTTPException(400, "source_upload_ids က စာရင်းဖြစ်ရမည်")
     source_ids = [x for x in source_ids if x]
-    if not source_ids or len(source_ids) > 4:
-        raise HTTPException(400, "source video ၁ ခုမှ ၄ ခုအထိသာ ထည့်နိုင်သည်")
+    # ⚠️ Cinematic Vlog is footage-led: it *chooses* from many camera clips
+    #    (Zin's 40-clip river camp = 397 s of 4K).  Every other style joins its
+    #    sources into one review timeline, where four takes is the limit.
+    import recipes as _RC
+    _cine = (_RC.get(b.get("recipe") or "cinematic-vlog").get("engine") == "cine")
+    _maxsrc = CINE_MAX_CLIPS if _cine else 4
+    if not source_ids or len(source_ids) > _maxsrc:
+        raise HTTPException(400, (f"clip ၁ ခုမှ {_maxsrc} ခုအထိသာ ထည့်နိုင်သည်" if _cine
+                                  else "source video ၁ ခုမှ ၄ ခုအထိသာ ထည့်နိုင်သည်"))
     if len(set(source_ids)) != len(source_ids):
         raise HTTPException(400, "တူညီသော source video ကို နှစ်ခါ ထည့်ထားသည်")
     stated = str(b.get("upload_id") or "").strip()
@@ -439,7 +451,6 @@ async def job_new(req: Request, authorization: str = Header(None)):
     if fmt and fmt not in FM.keys():
         raise HTTPException(400, f"အရွယ် မရှိ: {fmt}")
     # ⚠️ စာတန်း အရွယ်ကိုလည်း **server မှာ** စစ်ရမည် — UI ကို မယုံရ
-    import recipes as _RC
     cap = (b.get("cap") or "").strip()
     if cap and cap not in _RC.CAPSIZE:
         raise HTTPException(400, f"စာတန်း အရွယ် မရှိ: {cap}")
@@ -458,6 +469,10 @@ async def job_new(req: Request, authorization: str = Header(None)):
             "စာတမ်းကို မပြဘဲ တန်းထုတ်တာ မရပါ — ချောင်းဆိုး · ဖြည့်စကား · "
             "ထပ်နေတာ · ပြန်စ အကြံပြုချက်တွေကို သင် အတည်ပြုမှ ဖြတ်ပါမည်")
     mode = "review"
+    # ⚠️ Cinematic Vlog chooses shots, not words — there is no transcript to
+    #    approve, so the job runs straight through (`go`).  The shot list and
+    #    every rejected clip are in the render report.
+    if _cine: mode = "go"
     # ⚠️ ဗီဒီယို ပုံစံ — ပြန်စ ရှာဖွေမှုက `camera` မှသာ (ဂိတ်: vlog ၅/၅ အောင် ·
     #    podcast ကျ ၇၉.၆% · ၂၀၂၆-၀၉-၁၆)。 မပေးလျှင် "" = မသိ ⇒ ပြန်စ **ပိတ်**。
     vfmt = (b.get("vfmt") or "").strip().lower()
@@ -466,6 +481,25 @@ async def job_new(req: Request, authorization: str = Header(None)):
     #    ကင်မရာ အသံက −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည် (၂၀၂၆-၀၉-၁၉)。
     over = {}
     au = (b.get("audio_upload_id") or "").strip()
+    if _cine:
+        # Captions are chosen per audience — Zin's five vlogs use five
+        # different answers (none · my · ja+en · en).  Refuse unknown values
+        # instead of silently falling back.
+        sl = (b.get("sub_lang") or "none").strip()
+        if sl not in CINE_SUB_LANGS:
+            raise HTTPException(400, f"စာတန်း ဘာသာ မရှိ: {sl}")
+        pc = (b.get("pace") or "normal").strip()
+        if pc not in CINE_PACES:
+            raise HTTPException(400, f"အရှိန် မရှိ: {pc}")
+        if au:
+            raise HTTPException(400, "Cinematic Vlog မှာ recorder အသံ မပေါင်းနိုင်သေးပါ — "
+                                     "clip တစ်ခုချင်းရဲ့ ကင်မရာအသံကို သုံးပါသည်")
+        over["_sub_lang"] = sl
+        over["_pace"] = pc
+        # ⚠️ the marker, not the recipe name, routes a job to the engine —
+        #    jobs made before it existed keep their talking-head pipeline on
+        #    re-render.
+        over["_cine"] = 1
     if au:
         a = db.one("SELECT * FROM uploads WHERE id=?", au)
         if not a: raise HTTPException(400, "အသံ upload မရှိ")
@@ -501,6 +535,7 @@ async def job_new(req: Request, authorization: str = Header(None)):
     # the default at 1.00× for business, education and calmer delivery.
     try: speech_speed = round(float(b.get("speech_speed", 1.0)), 2)
     except (TypeError, ValueError): speech_speed = 1.0
+    if _cine: speech_speed = 1.0          # the engine keeps camera time
     if speech_speed not in (1.0, 1.03, 1.06):
         raise HTTPException(400, "စကားပြောအရှိန် 1.00×၊ 1.03× သို့မဟုတ် 1.06× သာ ရွေးနိုင်သည်")
     if speech_speed != 1.0: over["_speech_speed"] = speech_speed

@@ -4654,6 +4654,9 @@ def handle(d):
     job, brand = d["job"], d.get("brand")
     jid = job["id"]; t0 = time.time()
     print(f"▶ {jid} · {job.get('recipe')}", flush=True)
+    if (d.get("over") or {}).get("_cine"):
+        sweep_scratch(keep=jid)
+        return cine_handle(d, t0)
     # ⚠️ စမလုပ်ခင် **အရင်ရှင်း**ပြီး နေရာ စစ်ရမည်。 နေရာ မလုံလောက်ဘဲ စလျှင်
     #    ffmpeg က ENOSPC နဲ့ ကျပြီး အကြောင်းရင်းက log ထဲ နက်နက်မှ ပေါ်သည် —
     #    သုံးစွဲသူက "render မရဘူး" ပဲ မြင်ရသည်。 ⇒ ဒီမှာ ရှင်းရှင်း ပြောသည်。
@@ -4908,6 +4911,175 @@ def handle(d):
         else:
             sweep_scratch(keep=None, failed=_failed)
     print(f"✅ ပြီး · {time.time()-t0:.1f}s\n", flush=True)
+
+# ══════════════════════════════════════════════════════════════════════
+# Cinematic Vlog — many clips in, shots chosen (core/cine.py)
+# ══════════════════════════════════════════════════════════════════════
+# ⚠️ a separate path, not a branch inside render(): render() starts from ONE
+#    joined recording and asks the user to approve a transcript.  The cine
+#    engine never joins its clips (40 × 4K would cost a full re-encode just to
+#    be taken apart again) and has no transcript to approve.
+CINE_FONTS = {"my": "Pyidaungsu", "en": "Figtree", "ja": "HiraginoSans-W4"}
+CINE_SAMPLE = {"my": "မင်္ဂလာပါ ကျွန်တော်တို့ ဒီနေ့ ကျိုက်ကျွန်းကို ရောက်တယ်",
+               "en": "Today we finally made it to the river, typically",
+               "ja": "今日はついに川に着きました"}
+
+
+def _cine_size(IG, lang, H, work, log=print):
+    """font size whose rendered INK is 5.3 % of H — the measured block.
+
+    ⚠️ never copy a size between scripts: Burmese ink ≈ em × 1.7 (stacked
+       marks), Latin ≈ em × 0.95 (ikki-biz-styles).  Render, measure, scale.
+    """
+    import cine as CI
+    from PIL import Image
+    import numpy as _np
+    p = os.path.join(work, f"_sz_{lang}.png")
+    IG.ct(dict(text=CINE_SAMPLE[lang], font=CINE_FONTS[lang], fallback="Figtree",
+               size=100, w=3000, h=300, fill="#FFFFFF", unit="cluster",
+               align="center", frames=[{"out": p, "words": []}]))
+    a = _np.asarray(Image.open(p).convert("RGBA"))[:, :, 3]
+    rows = _np.nonzero(a.max(1) > 8)[0]
+    ink = (rows.max() - rows.min() + 1) if len(rows) else 100
+    size = int(round(100 * CI.CAP_BLOCK * H / ink))
+    log(f"  စာတန်း {lang} · ink {ink}px@100 ⇒ size {size}px (ink {CI.CAP_BLOCK*100:.1f}% of H)")
+    return size, ink / 100.0
+
+
+def _cine_captioner(W, H, sub_lang, log=print):
+    def cap(talk_wav, total, work):
+        import asr as ASR, captions as CP, infogfx as IG, cine as CI
+        wav = os.path.join(work, "talk16.wav")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", talk_wav, "-ac", "1",
+                        "-ar", "16000", wav], check=True)
+        segs = ASR.run(wav, lang="my", log=log)
+        segs = [dict(text=CI.clean_line(x["text"]), start=float(x["start"]),
+                     end=float(x["end"])) for x in segs if CI.clean_line(x.get("text"))]
+        if not segs:
+            log("  ⓘ ASR စာသား မရ ⇒ စာတန်း မထည့်")
+            return None
+        langs = {"my": ["my"], "en": ["en"], "ja_en": ["ja", "en"]}[sub_lang]
+        texts = {}
+        for lg in langs:
+            texts[lg] = ([x["text"] for x in segs] if lg == "my"
+                         else CI.translate([x["text"] for x in segs], lg, log=log))
+        layers, all_caps = [], []
+        bottom = int(round(H * CI.CAP_BOTTOM))
+        # stack bottom-up: the last language sits on the 92.5 % line
+        for lg in reversed(langs):
+            size, k = _cine_size(IG, lg, H, work, log=log)
+            max_chars = 42 if lg == "en" else (20 if lg == "ja" else 34)
+            caps = CI.timed_cards([dict(text=t, start=x["start"], end=x["end"])
+                                   for t, x in zip(texts[lg], segs) if t], max_chars)
+            mov = os.path.join(work, f"caps_{lg}.mov")
+            CP.track(caps, mov, os.path.join(work, f"cp_{lg}"), W, H, size,
+                     "#F5F7F4", CINE_FONTS[lg], "Figtree,HiraginoSans-W4", None,
+                     IG.ct, IG.MW, fps=24, total=total, stroke=None, stroke_w=0.0,
+                     hold=4.0, max_lines=1, fade=0.14, wide=0.86, plate=None, log=log)
+            band_h = int(size * 2.2) * 2
+            layers.append((mov, bottom - band_h))
+            all_caps += [dict(c, lang=lg) for c in caps]
+            bottom -= int(size * k) + int(size * 0.35)       # next line above
+        log(f"  စာတန်း {'+'.join(langs)} · {len(segs)} ဝါကျ")
+        return layers, all_caps
+    return cap
+
+
+def cine_handle(d, t0):
+    import cine as CI, recipes as RC, formats as FM
+    job = d["job"]; jid = job["id"]
+    over = dict(d.get("over") or {})
+    rc = RC.get(job.get("recipe"))
+    sub_lang = over.get("_sub_lang") or "none"
+    pace = over.get("_pace") or "normal"
+    srcs = [x for x in (d.get("sources") or [d.get("upload")]) if x]
+    _sz = sum(float(x.get("size") or 0) for x in srcs) / (1024 ** 3)
+    need = _sz * 1.05 + 3.0
+    if free_gb(BIG) < need:
+        raise RuntimeError(f"disk နေရာ မလုံလောက်ပါ — clip {len(srcs)} ခု {_sz:.1f} GB · "
+                           f"~{need:.1f} GB လို · ကျန် {free_gb(BIG):.1f} GB")
+    def stage(n, name):
+        req(f"/api/w/{jid}/stage", {"stage": n, "name": name,
+                                    "minutes": (time.time() - t0) / 60})
+        print(f"  {n}/7 {name}", flush=True)
+    log = lambda x: print(x, flush=True)
+    log(f"  🎬 Cinematic engine · clip {len(srcs)} · {_sz:.1f} GB · "
+        f"စာတန်း {sub_lang} · အရှိန် {pace}")
+    paths = []
+    for n, u in enumerate(srcs):
+        ext = os.path.splitext(u.get("name") or "")[1].lower() or ".mp4"
+        dest = os.path.join(BIG, f"{jid}_c{n:03d}{ext}")
+        if os.path.exists(dest) and os.path.getsize(dest) >= int(u.get("size") or 1):
+            paths.append(dest); continue
+        cb = lambda pc, mb, sp, n=n: req(f"/api/w/{jid}/stage", {
+            "stage": 0, "name": f"clip {n + 1}/{len(srcs)} · {pc}%",
+            "minutes": (time.time() - t0) / 60})
+        got = fetch_src(jid, dest, cb) if n == 0 else fetch_take(jid, n, dest, cb)
+        paths.append(got or dest)
+    fk = (job.get("fmt") or "").strip() or "16:9"
+    fd = FM.FORMATS.get(fk) or FM.FORMATS["16:9"]
+    W, H = int(fd["W"]), int(fd["H"])
+    out = os.path.join(SCRATCH, jid + ".mp4")
+    work = os.path.join(SCRATCH, jid + "_w")
+    failed = False
+    lines = [f"IKKI CINEMATIC · {jid} · {time.strftime('%Y-%m-%d %H:%M')}", "-" * 62]
+    try:
+        res = CI.run(paths, out, work, W=W, H=H, pace=pace, music=rc.get("music"),
+                     seed=job.get("id") or "", lufs=rc.get("lufs") or -14.0,
+                     sub_lang=sub_lang,
+                     captioner=_cine_captioner(W, H, sub_lang, log=log),
+                     log=log, stage=stage,
+                     cache_dir=os.path.join(BIG, jid + "_cine_cache"))
+        st = res["qc"]["stats"]; rp = res["report"]
+        lines += [f"INPUT     clip {rp['clips']} · usable {rp['usable']} · "
+                  f"talk {rp['talk_clips']} · B-roll {rp['broll_clips']} · "
+                  f"{res['src_dur']:.0f}s footage",
+                  f"OUTPUT    {W}x{H} · {res['dur']:.1f}s · shot {st['shots']} · "
+                  f"median {st['median']}s · 10s+ {st['long_frac']*100:.0f}% · "
+                  f"2s- {st['short_frac']*100:.0f}% · teaser {rp['teaser']}",
+                  f"CAPTIONS  {sub_lang} · {len(res['caps'])} cards", ""]
+        for c in res["qc"]["checks"]:
+            lines.append(f"QC {c['k']:<15} {'✓' if c['ok'] else '✗'}  {c['msg']}")
+        for f_, why in rp["rejected"]:
+            lines.append(f"REJECTED  {f_} — {why}")
+        lines.append("")
+        for i, s_ in enumerate(res["shots"]):
+            lines.append(f"{i + 1:3d} {s_['o0']:7.2f}–{s_['o1']:7.2f}  {s_['kind']:<6} "
+                         f"{s_['src']} {s_['a']:.2f}–{s_['b']:.2f}"
+                         + (f"  EV{s_['ev']:+.1f}" if s_.get('ev') else ""))
+        post_thumb(jid, out, log=log)
+        post_result(jid, out, dict(
+            src_dur=res["src_dur"], out_dur=res["dur"], cuts=len(res["shots"]),
+            captions=len(res["caps"]), flags=sum(1 for c in res["qc"]["checks"]
+                                                  if not c["ok"]),
+            flag_list=[c["msg"] for c in res["qc"]["checks"] if not c["ok"]],
+            segs=[dict(text=c["text"], start=c["start"], end=c["end"],
+                       o0=c["start"], o1=c["end"]) for c in res["caps"]
+                  if c.get("lang") in (sub_lang, "en")],
+            minutes=round((time.time() - t0) / 60, 2), note="cinematic-vlog"))
+    except Exception as e:
+        failed = True
+        lines.append(f"FAILED    {type(e).__name__}: {e}")
+        raise
+    finally:
+        txt = "\n".join(lines)
+        try:
+            os.makedirs(REPORTS, exist_ok=True)
+            open(os.path.join(REPORTS, f"{jid}.txt"), "w").write(txt)
+            post_report(jid, txt)
+        except Exception as _e:
+            print(f"  ⚠️ report မတင်နိုင်: {type(_e).__name__}: {_e}", flush=True)
+        print(txt, flush=True)
+        # the downloaded clips are kept on failure so a retry does not pull
+        # gigabytes again; on success everything goes.
+        if not failed:
+            for p in paths:
+                if p.startswith(BIG):
+                    _drop(p)
+            shutil.rmtree(work, ignore_errors=True)
+            _drop(out)
+    print(f"✅ ပြီး · {time.time()-t0:.1f}s\n", flush=True)
+
 
 def pull_broll():
     """UI ကနေ တင်လာသော ပုံ/ရုပ်ကြမ်းကို ဆွဲပြီး **ဒီစက်ရဲ့ စာကြည့်တိုက်ထဲ** index。

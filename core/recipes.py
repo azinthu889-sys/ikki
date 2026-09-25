@@ -21,7 +21,11 @@ R = {
  #    shadow ချည်းသာ** · baseline 68% of H · တစ်ကြောင်းတည်း ~၂၈ cluster
  #    −14 LUFS · −1.0 dBTP · bed sidechain 4:1
  #    font: **Masterpiece Uni Round** — Zin ကိုယ်တိုင် ရွေးထားသည်၊ မပြောင်းရ
- "cinematic-vlog": dict(label="Cinematic Vlog", theme="zjl", fps=24,
+ # ⚠️ `engine="cine"` — new Cinematic Vlog jobs (API marks them `_cine`) run
+ #    `core/cine.py`: many clips in, shots chosen and timed, no transcript
+ #    review.  The talking-head keys below still serve re-renders of jobs made
+ #    before the engine existed.  `music` is read by both.
+ "cinematic-vlog": dict(label="Cinematic Vlog", theme="zjl", fps=24, engine="cine",
     keep_pause=0.55, min_sil=1.20, captions="light", gfx=3, music="folk",
     mmf="MasterpieceUniRound", latin="Figtree",
     cap_pct=0.0426, cap_base=0.680, stroke=None, stroke_w=0.0,
