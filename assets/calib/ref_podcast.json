@@ -222,5 +222,27 @@
    "_note": "bimodal — H_full lip median 0.030 vs G_full 0.159"
   },
   "captions": "cold open only — small Burmese line + big English keyword (BUSINESS/REVENUE/EGO), some behind subject; none in body (8/8 random frames)"
+ },
+ "zjl_pod_OIFJ1Qqhdw4": {
+  "title": "ဂျပန်လူမျိုးတွေနဲ့ အဆင်ပြေအောင် (ZIN JAPAN LIFE podcast · 2024-08-25)",
+  "format": "solo, 1 camera locked-off wide",
+  "dur": 1243.2,
+  "fps": 24,
+  "lufs_i": -24.0,
+  "lra": 8.5,
+  "_warn_lufs": "YouTube -14 ထက် 10 LU တိုး — Pod10 (-29.6) နဲ့ အတူ Zin ရဲ့ podcast ၂/၂ တိုး",
+  "angle_changes": 0,
+  "inserts": 0,
+  "captions": "Burmese gold, bottom-left — first ~60s only",
+  "vignette": "strong (visible)",
+  "sessions": "window light day→evening around ~12:30 ⇒ recorded in two sittings",
+  "jump_cuts": {
+   "range": [
+    107,
+    150
+   ],
+   "verified": false,
+   "_why": "no source/GT · eye check of 12 pairs ambiguous · audio flux at cands 7% vs random 10% · in-silence 9% vs 6% ⇒ neither instrument confirms · keyframe overlap 13/150 (chance ~3)"
+  }
  }
 }
