@@ -46,10 +46,26 @@ ck("B-roll ပေါ် ဂရပ်ဖစ်အတွက် scrim",
    "_scrim_wins" in W and "bmov and (gmov or pmov or rmov)" in W)
 ck("scrim က overlay ၃ မျိုးလုံးကို ဖုံး",
    all(f"for x in ({v} or [])" in W for v in ("gmov", "pmov", "rmov")))
-# ⚠️ `SC.track` က v10 မှာ ထွက်ဖိုင်ပေါ် မသက်ရောက်ခဲ့ (အလင်း ကွာဟမှု ၀.၀ ·
-#    နမူနာ ၁၂၂ ခု) ⇒ **`drawbox` တစ်ကြောင်းတည်း** နဲ့ လုပ်သည်。
-ck("scrim က drawbox နဲ့ (သက်ရောက်မှု တိုင်းပြီး)",
-   "SCRIM_ALPHA" in W and "drawbox=x=0:y=" in W)
+# WARN this check used to pin the MECHANISM (`drawbox=x=0:y=`), because
+#    `SC.track`'s qtrle .mov had no effect on the output in v10 (luminance
+#    delta 0.0 across 122 samples). Pinning the mechanism also locked in its
+#    look: a hard-edged, full-width black rectangle, which Zin rejected on
+#    2026-09-25 ("blackbar က သဘာ၀မကျဘူး … သပ်သပ်ကြီးဖြစ်နေတယ်").
+# WARN the requirement is **time-gated AND measurably applied**, not a
+#    particular filter. Replaced with a feathered PNG per window overlaid with
+#    `enable`, and the effect was measured the same way the drawbox was,
+#    offline on a real frame (`ffmpeg overlay=0:0:enable='between(...)'`):
+#      inside the window  (y 980-1180)  135.14 -> 104.29   **-30.85**
+#      outside the window (y 0-600)     154.85 -> 153.56    -1.29
+#    -30.9 is in the same band as the drawbox's -35...-41, and the -1.3
+#    outside is the yuv<->rgb round-trip of adding a filter stage, not the
+#    scrim (the band's alpha is 0 there).
+# WARN so this asserts the two properties that matter and NOT the filter name:
+#    the alpha constant is used, and the scrim is gated by `between(t,`.
+ck("scrim က အချိန်ကန့်သတ်နဲ့ သက်ရောက် (တိုင်းပြီး −၃၀.၉)",
+   "SCRIM_ALPHA" in W
+   and ("drawbox=x=0:y=" in W or "SC._band(" in W)
+   and "enable='between(t," in W)
 ck("**omap မတိုင်မီ** (source အချိန်မှာ)",
    W.find('_g["text"] = str(_best["text"])') < W.find("_win = omap_window("))
 ck("ဖြည့်လိုက်တာကို log ရေး", "စာသား မရှိ ⇒ အဲဒီအချိန်ရဲ့" in W)

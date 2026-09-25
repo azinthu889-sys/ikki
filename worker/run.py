@@ -3518,16 +3518,37 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    လုပ်သည်。 offline စမ်းချက် — window အတွင်း အလင်း **−၃၅…−၄၁**、
     #    အပြင်မှာ ၀.၁ (မထိ) ⇒ သေချာ သက်ရောက်သည်。
     if _scrim_wins and not rc.get("scrim"):
-        _db = []
-        for _a, _b, _y0, _y1 in _scrim_wins[:8]:
-            _y0i = max(0, int(_y0)); _hh = max(80, int(_y1) - _y0i)
-            _hh = min(_hh, TH["H"] - _y0i)
-            _db.append(f"drawbox=x=0:y={_y0i}:w=iw:h={_hh}"
-                       f":color=black@{SCRIM_ALPHA}:t=fill"
-                       f":enable='between(t,{_a:.2f},{_b:.2f})'")
-        fc.append(f"[{last}]" + ",".join(_db) + "[scb]")
-        last = "scb"
-        log(f"  ▦ scrim · drawbox {len(_db)} နေရာ · black@{SCRIM_ALPHA}")
+        # WARN **`drawbox` drew a hard-edged, full-width, solid black slab.**
+        #    No gradient, no feather, edge to edge -- Zin: "နောက်က blackbar က
+        #    သဘာ၀မကျဘူး … သပ်သပ်ကြီးဖြစ်နေတယ် … တစ်ထပ်တည်းဖြစ်အောင်".
+        #    He is describing exactly what the filter does: a rectangle behind
+        #    the card instead of something that belongs to it.
+        # WARN `core/scrim.py:_band()` already builds the right thing -- a
+        #    navy vertical gradient that fades out top and bottom, 82% wide
+        #    with both sides feathered -- and it was written after an earlier
+        #    round of the same complaint (2026-09-17). It was simply not on
+        #    this path: ZAE has `scrim=False`, which routes here.
+        #    => build one feathered PNG per window and overlay it with
+        #    `enable`, instead of `drawbox`. A still PNG overlay is not the
+        #    qtrle .mov that had no effect in v10; the shape is identical to
+        #    what `SC.track()` composites.
+        _sc_dir = os.path.join(work, "scb")
+        os.makedirs(_sc_dir, exist_ok=True)
+        _nb = 0
+        for _i, (_a, _b, _y0, _y1) in enumerate(_scrim_wins[:8]):
+            _png = os.path.join(_sc_dir, f"sc{_i}.png")
+            try:
+                SC._band(TH["W"], TH["H"], TH["NAVY"], SCRIM_ALPHA,
+                         max(0, int(_y0)), min(TH["H"], int(_y1)), _png)
+            except Exception as _e:
+                log(f"  ⚠️ scrim band မရ: {_e}")
+                continue
+            ins += ["-i", _png]; n += 1
+            fc.append(f"[{last}][{n}:v]overlay=0:0:"
+                      f"enable='between(t,{_a:.2f},{_b:.2f})'[sc{_i}]")
+            last = f"sc{_i}"; _nb += 1
+        log(f"  ▦ scrim · ဖေးဖေး band {_nb} နေရာ · navy {TH['NAVY']}@"
+            f"{SCRIM_ALPHA} (drawbox စတုဂံ မဟုတ်တော့)")
     elif _scrim_wins:
         try:
             wins = _scrim_wins
