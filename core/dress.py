@@ -174,8 +174,20 @@ SFX_BY_MOD = {
     "glitch": ("glitch", "radio"),       "retro": ("shutter", "click2"),
     "social": ("snap", "pop"),
     # ကိန်းဂဏန်း / ဇယား — ရေတွက် သံ
-    "infogfx": ("pop", "type_tick"),     "charts": ("swipe", "type_tick"),
-    "dash": ("latch", "type_tick"),      "odo": ("type_tick", "click"),
+    # WARN the landing hit for data cards is `pop`, not `type_tick`: Zin asked
+    #    for the sounds to come from the eleven cues he named
+    #    (`assets/sfx_fav.txt`), and those cover whoosh_in / click / pop /
+    #    glitch / bed -- not type_tick or latch. A bleep landing on a number is
+    #    also the right gesture. Lead sounds keep their designed character.
+    "infogfx": ("pop", "click"),         "charts": ("swipe", "pop"),
+    "dash": ("whoosh_in", "pop"),        "odo": ("swipe", "pop"),
+    # WARN `thm` is the family the ZAE comparison / cutaway cards come from
+    #    (the `vs` card Zin screenshotted). It was missing, so it only worked
+    #    by falling through to SFX_DEF -- which happened to be right. Explicit.
+    "thm": ("whoosh_in", "click"),       "headtop": ("whoosh_in", "click"),
+    "prem4": ("whoosh_in", "click"),     "prem5": ("swipe", "click"),
+    "prem6": ("pop", "click"),           "prem7": ("whoosh_in", "pop"),
+    "insert": ("whoosh_in", "click"),
     "callouts": ("pop", "click"),        "maps": ("deep_whoosh", "latch"),
     "brows": ("click2", "pop"),          "mockups": ("snap", "click"),
 }
@@ -191,6 +203,14 @@ def _mod_of(kind):
             import gfxcat as _G
             for e in _G.catalog(): _MODOF[e["fn"]] = e["module"]
         except Exception: pass
+    # WARN **the lookup never matched.** `_MODOF` is keyed by the bare builder
+    #    name ("title_card"), but every caller passes the catalog id
+    #    ("odo.big_stat"), so `sfx_for()` fell through to `SFX_DEF` for
+    #    **every** template and the per-family sound design below has never
+    #    once applied. Found 2026-09-25 while making every graphic sound.
+    #    A dotted id already carries the module as its prefix.
+    if kind and "." in str(kind):
+        return str(kind).split(".", 1)[0]
     return _MODOF.get(kind)
 
 
@@ -254,7 +274,17 @@ def sfx(gfx, caps, rc):
     #    (၂၀၂၆-၀၉-၂၀ j_f5bd998f5ca3)。 အောက်ဖြတ်လျှင် ဘယ်တော့မှ မကျော်ပါ。
     # ⚠️ `budget()` က အောက်ခြေ ံ၀s အနည်းဆုံး ထားသည် — မျှ မရှိလျှင်
     #    ၄၀s အောက် ဗီဒီယိုတိုင်းမှာ SFX **သုည** ပဲ ထွက်သည် (တိုင်းပြီး တွေ့)。
-    cap = _PL.budget(dict(_pol, per_min=per), dur)
+    # WARN **this line used to discard the measured rate.** It was
+    #    `budget(dict(_pol, per_min=per), dur)`, which overwrites the policy's
+    #    per_min with the RAW recipe value. `for_recipe()` has already resolved
+    #    per_min through `clamp()` -- including `sfxpol.MEASURED`, where ZAE
+    #    carries a measured 6.0/min -- so re-injecting the recipe's 1.5 put the
+    #    budget back to **1 moment in 77.6 s**: six graphics, one sound.
+    #    The QC line read `[<= 6.0/min] OK` the whole time, because QC reads the
+    #    policy while the generator read the recipe. Zin saw it as "the
+    #    infographic comes in with no sound".
+    #    => take the rate from the policy, which is the only place it is gated.
+    cap = _PL.budget(_pol, dur)
     if cap == 0: return []
     if len(keep) > cap:
         step = len(keep) / float(cap)
@@ -503,7 +533,7 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    signature ကနေ ဖြည့်ရမည်。 မဖြည့်ဘဲ (b,) ပေးလျှင် template
             #    အများစု ကျဘမ်း ဖြစ်မည်。
             a = g.get("args") or (ARGS[g["kind"]](brand, label)
-                                  if g["kind"] in ARGS else _cargs(g["kind"], brand, label))
+                                  if g["kind"] in ARGS else _cargs(g["kind"], brand, label, g))
             # ⚠️ **tmplfit ပြန်ဆုတ်လမ်း** — `ARGS`/`_cargs` က ဖြည့်မရလျှင်
             #    catalog ရဲ့ param signature အတိုင်း ဖြည့်ကြည့်သည်。
             #    ဒါက motionkit template အများစုကို ပထမဆုံး သုံးနိုင်စေသည်。
@@ -1116,7 +1146,7 @@ def _tf_args(g, accent=None, ink=None, dim=None, dur=None):
     return _TF.fit(ent, c, accent=accent, ink=ink, dim=dim, dur=dur)
 
 
-def _cargs(kind, brand, label):
+def _cargs(kind, brand, label, g=None):
     """catalog ရဲ့ signature ကနေ argument ဖြည့်သည် (ARGS မှာ မရှိသော template)。"""
     global _CIDX
     if _CIDX is None:
@@ -1138,7 +1168,14 @@ def _cargs(kind, brand, label):
         return None
     try:
         import gfxcat as GC
-        return GC.fill(e, brand, label)
+        # ⚠️⚠️ **ကတ်ရဲ့ စာသားကို ပေးရမည်** — အရင်က `brand`/`label`
+        #    နှစ်ခုတည်း ပေးခဲ့သည် ⇒ စာရင်း param ယူသော template ၅၂ ခုက
+        #    `SHAPES` ထဲက **နမူနာစာအတိအကျ** (「ဂျပန်မှာ အလုပ် ၆၂」)
+        #    ကို ထုတ်ပြနေခဲ့သည် — အသုံးပြုသူရဲ့ script နဲ့ မသက်ဆိုင်ပါ။
+        return GC.fill(e, brand, label,
+                       items=(g or {}).get("items"),
+                       nums=([(g or {}).get("num")] if (g or {}).get("num")
+                             not in (None, "") else None))
     except Exception:
         return None
 
