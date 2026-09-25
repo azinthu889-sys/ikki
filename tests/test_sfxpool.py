@@ -92,13 +92,30 @@ def main():
     check("lead နဲ့ ပြန်ညှိလို့ရ", not late, late[:3])
 
     print("\n── ၇ · အား (loudness) ပစ်မှတ် ──")
-    bad = []
+    # WARN the tolerance is now per cue: `LOUD_TOL` (4.0) normally, and
+    #    `LOUD_TOL_FAV` (8.0) for a cue the user asked for by name in
+    #    `assets/sfx_fav.txt`. His clicks are high-transient/low-average files
+    #    that cannot be lifted to the family target without clipping
+    #    (`CLICK-004` -5.6 dB with peak -0.7 against a -3.0 ceiling), so a
+    #    single tolerance would either drop them or loosen the rule for all
+    #    2,584 cues. The wider bound is checked to apply to favourites ONLY,
+    #    so it cannot spread silently. Audibility stays gated in QC.
+    bad, spread = [], []
+    _fv = SP.fav()
     for r in SP.MAP:
         tg = SP.target(SP.MAP[r][0])
         for x in SP.role_pool(r):
-            if SP._reach(x, tg) < -SP.LOUD_TOL - 1e-6:
-                bad.append(f"{r}:{x['id']}={SP._reach(x, tg):.1f}")
-    check(f"ပစ်မှတ်အထိ {SP.LOUD_TOL} dB အတွင်း တက်နိုင်", not bad, bad[:3])
+            _rc = SP._reach(x, tg)
+            _isfav = x["id"] in _fv
+            _tol = SP.LOUD_TOL_FAV if _isfav else SP.LOUD_TOL
+            if _rc < -_tol - 1e-6:
+                bad.append(f"{r}:{x['id']}={_rc:.1f}")
+            if not _isfav and _rc < -SP.LOUD_TOL - 1e-6:
+                spread.append(f"{r}:{x['id']}={_rc:.1f}")
+    check(f"ပစ်မှတ်အထိ {SP.LOUD_TOL}/{SP.LOUD_TOL_FAV} dB အတွင်း တက်နိုင်",
+          not bad, bad[:3])
+    check(f"လျှော့ချက်က ကြိုက်သူအတွက်သာ (ကျန်တာ {SP.LOUD_TOL} dB)",
+          not spread, spread[:3])
 
     print("\n── ၈ · ZJL နိမ့်ဘန်း ကန့်သတ် ──")
     bad = [f"{r}:{x['id']}={x['brightness']}" for r in ("whoosh_in", "riser_air",

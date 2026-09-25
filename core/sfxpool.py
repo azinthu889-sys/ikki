@@ -332,6 +332,17 @@ NORM_DB = -6.0          # (အရိုး · loud_db မရှိသော cata
 
 
 LOUD_TOL = 4.0          # ပစ်မှတ်အောက် ခွင့်ပြုသော dB
+# WARN **Zin FAV cue: tolerance is wider** (2026-09-25). All three of his
+#    clicks were dropped by `role_pool()` -- `CLICK-004` is still 5.6 dB
+#    below the family target and its peak is -0.7 (ceiling -3.0), so it
+#    cannot be lifted any further. That is normal for a high-transient,
+#    low-average file. => allow up to 8.0 dB for a cue he asked for by
+#    name (`CLICK-004` -5.6, `CLICK-012` -7.1 both pass).
+#    WARN **no QC gate is relaxed** -- the per-cue audibility check
+#    (`stem`) still runs and fails the render if a cue is inaudible.
+#    `LOUD_TOL` is a pool filter, not QC. Applies only to ids in
+#    `assets/sfx_fav.txt`; everything else keeps 4.0.
+LOUD_TOL_FAV = 8.0
 
 
 def _reach(x, tg):
@@ -353,18 +364,24 @@ def role_pool(role, th="zae", ship=True):
     #    ထိုဖိုင်ကို ထည့်လျှင် variant တစ်ခုပဲ တိတ်နေပြီး အား မတော် မတျ (click
     #    မှာ ၁၁.၂ dB ကွာခဲ့ · ၂၀၂၆-၀၉-၂၁)。 ⇒ ပစ်မှတ်ကို မီး မကိုင်လျှင် ဖျက်သည်。
     tg = target(fam, ship)
+    _fv = fav()
+    
+    def _loud_ok(x):
+        _t = LOUD_TOL_FAV if x.get("id") in _fv else LOUD_TOL
+        return _reach(x, tg) >= -_t
+    
     # ⚠️ **ဖိုင်အရှည်နဲ့ မစစ်ရ** (၂၀၂၆-၀၉-၂၅)。 `wav()` က `render_dur()`
     #    အထိ ဖြတ်သဖြင့် ဖိုင် ၀.၅s ရှိပါလျက် ထွက်တာ ၀.၂၆s ဖြစ်နိုင်သည် ⇒
     #    `whoosh_std` ရဲ့ အနိမ့်ဆုံး ၀.၃၀s (ဂရပ်ဖစ် ဝင်ချိန် ဖုံးရန်) မပြည့်ဘဲ
     #    ခံခဲ့သည် (`mixkit_free/SWOOSH-024` = ၀.၂၈s)。
     ps = [x for x in pool(fam, bright=br, ship=ship)
-          if render_dur(x, fam) >= lo and _reach(x, tg) >= -LOUD_TOL]
+          if render_dur(x, fam) >= lo and _loud_ok(x)]
     # ⚠️ ဘောင် တင်းလွန်း၍ ဗလာ ဖြစ်လျှင် **အလင်း ဘောင်ကို အရင် လျှော့**သည် —
     #    အသံ မပါတာက variant မကွဲတာ ထက် ဆိုးသည်。 ကြာချိန် အနည်းဆုံးက
     #    အဓိပ္ပာယ် ရှိသဖြင့် **နောက်ဆုံးမှ** လျှော့သည်。
     if not ps:
         ps = [x for x in pool(fam, ship=ship)
-              if render_dur(x, fam) >= lo and _reach(x, tg) >= -LOUD_TOL]
+              if render_dur(x, fam) >= lo and _loud_ok(x)]
     if not ps:
         ps = [x for x in pool(fam, ship=ship) if render_dur(x, fam) >= lo]
     if not ps:
