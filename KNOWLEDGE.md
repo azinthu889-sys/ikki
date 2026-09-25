@@ -3284,3 +3284,84 @@ REF-B ရဲ့ ဘောင်အပြည့် slide က **222→228 ≈ ၆ 
 
 mix ကနေ band ခွဲတဲ့ နည်းက အဖြေသိ ၁၅ ခုနဲ့ ၃/၇ (၄၃%) ⇒ 「SFX ၁၆ ခု」 ကို
 ပြန်ထုတ်၍ မရပါ。 ပုံက တိုင်းရ · အသံက မရ。
+
+## ညတိုင်းချက် — placement engine ရဲ့ ဒေတာ အခြေခံ (၂၀၂၆-၀၉-၂၆ ည)
+
+### ① ယူနစ်လိုက် တည်ဆောက်မှု — **template က လုပ်နိုင်、planner က မလုပ်နိုင်**
+
+```
+list/unit param ရှိသူ              **146 / 616** (24%)   thm 40 · charts 15 · infogfx 12 · dash 7
+per-unit (dynamic) sfx ကြေညာသူ     **229**
+   ⇒ ၂ ခုလုံး ရှိသူ                **63**
+thm purpose မှာ 「ပြောရင်း တစ်ခုချင်း」 **19**
+per-unit **အချိန်** param (`at`) လက်ခံသူ  **5** — thm.board_agenda/list/points/steps/terms
+```
+
+⛔ **ပိတ်ဆို့ချက်က planner ဘက်**:
+```
+G.call(entry, args, dur)          ← အချိန် input က **dur တစ်ခုတည်း**
+vplan entry = {id, at, dur, tpl, text, user}   ← span ၁ ခု · စာသား ၁ ခု
+fill() ရဲ့ items = split2(text)   ← **ဝါကျ ၁ ကြောင်းကို ၂ ပိုင်း** ခွဲရုံ
+ကတ် ကြာချိန် median 2.60s · max 4.98s  ← ဝါကျ ၁ ကြောင်းထက် တို
+```
+⇒ ကတ်တစ်ခုကို အချိန်ပိုင်းအခြား ၂ ခုမှာ ခွဲပြရ **မရ**。 `thm.board_*` ၅ ခုက
+  `at` လက်ခံပေမယ့် `auto=True` ဖြစ်ပြီး planner ကနေ per-unit အချိန် ပေးလို့ရတဲ့
+  လမ်းကြောင်း **မရှိ**。 ⇒ **လိုအပ်ချက် (ဒီဇိုင်းသာ)**: vplan entry မှာ
+  `units: [{t, text}]` ထည့် · `fill()` က ဝါကျ အများကို တစ်ခုတည်းသော ကတ်ထဲ
+  စုနိုင်ရမည် · `G.call` က per-unit အချိန် လက်ခံရမည်。
+
+### ⑤ `purpose` — **`thm` ၁၃၇ မှာသာ ရှိ**、`manifest.entry()` က မဖော်
+
+`motionkit/manifests/` မှာ ဖိုင် **၁ ခုသာ** (`thm.json`) ရှိပြီး purpose ၁၃၇ ပါသည်。
+ကျန် ၄၇၉ မှာ purpose **မရှိ**。 `core/manifest.py` ရဲ့ `entry()` က တခြား store
+ကနေ ဖတ်သဖြင့် catalog မှာ ၀/၆၁၆ ဖြစ်နေသည်。
+⚠️ thm ရဲ့ purpose က **reference ၂ ခုလုံးရဲ့ စနစ်ကို အတိအကျ ဖော်ပြထားပြီးသား** —
+```
+ 5×  "Stays at the frame edge for a whole section, adding each point as it is spoken"   ← REF-A SWOT
+ 8×  "Pops a single keyword the speaker just said, for emphasis"                        ← REF-A keyword echo
+ 9×  "Animates the spoken line word-by-word ... so the viewer reads with the speaker"
+15×  "Covers the speaker to give one idea the whole frame, at a section's key moment"    ← REF-B slide
+ 1×  "Reveals the line character by character, as if being typed while spoken"           ← REF-B typing
+ 1×  "Corrects a wrong belief: strikes the wrong phrase, reveals the right one"          ← REF-B 「X မဟုတ် Y」
+```
+⇒ လိုအပ်တဲ့ template တွေ **ရှိပြီးသား ဖြစ်ပြီး purpose နဲ့ တံဆိပ်ပါ တပ်ပြီးသား** —
+  ZAE render မှာ thm **၀ ကြိမ်** ထွက်ခဲ့ခြင်းက ရွေးချယ်မှု ချို့ယွင်းချက်သာ。
+
+### ②③④⑥ — job transcript ၅၃ (မတူတဲ့ source **၁၉**) · ဝါကျ ၃၅၁
+
+```
+③ keyword echo ဖြစ်နိုင်ခြေ
+   ZAE  Latin ပါတဲ့ ဝါကျ **50%** (150/299) · မတူတဲ့ ဝေါဟာရ 10
+   TH   Latin ပါတဲ့ ဝါကျ **39%** ( 63/163) · မတူတဲ့ ဝေါဟာရ 26
+   ဂျပန် စာလုံး — **၀** (job ၅၃ လုံးမှာ)
+   ⇒ REF-A ရဲ့ စနစ်အတွက် **ဒေတာ ရှိသည်**
+
+② 「ပထမဆုံး ထွက်ချိန်သာ」 စည်းမျဉ်း
+   ဝေါဟာရ ထွက်ကြိမ် 358 → ပထမဆုံး 179  ⇒ **၅၀% လျော့**
+   (REF-A: 37 → 12 ⇒ 68% လျော့)
+
+④ discourse marker (REF-B ရဲ့ စနစ်)
+   နံပါတ်+ဂဏန်း 14 (4.0%) · မှတ်ထား/သတိထား 19 (5.4%) · အရေးကြီး 5 (1.4%)
+   ပထမ 1 · နောက်ဆုံး 1 · **ဒုတိယ ၀ · တတိယ ၀ · နောက်တစ်ချက် ၀ · မဟုတ်ဘူး ၀**
+   ⇒ marker ပါတဲ့ ဝါကျ **၁၁%** သာ (REF-B က ၂၈% မှာ ဂရပ်ဖစ် ချသည်)
+   ⇒ **REF-B ရဲ့ စနစ်အတွက် ဒေတာ မလုံလောက်**
+
+⑥ `_first_number()` ပျက်နှုန်း
+   ကိန်း ဖမ်းမိတဲ့ ဝါကျ 63/351 (18%) · အဲဒီထဲက **မှားဖွယ် 24 (38%)**
+     Class/Type/Level + ဂဏန်း 12 · မြန်မာ ordinal 8 · JLPT N1–N5 4
+     ဥပမာ — 「နံပါတ် သုံး … N5 level」 → **5** · 「နံပါတ်တစ် … Class 1」 → **1**
+   ⇒ **သန့်ရှင်းတဲ့ ကိန်း 39/351 = ၁၁%** ⇒ number template ဖွင့်ခြင်းက
+     ဝါကျ ၈၉% မှာ အသုံးမဝင်、ပြင်မှသာ ဖွင့်ရမည် (Zin ရဲ့ 「အလုပ်မလုပ်တဲ့
+     ခလုတ် မပြရ」)。
+```
+
+### ⑦ alias map မူကြမ်း — `scratchpad/alias_draft.md`
+
+```
+ချို့နေတဲ့ နာမည် 114 မျိုး ⇒ အဆိုပြု 43 · ⛔ ထာဝရပိတ် 16 (ပုံ/ပထဝီ) · **မသေချာ 55**
+alias 50 လုံး တပ်လျှင် ⇒ **ပိတ်နေတဲ့ 217 ထဲက 133 ပွင့်မယ်** · ကျန် 84
+   ကျန်ရခြင်း အဓိက — img_path 10 · img 8 · imgs 4 (ပုံ) · query/lat/lon/b_/pre …
+⇒ fill() ဖြည့်နိုင်တာ 313 → **446 / 616**
+```
+⚠️ **မသေချာ ၅၅ ကို မှန်းဆ မချိတ်ရ** — မှားချိတ်လျှင် template က အဓိပ္ပာယ်မဲ့
+   စာသား ပြမည် (`_first_number` ရဲ့ 「N5 → 5」 အမှားနဲ့ အတူတူ)。
