@@ -255,8 +255,18 @@ R = {
  #    ("ဂရပ်ဖစ် size ကိုနည်းနည်းပိုကြီးအောင်လုပ်ပါ"). `dress.track()` bounds it
  #    per card so the scaled strip still fits the frame and the placement
  #    checks move with it, so a card that cannot grow simply stays 1.0.
+ # WARN `gfx_cutaway=0.0` — **ZAE format အတွက်သာ** (Zin ၂၀၂၆-၀၉-၂၅)。
+ #    ZAE reference ၂ ပုဒ်မှာ cutaway ၁၃ ခု ရှိပြီး **၁၃ ခုလုံး footage**、
+ #    「ဘောင်အပြည့် အမှောင် + စာတစ်ကြောင်း」 ကတ် **၀ ခု**。 IKKI ရဲ့
+ #    ဘောင်အပြည့် ကတ်တွေက အဲဒီ အမျိုးအစား ချည်း ဖြစ်၍ ZAE မှာ ပိတ်သည် —
+ #    ကိန်း ညှိလို့ မရ、reference မှာ မရှိသော အရာ ဖြစ်သည်。
+ #    ⚠️ TH (`headtop` · `cinematic-vlog`) ကို **မထိ** — `_FF_COVER` ရဲ့
+ #    ပုံသေ ၀.၁၅ က TH reference ကနေ ဖြစ်ပြီး သီးခြား ဆုံးဖြတ်ရန် ကျန်သည်。
+ #    ⚠️ ZAE ရဲ့ footage cutaway ကိန်း (ပေါ်ချိန် ၂၄.၆% · ကြာချိန် အလယ်
+ #    ၂.၅s · p25 ၂.၀ · p75 ၃.၀ · ၁.၅–၅.၀) ကို Zin မချမှတ်ရသေး ⇒
+ #    footage-backed cutaway ပြန်ထည့်လျှင် အဲဒီကိန်းတွေနဲ့ ပြန်ချိန်ရန်。
  "short-video": dict(label="Short Video · ZAE", theme="zae", fps=30,
-                     gfx_scale=1.15,
+                     gfx_scale=1.15, gfx_cutaway=0.0,
     # ⚠️ reference မှာ ဂရပ်ဖစ် ကတ်ကြီး **မရှိသလောက်** — စာတန်းနဲ့ B-roll ချည်းပဲ。
     keep_pause=0.18, min_sil=0.34, captions="zae", gfx=2, music="zae",
     mmf="MyanmarHeadOne", latin="Figtree-Black",

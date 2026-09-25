@@ -1873,6 +1873,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      # MotionKit profile က raw template ID မဟုတ်ဘဲ
                      # manifest/safe-zone စစ်ပြီးသား visual language ဖြစ်သည်။
                      motionkit_profile=rc.get("motionkit_profile") or "premium",
+                     # ⚠️ **format အလိုက် ခွဲထားသည်** — ZAE က ၀.၀ (reference
+                     #    ၁၃ ခုမှာ အမှောင်စာကတ် ၀ ခု) · TH က ပုံသေ ၀.၁၅။
+                     #    `None` နဲ့ `0.0` ကွာသည် ⇒ `.get()` ကို တိုက်ရိုက် ပေး。
+                     gfx_cutaway=rc.get("gfx_cutaway"),
                      # ⚠️ **ပုံစံ နာမည်ကို ပေးရမည်** — တိုင်းထားသော SFX
                      #    မူဝါဒ (headtop ၆.၀/min) ကို id နဲ့ ရှာသည်。
                      style=rc.get("_id"),

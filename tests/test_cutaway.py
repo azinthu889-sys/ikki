@@ -66,8 +66,13 @@ ck("ဘတ်ဂျက် ကိန်း ရှိ", "_FF_COVER" in code and "_
 #    0.15`. The line was split so a recipe can override the coverage
 #    (`gfx_cutaway`) while the DEFAULT stays 0.15, and the check broke on the
 #    text although the number never moved. Assert the values, not the layout.
-ck("ပေါ်ချိန် ပန်းတိုင် ၁၅% (ပုံသေ)",
-   '(opts or {}).get("gfx_cutaway") or 0.15' in code)
+# WARN **`or` ကို သုံး၍ မရ** — `gfx_cutaway=0.0` (ZAE) က falsy ဖြစ်၍
+#    `or 0.15` ဆိုလျှင် ပုံသေ ပြန်ဖြစ်ကာ ZAE မှာ cutaway ပြန်ပေါ်မည်。
+#    ⇒ `None` ဖြစ်မှသာ ပုံသေ ယူရသည် ⇒ ဒီစစ်ချက်က အဲဒါကို ကာကွယ်သည်。
+ck("ပေါ်ချိန် ပန်းတိုင် ၁၅% (ပုံသေ · None ဖြစ်မှသာ)",
+   '0.15 if _ffc is None else _ffc' in code)
+ck("`or` နဲ့ ပုံသေ မယူရ (၀.၀ ပျောက်မည်)",
+   '.get("gfx_cutaway") or 0.15' not in code)
 ck("ကတ် အရှည် ၆.၀ · အကွာ ၆.၅", "_FF_LEN, _FF_MAXLEN = 6.0, 6.5" in code)
 
 # ── ② ရှေ့တန်း တင်ခြင်း + ③ လမ်းကြောင်း ၃ ခုလုံး ────────────────
