@@ -397,7 +397,7 @@ def up_abort(uid: str, authorization: str = Header(None)):
     return {"ok": True}
 
 # ══ job ═══════════════════════════════════════════════════
-# Cinematic Vlog limits (see core/cine.py)
+# Cinematic Vlog limits (see core/cinevlog.py)
 CINE_MAX_CLIPS = int(os.environ.get("IKKI_CINE_MAX_CLIPS", "60"))
 CINE_SUB_LANGS = ("none", "my", "en", "ja_en")
 CINE_PACES = ("fast", "normal", "calm")

@@ -18,6 +18,10 @@ built from Zin's own ZIN JAPAN LIFE vlogs (five measured, all 4K/24/16:9):
   ⑤ text is almost absent — captions are chosen per audience (none / my / en /
     ja+en), single line, white, no stroke, no panel, bottom at 92.5 %.
 
+⚠️ named `cinevlog`, not `cine`: motionkit (on the worker's sys.path) already
+   has a `cine.py`, and whichever was imported first won — the captioner got
+   motionkit's module and died on `clean_line`.
+
 The module is pure numpy + ffmpeg and knows nothing about the IKKI API; the
 worker (`run.py: cine_handle`) downloads the clips, calls `run()`, and posts
 the result.
@@ -62,8 +66,11 @@ CAP_BOTTOM = 0.925
 CAP_BLOCK = 0.053
 # ⚠️ an editor's label leaked into a published caption ("…bank cardSubtitle",
 #    town vlog 8:10).  Scan every line for these before burning in.
-STRAY = re.compile(r"(?i)\b(subtitle|subtitles|caption|captions|text here|"
-                   r"lorem ipsum)\b|\[\d+\]|^\d+$")
+#    ⚠️ the real leak was GLUED ("cardSubtitle") — a `\b` on the left never
+#       matches there, so a capitalised token right after a lowercase letter is
+#       caught separately.
+STRAY = re.compile(r"(?i)(?<![a-z])(subtitles?|captions?|text here|lorem ipsum)\b"
+                   r"|(?<=[a-z])(Subtitles?|Captions?)\b|\[\d+\]|^\d+$")
 
 VIDEO_EXT = (".mp4", ".mov", ".m4v", ".mts", ".avi", ".mkv")
 
@@ -254,10 +261,13 @@ LUT_KW = dict(contrast=1.05, white=3.0, sat=1.7, sat_ceil=0.60, skin_protect=0.6
               shoulder=(0.80, 0.94))
 
 
-def lut_path(ev):
-    """Build once, cache forever.  ~2.4 s per LUT."""
+WB_G = (0.97, 1.0, 1.03, 1.06, 1.09, 1.12)   # green gain, linear, gated off skin
+
+
+def lut_path(ev, wg=1.0):
+    """Build once, cache forever.  ~2.4 s per LUT (7 EV × 6 WB = 42 max)."""
     tag = hashlib.sha1(json.dumps(LUT_KW, sort_keys=True).encode()).hexdigest()[:8]
-    p = os.path.join(LUT_DIR, f"slog3_vlog_{tag}_ev{ev:+.1f}.cube")
+    p = os.path.join(LUT_DIR, f"slog3_vlog_{tag}_ev{ev:+.1f}_g{wg:.2f}.cube")
     if not os.path.exists(p):
         try:
             import slog3lut as L
@@ -265,9 +275,19 @@ def lut_path(ev):
             from core import slog3lut as L
         os.makedirs(LUT_DIR, exist_ok=True)
         tmp = p + ".part"
-        L.build(tmp, L.SGAMUT3_CINE, 33, exposure=2.0 ** ev, **LUT_KW)
+        L.build(tmp, L.SGAMUT3_CINE, 33, exposure=2.0 ** ev, wb=(1.0, wg, 1.0), **LUT_KW)
         os.replace(tmp, p)
     return p
+
+
+def neutral_cast(img):
+    """(R+B)/2 − G on near-grey pixels: + = magenta, − = green."""
+    x = img.astype(np.float32)
+    mx, mn = x.max(-1), x.min(-1)
+    g = ((mx - mn) / (mx + 1e-6) < 0.25) & (mx > 50)
+    if g.mean() < 0.05:
+        return 0.0
+    return float(((x[..., 0][g] + x[..., 2][g]) / 2 - x[..., 1][g]).mean())
 
 
 _LUT_CACHE = {}
@@ -330,8 +350,26 @@ def choose_grade(c, a=None, b=None):
             if best is None or key < best[0]:
                 best = (key, ev, y)
         ev, y = best[1], best[2]
-        sat = float(_sat(apply_lut_np(th, _read_cube(lut_path(ev)))).mean())
-        return ev, None, dict(luma=round(float(y), 1), sat=round(sat, 3), lut=True)
+        # ⚠️ neutral balance — the LUT's saturation (1.7) also amplifies the
+        #    camera's own slight cast: river rocks came out +10 magenta.  A
+        #    global WB would turn lips magenta (zjl-podcast-grade), so the
+        #    correction is a green gain inside the LUT, gated off skin.
+        o = apply_lut_np(th, _read_cube(lut_path(ev)))
+        cast0 = neutral_cast(o)
+        wg = 1.0
+        if abs(cast0) > 3.0:
+            best_w = (abs(cast0), 1.0)
+            for g_ in WB_G:
+                if g_ == 1.0:
+                    continue
+                cc = neutral_cast(apply_lut_np(th, _read_cube(lut_path(ev, g_))))
+                if abs(cc) + 0.5 < best_w[0]:
+                    best_w = (abs(cc), g_)
+            wg = best_w[1]
+            o = apply_lut_np(th, _read_cube(lut_path(ev, wg)))
+        return ev, None, dict(luma=round(float(y), 1), sat=round(float(_sat(o).mean()), 3),
+                              lut=True, wg=wg, cast=round(cast0, 1),
+                              cast_after=round(neutral_cast(o), 1))
     # Rec.709 camera/phone: a gentle gamma only when out of band
     y = float(np.median(_luma(th)))
     eq = None
@@ -670,7 +708,8 @@ def _vf(s, W, H, fps):
     look = []
     if c.get("log"):
         look += ["format=gbrp16le",
-                 f"lut3d=file='{lut_path(s['ev'])}':interp=tetrahedral"]
+                 f"lut3d=file='{lut_path(s['ev'], (s.get('look') or {}).get('wg', 1.0))}'"
+                 f":interp=tetrahedral"]
     if s.get("eq"):
         look.append(s["eq"])
     tail = [f"fps={fps}"] + _fades(s, fps) + ["format=yuv420p", "setsar=1"]
@@ -829,6 +868,49 @@ def mux(video, audio, out, total):
 SUB_LANGS = ("none", "my", "en", "ja_en")
 
 
+def compact_talk(talk_wav, windows, out, gap=0.5):
+    """only the talk windows, back to back → (wav, map).
+
+    ⚠️ never send the full talk track: it is digital silence between talk
+       shots, and Gemini writes plausible sentences into silence (river camp:
+       "as an actress… thanks to the fans" over 0–50 s of nothing).
+    `map` = [(compact_start, out_start, dur)] to turn ASR times back.
+    """
+    with wave.open(talk_wav) as w:
+        sr, ch = w.getframerate(), w.getnchannels()
+        x = np.frombuffer(w.readframes(w.getnframes()), np.int16).reshape(-1, ch)
+    parts, mp, t = [], [], 0.0
+    g = np.zeros((int(gap * sr), ch), np.int16)
+    for a, b in windows:
+        seg = x[int(a * sr): int(b * sr)]
+        if not len(seg):
+            continue
+        mp.append((t, a, len(seg) / sr))
+        parts += [seg, g]
+        t += len(seg) / sr + gap
+    y = np.concatenate(parts) if parts else np.zeros((sr, ch), np.int16)
+    with wave.open(out, "wb") as w:
+        w.setnchannels(ch); w.setsampwidth(2); w.setframerate(sr)
+        w.writeframes(y.tobytes())
+    return out, mp
+
+
+def uncompact(segs, mp):
+    """ASR times on the compact wav → film times; anything that lands in a
+    gap (i.e. outside every talk window) is dropped, not guessed."""
+    out = []
+    for x in segs:
+        a, b = float(x["start"]), float(x["end"])
+        mid = (a + b) / 2
+        for c0, o0, d in mp:
+            if c0 - 0.05 <= mid <= c0 + d + 0.05:
+                a2 = o0 + max(0.0, a - c0); b2 = o0 + min(d, b - c0)
+                if b2 - a2 >= 0.3:
+                    out.append(dict(x, start=round(a2, 2), end=round(b2, 2)))
+                break
+    return out
+
+
 def clean_line(t):
     t = STRAY.sub("", str(t or "")).strip()
     return re.sub(r"\s{2,}", " ", t)
@@ -951,7 +1033,7 @@ def qc(edl, out, rep, caps=None, lufs_target=-14.0, log=print):
 def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
         music=None, seed="", lufs=-14.0, sub_lang="none", captioner=None,
         target=None, log=print, stage=None, cache_dir=None):
-    """paths → out.  `captioner(talk_wav, total, work) → ([(mov, y)], caps) | None`
+    """paths → out.  `captioner(talk_wav, total, work, windows) → ([(mov, y)], caps) | None`
     is supplied by the worker (it owns ASR, fonts and the text renderer)."""
     stage = stage or (lambda n, name: None)
     t0 = time.time()
@@ -1026,7 +1108,8 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     caps = None
     stage(5, "captions")
     if sub_lang != "none" and captioner and any(s["kind"] == "talk" for s in edl):
-        res = captioner(atalk, total, work)
+        wins = [(s["o0"], s["o1"]) for s in edl if s["kind"] == "talk"]
+        res = captioner(atalk, total, work, wins)
         if res:
             layers, caps = res            # [(alpha_mov, y_px), …]
             ov = os.path.join(work, "capd.mp4")

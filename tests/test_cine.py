@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Cinematic Vlog engine (core/cine.py) — planner rules on synthetic clips.
+"""Cinematic Vlog engine (core/cinevlog.py) — planner rules on synthetic clips.
 
 No video is decoded: clips are built as the dicts `analyse()` returns, so the
 rules the engine exists for are checked directly —
@@ -39,13 +39,13 @@ def main():
 
     # ── both import shapes ──
     sys.path.insert(0, os.path.join(ROOT, "core"))
-    CI = importlib.import_module("cine")
+    CI = importlib.import_module("cinevlog")
     sys.path.pop(0)
     sys.path.insert(0, ROOT)
-    for m in [k for k in list(sys.modules) if k in ("cine", "measure", "video_codec")]:
+    for m in [k for k in list(sys.modules) if k in ("cinevlog", "measure", "video_codec")]:
         del sys.modules[m]
-    importlib.import_module("core.cine")
-    check(True, "imports flat (worker) and as core.cine (API)")
+    importlib.import_module("core.cinevlog")
+    check(True, "imports flat (worker) and as core.cinevlog (API)")
 
     clips = []
     for i in range(36):
@@ -98,8 +98,15 @@ def main():
     check(len(sp) == 2 and sp[0][1] > 6.0, f"0.9 s pause kept inside one span ({sp})")
 
     # 7 · stray caption tokens
-    check(CI.clean_line("even if you do not have a bank cardSubtitle").endswith("cardSubtitle") is True
-          or True, "clean_line runs")
+    # the exact leak on the published town vlog (8:10)
+    check(CI.clean_line("even if you do not have a bank cardSubtitle")
+          == "even if you do not have a bank card", "glued 'cardSubtitle' is stripped")
+    check(CI.clean_line("Captioned photos are fine") == "Captioned photos are fine",
+          "a real word containing 'caption' survives")
+    # motionkit ships its own cine.py — the worker must never import that name
+    src = open(os.path.join(ROOT, "worker", "run.py"), encoding="utf-8").read()
+    check("import cine " not in src and "import cine\n" not in src
+          and ", cine as" not in src, "worker imports cinevlog, not motionkit's cine")
     check(CI.STRAY.search("a bank card Subtitle") is not None, "stray 'Subtitle' is caught")
     check(CI.clean_line("[12] hello  world") == "hello world", "index tokens removed")
 

@@ -4913,7 +4913,7 @@ def handle(d):
     print(f"✅ ပြီး · {time.time()-t0:.1f}s\n", flush=True)
 
 # ══════════════════════════════════════════════════════════════════════
-# Cinematic Vlog — many clips in, shots chosen (core/cine.py)
+# Cinematic Vlog — many clips in, shots chosen (core/cinevlog.py)
 # ══════════════════════════════════════════════════════════════════════
 # ⚠️ a separate path, not a branch inside render(): render() starts from ONE
 #    joined recording and asks the user to approve a transcript.  The cine
@@ -4931,7 +4931,7 @@ def _cine_size(IG, lang, H, work, log=print):
     ⚠️ never copy a size between scripts: Burmese ink ≈ em × 1.7 (stacked
        marks), Latin ≈ em × 0.95 (ikki-biz-styles).  Render, measure, scale.
     """
-    import cine as CI
+    import cinevlog as CI
     from PIL import Image
     import numpy as _np
     p = os.path.join(work, f"_sz_{lang}.png")
@@ -4947,12 +4947,17 @@ def _cine_size(IG, lang, H, work, log=print):
 
 
 def _cine_captioner(W, H, sub_lang, log=print):
-    def cap(talk_wav, total, work):
-        import asr as ASR, captions as CP, infogfx as IG, cine as CI
+    def cap(talk_wav, total, work, windows):
+        import asr as ASR, captions as CP, infogfx as IG, cinevlog as CI
+        os.makedirs(work, exist_ok=True)
+        cw, mp = CI.compact_talk(talk_wav, windows, os.path.join(work, "talk_only.wav"))
         wav = os.path.join(work, "talk16.wav")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", talk_wav, "-ac", "1",
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", cw, "-ac", "1",
                         "-ar", "16000", wav], check=True)
-        segs = ASR.run(wav, lang="my", log=log)
+        raw = ASR.run(wav, lang="my", log=log)
+        segs = CI.uncompact(raw, mp)
+        if len(segs) < len(raw):
+            log(f"  ⚠️ talk window အပြင် ASR ဝါကျ {len(raw) - len(segs)} ခု ဖယ် (တိတ်ဆိတ်မှုထဲ ထွင်ရေး)")
         segs = [dict(text=CI.clean_line(x["text"]), start=float(x["start"]),
                      end=float(x["end"])) for x in segs if CI.clean_line(x.get("text"))]
         if not segs:
@@ -4986,7 +4991,7 @@ def _cine_captioner(W, H, sub_lang, log=print):
 
 
 def cine_handle(d, t0):
-    import cine as CI, recipes as RC, formats as FM
+    import cinevlog as CI, recipes as RC, formats as FM
     job = d["job"]; jid = job["id"]
     over = dict(d.get("over") or {})
     rc = RC.get(job.get("recipe"))
