@@ -453,7 +453,7 @@ class _PackDone(Exception):
 
 
 def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
-          avoid=None, capy=None, hold=None):
+          avoid=None, capy=None, hold=None, scale=None):
     """ရွေးထားသော ဂရပ်ဖစ်များကို alpha overlay ဗီဒီယို **တစ်ခု** အဖြစ် ဆောက်သည်。
 
     ⚠️ template တစ်ခုလျှင် PNG ၈၀–၂၀၀ ရှိသည်。 အားလုံး input အဖြစ် ထည့်လျှင်
@@ -671,7 +671,33 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    လွတ်သဖြင့် ⇒ ပယ်ခံခဲ့သည် (「နေရာ မတည့်」)。
         #    ⚠️ ချုံ့ရာမှာ **ဖတ်ရလွယ်မှု ကြမ်းခင်း** ထားရသည် — ၀.၇၀ အောက်
         #       ဆိုလျှင် စာလုံး သေးလွန်း၍ မဖတ်နိုင်တော့ပါ ⇒ ပယ်တာ ကောင်းသည်。
+        # WARN **graphic size knob** (2026-09-25, Zin: "ဂရပ်ဖစ် size ကို
+        #    နည်းနည်းပိုကြီးအောင်လုပ်ပါ"). `gsc` only ever shrank; there was no
+        #    way to make a card bigger. The scale must be bounded, not applied
+        #    blindly: `pad=W:H:x:y` FAILS when the scaled input is larger than
+        #    the frame, and every placement check below works on the ink box,
+        #    so both have to move with it.
+        # WARN bound it by the actual strip: the scaled strip must still end
+        #    inside the frame (offset + size), otherwise keep 1.0. Full-frame
+        #    strips (the opaque cutaway templates) therefore never scale, which
+        #    is right -- they already fill the frame.
         gsc = 1.0
+        _req = max(1.0, min(1.35, float(scale or 1.0)))
+        if _req > 1.001:
+            try:
+                from PIL import Image as _Im0
+                _p0, _ox0, _oy0 = el["anim"][0]
+                with _Im0.open(_p0) as _im0:
+                    _pw, _ph = _im0.size
+                _fitw = (float(W) / (_ox0 + _pw)) if (_ox0 + _pw) > 0 else _req
+                _fith = (float(H) / (_oy0 + _ph)) if (_oy0 + _ph) > 0 else _req
+                gsc = max(1.0, min(_req, _fitw, _fith))
+            except Exception:
+                gsc = 1.0
+            if gsc > 1.001:
+                log(f"  ⤢ {g['kind']} — ×{gsc:.2f} ချဲ့သည်"
+                    + (f" (တောင်းထား ×{_req:.2f} · ဘောင်ကြောင့် ကန့်သတ်)"
+                       if gsc < _req - 0.005 else ""))
         # ⚠️ **ဘေးနေရာ ရှိလျှင် အဲဒီကို ရွှေ့သည်** — ဒါက အဓိက ဖြေရှင်းချက်。
         #    ပြောသူက အကျယ်ရဲ့ ၅၇% သာ ယူပြီး ကျန်တစ်ဖက်မှာ ၈၂၄px လွတ်နေသည်
         #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。 ဒေါင်လိုက်သာ ရွှေ့နေလျှင် ၃၃px သာ
@@ -712,7 +738,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             except Exception:
                 _iw, _ix0, _ix1 = 0, 0, 0
             # ⚠️ ကျယ်လွန်းလျှင် **ချုံ့ပြီး** ဘေးမှာ ချသည် (ပယ်တာထက် ကောင်း)
-            if _iw and _sr > 0 and _iw > _sr and (_sr / float(_iw)) >= 0.70:
+            # WARN compare the SCALED ink against the side room, else an
+            #    upscaled card is judged by its unscaled width.
+            if _iw and _sr > 0 and _iw * gsc > _sr and (_sr / float(_iw)) >= 0.70:
                 gsc = _sr / float(_iw)
                 _ix0 = int(_ix0 * gsc); _ix1 = int(_ix1 * gsc)
                 _iw = _ix1 - _ix0
@@ -762,6 +790,10 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #       ဖြစ်သဖြင့် **တချို့ render မှာသာ** ကျသည် ⇒ ဖုံးနေခဲ့သည်。
             ay0, ay1 = float(avoid2[0]), float(avoid2[1])
             _y0, _y1 = _ybox(el, H)
+            # WARN the ink box must be scaled too -- every check below
+            #    (fits above the head / below the face / inside frame)
+            #    is on this box, and the render applies `gsc` to it.
+            _y0 = int(_y0 * gsc); _y1 = int(_y1 * gsc)
             ih = _y1 - _y0
             TOP = int(H*0.075)
             if _y1 > ay0:                       # မျက်နှာဇုန်ထဲ ဒါမှမဟုတ် အောက်
@@ -793,7 +825,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             except OSError: _sh.copyfile(p, dst)
         # ⚠️ ချုံ့လျှင် **နေရာကိုပါ ချုံ့ရမည်** — မချုံ့လျှင် ink က
         #    တွက်ထားတဲ့ နေရာနဲ့ လွဲသွားမည်。
-        _pre = f"scale=iw*{gsc:.4f}:ih*{gsc:.4f}," if gsc < 0.999 else ""
+        # WARN emit for an UPSCALE too -- the old test was `< 0.999`, so a
+        #    scale above 1.0 silently did nothing.
+        _pre = (f"scale=iw*{gsc:.4f}:ih*{gsc:.4f}," if abs(gsc - 1.0) > 0.001 else "")
         ax = int(el["anim"][0][1] * gsc) + dx
         ay = int(el["anim"][0][2] * gsc) + dy
         ins=["-framerate",str(fps),"-i",seq]

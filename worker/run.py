@@ -2265,7 +2265,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                 rc["fps"], T1, T2, (brand or {}).get("name", "IKKI"),
                                 rc["label"], log,
                                 avoid=_av,
-                                capy=cap_top, hold=_h)
+                                capy=cap_top, hold=_h,
+                                # WARN graphic size comes from the recipe
+                                #    (`gfx_scale`); `track()` bounds it so the
+                                #    scaled card still fits the frame.
+                                scale=rc.get("gfx_scale"))
             gmov, ng = _mk_track(_hold)
             # ── ⚠️ **ရွေးထားတာနဲ့ တပ်ရတာ မတူလျှင် coverage ဘောင် အောက် ကျသည်** ──
             #    `_hold` ကို **ရွေးထားသော** အရေအတွက်နဲ့ တွက်သည် — ဒါပေမယ့်

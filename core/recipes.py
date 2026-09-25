@@ -251,7 +251,12 @@ R = {
  #    safe zone · timing ဘောင် · licence မှတ်တမ်း · QA တိုင်းချက်。
  #    ⚠️ ဤပုံစံက **3:4 (1080×1440)** ဖြစ်ပြီး စာချုပ်က 9:16 ကို ပုံမှန်
  #    ဟု ဆိုသည် ⇒ layout ကို ပြန်ဖွဲ့ရမည်、crop/stretch မလုပ်ရ (§၆)。
+ # WARN `gfx_scale` 1.15 -- Zin asked for the cards to be a little bigger
+ #    ("ဂရပ်ဖစ် size ကိုနည်းနည်းပိုကြီးအောင်လုပ်ပါ"). `dress.track()` bounds it
+ #    per card so the scaled strip still fits the frame and the placement
+ #    checks move with it, so a card that cannot grow simply stays 1.0.
  "short-video": dict(label="Short Video · ZAE", theme="zae", fps=30,
+                     gfx_scale=1.15,
     # ⚠️ reference မှာ ဂရပ်ဖစ် ကတ်ကြီး **မရှိသလောက်** — စာတန်းနဲ့ B-roll ချည်းပဲ。
     keep_pause=0.18, min_sil=0.34, captions="zae", gfx=2, music="zae",
     mmf="MyanmarHeadOne", latin="Figtree-Black",
