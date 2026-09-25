@@ -1,29 +1,55 @@
 # **ဖြတ်ပြောင်း (cutaway)** — ပြောသူကို တကယ် ဖုံးသူ。
 #
-# ⚠️ ရင်းမြစ်က **template ရဲ့ ကြေညာချက်** ဖြစ်သည် — `manifests/thm.json` ရဲ့
-#    `role: "cutaway"`。 `motionkit/thm.py` ရဲ့ `_cut_el()` က
-#    `e["role"] = "cutaway"` ထည့်ပြီး မှတ်ချက်မှာ 「IKKI က ဒါကို ကြည့်ပြီး
-#    ဖြတ်ပြောင်း လမ်းကြောင်းသို့ ပို့သည်。overlay အဖြစ် သုံးလျှင် ပြောသူ
-#    လုံးဝ ပျောက်မည်」 ဟု ဆိုသည်。 ကြေညာချက်ရဲ့ `measuredBBox.area` က
-#    ၀.၉၉၈၆ — ဘောင်အပြည့်。
+# ရင်းမြစ် ၂ ခု —
+#   ① **တိုင်းချက်** (`tools/gfx_cutaway.py` · alpha အလယ်မှတ် ≥ ၀.၈၅) —
+#      30 ခု。 ဤအစုက ၂၀၂၆-၀၉-၂၄ ကတည်းက အလုပ်လုပ်နေသည်。
+#   ② **ကြေညာချက်** (`manifests/thm.json` ရဲ့ `role: "cutaway"`) —
+#      27 ခု。 `thm.py` ရဲ့ `_cut_el()` က 「overlay အဖြစ် သုံးလျှင်
+#      ပြောသူ လုံးဝ ပျောက်မည်」 ဟု ဆိုသည်。 ယခင် စာရင်းမှာ **မပါ**ခဲ့သဖြင့်
+#      ဖြတ်ပြောင်း slot က တကယ့် ဖြတ်ပြောင်း မရခဲ့ပါ。
+#   ⇒ ပေါင်း **57 ခု**。
 #
-# ⚠️ **alpha တိုင်းချက်ကို မယုံရ** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သော အမှား ၂ ချက်):
-#    ① template အများစုက **RGB** (alpha channel မရှိ) render သဖြင့်
-#       `convert("RGBA")` က alpha ကို ၂၅၅ ဖြည့်ပြီး ဖုံးအုပ်မှု အမြဲ
-#       **၁.၀၀** ထွက်သည် — အကြောင်းအရာ မကြည့်ဘဲ。
-#    ② RGBA ဖြစ်သူတွေမှာပင် `prem.lower_third` က ၈၅% အထက် ထွက်သည် —
-#       lower third က ဘောင်အပြည့် မဖြစ်နိုင် ⇒ တိုင်းချက် မှားနေသည်。
-#    ⇒ ယခင် စာရင်း ၃၀ ခုက **တကယ့် ဖြတ်ပြောင်း တစ်ခုမှ မပါ**ဘဲ
-#      `prem5.karaoke_cap` · `word_pop_cap` · `bounce_cap` · `box_cap` ·
-#      `hl_word_cap` · `line_by_line` ဆိုတဲ့ **စာတန်း** ၆ ခု ပါခဲ့သည်。
-#      `_ff_order()` က အဲဒါတွေကို inline slot ကနေ ဖယ်ခဲ့သဖြင့် ဂရပ်ဖစ်
-#      ရွေးစရာ လျော့ကာ ထပ်ခြင်း တိုးခဲ့သည် (Zin: 「မထပ်အောင်」)。
+# ⚠️ **ဤစာရင်းကို ကျယ်လွန်းအောင် မလုပ်ရ** (၂၀၂၆-၀၉-၂၅ တိုင်းချက်)。
+#    တိုင်းချက် ≥၀.၈၅ ဖြစ်သူ **၁၀၂ ခု**လုံး ထည့်ကြည့်ရာ `_ff_order()` က
+#    Headtop pack တစ်ခုလုံးကို inline slot ကနေ ဖယ်ပြီး ဝါကျ ၁၅ ကြောင်း
+#    plan မှာ **ဂရပ်ဖစ် ၀ ခု** ဖြစ်သွားသည်。 ⇒ အလုပ်လုပ်ပြီးသား အစုနဲ့
+#    ကြေညာချက်ကိုသာ ပေါင်းသည်。
 #
-# ⚠️ `thm` သာ manifest ရှိသည် (၁၃၇ ခု — cutaway ၂၇ · board ၅ · overlay ၁၀၅)。
-#    အခြား မိသားစု ~၄၇၉ ခုမှာ ကြေညာချက် **မရှိ** ⇒ overlay ဟု မှတ်သည်。
-#    `board` က `measuredBBox.area` ၀.၀၀၀၈ ("frame edge") ⇒ ဖြတ်ပြောင်း မဟုတ်。
+# ⚠️ **RGB mode က တိုင်းချက် ပျက်တာ မဟုတ်** — PNG encoder က alpha အားလုံး
+#    ၂၅၅ ဆိုလျှင် channel ကို ဖြုတ်ပစ်သဖြင့် ဖြစ်သည် (= အလင်းပိတ် အပြည့်)。
+#    `prem5.karaoke_cap` ရဲ့ pixel က RGB (23,49,77) · alpha ၂၅၅ အားလုံး。
+#    ကျွန်တော် ဒါကို 「အမှား」 ဟု မှတ်ပြီး စာရင်းကို ကြေညာချက် ၂၇ ခုသာ
+#    ဖြစ်အောင် လျှော့ခဲ့ရာ **အကာအကွယ် ပျက်**ခဲ့သည် ⇒ မလုပ်ရ。
 #
-# ထုတ်သူ: manifest ကနေ (tools/gfx_cutaway.py က တိုင်းချက် အတွက်သာ)。
+# ⚠️ `gfx_fullstage.txt` က `bbox` (alpha > ၁၆) ကနေ ⇒ လွှာလေးကိုပင်
+#    「ဘောင်အပြည့်」 ဟု မှတ်သည် ⇒ **မသုံးရ**။ planner က ဤဖိုင်ကိုသာ ဖတ်သည်။
+insert.insert_flow
+insert.insert_label
+motionfx.shape_wipe
+prem.glass_stat
+prem.list_reveal
+prem.split_hero
+prem2.big_number
+prem2.split_compare
+prem2.word_pop
+prem3.marquee_band
+prem3.serif_quote
+prem3.step_bar
+prem4.arrow_point
+prem4.pov_label
+prem4.stop_scroll
+prem4.three_reasons
+prem4.wait_for_it
+prem5.bounce_cap
+prem5.box_cap
+prem5.hl_word_cap
+prem5.karaoke_cap
+prem5.line_by_line
+prem5.word_pop_cap
+prem6.poll_sticker
+prem6.save_reminder
+prem6.social_proof
+prem7.end_grid
 thm.cut_before_after
 thm.cut_cta
 thm.cut_grid
@@ -51,3 +77,6 @@ thm.media_strip
 thm.media_two
 thm.media_wide
 thm.media_window
+titles2.wipe_word
+typew.grad_card
+typew.split_grad

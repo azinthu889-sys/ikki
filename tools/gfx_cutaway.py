@@ -91,20 +91,17 @@ for _j in _idx:
     _pp, _ox, _oy = ((_it[0], _it[1], _it[2])
                      if isinstance(_it,(list,tuple)) and len(_it) > 2
                      else ((_it if isinstance(_it,str) else _it[0]), 0, 0))
-    # ⚠️ **alpha channel မရှိလျှင် တိုင်း၍ မရ** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သော
-    #    အမှား)。 `convert("RGBA")` က RGB ဖိုင်ရဲ့ alpha ကို **၂၅၅ ဖြည့်**
-    #    သဖြင့် ဖုံးအုပ်မှု အမြဲ **၁.၀၀** ထွက်သည် — အကြောင်းအရာ မကြည့်ဘဲ。
-    #    ⇒ `prem5.karaoke_cap` · `chip_cap` စသော **စာတန်း** template တွေက
-    #    「ဖြတ်ပြောင်း」ဟု မှားခံပြီး `_ff_order()` က inline slot ကနေ
-    #    ဖယ်ခဲ့သည် (ဂရပ်ဖစ် ရွေးစရာ လျော့ခြင်းရဲ့ အကြောင်းရင်း)。
-    #    ⚠️ တကယ့် အဖြေက **template ကိုယ်တိုင် ကြေညာထားသည်** —
-    #    `thm._cut_el()` က `e["role"] = "cutaway"` ထည့်ပြီး manifest
-    #    (`manifests/thm.json`) မှာ `role` အဖြစ် ပါသည် ⇒ အဲဒါကို ယူရမည်。
+    # ⚠️ **RGB ဖိုင်က တကယ် အလင်းပိတ် အပြည့် ဖြစ်သည်** — ၂၀၂၆-၀၉-၂၅ မှာ
+    #    ကျွန်တော် ဒါကို 「တိုင်းချက် ပျက်」 ဟု မှားယူပြီး tool ကို ပယ်အောင်
+    #    ပြင်မိခဲ့သည် (အကာအကွယ် ပျက်ခဲ့)。 pixel ကို တိုက်ရိုက် ကြည့်ရာ
+    #    `prem5.karaoke_cap` ရဲ့ အစွန် pixel က RGB (23,49,77) · alpha ၂၅၅
+    #    **အားလုံး** ဖြစ်သည် ⇒ template က aurora နောက်ခံကို **အလင်းပိတ်
+    #    အပြည့်** ဆွဲသည်、PNG encoder က alpha အားလုံး ၂၅၅ ဆိုလျှင် channel
+    #    ကို ဖြုတ်ပစ်သဖြင့် mode က RGB ဖြစ်သွားသည်。 ⇒ ဖုံးအုပ်မှု ၁.၀၀ က
+    #    **အမှန်**、overlay အဖြစ် သုံးလျှင် ပြောသူ ပျောက်မည်。
+    #    ⚠️ RGB ကို **မပယ်ရ**。 `mode` ကို မှတ်ထားသည် (စစ်နိုင်ရန်)。
     _im = Image.open(rp(_pp))
-    if "A" not in _im.getbands():
-        print(json.dumps({"ok":0,"why":"alpha မရှိ (%%s) ⇒ တိုင်း၍ မရ · "
-                          "manifest ရဲ့ ကြေညာချက် ကြည့်ပါ" %% _im.mode}))
-        raise SystemExit
+    _mode = _im.mode
     _al = _np.array(_im.convert("RGBA"))[:,:,3].astype("float32") / 255.0
     if _W and _H:
         # ⚠️ strip PNG က ဘောင်တစ်ခုလုံး မဟုတ် ⇒ **ဘောင်အပြည့်ပေါ် ချ**ပြီးမှ
@@ -116,7 +113,7 @@ for _j in _idx:
             _cv[_oy:_y1, _ox:_x1] = _al[:_y1-_oy, :_x1-_ox]
         _al = _cv
     best = max(best, float(_al.mean()))
-print(json.dumps({"ok":1, "cover": round(best, 4), "n": _n}))
+print(json.dumps({"ok":1, "cover": round(best, 4), "n": _n, "mode": _mode}))
 ''' % {"HERE": HERE}
 
 
