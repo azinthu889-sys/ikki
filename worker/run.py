@@ -198,7 +198,14 @@ def _breathe(cutv, out, fps, amt, w, h, log=None):
     _g = (f"max(0\,cos(2*PI*on/({fps}*{ZOOM_GATE_P}))-{ZOOM_GATE_T})"
           f"/{1.0 - ZOOM_GATE_T:.4f}")
     z = f"1+{float(amt):.4f}*({_g})"
-    vf = (f"zoompan=z='min(1.25,{z})':d=1:"
+    # WARN crop to the TARGET aspect first. zoompan's `s=` resizes without
+    #    keeping proportions, so a 16:9 cut fed to a 9:16 job came out
+    #    squeezed ~3x horizontally (short-916 v2/v3, Zin 2026-09-26: "size
+    #    not cut, just put in, long and thin"). The later compose crop could
+    #    not fix it -- by then the frame was already 1080x1920.
+    _ar = f"{int(w)}/{int(h)}"
+    _crop = (f"crop='min(iw,trunc(ih*{_ar}/2)*2)':'min(ih,trunc(iw/({_ar})/2)*2)',")
+    vf = (_crop + f"zoompan=z='min(1.25,{z})':d=1:"
           f"x='iw/2-(iw/zoom/2)':y='ih*0.42-(ih/zoom*0.42)':s={w}x{h}:fps={fps}")
     ff(["ffmpeg","-v","error","-y","-i",cutv,"-vf",vf,
         "-r",str(fps),"-c:v","libx264","-preset","veryfast","-crf","18",
