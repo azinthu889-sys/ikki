@@ -366,7 +366,25 @@ def pick(segs, want, used=None, min_score=3):
     out.sort(key=lambda x: -x[2])
     return out[:want]
 
-def prep(clip, W, H, dur, out, fps=30):
+def _whip_vf(W, H, dur, fps):
+    """zoom-whip in and out: the look of the 4 short-form refs (2026-09-26),
+    where B-roll lands with a fast zoom and directional motion blur rather
+    than a hard cut. In: 1.30x -> 1.0x over 0.22 s (ease-out). Out: 1.0x ->
+    1.22x over the last 0.18 s (ease-in). Blur rides the same windows."""
+    n = max(2, int(round(dur * fps)))
+    fi, fo = max(2, int(0.22 * fps)), max(2, int(0.18 * fps))
+    z = (f"1+0.30*pow(max(0\,1-on/{fi})\,2)"
+         f"+0.22*pow(max(0\,(on-({n}-{fo}))/{fo})\,2)")
+    tin, tout = 0.22, max(0.0, dur - 0.18)
+    blur = (f"dblur=angle=90:radius=40:enable='lt(t,{tin*0.35:.3f})',"
+            f"dblur=angle=90:radius=18:enable='between(t,{tin*0.35:.3f},{tin*0.7:.3f})',"
+            f"dblur=angle=90:radius=18:enable='gt(t,{tout+0.09:.3f})'")
+    return (f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"zoompan=z='{z}':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+            f"s={W}x{H}:fps={fps},{blur},format=yuv420p")
+
+
+def prep(clip, W, H, dur, out, fps=30, whip=False):
     """B-roll ကို theme frame အရွယ် ဖြတ်/ချုံ့ပြီး အသံမပါ clip လုပ်သည်。
 
     ⚠️ **အသံ မထည့်ရ** — စကားသံက အောက်မှာ ဆက်နေရမည်。 B-roll ရဲ့ အသံ
@@ -392,8 +410,9 @@ def prep(clip, W, H, dur, out, fps=30):
     ss = max(0.0, min(clip["dur"]-dur, clip["dur"]*0.25))
     subprocess.run(["ffmpeg","-v","error","-y","-ss",f"{ss:.2f}","-i",clip["path"],
         "-t",f"{dur:.2f}","-an",
-        "-vf",f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-              f"format=yuv420p,fps={fps}",
+        "-vf",(f"fps={fps}," + _whip_vf(W, H, dur, fps)) if (whip and dur >= 0.9) else
+              (f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+               f"format=yuv420p,fps={fps}"),
         *h264_args("12M", crf=18),out], check=True)
     return out
 

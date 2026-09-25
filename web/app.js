@@ -38,7 +38,7 @@ var STYLES={creator:[
      နာမည် တူနေသဖြင့် ဘယ်ဟာ ရွေးမှန်း မသိရခဲ့သည်。 */
   /* 9:16 general short (2026-09-26) — recipe `short-916`; ZAE 3:4 kept below */
   ["short-916","Short Video","9:16 · TikTok/Reels · စာတန်းကြီး · ပြတ်သား",
-   "9:16 · TikTok/Reels · bold captions · snappy","Pyidaungsu Bold","9:16"],
+   "9:16 · TikTok/Reels · bold captions · snappy","Myanmar Black","9:16"],
   ["short-video","ZAE Short","3:4 · စာတန်းကြီး + navy အနားသတ်",
    "3:4 · big captions, navy outline","Pyidaungsu Bold","3:4"]],
  biz:[["promotional","Promotional","logo sting · CTA · ဈေးနှုန်း",

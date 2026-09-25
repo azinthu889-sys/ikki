@@ -3019,7 +3019,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    # short-916: one short line per card (refs: 1-3 words)
                    max_lines=int(rc.get("cap_lines") or 2),
                    accent=_kwc,
-                   fade=float(rc.get("cap_fade") or 0.14),
+                   kw_box=((rc.get("cap_kw_box") or TH.get("RED"))
+                           if (_kwc and rc.get("cap_kw_style") == "box") else None),
+                   fade=float(0.14 if rc.get("cap_fade") is None else rc["cap_fade"]),
                    # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်း ဖျောက်ရသည် (Zin: "Infography
                    #    ဝင်လာရင် subtitle ဖျောက်ထားပေး") — ဒါပေမယ့် **စာတန်းဇုန်နဲ့
                    #    တကယ် ထပ်တဲ့ ဂရပ်ဖစ်မှာသာ**。 N5 reference မှာ ထောင့်က
@@ -3061,7 +3063,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 d = min(clip["dur"], max(1.2, min(_bmax, c["end"]-c["start"])))
                 if d < 1.0: continue
                 bp = os.path.join(work, f"b{si}.mp4")
-                BR.prep(clip, TH["W"], TH["H"], d, bp, fps=rc["fps"])
+                BR.prep(clip, TH["W"], TH["H"], d, bp, fps=rc["fps"], whip=bool(rc.get("broll_whip")))
                 bmov.append((round(c["start"],2), bp, round(d,2),
                              " · ".join(clip.get("my") or [])[:28]))
             bmov.sort(key=lambda x: x[0])
@@ -3148,7 +3150,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         t += 1.0; continue
                     bp = os.path.join(work, f"bg{added}.mp4")
                     try:
-                        BR.prep(pool[pi], TH["W"], TH["H"], d, bp, fps=rc["fps"])
+                        BR.prep(pool[pi], TH["W"], TH["H"], d, bp, fps=rc["fps"], whip=bool(rc.get("broll_whip")))
                     except Exception:
                         pi += 1; continue
                     bmov.append((round(t, 2), bp, round(d, 2),

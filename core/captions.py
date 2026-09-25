@@ -149,7 +149,7 @@ def plan(segs, spans, max_lines=2):
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
-          plate=None, max_lines=2, accent=None):
+          plate=None, max_lines=2, accent=None, kw_box=None):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -261,6 +261,31 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         canvas.save(outp)
         return True
 
+    def _boxit(q, txt, kws, sz, r):
+        """draw a rounded box behind the first keyword found in this line"""
+        if Image is None or not isinstance(r, dict): return
+        w = next((x for x in kws if x in txt), None)
+        if not w: return
+        pre = txt[:txt.index(w)]
+        try:
+            m = ct(dict(text=txt, font=font, fallback=fallback, size=sz, w=W,
+                        h=line_h, fill="#FFFFFF", frames=[], measure=[pre or " ", w]))
+            wp = m[0] if pre else 0
+            wk = m[1]
+        except Exception:
+            return
+        ox = int(r.get("ox", 0)); y0 = int(r.get("iy0", 0)); y1 = int(r.get("iy1", line_h))
+        px, py = int(sz * 0.16), int(sz * 0.10)
+        box = (max(0, ox + wp - px), max(0, y0 - py),
+               min(W, ox + wp + wk + px), min(line_h, y1 + py))
+        im = Image.open(q).convert("RGBA")
+        lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        hx = kw_box.lstrip("#")
+        col = tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+        ImageDraw.Draw(lay).rounded_rectangle(box, radius=int(sz * 0.14), fill=col)
+        lay.alpha_composite(im)
+        lay.save(q)
+
     _fcache = {}
     def _faded(p, k):
         """alpha ကို k ဆ လျှော့ထားသော မိတ္တူ (fade-in ထစ်)。"""
@@ -289,7 +314,13 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")
-                ct(_sp(txt, sz, q, h=line_h, kws=c.get("kw"))); parts.append(q)
+                _kw = c.get("kw")
+                # kw_box: keyword stays white and sits on a solid box (ref r4
+                # "They'll [change] the") -- otherwise it is recoloured text.
+                _r = ct(_sp(txt, sz, q, h=line_h, kws=None if kw_box else _kw))
+                if kw_box and _kw:
+                    _boxit(q, txt, _kw, sz, _r)
+                parts.append(q)
             p = os.path.join(work, f"c{k:04d}.png"); k += 1
             if not _stack(parts, sz, p):
                 # ⚠️ PIL မရလျှင် ယခင်နည်း (ဘောင်အပြည့် ထပ်) ကို ပြန်သုံးသည်
@@ -332,7 +363,9 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         if b - a < 0.12: continue
         f = min(fade, (b-a)*0.45)
         st = f/FSTEP if FSTEP else 0
-        for i in range(1, FSTEP+1):
+        # fade 0 = hard switch (short-916): no partial-alpha steps at all,
+        # else each step still costs the 0.02 s concat minimum and drifts.
+        for i in (range(1, FSTEP+1) if f > 0.005 else ()):
             items.append((_faded(p, i/float(FSTEP)), st))
         items.append((p, (b-a) - f))
         t = b
