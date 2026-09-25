@@ -67,12 +67,16 @@ echo "── asset version ──"
 # ⚠️ မှတ်ချက်ကို backtick (`# …`) နဲ့ command ထဲ မထည့်ရ — မှတ်ချက်ထဲ
 #    backtick တစ်လုံး ပါမိလျှင် script တစ်ခုလုံး ပျက်သည် (တကယ် ဖြစ်ခဲ့ပြီး
 #    worker ပြန်မစဘဲ ကျန်ခဲ့သည်)。 `sh -n` ကလည်း မဖမ်းမိပါ。
+#    2026-09-26: assets/broll_bank (3.7 GB) + music_bank (876 MB) were being
+#    shipped although only the Mac worker reads them and .dockerignore drops
+#    assets/ from the image anyway.
 echo "── rsync (.env ချန်) ──"
 rsync -az \
   --exclude='.env' --exclude='.env.*' \
   --exclude='.venv' --exclude='data' --exclude='__pycache__' \
   --exclude='._*' \
   --exclude='assets/broll/clips' --exclude='assets/broll/stock_ja' \
+  --exclude='assets/broll_bank' --exclude='assets/music_bank' \
   --exclude='.git' --exclude='tests' \
   --exclude='work' --exclude='scratch' --exclude='reports' \
   ./ root@srv1866621.hstgr.cloud:/srv/ikki/

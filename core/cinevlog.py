@@ -855,6 +855,19 @@ def _wav(p, x):
         w.writeframes(y.tobytes())
 
 
+def _rm(p):
+    """drop an intermediate as soon as the next one exists.
+
+    ⚠️ every stage is a full-length film (≈340 MB per 3 min at 1080p, ~3× at
+       4K); kept together they filled the Mac to 0.5 GB during testing.
+    """
+    try:
+        if p and os.path.exists(p):
+            os.remove(p)
+    except OSError:
+        pass
+
+
 def mux(video, audio, out, total):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", video, "-i", audio,
                     "-map", "0:v", "-map", "1:a", "-c:v", "copy",
@@ -1101,6 +1114,7 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     stage(4, "sound")
     amix, atalk = mix(edl, total, work, log=log)
     base = mux(vid, amix, os.path.join(work, "base.mp4"), total)
+    _rm(vid)
     for f in files:
         try: os.remove(f)
         except OSError: pass
@@ -1122,6 +1136,7 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
                             "-filter_complex", ";".join(fc), "-map", f"[{last}]",
                             "-map", "0:a", *h264_args("40M" if W > 1920 else "14M", crf=17),
                             "-c:a", "copy", ov], check=True)
+            _rm(base)
             base = ov
     elif sub_lang != "none":
         log("  ⓘ စကားပြော clip မရှိ ⇒ စာတန်း မထည့်")
@@ -1136,6 +1151,7 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
                 from core import music as MU
             mv = os.path.join(work, "mus.mp4")
             MU.bed(base, mv, music, total, log=log, seed=seed)
+            _rm(base)
             pre = mv
         except Exception as e:
             log(f"  ⚠️ သီချင်း မရ: {e}")
@@ -1145,6 +1161,7 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
         from core import spans as SP
     stage(7, "render")
     SP.loudness(pre, out, lufs=lufs)
+    _rm(pre)
     q = qc(edl, out, rep, caps=caps, lufs_target=lufs, log=log)
     log(f"  ✓ cinematic · {total:.1f}s · {time.time() - t0:.0f}s")
     shots = [dict(src=os.path.basename(s["clip"]["path"]), a=round(s["a"], 2),

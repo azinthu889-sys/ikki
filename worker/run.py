@@ -5036,7 +5036,18 @@ def cine_handle(d, t0):
     fd = FM.FORMATS.get(fk) or FM.FORMATS["16:9"]
     W, H = int(fd["W"]), int(fd["H"])
     out = os.path.join(SCRATCH, jid + ".mp4")
-    work = os.path.join(SCRATCH, jid + "_w")
+    # ⚠️ shots + full-length intermediates live on the BIG disk: at 4K a
+    #    10-minute film is several GB per stage, and SCRATCH is the Mac's
+    #    internal disk (0.5 GB left once during testing).
+    work = os.path.join(BIG, jid + "_w")
+    _mb = (40 if W > 1920 else 14) / 8.0             # MB per second of film
+    _est = max(60.0, sum(float(x.get("dur") or 0) for x in srcs) * 0.6 or 600.0)
+    _need_w = _est * _mb * 3 / 1024.0                # shots + 2 stages alive
+    if free_gb(SCRATCH) < _est * _mb * 1.2 / 1024.0 + 0.5:
+        raise RuntimeError(f"Mac disk နေရာ မလုံလောက်ပါ — ကျန် {free_gb(SCRATCH):.1f} GB")
+    if free_gb(BIG) < _need_w:
+        raise RuntimeError(f"ဖိုင်ကြီး disk နေရာ မလုံလောက်ပါ — ~{_need_w:.1f} GB လို · "
+                           f"ကျန် {free_gb(BIG):.1f} GB")
     failed = False
     lines = [f"IKKI CINEMATIC · {jid} · {time.strftime('%Y-%m-%d %H:%M')}", "-" * 62]
     try:
