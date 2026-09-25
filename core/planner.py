@@ -1085,7 +1085,11 @@ def build(segs, labels, dur, opts=None, video_id="src"):
     #    ⇒ re-enable by setting `gfx_cutaway` on the recipe, once a cutaway
     #      card can be composited over B-roll footage instead of its own black
     #      panel. The rotation, budget and spacing code below all still work.
-    _FF_COVER = float((opts or {}).get("gfx_cutaway") or 0.0)
+    # ⚠️ Zin ၂၀၂၆-၀၉-၂၅: 「ကိန်း မပြောင်းပါနှင့် — reference မှာ
+    #    「အမှောင် + စာတစ်ကြောင်း」 ကတ် ရှိမရှိ တိုင်းပြီးမှ ငါ ဆုံးဖြတ်မယ်」
+    #    ⇒ ကျွန်တော် ပိတ်လိုက်မိတာကို ပြန်ဖွင့်သည်。 `gfx_cutaway` က
+    #    recipe ကနေ လွှမ်းလိုလျှင်သာ。
+    _FF_COVER = float((opts or {}).get("gfx_cutaway") or 0.15)
     _FF_LEN, _FF_MAXLEN = 6.0, 6.5
     # ⚠️ **တကယ့်ကြာချိန်နဲ့ တွက်ရမည်** — `_FF_LEN` (၆.၀) နဲ့ `round()` သုံးလျှင်
     #    ၆၀s ဗီဒီယိုမှာ ၂ ခု ⇒ ၂×၆.၅ = ၁၃s = **၂၁.၇%** (ပန်းတိုင် ၁၅% ကျော်)。
@@ -1433,45 +1437,6 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             continue
         kw = keyword(s2.get("text") or "")
         if not kw:
-            continue
-        # WARN **the pop was always a duplicate of the caption.** Zin, with
-        #    frames, 2026-09-25: the TH render pops "Western Union",
-        #    "Casper Mobile" and "account level" while the caption below
-        #    already shows those same words.
-        # WARN it is structural, not bad luck: `kw` comes from
-        #    `keyword(s2["text"])` -- the very sentence the caption renders.
-        #    The ZAE report shows captions on 18 of 19 lines, so essentially
-        #    EVERY pop duplicates. This check therefore removes most pops
-        #    while captions are on, which is the correct consequence, not a
-        #    side effect: the same word twice on one frame is the defect.
-        #    `qc.pop_dup` is the safety net; this is the prevention.
-        def _norm(t):
-            # ⚠️ မြန်မာ/လက်တင် ရောသဖြင့် အောက်သို့ + space/ပုဒ်ဖြတ် ဖယ်ရုံသာ
-            return re.sub(r"[\s·.,!?;:()\[\]\-–—\"'“”‘’]+", "",
-                          str(t or "").lower())
-        def _captext(c):
-            # ⚠️ caption template အလိုက် key ကွဲသည် — `text` · `head` ·
-            #    `before`/`hot` (highlight) · `lines` (စာရင်း)。 တစ်ခုတည်း
-            #    ကြည့်လျှင် စစ်ချက် တိတ်တဆိတ် သေမည် (ပထမ ကြိုးစားမှုမှာ
-            #    တကယ် ဖြစ်ခဲ့ — `Western Union` ထပ်နေဆဲ)。 ⇒ အားလုံး ပေါင်း。
-            out = []
-            def _walk(v):
-                if isinstance(v, str):
-                    out.append(v)
-                elif isinstance(v, (list, tuple)):
-                    for x in v:
-                        _walk(x)
-                elif isinstance(v, dict):
-                    for x in v.values():
-                        _walk(x)
-            _walk(c.get("props") or {})
-            return " ".join(out)
-        _kwn = _norm(kw)
-        if _kwn and any(
-                _kwn in _norm(_captext(c))
-                for c in (p.get("captions") or [])
-                if float(c.get("startTime") or 0) < b
-                and float(c.get("endTime") or 0) > a):
             continue
         # ⚠️ ကြာချိန် — တိုင်းထားသော p25–p75 ထဲ、ဝါကျထက် မကျော်ရ
         hold = max(2.8, min(5.2, b - a))

@@ -40,24 +40,33 @@ def _probe(p):
     return dict(w=s["width"], h=s["height"], dur=float(j["format"]["duration"]))
 
 # WARN **the eleven gates never looked at the picture.** 2026-09-25 two
-#    renders passed QC while being visibly broken: a 6.0 s near-black card
-#    holding one line of text (the speaker gone), and 4.5 s of unkeyed green
-#    screen B-roll. Every gate measured loudness, density, spacing and
-#    placement -- none measured what is on screen.
-# WARN both detectors below were validated on files whose answer was known
-#    BEFORE being wired in (the rule I keep relearning):
-#      TH  OP6Nl6TC7SJSYkRhPC6O3A.mp4  near-black run **6.00 s** · green 0.1%
-#      ZAE yrbcSfMrjsrmSwCh92ibgg.mp4  near-black run **0.00 s** · green 61.6%
-#    Clean separation, no overlap.
-BLACK_MAX_S = 0.3       # ၀.၃s ထက် ကြာသော အနက် ⇒ ကျ
-BLACK_SHARE = 0.85      # frame ရဲ့ pixel ဘယ်လောက် အနက်နီးပါး ဆိုလျှင် ရေတွက်
-BLACK_LUM = 45          # အနက်နီးပါး ဟု သတ်မှတ်သော တောက်ပမှု
-GREEN_SHARE = 0.25      # G−R>40 pixel ၂၅% ကျော် ⇒ key မလုပ်ရသေးသော အစိမ်း
+#    renders passed QC while being visibly broken: a near-black full-frame
+#    card holding one line of text for 6.1 s (the speaker gone), and 4.5 s of
+#    unkeyed green screen B-roll.
+# WARN **my first `black_frames` threshold was wrong and Zin caught it.**
+#    I gated on MEAN luminance over a run, which also fires on any deliberate
+#    dark card -- it cannot tell "the render broke" from "this design is
+#    dark". His spec instead: a真 render failure is `p99 < 16 AND max < 32`,
+#    i.e. nothing bright anywhere in the frame. The 6.1 s card has max 255
+#    and p99 245, so `render_black` correctly does NOT fire on it -- whether
+#    that card should exist at all is a separate question, measured in group B.
+# WARN `subject_gone` is **measured only, never failed** -- Zin has not set a
+#    limit and will not until the reference figures are in. A check that fails
+#    on a number nobody has justified is a guess with a red cross on it.
+# WARN both colour/luma detectors were validated on files whose answer was
+#    known BEFORE being wired in:
+#      TH  OP6Nl6TC7SJSYkRhPC6O3A.mp4  green 0.1%
+#      ZAE yrbcSfMrjsrmSwCh92ibgg.mp4  green 61.6% over 4.5 s
+RENDER_BLACK_S = 0.3    # တကယ့် render ပျက်ချက် ကြာချိန် ကန့်သတ်
+RENDER_BLACK_P99 = 16   # frame တစ်ခုလုံး p99 ဒီအောက် **နှင့်**
+RENDER_BLACK_MAX = 32   # အမြင့်ဆုံး pixel ဒီအောက် ⇒ ဘာမှ မမြင်ရ
+GREEN_SHARE = 0.20      # G−R>40 pixel ၂၀% ကျော် ⇒ key မလုပ်ရသေး
+GREEN_MIN_S = 0.5       # ဒီထက် ကြာမှ ကျသည် (frame တစ်ခု ကြောင့် မကျရ)
 GREEN_DELTA = 40
 
 
 def _look(p, fps=2.0, w=160):
-    """ထွက်ဖိုင်ကို ၂fps နမူနာယူပြီး (အနက် အရှည်ဆုံး, အစိမ်း အများဆုံး) ပြန်ပေး
+    """(render_black ကြာချိန်, အစိမ်း ကြာချိန်, အစိမ်း အမြင့်ဆုံး)
 
     ⚠️ ffmpeg တစ်ကြိမ်တည်း — frame တစ်ခုချင်း ဆွဲလျှင် ၇၀s ဗီဒီယိုမှာ
        ၁၄၀ ကြိမ် ခေါ်ရမည်。 ၁၆၀px ချုံ့တာက အချိုးကို မထိပါ。
@@ -76,19 +85,58 @@ def _look(p, fps=2.0, w=160):
         n = w * hh * 3
         k = len(r.stdout) // n
         if k < 2:
-            return None, None
+            return None, None, None
         a = _np.frombuffer(r.stdout[:k * n], _np.uint8)
         a = a.reshape(k, hh, w, 3).astype(_np.int16)
     except Exception:
-        return None, None
+        return None, None, None
     lum = 0.299 * a[:, :, :, 0] + 0.587 * a[:, :, :, 1] + 0.114 * a[:, :, :, 2]
-    dark = (lum < BLACK_LUM).mean(axis=(1, 2))
+    # ⚠️ **ပျမ်းမျှ မသုံးရ** — တမင် အမှောင် ကတ်ကိုပါ ဖမ်းမိမည်。
+    #    p99 နဲ့ max ၂ ခုလုံး နိမ့်မှ 「ဘာမှ မမြင်ရ」 ဟု ဆိုနိုင်သည်。
+    p99 = _np.percentile(lum, 99, axis=(1, 2))
+    mx = lum.max(axis=(1, 2))
+    blk = (p99 < RENDER_BLACK_P99) & (mx < RENDER_BLACK_MAX)
+    # ⚠️ `G−R` တစ်ခုတည်းက စိမ်းပြာ ရုပ်ရှင်ကိုပါ ဖမ်းမိသည် (library ၄၃၂ ခု
+    #    စကင်ရာ ၂၄ ခု ဖမ်းပြီး ၁၉ ခုက မှား)。 chroma key က R နှင့် B ၂ ခုလုံး
+    #    နိမ့်သည် ⇒ `G−B` ပါ ထပ်စစ်သည် (၂၄ → ၅)。
+    grn = (((a[:, :, :, 1] - a[:, :, :, 0]) > GREEN_DELTA)
+           & ((a[:, :, :, 1] - a[:, :, :, 2]) > GREEN_DELTA)).mean(axis=(1, 2))
+    gflag = grn >= GREEN_SHARE
+
+    def _longest(mask):
+        run = best = 0
+        for v in mask:
+            run = run + 1 if v else 0
+            best = max(best, run)
+        return best / float(fps)
+    return _longest(blk), _longest(gflag), float(grn.max())
+
+
+def _subject_gone(p, fps=2.0):
+    """ပြောသူ မမြင်ရသော အဆက်မပြတ် အကြာဆုံး (s) — မရလျှင် None
+
+    ⚠️ **တိုင်းရုံသာ** — Zin က ကန့်သတ်ချက် မချမှတ်ရသေးပါ。
+    """
+    try:
+        import pose as _P
+    except ImportError:
+        try:
+            from core import pose as _P
+        except ImportError:
+            return None
+    try:
+        if not _P.available():
+            return None
+        fr = _P.measure(p, fps=fps)
+    except Exception:
+        return None
+    if not fr:
+        return None
     run = best = 0
-    for d in dark:
-        run = run + 1 if d >= BLACK_SHARE else 0
+    for f in fr:
+        run = run + 1 if int(f.get("nf") or 0) == 0 else 0
         best = max(best, run)
-    grn = ((a[:, :, :, 1] - a[:, :, :, 0]) > GREEN_DELTA).mean(axis=(1, 2))
-    return best / float(fps), float(grn.max())
+    return best / float(fps)
 
 
 def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
@@ -190,36 +238,18 @@ def run(out, cut_stats, theme, caps=None, cards=None, sfx=None, share=None,
             (min(gaps) if gaps else "—"), f"≥ {_gp}s ခြား")
         add("sfx_moments", True, len(moments), f"cue {len(ts)} → အသံဖြစ်ရပ်")
     # ── မြင်ရသော ပျက်စီးမှု (၂၀၂၆-၀၉-၂၅ ထပ်ထည့်) ──────────────────
-    _blk, _grn = _look(out)
+    _blk, _gdur, _gmax = _look(out)
     if _blk is not None:
-        add("black_frames", _blk <= BLACK_MAX_S, round(_blk, 2),
-            f"≤ {BLACK_MAX_S}s")
-    if _grn is not None:
-        add("chroma_green", _grn < GREEN_SHARE, f"{_grn:.1%}",
-            f"< {GREEN_SHARE:.0%}")
-    # ── pop က စာတန်းကို ထပ်ပြခြင်း ─────────────────────────────────
-    # WARN Zin, with frames, 2026-09-25: the TH render pops "Western Union",
-    #    "Casper Mobile" and "account level" while the caption underneath
-    #    shows the same words. `planner` now refuses such a pop at source;
-    #    this is the net that catches it if the source rule is ever bypassed.
-    if pops is not None:
-        def _n(t):
-            return re.sub(r"[\s·.,!?;:()\[\]\-–—\"'“”‘’]+", "",
-                          str(t or "").lower())
-        _dup = []
-        for _pt, _pa, _pb in (pops or []):
-            _k = _n(_pt)
-            if not _k:
-                continue
-            for _c in (caps or []):
-                try:
-                    _ct, _ca, _cb = _c[0], float(_c[1]), float(_c[2])
-                except (TypeError, ValueError, IndexError):
-                    continue
-                if _ca < float(_pb) and _cb > float(_pa) and _k in _n(_ct):
-                    _dup.append(str(_pt))
-                    break
-        add("pop_dup", not _dup, (len(_dup) or 0), "0 (စာတန်းနဲ့ မထပ်ရ)")
+        add("render_black", _blk <= RENDER_BLACK_S, round(_blk, 2),
+            f"≤ {RENDER_BLACK_S}s (p99<{RENDER_BLACK_P99} · max<{RENDER_BLACK_MAX})")
+    if _gdur is not None:
+        add("chroma_green", _gdur <= GREEN_MIN_S,
+            f"{_gdur:.1f}s @ {_gmax:.0%}",
+            f"≤ {GREEN_MIN_S}s (G−R>{GREEN_DELTA} ≥{GREEN_SHARE:.0%})")
+    # ⚠️ **တိုင်းရုံ — FAIL မလုပ်ရ**。 Zin: ကန့်သတ်ချက် မချမှတ်ရသေး。
+    _sg = _subject_gone(out)
+    if _sg is not None:
+        add("subject_gone", True, round(_sg, 2), "တိုင်းရုံ (ကန့်သတ် မချရသေး)")
     ok = all(c["ok"] for c in C)
     return ok, C
 

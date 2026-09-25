@@ -657,7 +657,15 @@ def quality(c, ar=0.75):
         #    Measured: inside that clip G-R mean +82, p95 140; everywhere else
         #    in the same render -2 to -5, and the TH render peaks at 0.7%.
         #    ⇒ same three frames already sampled here, no extra ffmpeg call.
-        grns.append(float(((a[:,:,1] - a[:,:,0]) > 40).mean()))
+        # ⚠️ **`G−R` တစ်ခုတည်းနဲ့ မရ** — စိမ်းပြာ ရုပ်ရှင်ကိုပါ ဖမ်းမိသည်。
+        #    library ၄၃၂ ခု စကင်ရာ `G−R>40 ≥20%` က **၂၄ ခု** ဖမ်းပြီး
+        #    `TALK-024` (abstract အပြာ/စိမ်း အလင်း animation) လို footage
+        #    တွေပါ ပါလာသည်。 chroma key အစိမ်းက **R နှင့် B ၂ ခုလုံး နိမ့်**
+        #    ⇒ `G−B>40` ထပ်စစ်ရာ **၂၄ → ၅** ကျသည် (၅ ခုက ၃၄–၁၀၀% ·
+        #    နောက်တစ်ခုက ၄% ⇒ ကွဲပြားမှု ရှင်း)。 ZAE ရဲ့ တကယ့် ပြစ်မှား
+        #    frame က ၂ မျိုးလုံးမှာ ၆၁% ⇒ ဆက်ဖမ်းသည်。
+        _G, _R, _B = a[:,:,1], a[:,:,0], a[:,:,2]
+        grns.append(float((((_G - _R) > 40) & ((_G - _B) > 40)).mean()))
     if not lums: return 255.0, 99.0
     c["lum"] = round(sum(lums)/len(lums), 1)
     c["det"] = round(sum(dets)/len(dets), 1)
@@ -666,7 +674,9 @@ def quality(c, ar=0.75):
     return c["lum"], c["det"]
 
 
-GREEN_MAX = 0.25        # G−R>40 pixel ဘယ်လောက်ဆိုလျှင် key မလုပ်ရသေးသလဲ
+# ⚠️ Zin ၂၀၂၆-၀၉-၂၅ သတ်မှတ်ချက် — **၂၀%** (ကျွန်တော် ၂၅% ထားခဲ့သည်)。
+#    clip ကို `chroma_unkeyed` ဟု အမှတ်အသား ပြုပြီး ရွေးချယ်မှုကနေ ဖယ်သည်。
+GREEN_MAX = 0.20        # G−R>40 pixel ဘယ်လောက်ဆိုလျှင် key မလုပ်ရသေးသလဲ
 
 
 def green(c):
@@ -685,6 +695,7 @@ def screen(clips, log=print):
         # ⚠️ key မလုပ်ရသေးသော chroma အစိမ်း ⇒ ပယ်。 `qc.chroma_green` က
         #    ထွက်ဖိုင်မှာ ဖမ်းသည် — ဒီမှာက **ဝင်ခါနီးမှာ** တားခြင်း。
         if green(c) >= GREEN_MAX:
+            c["chroma_unkeyed"] = True
             grn.append(c); continue
         ok.append(c)
     if grn:
@@ -704,6 +715,8 @@ def screen(clips, log=print):
                     by[c["path"]]["lum"] = c["lum"]; by[c["path"]]["det"] = c["det"]
                     if c.get("grn") is not None:
                         by[c["path"]]["grn"] = c["grn"]
+                        by[c["path"]]["chroma_unkeyed"] = bool(
+                            c["grn"] >= GREEN_MAX)
             json.dump(db, open(INDEX,"w",encoding="utf-8"), ensure_ascii=False, indent=1)
         except Exception: pass
     return ok

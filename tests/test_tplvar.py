@@ -62,25 +62,20 @@ def _plan(vid="t1"):
 class TplVar(unittest.TestCase):
 
     def test_variety(self):
-        """ဂရပ်ဖစ် **ထပ်ခြင်း မရှိရ** · မတူ ၅ မျိုး အနည်းဆုံး
+        """ဂရပ်ဖစ် **ထပ်ခြင်း မရှိရ** · မတူ ၇ မျိုး အနည်းဆုံး
 
-        WARN this asked for 7 distinct ids and that number counted keyword
-        pops and the full-frame cutaway. Both were switched off on
-        2026-09-25 for measured reasons, not to pass a test:
-          · pops took their word from the caption's own sentence, so every
-            pop duplicated text already on screen (captions cover 18 of 19
-            lines) -- `qc.pop_dup` now fails such a render;
-          · the cutaway held a near-black full-frame card for 6.1 s with the
-            speaker gone -- `qc.black_frames` now fails at 0.3 s.
-        8 - 2 pops - 1 cutaway = 5, which is what the planner now emits.
-        WARN so the count was lowered, but the check is **stronger**: it now
-        also demands that NO card repeats. The old form allowed a card to be
-        used twice as long as 7 distinct ids existed somewhere.
+        WARN the count is back to 7: I had briefly switched off keyword pops
+        and the full-frame cutaway on my own initiative, which dropped it to
+        5. Zin reversed that -- the cutaway numbers are his call and are being
+        measured against the references first (group B). Reverted.
+        WARN the no-repeat assertion below is kept, and it is stronger than
+        the original check: 7 distinct ids used to be satisfiable while one
+        card still appeared twice.
         """
         ids = _plan()
         self.assertEqual(len(set(ids)), len(ids),
                          f"ဂရပ်ဖစ် ထပ်နေသည်: {ids}")
-        self.assertGreaterEqual(len(set(ids)), 5,
+        self.assertGreaterEqual(len(set(ids)), 7,
                                 f"ကွဲပြား {len(set(ids))} မျိုးသာ: {ids}")
 
     def test_pop_pool_verified(self):

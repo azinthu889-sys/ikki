@@ -62,7 +62,13 @@ ck("gfx_fullstage.txt ကို မဖတ်ရ (bbox ⇒ မယုံရ)",
 # ── ① ဘတ်ဂျက်က ကြာချိန်နဲ့ အတူ တိုးရမည် ─────────────────────────
 ck("`_ff_used` boolean ပြန်မလာရ", "_ff_used" not in code)
 ck("ဘတ်ဂျက် ကိန်း ရှိ", "_FF_COVER" in code and "_ff_max" in code)
-ck("ပေါ်ချိန် ပန်းတိုင် ၁၅%", "_FF_COVER, _FF_LEN, _FF_MAXLEN = 0.15" in code)
+# WARN this used to match the literal line `_FF_COVER, _FF_LEN, _FF_MAXLEN =
+#    0.15`. The line was split so a recipe can override the coverage
+#    (`gfx_cutaway`) while the DEFAULT stays 0.15, and the check broke on the
+#    text although the number never moved. Assert the values, not the layout.
+ck("ပေါ်ချိန် ပန်းတိုင် ၁၅% (ပုံသေ)",
+   '(opts or {}).get("gfx_cutaway") or 0.15' in code)
+ck("ကတ် အရှည် ၆.၀ · အကွာ ၆.၅", "_FF_LEN, _FF_MAXLEN = 6.0, 6.5" in code)
 
 # ── ② ရှေ့တန်း တင်ခြင်း + ③ လမ်းကြောင်း ၃ ခုလုံး ────────────────
 ck("ဘောင်အပြည့်ကို ရှေ့တန်း တင်သည် (`_ff_order`)", "_ff_order" in code)
