@@ -158,10 +158,19 @@ def fav():
 #    ရလဒ် တူသွားပြီး (`tests/test_sfxpool.py` ရဲ့ 「seed မတူ ⇒ ရလဒ် ကွဲ」
 #    ကျသည်) ဗီဒီယိုတစ်ပုဒ်လုံးမှာ click တစ်မျိုးတည်း ထွက်ကာ **အတုဆန်**မည် —
 #    variant pool ဆောက်ခဲ့ခြင်းရဲ့ ရည်ရွယ်ချက် ပျက်သည်。 ⇒ **အချိုး**နဲ့သာ。
-FAV_SHARE = 0.65
+# ⚠️ **ပထမ cue တွေကို ကြိုက်သူ ဖြစ်ရမည်**。 ၂၀၂၆-၀၉-၂၅ render
+#    (j_3d16ef298c02) မှာ အသံဖြစ်ရပ် **၁ ခု / cue ၂ ခု**သာ ရှိသဖြင့်
+#    ၆၅% အချိုးနဲ့ Zin ရဲ့ အမည်တပ် cue ရောက်ခြင်း မရခဲ့ပါ
+#    (`mixkit_free/click_2867` ရခဲ့ — pack က မှန်ပေမယ့် သူ ရွေးထားတာ မဟုတ်)。
+#    ⇒ role တစ်ခုရဲ့ **ပထမ ၂ ခု**ကို ကြိုက်သူ ဖြစ်စေသည် (ZAE ဗီဒီယို
+#    အများစုမှာ cue ၂–၃ ခုသာ ရှိ ⇒ အမြဲ သူ့အသံ)。 ကျန်တာကို အချိုးနဲ့
+#    ခွဲသဖြင့် ရှည်သော ဗီဒီယိုမှာ ကွဲပြားမှု ကျန်သည်
+#    (`tests/test_sfxpool.py` ရဲ့ 「seed မတူ ⇒ ရလဒ် ကွဲ」 ကို မဖျက်ပါ)。
+FAV_FIRST = 2
+FAV_SHARE = 0.50
 
 
-def prefer_fav(free, n=0):
+def prefer_fav(free, n=0, idx=None):
     """ကြိုက်သော cue ရှိလျှင် အဲဒါတွေထဲကသာ ရွေးစေသည်
 
     ⚠️ `pool()` ရဲ့ sort နဲ့ မရပါ — ရွေးချယ်မှုက **hash နဲ့ တူညီစွာ** ဖြစ်၍
@@ -179,6 +188,8 @@ def prefer_fav(free, n=0):
     #    (reproducible) ဒါပေမယ့် seed မတူလျှင် ကွဲသည်。
     _rest = [x for x in free if x.get("id") not in _fv]
     if not _rest:
+        return _p
+    if idx is not None and int(idx) < FAV_FIRST:
         return _p
     return _p if (n % 100) < int(FAV_SHARE * 100) else _rest
 
@@ -213,7 +224,7 @@ def pick(role, seed, idx=0, used=(), bright=None, ship=True):
     recent = {x for x in list(used)[-NOREPEAT:]}
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
     n = int.from_bytes(h[:4], "big")
-    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, n)
+    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, n, idx)
     return free[n % len(free)]
 
 
@@ -379,7 +390,7 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     recent = {x for x in list(used)[-NOREPEAT:]}
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
     _n = int.from_bytes(h[:4], "big")
-    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, _n)
+    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, _n, idx)
     it = free[_n % len(free)]
     src = path(it)
     if not src or not os.path.exists(src):
