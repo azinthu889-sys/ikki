@@ -146,6 +146,18 @@ def _verified(seed=None):
 # ⚠️ cue ကို ဂရပ်ဖစ် **အပြည့်ပေါ်တဲ့ အချိန်**နဲ့ ကိုက်ရမည်၊ စတဲ့အချိန် မဟုတ်။
 #    settle ချိန်ကို နုတ်ရသည် — မနုတ်လျှင် အသံက ပုံထက် စောသည်。
 SETTLE = 0.22
+# WARN **the hit must land when the card is fully ON, not when it starts.**
+#    Zin, 2026-09-25: "sound effect ကထွက်လာတာနဲ့ annimation တွေနဲ့ ကွက်တိ
+#    ဖြစ်နေရမယ်လေ" -- and it is also what the code already claims to do: the
+#    main cue carries `anchor="visual_settle"`. It was placed at `g["at"]`,
+#    which is when the entrance BEGINS. The entrance runs 0.45 s
+#    (`worker.EASE_ENT`, measured 0.467 in the render report), so every hit
+#    fired **~0.47 s early** -- on the take-off, not the landing.
+#    => anchor both cues to `at + ENTER`: the whoosh keeps its 0.22 s head
+#    start so its swell covers the move, and the click lands on the settle.
+#    `sfxpool.lead()` then shifts each file earlier by its own `peak_t`, so it
+#    is the TRANSIENT that lands there, not the file's first sample.
+ENTER_DEF = 0.45        # = worker.EASE_ENT; `rc["_gfx_enter"]` overrides
 
 
 # ── template အလိုက် SFX ─────────────────────────────────────
@@ -221,10 +233,12 @@ def sfx_for(kind):
 def sfx(gfx, caps, rc):
     """[(offset, role, dB)] — sfxlib ရဲ့ role နာမည်များ"""
     out=[]
+    _ent = float(rc.get("_gfx_enter") or ENTER_DEF)
     for g in gfx:
         a, b = sfx_for(g.get("kind") or "")
-        out.append((max(0.0, g["at"]-SETTLE), a, -13))
-        out.append((g["at"], b, -16))
+        _st = g["at"] + _ent                    # ကတ် အပြည့် ပေါ်ချိန်
+        out.append((max(0.0, _st - SETTLE), a, -13))
+        out.append((_st, b, -16))
     # ⚠️ စာတန်းတိုင်းမှာ အသံ မထည့်ရ — Zin ရဲ့ spec: "no per-word SFX"
     if rc.get("captions") == "big" and caps:
         for c in caps[:6]:

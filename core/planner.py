@@ -938,6 +938,13 @@ SEM = {"hook": "hook", "number": "number", "warning": "warning",
        "checklist": "card", "compare": "card", "location": "card",
        "screen": "ui"}
 SFX_LEAD = 0.18        # ရှေ့သံက ရုပ်ထက် ဘယ်လောက် စောလဲ
+# WARN **anchor to the settle, not the start** (2026-09-25). `props.anchor`
+#    already says `visual_settle` for the main cue, but the time used was the
+#    event's `startTime` -- when the entrance BEGINS. The entrance runs 0.45 s,
+#    so the hit fired ~0.47 s early, on the take-off. `dress.sfx()` was fixed
+#    the same way; the two must agree or QC measures one thing and the render
+#    produces another.
+SFX_ENTER = 0.45       # = worker.EASE_ENT / dress.ENTER_DEF
 SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
           "latch": -17, "pop": -18, "click": -18, "impact": -14,
           # ⚠️ `bed` က ရှည်သဖြင့် **ပိုနိမ့်** ရမည် — စကားအောက်မှာ ခံသည်
@@ -1003,14 +1010,15 @@ def sfx_plan(events, dur, per_min, log=None, style=None, out_dur=None):
     keep.sort(key=lambda m: m[0])
     out, n = [], 0
     for at, kind, lead, main, eid in keep:
+        _st = at + SFX_ENTER                 # ကတ် အပြည့် ပေါ်ချိန်
         for role, off in ((lead, -SFX_LEAD), (main, 0.0)):
             if not role:
                 continue
-            t = max(0.0, min(dur - 0.05, at + off))
+            t = max(0.0, min(dur - 0.05, _st + off))
             # ⚠️ ရှေ့သံက ဘောင်အစမှာ ကပ်သွားလျှင် **ထပ်နေမည်** —
             #    ၂ ခုလုံး ၀.၀၀s ဖြစ်ပြီး အထပ် အဓိပ္ပာယ် ပျက်သည်
             #    (၂၀၂၆-၀၉-၂၁ ဖမ်းမိ)。 ⇒ ကပ်လျှင် ရှေ့သံ ချန်သည်。
-            if off < 0 and abs(t - at) < SFX_LEAD * 0.5:
+            if off < 0 and abs(t - _st) < SFX_LEAD * 0.5:
                 continue
             n += 1
             out.append(dict(

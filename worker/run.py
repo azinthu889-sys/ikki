@@ -3262,6 +3262,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ ZAE ရဲ့ house bed ထဲမှာ SFX **ပါပြီးသား** — ထပ်ထည့်လျှင် နှစ်ထပ်
     #    ဖြစ်ပြီး ရှုပ်သည် (project မှတ်တမ်း: "ဖြတ်ချက်တိုင်း SFX ထပ်မထည့်ရ")。
     rc["_dur"] = sum(y - x for x, y in spans)     # sfx density တွက်ရန်
+    # WARN the SFX hit is anchored to the SETTLE, so `dress.sfx()` needs
+    #    the same entrance length the clips are re-timed to here.
+    rc["_gfx_enter"] = EASE_ENT
     # ⚠️ **SFX ပိတ်ထားလျှင် အကြောင်းရင်း မှတ်ရမည်** — 「Do not hide disabled
     #    SFX settings」。 ယခင်က တိတ်တဆိတ် ဗလာ ဖြစ်ခဲ့ပြီး သုံးစွဲသူက
     #    ဘာကြောင့် အသံ မရလဲ မသိခဲ့ပါ (၂၀၂၆-၀၉-၂၁)。
