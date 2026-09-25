@@ -61,7 +61,17 @@ PREFER = {
     # when the user supplies its screenshot/screen recording as an asset.
     "screen":    ["brows.window_open"],
     "warning":   ["callouts.box_call", "callouts.underline_call"],
-    "fact":      ["callouts.line_call", "callouts.underline_call"],
+    # ⚠️ **`fact` ကို `callouts.*` နဲ့ မချိတ်ရ** (၂၀၂၆-၀၉-၂၅)。 `fact` က
+    #    အညွှန်း မကိုက်သမျှ **အားလုံး ကျရာ** ယေဘုယျ အိမ် ဖြစ်သည် (တကယ့် job
+    #    `j_c42e5c142058` — ဝါကျ ၁၇ ကြောင်းမှာ `plain`/`fact` ၉ ကြောင်း) ⇒
+    #    **အသေးဆုံး မျဉ်းလေး**ကို **အများဆုံး ဝါကျ**မှာ ချိတ်မိခဲ့သည်。
+    #    Zin: 「Graphic တွေက ဒီထက်ပိုမိုက်တာ သုံးစေချင်တယ် · size ပိုကြီး」
+    #    ⇒ premium ကတ်ကို ရှေ့、`callouts.*` က auto tail မှာ ရှိဆဲ ဖြစ်သည်。
+    # ⚠️ `prem7.note_card` ကို **မထားရ** — ဖုံးအုပ်မှု **၁.၀၀** (၂၀၂၆-၀၉-၂၅
+    #    တိုင်းချက်) ⇒ ဖြတ်ပြောင်း ဖြစ်သည်。 `gfx_fullstage.txt` ထဲ မပါသဖြင့်
+    #    ဖုံးနေခဲ့သည် — အဲဒီဖိုင်က လုံခြုံသော superset **မဟုတ်**。
+    "fact":      ["dash.kpi_card", "dash.card_grid", "thm.board_points",
+                  "infogfx.callout"],
     "section":   ["titles3.minimal_third", "titles.topic_bar", "titles.chapter"],
     "hook":      ["prem4.big_question", "prem4.stop_scroll", "titles3.opening_bars"],
 }
@@ -78,7 +88,8 @@ PROFILE_PREFER = {
     "clean": {
         "hook": ["titles3.opening_bars", "prem4.big_question"],
         "section": ["titles3.minimal_third", "titles.topic_bar"],
-        "fact": ["callouts.underline_call", "callouts.line_call"],
+        "fact": ["infogfx.callout", "thm.board_terms",
+                 "callouts.underline_call"],
         "number": ["odo.big_stat"],
         "steps": ["infogfx.steps"],
         "checklist": ["infogfx.checklist"],
@@ -90,7 +101,8 @@ PROFILE_PREFER = {
     "bold": {
         "hook": ["prem4.stop_scroll", "prem4.big_question"],
         "section": ["titles.chapter", "titles.topic_bar"],
-        "fact": ["callouts.box_call", "callouts.underline_call"],
+        "fact": ["dash.kpi_card", "thm.board_points",
+                 "callouts.box_call"],
         "number": ["odo.count_up", "odo.big_stat"],
         "steps": ["infogfx.checklist", "infogfx.steps"],
         "checklist": ["infogfx.checklist"],
@@ -102,7 +114,11 @@ PROFILE_PREFER = {
     "explainer": {
         "hook": ["prem4.big_question", "titles3.opening_bars"],
         "section": ["titles.chapter", "titles.topic_bar"],
-        "fact": ["callouts.line_call"],
+        # ⚠️ `insert.insert_label` ကို ဒီမှာ **မထားရ** — ဖုံးအုပ်မှု
+        #    **၁.၀၀** (တိုင်းထားသည်) ⇒ ဖြတ်ပြောင်း ဖြစ်ပြီး `_ff_order` က
+        #    ဘတ်ဂျက် မကျချိန် ဖယ်သဖြင့် pin က အလဟဿ ဖြစ်မည်。
+        "fact": ["thm.cmp_rows", "dash.card_grid",
+                 "callouts.line_call"],
         "number": ["odo.big_stat", "odo.percent_ring"],
         "steps": ["infogfx.steps", "infogfx.checklist"],
         "checklist": ["infogfx.checklist"],
@@ -262,8 +278,43 @@ def _auto_candidates(label):
         for lab in labs:
             if lab in out:
                 out[lab].append(tid)
+    # ⚠️ **အက္ခရာစဉ် မစီရ** (၂၀၂၆-၀၉-၂၅)。 `v.sort()` က `callouts.*`
+    #    (မျဉ်း/မြှား အသေးလေးတွေ) ကို **အမြဲ ရှေ့ဆုံး** တင်ပြီး `prem*`
+    #    (ကတ်ကြီး ဒီဇိုင်းတွေ) ကို နောက်ကျစေသည် — ယေဘုယျ pool ၂၃၁ ခုရဲ့
+    #    ရှေ့ဆုံး ၁၀ ခု **အားလုံး `callout`** ဖြစ်ခဲ့သည်。 ZAE render မှာ
+    #    `stack_call` · `map_locator` စသည် ရွေးမိခြင်းရဲ့ အကြောင်းရင်း
+    #    (Zin: 「Graphic တွေက ဒီထက်ပိုမိုက်တာ သုံးစေချင်တယ် · size ပိုကြီး」)。
+    # ⚠️ **category အလိုက် စီသည်** — category က catalog မှာ ရှိပြီးသား
+    #    (မှန်းဆ မဟုတ်)。 ဘောင်အပြည့်/data ကတ်/title က အကြီးဆုံးနဲ့
+    #    ဒီဇိုင်းဆန်ဆုံး ⇒ ရှေ့。 `callout` က အသေးဆုံး ⇒ နောက်ဆုံး。
+    #    အဆင့်တူအတွင်း အက္ခရာစဉ် ⇒ ရလဒ် တည်ငြိမ်သည်。
+    # ⚠️ **မိသားစု အဆင့်က category ထက် အထက်** — Zin ၂၀၂၆-၀၉-၂၅ မှာ
+    #    「Premium ဆန်တဲ့ ဒီဇိုင်းတွေကို ဦးစားပေး」ဟု ဆိုပြီး မိသားစု
+    #    စာရင်း တိုက်ရိုက် ပေးသည်: `prem6` · `odo` · `dash` · `thm.cmp_*` ·
+    #    `thm.cut_*` · `insert`。 ⚠️ `prem6.*` ရဲ့ category က **`callout`**
+    #    ဖြစ်သဖြင့် category တစ်ခုတည်းနဲ့ စီလျှင် Zin အတိအလင်း တောင်းသော
+    #    မိသားစုက **နောက်ဆုံး** ရောက်မည် ⇒ မိသားစုကို ရှေ့မှာ ထားရသည်。
+    _FAM = {}
+    for _t, _fs in (
+        (0, ("prem", "prem2", "prem3", "prem4", "prem5", "prem6", "prem7",
+             "odo", "dash", "insert", "thm", "infogfx", "qcard")),
+        (1, ("charts", "maps", "titles", "titles2", "titles3",
+             "mockups", "mockups2", "brows", "social")),
+        (2, ("kinetic", "kinetic2", "kinetic3", "kin4", "typo", "typo2",
+             "typew", "capt", "cine", "glitch", "retro", "motionfx")),
+        (3, ("callouts",))):
+        for _f in _fs:
+            _FAM[_f] = _t
+    # အဆင့်တူ မိသားစုအတွင်း — ဖုံးအုပ်မှု/ဒီဇိုင်း ကြီးမားမှု အလိုက်
+    _RANK = {"cutaway": 0, "board": 1, "infographic": 2, "chart": 2,
+             "explainer": 3, "title": 4, "mockup": 5, "typography": 6,
+             "text": 7, "callout": 9}
+    _cat = {}
+    for e in cat:
+        _cat[e.get("id") or ""] = (e.get("category") or "").lower()
     for v in out.values():
-        v.sort()
+        v.sort(key=lambda t: (_FAM.get(t.split(".")[0], 2),
+                              _RANK.get(_cat.get(t, ""), 8), t))
     _AUTO = out
     return _AUTO.get(label, [])
 
@@ -869,7 +920,13 @@ SFX_ROLE = {
     "pop":     (None, "pop"),              # keyword pop — တစ်ထပ်သာ
     "number":  ("swipe", "click"),         # ကိန်းဂဏန်း ပေါ်လာ
     "warning": ("whoosh_in", "impact"),    # သတိပေးချက်
-    "hook":    ("riser_soft", "latch"),    # ဖွင့်ချက်
+    # ⚠️ ဖွင့်ချက်ရဲ့ ရှေ့သံကို `bed` ဖြစ်အောင် လဲထားသည် (၂၀၂၆-၀၉-၂၅) —
+    #    Zin ကြိုက်သော `CINEMATIC-028` (ကြားရ ၄.၆s · ကွာ ၁၁.၂ dB) နဲ့
+    #    `HIGH_TECH-002` (၄.၂s · ၁၅.၅ dB) က `riser` ဂိတ် ၃.၂s ကို ကျော်ပေမယ့်
+    #    စွမ်းအင်က **စကား band ပြင်ပ** ဖြစ်၍ ဖွင့်ချက်မှာ ခံနေခြင်းက
+    #    reference တွေရဲ့ ပုံစံ ဖြစ်သည်。 `bed` မှာ cue မရှိလျှင်
+    #    `sfxpool.wav()` က `(None, None)` ပြန်ပြီး ရှေ့သံ ကျော်သွားမည်။
+    "hook":    ("bed", "latch"),           # ဖွင့်ချက်
     "ui":      ("swipe", "click"),          # browser / phone / dashboard
 }
 # ⚠️ `FAMILY` ရဲ label → SFX အမျိုးအစား。 မြေပုံ မရှိလျှင် အားလုံး `card`
@@ -882,7 +939,9 @@ SEM = {"hook": "hook", "number": "number", "warning": "warning",
        "screen": "ui"}
 SFX_LEAD = 0.18        # ရှေ့သံက ရုပ်ထက် ဘယ်လောက် စောလဲ
 SFX_DB = {"whoosh_in": -15, "riser_soft": -17, "swipe": -16,
-          "latch": -17, "pop": -18, "click": -18, "impact": -14}
+          "latch": -17, "pop": -18, "click": -18, "impact": -14,
+          # ⚠️ `bed` က ရှည်သဖြင့် **ပိုနိမ့်** ရမည် — စကားအောက်မှာ ခံသည်
+          "bed": -22}
 
 
 def sfx_plan(events, dur, per_min, log=None, style=None, out_dur=None):

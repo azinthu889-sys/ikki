@@ -1,33 +1,53 @@
 # **ဖြတ်ပြောင်း (cutaway)** — ပြောသူကို တကယ် ဖုံးသူ。
-# ထုတ်သူ: tools/gfx_cutaway.py — alpha အလယ်မှတ် ≥ 85% (မှန်းမရေး)。
-# ⚠️ `gfx_fullstage.txt` က bbox ကနေ ⇒ စာတန်း template တွေပါ ပါသည်。 ဤဖိုင်ကိုသာ planner က သုံးသည်。
-prem.glass_stat
-prem2.big_number
-prem5.karaoke_cap
-prem5.word_pop_cap
-insert.insert_flow
-insert.insert_label
-motionfx.shape_wipe
-prem.list_reveal
-prem.split_hero
-prem2.split_compare
-prem2.word_pop
-prem3.marquee_band
-prem3.serif_quote
-prem3.step_bar
-prem4.arrow_point
-prem4.pov_label
-prem4.stop_scroll
-prem4.three_reasons
-prem4.wait_for_it
-prem5.bounce_cap
-prem5.box_cap
-prem5.hl_word_cap
-prem5.line_by_line
-prem6.poll_sticker
-prem6.save_reminder
-prem6.social_proof
-prem7.end_grid
-titles2.wipe_word
-typew.grad_card
-typew.split_grad
+#
+# ⚠️ ရင်းမြစ်က **template ရဲ့ ကြေညာချက်** ဖြစ်သည် — `manifests/thm.json` ရဲ့
+#    `role: "cutaway"`。 `motionkit/thm.py` ရဲ့ `_cut_el()` က
+#    `e["role"] = "cutaway"` ထည့်ပြီး မှတ်ချက်မှာ 「IKKI က ဒါကို ကြည့်ပြီး
+#    ဖြတ်ပြောင်း လမ်းကြောင်းသို့ ပို့သည်。overlay အဖြစ် သုံးလျှင် ပြောသူ
+#    လုံးဝ ပျောက်မည်」 ဟု ဆိုသည်。 ကြေညာချက်ရဲ့ `measuredBBox.area` က
+#    ၀.၉၉၈၆ — ဘောင်အပြည့်。
+#
+# ⚠️ **alpha တိုင်းချက်ကို မယုံရ** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သော အမှား ၂ ချက်):
+#    ① template အများစုက **RGB** (alpha channel မရှိ) render သဖြင့်
+#       `convert("RGBA")` က alpha ကို ၂၅၅ ဖြည့်ပြီး ဖုံးအုပ်မှု အမြဲ
+#       **၁.၀၀** ထွက်သည် — အကြောင်းအရာ မကြည့်ဘဲ。
+#    ② RGBA ဖြစ်သူတွေမှာပင် `prem.lower_third` က ၈၅% အထက် ထွက်သည် —
+#       lower third က ဘောင်အပြည့် မဖြစ်နိုင် ⇒ တိုင်းချက် မှားနေသည်。
+#    ⇒ ယခင် စာရင်း ၃၀ ခုက **တကယ့် ဖြတ်ပြောင်း တစ်ခုမှ မပါ**ဘဲ
+#      `prem5.karaoke_cap` · `word_pop_cap` · `bounce_cap` · `box_cap` ·
+#      `hl_word_cap` · `line_by_line` ဆိုတဲ့ **စာတန်း** ၆ ခု ပါခဲ့သည်。
+#      `_ff_order()` က အဲဒါတွေကို inline slot ကနေ ဖယ်ခဲ့သဖြင့် ဂရပ်ဖစ်
+#      ရွေးစရာ လျော့ကာ ထပ်ခြင်း တိုးခဲ့သည် (Zin: 「မထပ်အောင်」)。
+#
+# ⚠️ `thm` သာ manifest ရှိသည် (၁၃၇ ခု — cutaway ၂၇ · board ၅ · overlay ၁၀၅)。
+#    အခြား မိသားစု ~၄၇၉ ခုမှာ ကြေညာချက် **မရှိ** ⇒ overlay ဟု မှတ်သည်。
+#    `board` က `measuredBBox.area` ၀.၀၀၀၈ ("frame edge") ⇒ ဖြတ်ပြောင်း မဟုတ်。
+#
+# ထုတ်သူ: manifest ကနေ (tools/gfx_cutaway.py က တိုင်းချက် အတွက်သာ)。
+thm.cut_before_after
+thm.cut_cta
+thm.cut_grid
+thm.cut_list
+thm.cut_pct
+thm.cut_point
+thm.cut_question
+thm.cut_quote
+thm.cut_stat
+thm.cut_steps
+thm.cut_timeline
+thm.cut_title
+thm.cut_vs
+thm.cut_warn
+thm.cut_wrong_right
+thm.media_badge
+thm.media_card
+thm.media_frame
+thm.media_quote
+thm.media_reveal
+thm.media_shadow
+thm.media_split
+thm.media_stat
+thm.media_strip
+thm.media_two
+thm.media_wide
+thm.media_window

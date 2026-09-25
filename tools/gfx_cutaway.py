@@ -91,8 +91,21 @@ for _j in _idx:
     _pp, _ox, _oy = ((_it[0], _it[1], _it[2])
                      if isinstance(_it,(list,tuple)) and len(_it) > 2
                      else ((_it if isinstance(_it,str) else _it[0]), 0, 0))
-    _im = Image.open(rp(_pp)).convert("RGBA")
-    _al = _np.array(_im)[:,:,3].astype("float32") / 255.0
+    # ⚠️ **alpha channel မရှိလျှင် တိုင်း၍ မရ** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သော
+    #    အမှား)。 `convert("RGBA")` က RGB ဖိုင်ရဲ့ alpha ကို **၂၅၅ ဖြည့်**
+    #    သဖြင့် ဖုံးအုပ်မှု အမြဲ **၁.၀၀** ထွက်သည် — အကြောင်းအရာ မကြည့်ဘဲ。
+    #    ⇒ `prem5.karaoke_cap` · `chip_cap` စသော **စာတန်း** template တွေက
+    #    「ဖြတ်ပြောင်း」ဟု မှားခံပြီး `_ff_order()` က inline slot ကနေ
+    #    ဖယ်ခဲ့သည် (ဂရပ်ဖစ် ရွေးစရာ လျော့ခြင်းရဲ့ အကြောင်းရင်း)。
+    #    ⚠️ တကယ့် အဖြေက **template ကိုယ်တိုင် ကြေညာထားသည်** —
+    #    `thm._cut_el()` က `e["role"] = "cutaway"` ထည့်ပြီး manifest
+    #    (`manifests/thm.json`) မှာ `role` အဖြစ် ပါသည် ⇒ အဲဒါကို ယူရမည်。
+    _im = Image.open(rp(_pp))
+    if "A" not in _im.getbands():
+        print(json.dumps({"ok":0,"why":"alpha မရှိ (%%s) ⇒ တိုင်း၍ မရ · "
+                          "manifest ရဲ့ ကြေညာချက် ကြည့်ပါ" %% _im.mode}))
+        raise SystemExit
+    _al = _np.array(_im.convert("RGBA"))[:,:,3].astype("float32") / 255.0
     if _W and _H:
         # ⚠️ strip PNG က ဘောင်တစ်ခုလုံး မဟုတ် ⇒ **ဘောင်အပြည့်ပေါ် ချ**ပြီးမှ
         #    အလယ်မှတ် ယူရမည်、မဟုတ်လျှင် strip သေးလေ ဖုံးအုပ်မှု မြင့်လေ
@@ -110,6 +123,26 @@ print(json.dumps({"ok":1, "cover": round(best, 4), "n": _n}))
 def main():
     ids = [l.strip() for l in open(FS, encoding="utf-8")
            if l.strip() and not l.startswith("#")]
+    # ⚠️ **`FS` က လုံခြုံသော superset မဟုတ်** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သည်)。
+    #    `prem7.note_card` က `gfx_verify.json` မှာ bbox **၉၉.၈%** ရှိပါလျက်
+    #    `FS` ထဲ **မပါ**ပါ、တိုင်းလိုက်ရာ ဖုံးအုပ်မှု **၁.၀၀** ဖြစ်သည် ⇒
+    #    `FS` ကိုသာ စစ်ခဲ့လျှင် ဖြတ်ပြောင်း ၇၉ ခုကို 「inline」ဟု
+    #    မှတ်နေမိမည်。 ⇒ `--ids` နဲ့ တိုက်ရိုက် ထည့်နိုင်ရမည် ·
+    #    `--bbox N` နဲ့ `gfx_verify.json` ကနေ bbox ≥N% အားလုံး ယူနိုင်သည်。
+    if "--bbox" in sys.argv:
+        _th = float(sys.argv[sys.argv.index("--bbox") + 1]) / 100.0
+        _vj = os.path.join(HERE, "assets", "gfx_verify.json")
+        for _x in json.load(open(_vj, encoding="utf-8")):
+            _b = _x.get("bbox") or {}
+            if not _b:
+                continue
+            if ((_b["bottom"] - _b["top"]) * (_b["right"] - _b["left"])
+                    >= _th and _x["id"] not in ids):
+                ids.append(_x["id"])
+    if "--ids" in sys.argv:
+        for _i in sys.argv[sys.argv.index("--ids") + 1].split(","):
+            if _i.strip() and _i.strip() not in ids:
+                ids.append(_i.strip())
     if "--only" in sys.argv:
         want = set(sys.argv[sys.argv.index("--only") + 1].split(","))
         ids = [i for i in ids if i in want]

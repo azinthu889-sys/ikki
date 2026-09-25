@@ -171,6 +171,12 @@ def _premium_sfx_checks(cues, mixed, audible, silent, policy, dur):
 # ⚠️ **၁.၂၅× ထက် မကျော်ရ** (proxy 2560) — ဒီကိန်းက အများဆုံး ၁.၀၅၅。
 # ⚠️ **အသံကို လုံးဝ မထိရ** (`-c:a copy`) — F2 အာမခံချက် မပျက်စေရန်。
 ZOOM_P1, ZOOM_P2 = 17.0, 6.5      # စက္ကန့် — အချင်းချင်း ကိန်းပြည့် မဆ
+# ⚠️ **zoom ကို တစ်ခါတစ်ရံသာ ဆွဲရမည်** — reference ၁၁ ပုဒ် တိုင်းချက်
+#    (၂၀၂၆-၀၉-၂၅): scale ပြောင်းလဲမှု ရှိသော အတွဲ **အလယ်တန်း ၁၅%** ·
+#    ၃ ပုဒ်က **၀%** · ရှိသည့်အခါ p90 ၀.၀၁၆/s。
+#    `ZOOM_GATE_T` = cosine ဖြတ်မှတ် ⇒ ကာလရဲ့ acos(T)/π အချိုး ဖွင့်သည်
+#    (၀.၈၈ ⇒ ~၁၆% · reference အလယ်တန်းနဲ့ ကိုက်)。
+ZOOM_GATE_P, ZOOM_GATE_T = 40.0, 0.88
 def _breathe(cutv, out, fps, amt, w, h, log=None):
     """`cutv` ကို ချောမွေ့စွာ zoom ဝင်/ထွက် လုပ်ပြီး `out` သို့ ရေးသည်。
 
@@ -179,17 +185,28 @@ def _breathe(cutv, out, fps, amt, w, h, log=None):
        ဖြစ်သည် — ၂၀၂၆-၀၉-၂၀ မှာ zoom တစ်ခါမှ မလုပ်ဖြစ်ခဲ့ပြီး
        try/except ထဲ ပျောက်နေခဲ့သည်。
     """
-    a1 = float(amt) * 0.64
-    a2 = float(amt) * 0.36
-    z = (f"1+{a1:.4f}*(0.5-0.5*cos(2*PI*on/({fps}*{ZOOM_P1})))"
-         f"+{a2:.4f}*(0.5-0.5*cos(2*PI*on/({fps}*{ZOOM_P2})))")
+    # ⚠️ **ဆက်တိုက် zoom မဆွဲရ** (Zin ၂၀၂၆-၀၉-၂၅: 「ဗီဒီယိုကို တောက်လျှောက်
+    #    Zoom ဆွဲနေတာ ဘာကြောင့်လဲ」)。 ယခင် expression က cosine ၂ ခု
+    #    (ကာလ ၁၇s + ၆.၅s) ပေါင်းပြီး **ဖရိမ်းတိုင်း** တပ်သဖြင့် တစ်ခါမှ
+    #    မရပ်ခဲ့ပါ — ၆.၅s ripple နဲ့ အမြဲ လှုပ်နေသည်。
+    # ⚠️ reference ၁၁ ပုဒ် တိုင်းချက် (၂၀၂၆-၀၉-၂၅) — scale ပြောင်းလဲမှု
+    #    ရှိသော ဖရိမ်းအတွဲက **အလယ်တန်း ၁၅%** သာ ဖြစ်ပြီး **၃ ပုဒ်က ၀%**。
+    #    ရှိသည့်အခါ p90 ≈ ၀.၀၁၆/s (၁၀s မှာ ~၁.၁၆×)。
+    #    ⇒ **တစ်ခါတစ်ရံ ဆွဲ** — ကာလ `ZOOM_GATE_P` အတွင်း ~၁၆% သာ。
+    # ⚠️ gate ကို ရုတ်တရက် ဖွင့်/ပိတ်လျှင် **ခုန်သလို** ဖြစ်မည် ⇒ cosine ကို
+    #    ဖြတ်ထားသဖြင့် ၀→၁→၀ ချောချော တက်/ကျသည် (push-in/pull-out ~၆s)。
+    _g = (f"max(0\,cos(2*PI*on/({fps}*{ZOOM_GATE_P}))-{ZOOM_GATE_T})"
+          f"/{1.0 - ZOOM_GATE_T:.4f}")
+    z = f"1+{float(amt):.4f}*({_g})"
     vf = (f"zoompan=z='min(1.25,{z})':d=1:"
           f"x='iw/2-(iw/zoom/2)':y='ih*0.42-(ih/zoom*0.42)':s={w}x{h}:fps={fps}")
     ff(["ffmpeg","-v","error","-y","-i",cutv,"-vf",vf,
         "-r",str(fps),"-c:v","libx264","-preset","veryfast","-crf","18",
         "-pix_fmt","yuv420p","-c:a","copy",out])
-    if log: log(f"  ရုပ် အသက်ဝင်စေရန် zoom {1.0:.2f}–{1+a1+a2:.3f}× "
-                f"(ကာလ {ZOOM_P1:.0f}s + {ZOOM_P2:.1f}s)")
+    _on = math.acos(ZOOM_GATE_T) / math.pi * ZOOM_GATE_P
+    if log: log(f"  ရုပ် အသက်ဝင်စေရန် zoom {1.0:.2f}–{1+float(amt):.3f}× · "
+                f"**တစ်ခါတစ်ရံ** — ကာလ {ZOOM_GATE_P:.0f}s လျှင် {_on:.1f}s "
+                f"({100*_on/ZOOM_GATE_P:.0f}% · reference အလယ် ၁၅%)")
     return out
 
 

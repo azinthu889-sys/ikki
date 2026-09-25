@@ -61,14 +61,35 @@ def main():
           any(not x.get("ship") for x in c["items"]))
 
     print("\n── ၆ · ကြာချိန် ဘောင် ──")
-    bad = []
+    # ⚠️ **ဖိုင်အရှည် (`dur`) နဲ့ မစစ်ရ** (၂၀၂၆-၀၉-၂၅ ပြင်)。 `wav()` က
+    #    `render_dur()` အထိ **ဖြတ်ပြီး** ရေးသဖြင့် ထွက်လာသော cue က
+    #    ဂိတ်အတွင်း အမြဲ ရှိသည်。 ဖိုင်အရှည်နဲ့ စစ်လျှင် reverb အမြီး
+    #    ရှည်သော cue (`SWOOSH-005` ဖိုင် ၃.၁၈s · ကြားရ ၀.၉၇s) ကို
+    #    「ဂိတ်ကျော်」ဟု မှားစွပ်စွဲပြီး ပယ်မိသည်。
+    #    ⚠️ **ဂိတ် လျှော့တာ မဟုတ်** — စစ်ရမည့် အချက် ၃ ချက် ပိုတင်းသည်:
+    #      ① ထွက်မည့် အရှည်က ဘောင်အတွင်း ② အသံ ကျယ်ချက် (`peak_t`) က
+    #      ဖြတ်မျဉ်း + fade အတွင်း ကျန် ③ lead ခွင့်ပြုချက်ထဲ ဝင်。
+    bad, cut, late = [], [], []
     for r in SP.MAP:
         lo = SP.DUR_MIN.get(r, 0.0)
-        hi = SP.DUR_MAX.get(SP.MAP[r][0], 2.0)
+        fam = SP.MAP[r][0]
+        hi = SP.DUR_MAX.get(fam, 2.0)
         for x in SP.role_pool(r):
-            if not (lo - 1e-6 <= x["dur"] <= hi + 1e-6):
-                bad.append(f"{r}:{x['id']}={x['dur']}")
-    check("အားလုံး ဘောင်အတွင်း", not bad, bad[:3])
+            rd = SP.render_dur(x, fam)
+            if not (lo - 1e-6 <= rd <= hi + 1e-6):
+                bad.append(f"{r}:{x['id']}={rd:.2f}")
+            pt = x.get("peak_t")
+            if pt is not None:
+                if float(pt) + 0.001 > rd:
+                    cut.append(f"{r}:{x['id']} peak {pt} > ထွက် {rd:.2f}")
+                # ⚠️ `bed` က ဖြစ်ရပ်ပေါ် ကွက်တိ ကျရန် မဟုတ် — ခံပေးရန် ⇒
+                #    `lead()` က `bed` အတွက် ၀ ပြန်သည် (စောလျှင် ဗီဒီယို
+                #    အစမတိုင်ခင် ရောက်မည်) ⇒ ဒီစစ်ချက် မသက်ဆိုင်ပါ。
+                if fam != "bed" and float(pt) > SP.LEAD_MAX:
+                    late.append(f"{r}:{x['id']} peak {pt}")
+    check("ထွက်မည့် အရှည် ဘောင်အတွင်း", not bad, bad[:3])
+    check("အသံ ကျယ်ချက် ဖြတ်မခံရ", not cut, cut[:3])
+    check("lead နဲ့ ပြန်ညှိလို့ရ", not late, late[:3])
 
     print("\n── ၇ · အား (loudness) ပစ်မှတ် ──")
     bad = []
@@ -100,7 +121,15 @@ def main():
     # transient က ~၀ · riser က ရှည် — ဒါက **တိုင်းချက်** ဖြစ်မှ အဓိပ္ပာယ် ရှိ
     lc = sorted(SP.lead(x) for x in SP.role_pool("click"))
     lr = sorted(SP.lead(x) for x in SP.role_pool("riser_soft"))
-    check("click ရဲ့ lead ≈ 0", lc[len(lc) // 2] <= 0.06, lc[len(lc) // 2])
+    # ⚠️ ယခင်က 「click ရဲ့ lead အလယ်တန်း ≤ ၀.၀၆」 ဟု စစ်ခဲ့သည် — အဲဒါက
+    #    **ဖိုင်က ချက်ချင်း စသည်** ဆိုသော ယူဆချက် ဖြစ်ပြီး pool သေးစဉ်
+    #    မှန်ခဲ့သည်。 pool ၁၂၇ ခု ဖြစ်လာသောအခါ အလယ်တန်း ၀.၁၃၃ ဖြစ်သည် —
+    #    ရှေ့မှာ တိတ်နေသော ဖိုင်များ ပါလာ၍。 ⚠️ အဲဒါက **ချွတ်ယွင်းချက်
+    #    မဟုတ်** — `lead()` က `peak_t` စောပြီး ထည့်သဖြင့် အသံက ဖြစ်ရပ်ပေါ်
+    #    **ကွက်တိ** ကျသည် (ဒါက `lead()` ရဲ့ တာဝန်)。 ⇒ စစ်ရမည့်အချက်က
+    #    「ပြန်ညှိလို့ ရသလား」 ဖြစ်သည်、「ဖိုင်က စော/နှေး」 မဟုတ်。
+    check("click ကို lead နဲ့ ပြန်ညှိလို့ရ",
+          lc[-1] <= SP.LEAD_MAX, lc[-1])
     check("riser ရဲ့ lead > 0.5s", lr[len(lr) // 2] > 0.5, lr[len(lr) // 2])
     bad = [(r, round(SP.lead(x), 2)) for r in SP.MAP for x in SP.role_pool(r)
            if SP.lead(x) > x["dur"] + 1e-6]

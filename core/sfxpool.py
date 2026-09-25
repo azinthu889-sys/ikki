@@ -19,7 +19,20 @@ _CAT = None
 #    စကားကို ဖုံးသည် (catalog ရဲ့ dur p10 ၀.၁၂ · အလယ်တန်း ၀.၄၁ · p90 ၃.၁၉)
 DUR_MAX = {"click": 0.35, "pop": 0.45, "latch": 0.60, "swipe": 0.70,
            "whoosh": 1.20, "shimmer": 1.50, "impact": 1.50,
-           "riser": 3.20, "sub": 2.00, "air": 4.00}
+           "riser": 3.20, "sub": 2.00, "air": 4.00,
+           # ⚠️ `bed` — **စကား band ပြင်ပ** cue သာ ဝင်သည် (အောက်က
+           #    `BED_GAP` ကြည့်) ⇒ ရှည်ပေမယ့် စကားကို မဖုံးပါ。
+           "bed": 6.00}
+# ⚠️ **`bed` ရဲ့ ဂိတ်က ကြာချိန် မဟုတ် — `mask_gap`**。 ၂၀၂၆-၀၉-၂၅ တိုင်းချက်
+#    (နမူနာ ၁၅၆ ခု · role ၁၂ မျိုး အညီအမျှ): ကွာဟမှု အလယ်တန်း **၃.၁ dB** ·
+#    p75 ၅.၇ · **p90 ၁၀.၇** · p95 ၁၄.၂。 ⇒ ၁၀.၅ dB ဆိုလျှင် အထက် ~၁၀%。
+#    အဲဒီ cue တွေက စွမ်းအင်ကို စကား band ပြင်ပ (အများစု ၂၅၀ Hz အောက်)
+#    ထားသဖြင့် ၄ စက္ကန့် ရှည်လည် စကားကို မဖုံးပါ —
+#    `CINEMATIC-028` ၁၁.၂ · `HIGH_TECH-002` ၁၅.၅ (Zin ကြိုက်သော ၂ ခု)。
+#    ⚠️ brightness နဲ့ အစားထိုး၍ **မရ** — `BLEEP-003` က centroid ၈,၂၀၄ Hz
+#    ဖြစ်ပါလျက် ကွာ ၄.၃ dB သာ。
+BED_GAP = 10.5
+BED_MIN = 1.50          # တိုလွန်းလျှင် bed မဟုတ် — cue သာ
 NOREPEAT = 6            # နောက်ဆုံး N ခုထဲ ပြန်မပါရ
 
 
@@ -64,13 +77,47 @@ def pool(role, bright=None, max_dur=None, ship=True):
     """
     lim = max_dur if max_dur is not None else DUR_MAX.get(role, 2.0)
     out = []
+    # ⚠️ **`bed` က role တစ်ခု မဟုတ်** — catalog ရဲ့ `role` ကို ပြောင်းလျှင်
+    #    ရှိပြီးသား pool (whoosh/impact …) ကနေ cue ပျောက်မည် ⇒ `bed` ကို
+    #    **တိုင်းချက်နဲ့ ရွေးသော အခွဲ** အဖြစ်သာ ထားသည် (role မထိ)。
+    _bed = (role == "bed")
     for x in catalog().get("items") or []:
-        if x.get("role") != role:
+        if _bed:
+            if float(x.get("mask_gap") or 0) < BED_GAP:
+                continue
+            _d = float(x.get("dur_eff") or x.get("dur") or 0)
+            if not (BED_MIN <= _d <= lim):
+                continue
+        elif x.get("role") != role:
             continue
         if ship and not x.get("ship", False):
             continue
-        if x.get("dur", 9) > lim:
-            continue
+        # ⚠️ **ကြားရသော အရှည် (`dur_eff`) နဲ့ စစ်ရမည်** — ဖိုင်အရှည် မဟုတ်
+        #    (၂၀၂၆-၀၉-၂၅)。 ဂိတ်ရဲ့ ရည်ရွယ်ချက်က 「cue က စကားကို မဖုံးရ」
+        #    ဖြစ်ရာ ဖုံးတာက **ကြားရသော အပိုင်း**သာ — reverb အမြီးက မဖုံးပါ。
+        #    `SWOOSH-005` က ဖိုင် ၃.၁၈s ဒါပေမယ့် ကြားရ **၀.၉၇s** ·
+        #    `CLICK-004` က ၁.၃၇s → **၀.၁၅s** ⇒ ဖိုင်အရှည်နဲ့ စစ်ခဲ့သဖြင့်
+        #    Zin ကြိုက်သော cue ၁၁ ခုလုံး ပယ်ခံခဲ့သည်。
+        #    ⚠️ ဒါက **ဂိတ် လျှော့တာ မဟုတ်** — ကြားရသော အရှည် ကျော်လျှင်
+        #    ပယ်ဆဲ ဖြစ်သည်。 `dur_eff` မရှိသော အဟောင်း row က `dur` သို့ ဆုတ်။
+        _de = float(x.get("dur_eff") or x.get("dur", 9))
+        if _de > lim:
+            # ⚠️ **ဂိတ်ထက် အနည်းငယ် ရှည်လျှင် ဖြတ်ပြီး သုံးနိုင်သည်** —
+            #    `wav()` က `min(dur_eff, lim)` အထိ ဖြတ်ပြီး ၆၀ms fade
+            #    ထည့်သည် ⇒ **အသံ ကျယ်ချိန် (`peak_t`) က ဖြတ်မျဉ်းအတွင်း**
+            #    ရှိလျှင် cue ရဲ့ ဇာတိ မပျက်ပါ。 ဒါက ဂိတ် လျှော့တာ မဟုတ် —
+            #    ထွက်လာသော cue က တကယ် `lim` သာ ရှည်သည်。
+            #    တိုင်းချက် (၂၀၂၆-၀၉-၂၅ · Zin ကြိုက်သော cue):
+            #      BLEEP-003 ကျယ်ချိန် ၀.၂၀s · ဂိတ် ၀.၄၅ ⇒ ဖြတ်လို့ရ
+            #      GLITCH-030 ကျယ်ချိန် **၂.၈၀s** · ဂိတ် ၂.၀၀ ⇒ **မရ**
+            #      (အကျယ်ဆုံး အပိုင်းက ဖြတ်မျဉ်း နောက်မှာ ⇒ ဇာတိ ပျက်မည်)
+            _pt = x.get("peak_t")
+            if _pt is None or float(_pt) + 0.06 > lim:
+                continue
+            # ⚠️ ၂ ဆ အထက် ရှည်လျှင် မယူ — ဖြတ်ချက်က cue ကို အပိုင်းအစ
+            #    ဖြစ်စေပြီး တိတ်သလို ခံစားရသည်。
+            if _de > lim * 2.0:
+                continue
         if bright:
             b = x.get("brightness") or 0
             if not (bright[0] <= b <= bright[1]):
@@ -83,6 +130,57 @@ def pool(role, bright=None, max_dur=None, ship=True):
         out.append(x)
     out.sort(key=lambda x: (x.get("dur", 9), x.get("id", "")))
     return out
+
+
+_FAV = None
+
+
+def fav():
+    """**Zin ကြိုက်သော cue** id set — `assets/sfx_fav.txt`
+
+    ⚠️ ဖိုင် မရှိလျှင် **ဗလာ** ပြန်သည် (ဦးစားပေးမှု မရှိ) — ခန့်မှန်းပြီး
+       ရွေးလျှင် သူ မကြိုက်သော အသံ ထွက်မည်。
+    """
+    global _FAV
+    if _FAV is None:
+        q = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "assets", "sfx_fav.txt")
+        try:
+            with open(q, encoding="utf-8") as f:
+                _FAV = {l.strip() for l in f
+                        if l.strip() and not l.startswith("#")}
+        except OSError:
+            _FAV = set()
+    return _FAV
+
+
+# ⚠️ **ကြိုက်သော cue ကို ၁၀၀% မထားရ**。 အလုံးစုံ ထားလျှင် seed မတူပေမယ့်
+#    ရလဒ် တူသွားပြီး (`tests/test_sfxpool.py` ရဲ့ 「seed မတူ ⇒ ရလဒ် ကွဲ」
+#    ကျသည်) ဗီဒီယိုတစ်ပုဒ်လုံးမှာ click တစ်မျိုးတည်း ထွက်ကာ **အတုဆန်**မည် —
+#    variant pool ဆောက်ခဲ့ခြင်းရဲ့ ရည်ရွယ်ချက် ပျက်သည်。 ⇒ **အချိုး**နဲ့သာ。
+FAV_SHARE = 0.65
+
+
+def prefer_fav(free, n=0):
+    """ကြိုက်သော cue ရှိလျှင် အဲဒါတွေထဲကသာ ရွေးစေသည်
+
+    ⚠️ `pool()` ရဲ့ sort နဲ့ မရပါ — ရွေးချယ်မှုက **hash နဲ့ တူညီစွာ** ဖြစ်၍
+       ရှေ့ဆုံး ထားရုံနဲ့ ရွေးခံရမှု မတိုးပါ ⇒ ခွဲထုတ်ရသည်。
+    ⚠️ **ရွေးစရာ ၂ နေရာ ရှိသည်** — `pick()` (manifest) နဲ့ `wav()`
+       (တကယ့် render)。 တစ်နေရာသာ ထည့်လျှင် render မှာ မထွက်ပါ。
+    """
+    _fv = fav()
+    if not _fv:
+        return free
+    _p = [x for x in free if x.get("id") in _fv]
+    if not _p:
+        return free
+    # ⚠️ hash ရဲ့ ကိန်းကနေ **အချိုး** ဆုံးဖြတ်သည် ⇒ တူညီစွာ ပြန်ရသည်
+    #    (reproducible) ဒါပေမယ့် seed မတူလျှင် ကွဲသည်。
+    _rest = [x for x in free if x.get("id") not in _fv]
+    if not _rest:
+        return _p
+    return _p if (n % 100) < int(FAV_SHARE * 100) else _rest
 
 
 def path(item):
@@ -113,9 +211,9 @@ def pick(role, seed, idx=0, used=(), bright=None, ship=True):
     if not ps:
         return None
     recent = {x for x in list(used)[-NOREPEAT:]}
-    free = [x for x in ps if x["id"] not in recent] or ps
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
     n = int.from_bytes(h[:4], "big")
+    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, n)
     return free[n % len(free)]
 
 
@@ -171,6 +269,8 @@ MAP = {
     "glitch":      ("glitch",  (1000, 99999), -2),
     "radio":       ("glitch",  (0, 99999),    -2),
     "shutter":     ("shutter", (0, 99999),    -2),
+    # ⚠️ `bed` ကို **နိမ့်နိမ့်** ရောရမည် (-၆ dB) — စကားအောက်မှာ ရှိရမည်
+    "bed":         ("bed",     (0, 99999),    -6),
 }
 # ⚠️ ZJL အတွက် **နိမ့်ဘန်း ကန့်သတ်** — reference (Bhone) ကို တိုင်းရာ
 #    graphic ဝင်ချိန်တွင် နိမ့်ဘန်း ၂၃ dB **ကျ**သည် (တက်တာ မဟုတ်)。
@@ -201,9 +301,16 @@ def target(fam, ship=True):
     """role မိသားစုရဲ **အလယ်တန်း loud_db** — ထိုသို့ နှိုင်းသည်"""
     k = (fam, bool(ship))
     if k not in _TGT:
-        v = sorted(x["loud_db"] for x in (catalog().get("items") or [])
-                   if x.get("role") == fam and x.get("loud_db") is not None
-                   and (not ship or x.get("ship")))
+        # ⚠️ `bed` က catalog `role` မဟုတ်သဖြင့် `role == fam` က **ဗလာ**
+        #    ဖြစ်ပြီး ပစ်မှတ်က `LOUD_DB` (-၁၆) ကို ပြန်ဆုတ်မည် — bed တွေက
+        #    နိမ့်ဘန်း အသံဖြစ်၍ တိုင်းချက်နဲ့ မတူပါ ⇒ pool ကနေ တွက်သည်。
+        if fam == "bed":
+            v = sorted(x["loud_db"] for x in pool("bed", ship=ship)
+                       if x.get("loud_db") is not None)
+        else:
+            v = sorted(x["loud_db"] for x in (catalog().get("items") or [])
+                       if x.get("role") == fam and x.get("loud_db") is not None
+                       and (not ship or x.get("ship")))
         _TGT[k] = v[len(v) // 2] if v else LOUD_DB
     return _TGT[k]
 
@@ -235,16 +342,20 @@ def role_pool(role, th="zae", ship=True):
     #    ထိုဖိုင်ကို ထည့်လျှင် variant တစ်ခုပဲ တိတ်နေပြီး အား မတော် မတျ (click
     #    မှာ ၁၁.၂ dB ကွာခဲ့ · ၂၀၂၆-၀၉-၂၁)。 ⇒ ပစ်မှတ်ကို မီး မကိုင်လျှင် ဖျက်သည်。
     tg = target(fam, ship)
+    # ⚠️ **ဖိုင်အရှည်နဲ့ မစစ်ရ** (၂၀၂၆-၀၉-၂၅)。 `wav()` က `render_dur()`
+    #    အထိ ဖြတ်သဖြင့် ဖိုင် ၀.၅s ရှိပါလျက် ထွက်တာ ၀.၂၆s ဖြစ်နိုင်သည် ⇒
+    #    `whoosh_std` ရဲ့ အနိမ့်ဆုံး ၀.၃၀s (ဂရပ်ဖစ် ဝင်ချိန် ဖုံးရန်) မပြည့်ဘဲ
+    #    ခံခဲ့သည် (`mixkit_free/SWOOSH-024` = ၀.၂၈s)。
     ps = [x for x in pool(fam, bright=br, ship=ship)
-          if x.get("dur", 0) >= lo and _reach(x, tg) >= -LOUD_TOL]
+          if render_dur(x, fam) >= lo and _reach(x, tg) >= -LOUD_TOL]
     # ⚠️ ဘောင် တင်းလွန်း၍ ဗလာ ဖြစ်လျှင် **အလင်း ဘောင်ကို အရင် လျှော့**သည် —
     #    အသံ မပါတာက variant မကွဲတာ ထက် ဆိုးသည်。 ကြာချိန် အနည်းဆုံးက
     #    အဓိပ္ပာယ် ရှိသဖြင့် **နောက်ဆုံးမှ** လျှော့သည်。
     if not ps:
         ps = [x for x in pool(fam, ship=ship)
-              if x.get("dur", 0) >= lo and _reach(x, tg) >= -LOUD_TOL]
+              if render_dur(x, fam) >= lo and _reach(x, tg) >= -LOUD_TOL]
     if not ps:
-        ps = [x for x in pool(fam, ship=ship) if x.get("dur", 0) >= lo]
+        ps = [x for x in pool(fam, ship=ship) if render_dur(x, fam) >= lo]
     if not ps:
         ps = pool(fam, bright=br, ship=ship) or pool(fam, ship=ship)
     return ps
@@ -266,9 +377,10 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     if not ps:
         return None, None
     recent = {x for x in list(used)[-NOREPEAT:]}
-    free = [x for x in ps if x["id"] not in recent] or ps
     h = hashlib.sha1(f"{seed}|{role}|{idx}".encode()).digest()
-    it = free[int.from_bytes(h[:4], "big") % len(free)]
+    _n = int.from_bytes(h[:4], "big")
+    free = prefer_fav([x for x in ps if x["id"] not in recent] or ps, _n)
+    it = free[_n % len(free)]
     src = path(it)
     if not src or not os.path.exists(src):
         return None, None
@@ -278,9 +390,10 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     p = os.path.join(out, f"{th}_{role}_{tag}.wav")
     if os.path.exists(p) and os.path.getmtime(p) >= os.path.getmtime(src):
         return p, it
-    d = float(it.get("dur") or 0.5)
+    # ⚠️ ဖြတ်ရာမှာလည် **ကြားရသော အရှည်** ကို သုံးသည် — ဖိုင်အရှည် သုံးလျှင်
+    #    တိတ်သော အမြီးကို ထည့်ပြီး cue က နောက်ကျသလို ခံစားရသည်。
     lim = DUR_MAX.get(fam, 2.0)
-    d = min(d, lim)
+    d = render_dur(it, fam)
     fo = min(0.06, d * 0.4)
     # ⚠️ **အား နဲ့ peak နှစ်ခုလုံး စစ်ရမည်** — နှစ်ခုထဲ နိမ့်တာ。
     _ld = it.get("loud_db")
@@ -315,9 +428,31 @@ def wav(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
 LEAD_MAX = 3.20
 
 
-def lead(it):
-    """variant တစ်ခုအတွက် **စောသင့်သော အချိန်** s — cue က landing ဖြစ်ရန်"""
-    if not it:
+def render_dur(it, fam):
+    """cue က **တကယ် ထွက်မည့် အရှည်** s — `wav()` ဖြတ်သည့် အတိုင်း
+
+    ⚠️ `dur` (ဖိုင်အရှည်) နဲ့ မတူ。 test နဲ့ QC က ဒီကိန်းကို ကြည့်ရမည် —
+       ဖိုင်အရှည်ကို ကြည့်လျှင် reverb အမြီး ရှည်သော cue ကို
+       「ဂိတ်ကျော်」ဟု မှားစွပ်စွဲမည်。 `wav()` နဲ့ **တစ်ထပ်တည်း** ရှိရမည်
+       ⇒ ၂ နေရာမှာ တွက်ချက် မရေးဘဲ ဒီ helper ကိုသာ သုံးသည်。
+    """
+    lim = DUR_MAX.get(fam, 2.0)
+    d = min(float(it.get("dur_eff") or it.get("dur") or 0.5), lim)
+    pt = it.get("peak_t")
+    if pt is not None:
+        d = max(d, min(float(pt) + 0.10, lim))
+    return d
+
+
+def lead(it, fam=None):
+    """variant တစ်ခုအတွက် **စောသင့်သော အချိန်** s — cue က landing ဖြစ်ရန်
+
+    ⚠️ **`bed` ကို စောပြီး မထည့်ရ** (၂၀၂၆-၀၉-၂၅)。 bed တွေက ၄ စက္ကန့်
+       ရှည်ပြီး အသံ ကျယ်ချိန်က ၃.၇s လောက်မှာ ရှိသည် ⇒ အဲဒီအတိုင်း စောလျှင်
+       ဖွင့်ချက် (t≈၀.၅s) မှာ **ဗီဒီယို အစမတိုင်ခင်** ရောက်မည်。
+       bed ရဲ့ အလုပ်က ဖြစ်ရပ်ပေါ် ကွက်တိ ကျခြင်း မဟုတ် — ခံပေးခြင်း ဖြစ်သည်。
+    """
+    if not it or fam == "bed":
         return 0.0
     pt = it.get("peak_t")
     if pt is None:
@@ -328,4 +463,4 @@ def lead(it):
 def cue(role, seed, idx=0, used=(), th="zae", ship=True, log=None):
     """`(path, lead, item)` — mix ဆင့်အတွက် တစ်ခုတည်း ခေါ်ရန်"""
     p, it = wav(role, seed, idx, used, th=th, ship=ship, log=log)
-    return p, lead(it), it
+    return p, lead(it, MAP.get(role, (role, None, 0))[0]), it

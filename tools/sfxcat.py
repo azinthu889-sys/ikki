@@ -42,7 +42,25 @@ HINT = [
     (r"braam|punch|knock|stomp|clap|heartbeat|^wood(_\d+)?$", "impact"),  # loud −12.2 ≈ impact −12.4
     (r"glass|ting|star_ping|glitter|magic_dust|kalimba|ding", "shimmer"),  # br 8.5–12k
     (r"downer|down_tonal|power_down", "sub"),                   # br 153–1993Hz
-    (r"paper|page_flip|card_deal|flip_card|zipper|scribble", "swipe"),
+    # ⚠️ `^page` ကို ထပ်ထည့် — `PAGE-001.mp3` က normalise ပြီး `page_001`
+    #    ဖြစ်ရာ `page_flip` နဲ့ မကိုက်ဘဲ `unknown` ၈ ခု ကျန်ခဲ့သည်。
+    (r"paper|^page|page_flip|card_deal|flip_card|zipper|scribble", "swipe"),
+    # ── ၂၀၂၆-၀၉-၂၅ `mixkit_free` pack (၁,၇၀၇ ဖိုင် · မိသားစု ၅၃ ခု) ──
+    #    ⚠️ **role အသစ် မတီထွင်ရ** — `sfxpool.DUR_MAX` နဲ့ `sfxlib.ROLE` က
+    #       ရှိပြီးသား ၁၂ ခုကိုသာ သိသည် ⇒ မိသားစုအားလုံးကို အဲဒီပေါ် ချသည်。
+    (r"^bleep|^beep|^ding|^notification|^interface|^technology|"
+     r"^high_?tech|^sci_?fi|^laser", "pop"),
+    (r"^tap|^keyboard|^typewriter", "click"),
+    (r"^swoosh|^sweep|^spin|^zoom|^transition", "whoosh"),
+    (r"^boom|^hit|^punch|^thud|^explosion|^drum|^cymbal", "impact"),
+    # ⚠️ `^cinematic` — mixkit ရဲ့ ၃၆ ဖိုင်။ ရှည်သော swell/boom များ ⇒
+    #    `riser`。 ကြားရသော အရှည် ဂိတ် (၃.၂s) ကျော်သူများကို `bed` pool
+    #    (`mask_gap ≥ 10.5`) က ယူသည် — `CINEMATIC-028` က အဲဒီလမ်းကြောင်း。
+    (r"^swell|^countdown|^suspense|^cinematic", "riser"),
+    (r"^chimes|^sparkle|^magic|^win|^correct", "shimmer"),
+    (r"^bass|^drone", "sub"),
+    (r"^static|^wrong|^rewind|^tape", "glitch"),
+    (r"^white_?noise", "air"),
     (r"vinyl|static|crackle|projector|breath|dream_wash", "air"),
     (r"data_|radio_scan|vintage_flash|radio_adjustment", "glitch"),
     (r"doppler|suck_reverse", "whoosh"),
@@ -59,7 +77,16 @@ ORPHAN = {"type": "click", "success": "pop", "error": "glitch"}
 
 
 def role_of(name):
-    n = name.lower()
+    # ⚠️ **နာမည်ကို normalise ရမည်** (၂၀၂၆-၀၉-၂၅ တွေ့ခဲ့သော အမှား)。
+    #    HINT ရဲ့ pattern တွေက `^metal(_\d+)?$` · `radio_adjustment` ·
+    #    `vintage_flash` စသဖြင့် **extension ဖြုတ်ပြီး space/dash ကို
+    #    underscore ပြောင်းထားသော** နာမည်အတွက် ရေးထားသည် — ဒါပေမယ့်
+    #    `role_of` က `.lower()` သာ လုပ်ခဲ့သဖြင့် `metal_01.wav` (`$` က
+    #    `.wav` ကြောင့် မကိုက်) · `Radio Adjustment.mp3` (space) ·
+    #    `WOOD-001.mp3` (dash) အားလုံး **`unknown`** ဖြစ်ခဲ့သည်。
+    #    `mixkit_free` pack ထည့်ရာမှာ ဒါက unknown ၉၉ ခု ဖြစ်စေခဲ့ပြီး
+    #    `tests/test_sfxrole.py` က မှန်မှန် ဖမ်းခဲ့သည်。
+    n = re.sub(r"[\s\-]+", "_", os.path.splitext(name)[0].lower())
     for pat, r in HINT:
         if re.search(pat, n):
             return ORPHAN.get(r, r)
@@ -106,8 +133,49 @@ def read_wav(path, max_s=12.0):
                 f.seek(sz + (sz & 1), 1)
 
 
+# ⚠️ **`.wav` သာ ဖတ်တာက မလုံလောက်** (၂၀၂၆-၀၉-၂၅)。 Zin ကြိုက်သော cue
+#    ၁၁ ခု (`BLEEP-003` · `CLICK-004` · `GLITCH-004` · `HIGH_TECH-002` ·
+#    `SWOOSH-005` …) က `mixkit_free` pack ရဲ့ **`.mp3`** ဖိုင်များ ဖြစ်ပြီး
+#    catalog ၇၄၁ ခုထဲ **တစ်ခုမှ မပါ**ခဲ့ပါ ⇒ ရွေးလို့ မရခဲ့。
+#    ⇒ wav မဟုတ်လျှင် ffmpeg နဲ့ s16 wav ပြောင်းပြီး တိုင်းသည် (မူရင်း
+#      ဖိုင်ကို **မပြောင်း** · scratch ထဲသာ)。
+_DEC = (".mp3", ".m4a", ".aac", ".ogg", ".flac", ".aiff", ".aif")
+
+
+def _to_wav(path):
+    """ffmpeg နဲ့ scratch wav — မရလျှင် None"""
+    import subprocess
+    import tempfile
+    fd, tmp = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    try:
+        p = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path,
+                            "-c:a", "pcm_s16le", tmp],
+                           capture_output=True, timeout=60)
+        if p.returncode == 0 and os.path.getsize(tmp) > 44:
+            return tmp
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        os.unlink(tmp)
+    except OSError:
+        pass
+    return None
+
+
 def measure(path):
-    """wav တစ်ဖိုင် — တိုင်းချက် dict · မရလျှင် None"""
+    """အသံဖိုင်တစ်ခု — တိုင်းချက် dict · မရလျှင် None"""
+    if path.lower().endswith(_DEC):
+        _t = _to_wav(path)
+        if not _t:
+            return None
+        try:
+            return measure(_t)
+        finally:
+            try:
+                os.unlink(_t)
+            except OSError:
+                pass
     r = read_wav(path)
     if not r:
         return None
@@ -167,17 +235,54 @@ def measure(path):
     F = np.abs(np.fft.rfft(m[:k] * np.hanning(k)))
     f = np.fft.rfftfreq(k, 1.0 / sr)
     cen = float((F * f).sum() / max(1e-9, F.sum()))
+    # ⚠️ **စကား band ကွာဟမှု (`mask_gap`)** — ၂၀၂၆-၀၉-၂၅ ထပ်ထည့်。
+    #    cue က စကားကို ဖုံးမဖုံး ဆုံးဖြတ်သည်: စုစုပေါင်း စွမ်းအင် ÷
+    #    **စကား band (၂၅၀–၃၅၀၀ Hz)** စွမ်းအင်。 ကွာ **ကြီး** ⇒ စွမ်းအင်က
+    #    စကား band ပြင်ပ ⇒ ဖုံးမှု **နည်း**。
+    #    ⚠️ brightness (spectral centroid) နဲ့ **အစားထိုးလို့ မရ** — `BLEEP-003`
+    #       က centroid ၈,၂၀၄ Hz (တောက်) ဖြစ်ပါလျက် ကွာ ၄.၃ dB သာ ရှိသည်
+    #       (စွမ်းအင်က စကား band ထဲ ရှိနေ)、`HIGH_TECH-002` က centroid
+    #       ၂,၈၈၉ (မှိန်) ဖြစ်ပါလျက် ကွာ ၁၅.၅ dB (စကားအောက် နိမ့်ဘန်း)。
+    #    ⚠️ **ဖိုင်တစ်ခုလုံးနဲ့ တွက်ရမည်** — brightness ရဲ့ FFT က ရှေ့
+    #       ၃၂,၇၆၈ sample (၀.၆၈s) သာ ယူသည် ⇒ ရှည်သော bed မှာ မှားမည်。
+    _FF = np.abs(np.fft.rfft(m.astype(np.float64)))
+    _ff = np.fft.rfftfreq(len(m), 1.0 / sr)
+    _tot = float((_FF ** 2).sum())
+    _sp = float((_FF[(_ff >= 250) & (_ff <= 3500)] ** 2).sum())
+    _gap = (10 * np.log10(max(_tot, 1e-12) / max(_sp, 1e-12))
+            if _tot > 0 and _sp > 0 else 0.0)
     # ⚠️ impact — အစ ၅၀ms ရဲ့ စွမ်းအင် ÷ စုစုပေါင်း。 「ထိုးကွင်း」ခွဲရန်
     h = max(1, int(sr * 0.05))
     imp = float((m[:h] ** 2).sum() / max(1e-12, (m ** 2).sum()))
-    return dict(dur=round(dur, 3), sr=sr, ch=ch,
+    # ⚠️ **ကြားရသော အရှည် (`dur_eff`)** — ၂၀၂၆-၀၉-၂၅ ထပ်ထည့်。
+    #    `sfxpool.DUR_MAX` က **ဖိုင်အရှည်**ကို ကန့်သတ်ခဲ့သည်。 ဂိတ်ရဲ့
+    #    ရည်ရွယ်ချက်က 「ရှည်လွန်းသော cue က စကားကို ဖုံးသည်」 ဖြစ်ရာ ဖုံးတာက
+    #    **ကြားရသော အပိုင်း**သာ ဖြစ်သည် — reverb အမြီးက မဖုံးပါ。
+    #    တိုင်းချက် (Zin ကြိုက်သော cue ၁၁ ခု): `SWOOSH-005` ဖိုင် ၃.၁၈s
+    #    ဒါပေမယ့် ကြားရ **၀.၉၇s** · `CLICK-004` ၁.၃၇s → **၀.၁၅s** ⇒
+    #    ဖိုင်အရှည်နဲ့ ကန့်သတ်ခဲ့တာက ကောင်းသော cue ကို အလဟဿ ပယ်မိခဲ့သည်
+    #    (၁၁ ခုလုံး ပယ်ခံခဲ့ပါ)。 ⚠️ ဒါက **ဂိတ် လျှော့တာ မဟုတ်** —
+    #    ကြားရသော အရှည် ကျော်လျှင် ပယ်ဆဲ ဖြစ်သည်、တိုင်းတဲ့ ကိန်း ပြောင်းတာ。
+    _hop = max(1, int(sr * 0.010))
+    _k = len(m) // _hop
+    if _k >= 2:
+        _rm = np.sqrt((m[:_k * _hop].astype(np.float64) ** 2)
+                      .reshape(_k, _hop).mean(axis=1))
+        _db = 20 * np.log10(np.maximum(_rm, 1e-7))
+        # ⚠️ ၂၅ dB က peak ကနေ ကျသည့်အထိ 「ကြားရ」ဟု တွက်သည် ·
+        #    −၅၀ dBFS အောက် ဆိုလျှင် ဘယ်လိုမှ မကြားပါ ⇒ ၂ ခုလုံး
+        _on = np.nonzero(_db >= max(float(_db.max()) - 25.0, -50.0))[0]
+        _de = (float(int(_on[-1]) + 1) * 0.010) if len(_on) else dur
+    else:
+        _de = dur
+    return dict(dur=round(dur, 3), dur_eff=round(min(_de, dur), 3), sr=sr, ch=ch,
                 peak_db=round(20 * np.log10(max(1e-6, peak)), 1),
                 peak_mid_db=round(20 * np.log10(max(1e-6, peak_mid)), 1),
                 loud_db=round(20 * np.log10(max(1e-6, loud)), 1),
                 peak_t=round(peak_t, 3),
                 rms_db=round(20 * np.log10(max(1e-6, rms)), 1),
                 brightness=int(cen), width=round(min(2.0, width), 3),
-                impact=round(imp, 3))
+                mask_gap=round(float(_gap), 1), impact=round(imp, 3))
 
 # ⚠️ **လိုင်စင် မျဉ်း — ဒါက စီးပွားရေး ကိစ္စ、အသံ ကိစ္စ မဟုတ်။**
 #    youtubesfx / Mixkit တို့က 「ဗီဒီယိုထဲ သုံးခွင့်」ပေးသည် —
@@ -197,6 +302,16 @@ BANK = {
     "hybrid_2026":     ("own-synthesis", True, "hybrid26.py — gen + cc0 ရွေးချယ်"),
     "cine_2026":       ("own-synthesis", True, "ကိုယ်တိုင် ဆောက်"),
     "cc0_2026":        ("cc0",          True, "Openverse/Freesound CC0 — အသံသွင်းချက်"),
+    # ⚠️ **လိုင်စင် မျဉ်း ၂ မျိုး ခွဲရမည်** — Mixkit ရဲ့ မှတ်တမ်း
+    #    (`assets/sfx/mixkit_free/LICENSES.md`) က 「ကုန်သွယ်မှုအတွက်
+    #    သုံးခွင့်ရ · credit မလို」 ဟု ဆိုသည် ⇒ **render ထဲ သုံးတာ ခွင့်ပြု**
+    #    ထားပြီး `ship=True` သင့်သည်。 မစစ်ရသေးတာက 「**pack အဖြစ်
+    #    ပြန်ဖြန့်/ထည့်ရောင်း**」 ခြင်းသာ ⇒ ဖိုင်များကို repo (public!) သို့
+    #    ဒေါင်းလုပ် pack ထဲ **ဘယ်တော့မှ မထည့်ရ**。
+    #    Zin ၂၀၂၆-၀၉-၂၅: 「ဒါငါကြိုက်တဲ့ sound effect တွေပါ · သေချာသုံးပေးပါ」
+    "mixkit_free": ("mixkit-free", True,
+                    "render ထဲ သုံးခွင့်ရ (ကုန်သွယ်မှု · credit မလို) · "
+                    "pack အဖြစ် ပြန်ဖြန့်ခွင့် မစစ်ရသေး ⇒ ဖိုင် မဖြန့်ရ"),
 }
 # ⚠️ ဤဖိုလ်ဒါများက **ထုတ်ယူပြီးသား cache** — မူရင်း မဟုတ် ⇒ မထည့်ရ
 SKIP = {"role", "role_gen", "bed"}
@@ -212,7 +327,7 @@ def build(roots, out):
             if bank in SKIP or bank == ".":
                 continue
             for f in sorted(fn):
-                if not f.lower().endswith(".wav"):
+                if not f.lower().endswith((".wav",) + _DEC):
                     continue
                 p = os.path.join(dp, f)
                 m = measure(p)

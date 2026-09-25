@@ -95,7 +95,13 @@ def main():
     print("\n── ၈ · semantic role (P2) ──")
     # ⚠️ `SFX_ROLE` ထဲ hook/number/warning မြေပုံ ရှိပါလျက် planner က
     #    **အားလုံးကို `card`** ဟု သတ်မှတ်ခဲ့သဖြင့် တစ်ခါမှ အလုပ်မလုပ်ခဲ့。
-    for k, want in (("hook", "riser_soft"), ("warning", "whoosh_in"),
+    # ⚠️ ဖွင့်ချက်ရဲ့ ရှေ့သံက `riser_soft` ကနေ **`bed`** ဖြစ်သွားသည်
+    #    (၂၀၂၆-၀၉-၂၅)。 Zin ကြိုက်သော `CINEMATIC-028` (ကြားရ ၄.၆s) ·
+    #    `HIGH_TECH-002` (၄.၂s) က `riser` ဂိတ် ၃.၂s ကျော်ပေမယ့် စွမ်းအင်က
+    #    စကား band ပြင်ပ (ကွာ ၁၁.၂ / ၁၅.၅ dB · အထက် ၁၀%) ဖြစ်၍ ဖွင့်ချက်မှာ
+    #    ခံပေးနိုင်သည်。 ဤစစ်ချက်ရဲ့ ရည်ရွယ်ချက် (အမျိုးအစားတိုင်း
+    #    **ကိုယ်ပိုင် role** ရရမည် · အားလုံး `card` မဖြစ်ရ) မပြောင်းပါ。
+    for k, want in (("hook", "bed"), ("warning", "whoosh_in"),
                     ("number", "swipe"), ("card", "whoosh_in")):
         e1 = PL.sfx_plan([ev(0, 20.0, kind=k)], 90.0, 1.5)
         roles = [x["props"]["role"] for x in e1]

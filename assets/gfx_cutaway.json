@@ -6,15 +6,42 @@
   "n": 61
  },
  {
-  "id": "insert.insert_flow",
+  "id": "cine.letterbox",
   "ok": 1,
-  "cover": 1.0,
+  "cover": 0.5549,
   "n": 60
  },
  {
+  "id": "insert.insert_flow",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
   "id": "insert.insert_label",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "maps.region_zoom",
+  "ok": 0,
+  "why": "TypeError: can only concatenate str (not \"float\") to str"
+ },
+ {
+  "id": "maps.world_dots",
   "ok": 1,
-  "cover": 1.0,
+  "cover": 0.4858,
+  "n": 60
+ },
+ {
+  "id": "motionfx.bg_bokeh",
+  "ok": 1,
+  "cover": 0.0266,
+  "n": 60
+ },
+ {
+  "id": "motionfx.bg_dots",
+  "ok": 1,
+  "cover": 0.0004,
   "n": 60
  },
  {
@@ -27,6 +54,12 @@
   "id": "motionfx.bg_rays",
   "ok": 1,
   "cover": 0.039,
+  "n": 60
+ },
+ {
+  "id": "motionfx.confetti",
+  "ok": 1,
+  "cover": 0.0049,
   "n": 60
  },
  {
@@ -43,8 +76,13 @@
  },
  {
   "id": "motionfx.shape_wipe",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "motionfx.speed_lines",
   "ok": 1,
-  "cover": 1.0,
+  "cover": 0.0066,
   "n": 60
  },
  {
@@ -54,147 +92,336 @@
   "n": 60
  },
  {
+  "id": "prem.chapter",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem.cta_outro",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
   "id": "prem.glass_stat",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem.hero_line",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem.list_reveal",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem.logo_reveal",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "prem.lower_third",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem.metric_trio",
+  "ok": 0,
+  "why": "IndexError: list index out of range"
+ },
+ {
+  "id": "prem.quote_card",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem.split_hero",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem2.bento_grid",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem2.big_number",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem2.chip_row",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem2.split_compare",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem2.stat_ring",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem2.tilt_card",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem2.timeline_flow",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem2.word_pop",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem3.countdown",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.end_card",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.feature_grid",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem3.logo_wall",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem3.marquee_band",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem3.photo_card",
+  "ok": 0,
+  "why": "fill ဗလာ"
+ },
+ {
+  "id": "prem3.price_card",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem3.serif_quote",
-  "ok": 1,
-  "cover": 1.0,
-  "n": 60
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
  },
  {
   "id": "prem3.step_bar",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem3.testimonial",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem4.arrow_point",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem4.big_question",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.mistake_hook",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem4.pov_label",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem4.shock_stat",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem4.stop_scroll",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem4.tap_reveal",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem4.this_or_that",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem4.three_reasons",
-  "ok": 1,
-  "cover": 1.0,
-  "n": 60
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
  },
  {
   "id": "prem4.wait_for_it",
-  "ok": 1,
-  "cover": 1.0,
-  "n": 60
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
  },
  {
   "id": "prem5.bounce_cap",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem5.box_cap",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem5.chip_cap",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
-  "id": "prem5.box_cap",
+  "id": "prem5.cinema_cap",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem5.hl_word_cap",
-  "ok": 1,
-  "cover": 1.0,
-  "n": 60
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
  },
  {
   "id": "prem5.karaoke_cap",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem5.line_by_line",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem5.number_cap",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
-  "id": "prem5.line_by_line",
+  "id": "prem5.speaker_cap",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem5.word_pop_cap",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem6.comment_pop",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.follow_cta",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.like_burst",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem6.poll_sticker",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem6.progress_ring_cta",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "prem6.rating_stars",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem6.save_reminder",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem6.share_row",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem6.social_proof",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "prem6.swipe_hint",
   "ok": 1,
   "cover": 1.0,
   "n": 60
  },
  {
   "id": "prem7.end_grid",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "retro.count_tape",
   "ok": 1,
-  "cover": 1.0,
+  "cover": 0.009,
   "n": 60
  },
  {
@@ -210,16 +437,267 @@
   "n": 60
  },
  {
+  "id": "retro.scan_title",
+  "ok": 1,
+  "cover": 0.1414,
+  "n": 60
+ },
+ {
   "id": "retro.tape_wipe",
   "ok": 1,
   "cover": 0.4332,
   "n": 60
  },
  {
-  "id": "titles2.wipe_word",
+  "id": "retro.vhs_title",
+  "ok": 1,
+  "cover": 0.0623,
+  "n": 60
+ },
+ {
+  "id": "retro.warp_word",
+  "ok": 1,
+  "cover": 0.0361,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_before_after",
   "ok": 1,
   "cover": 1.0,
-  "n": 61
+  "n": 60
+ },
+ {
+  "id": "thm.cut_cta",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_grid",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_list",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_pct",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_point",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_question",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_quote",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_stat",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_steps",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_timeline",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_title",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_vs",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_warn",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "thm.cut_wrong_right",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "titles2.wipe_word",
+  "ok": 0,
+  "why": "alpha မရှိ (RGB) ⇒ တိုင်း၍ မရ · manifest ရဲ့ ကြေညာချက် ကြည့်ပါ"
+ },
+ {
+  "id": "trans.arrow_wipe",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.bars_h",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.bars_v",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.blinds",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.blur_dissolve",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.brush_ink",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.checker",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.circle_in",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.circle_out",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.clock",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.corner_wipe",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.diagonal",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.flash",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.grid_tiles",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.iris_box",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.liquid",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.ring_expand",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.split_h",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.split_v",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.stripes_diag",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.triangle",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.whip_pan",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.zigzag",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "trans.zoom_punch",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
  },
  {
   "id": "typew.grad_card",
@@ -229,6 +707,12 @@
  },
  {
   "id": "typew.split_grad",
+  "ok": 1,
+  "cover": 1.0,
+  "n": 60
+ },
+ {
+  "id": "typo.flat_beat",
   "ok": 1,
   "cover": 1.0,
   "n": 60

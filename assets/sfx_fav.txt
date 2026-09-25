@@ -1,0 +1,34 @@
+# **Zin ကြိုက်သော SFX** — ၂၀၂၆-၀၉-၂၅ သူ တိုက်ရိုက် ပေးသော စာရင်း。
+# 「ဒါငါကြိုက်တဲ့ sound effect တွေပါ။ဒီအသံတွေကိုသေချာသုံးပေးပါ။」
+#
+# ⚠️ `sfxpool.pick()` က ဤစာရင်းထဲက cue ကို **ဦးစားပေး** ရွေးသည် —
+#    no-repeat ဝင်းဒိုးက ကုန်မှ အခြား variant သို့ ကျသည်。
+# ⚠️ id ပုံစံက `<bank>/<ဖိုင်နာမည်>` (catalog id) ဖြစ်သည်。
+# ⚠️ ကြာချိန် ဂိတ် (`DUR_MAX`) ကို **မလျှော့ပါ** — `dur_eff` (ကြားရသော
+#    အရှည်) နဲ့ စစ်သည်。 အောက်ပါ တိုင်းချက်အရ ၄ ခု ဝင်ပြီး ၇ ခုက
+#    ကြားရသော အရှည် ကိုယ်တိုင် ရှည်သဖြင့် စကားပေါ် မတင်ရ ⇒ `sting`
+#    (စကား မရှိသော အခိုက်) အတွက် သီးသန့် မှတ်ထားသည်。
+#
+#   cue              ဖိုင်    ကြားရ   role     ဂိတ်    ရလဒ်
+#   BLEEP-003        0.60   0.49   pop      0.45   sting
+#   BLEEP-004        0.69   0.63   pop      0.45   sting
+#   BLEEP-010        0.82   0.43   pop      0.45   ✓
+#   CLICK-003        1.22   0.41   click    0.35   sting
+#   CLICK-004        1.37   0.15   click    0.35   ✓
+#   CLICK-012        0.45   0.11   click    0.35   ✓
+#   GLITCH-004       2.48   2.36   glitch   2.00   sting
+#   GLITCH-030       3.60   2.93   glitch   2.00   sting
+#   CINEMATIC-028    8.58   4.60   —        —      sting
+#   HIGH_TECH-002    6.00   4.22   pop      0.45   sting
+#   SWOOSH-005       3.18   0.97   whoosh   1.20   ✓
+mixkit_free/BLEEP-003
+mixkit_free/BLEEP-004
+mixkit_free/BLEEP-010
+mixkit_free/CLICK-003
+mixkit_free/CLICK-004
+mixkit_free/CLICK-012
+mixkit_free/GLITCH-004
+mixkit_free/GLITCH-030
+mixkit_free/CINEMATIC-028
+mixkit_free/HIGH_TECH-002
+mixkit_free/SWOOSH-005
