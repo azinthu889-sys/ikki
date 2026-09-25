@@ -341,7 +341,16 @@ def _loopnote(it, dur):
     return "⚠️ ကျော့နယ် မသိ — ဖိုင်အစအဆုံး ကျော့သည် (ထိုးကျသံ ဖြစ်နိုင်)"
 
 
-def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=()):
+def measure_lufs(path):
+    """integrated loudness of a file (ebur128) -- for tracks the catalog has no figure for"""
+    import re as _re
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-af", "ebur128",
+                        "-f", "null", "-"], capture_output=True, text=True)
+    m = _re.findall(r"I:\s+(-?[0-9.]+) LUFS", r.stderr)
+    return float(m[-1]) if m else None
+
+
+def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=(), target=None, ratio=None):
     """စကားသံပေါ် သီချင်း ထပ်ပြီး ducking လုပ်သည်。
 
     `seed` — job id。 တူညီသော seed ⇒ တူညီသော သီချင်း (ပြန်ထုတ်လျှင် တူရန်)。
@@ -364,8 +373,14 @@ def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=()):
         subprocess.run(["ffmpeg","-v","error","-y","-i",video,"-c","copy",out],check=True)
         return out, None
     lvl = LEVEL.get(genre, -18.0)
-    _tgt = TARGET_LUFS.get(genre)
+    # recipe-level target (short-916 `music_lufs`) wins over the genre table
+    _tgt = target if target is not None else TARGET_LUFS.get(genre)
     _tlu = (_it or {}).get("lufs")
+    if _tgt is not None and _tlu is None and trk:
+        try:
+            _tlu = measure_lufs(trk)
+        except Exception:
+            _tlu = None
     if _tgt is not None and _tlu is not None:
         # WARN clamp it: a badly measured track must not swing the mix wildly.
         lvl = max(-24.0, min(6.0, float(_tgt) - float(_tlu)))
@@ -395,7 +410,7 @@ def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=()):
           f"afade=t=in:st=0:d={fade},afade=t=out:st={max(0,dur-fade):.3f}:d={fade}[mus];"
           f"[0:a]aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[sp][sc];"
           # ⚠️ level_sc ကို တင်မှ စကားသံက compressor ကို တကယ် တွန်းနိုင်သည်
-          f"[mus][sc]sidechaincompress=threshold=0.05:ratio=4:"
+          f"[mus][sc]sidechaincompress=threshold=0.05:ratio={float(ratio or 4):g}:"
           f"attack=8:release=240:makeup=1:level_sc=1.2[duck];"
           f"[sp][duck]amix=inputs=2:duration=first:normalize=0,"
           f"alimiter=limit=0.94[a]")
@@ -403,5 +418,5 @@ def bed(video, out, genre, dur, log=print, fade=1.2, seed="", used=()):
         "-filter_complex",fc,"-map","0:v","-map","[a]",
         "-c:v","copy","-c:a","aac","-b:a","192k",out],check=True)
     log(f"  သီချင်း {(_it or {}).get('id', os.path.basename(trk))[:46]} · "
-        f"{lvl:+.0f} dB · ducking 4:1 · {_loopnote(_it, dur)}")
+        f"{lvl:+.0f} dB · ducking {float(ratio or 4):g}:1 · {_loopnote(_it, dur)}")
     return out, os.path.basename(trk)

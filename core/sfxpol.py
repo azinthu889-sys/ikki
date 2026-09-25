@@ -87,6 +87,21 @@ MEASURED = {
     #    assumes IKKI's 21% non-SFX coincidence rate also holds for the
     #    references, which cannot be checked without their stems. Stated, not
     #    hidden.
+    # short-916 (2026-09-26). Zin: "no SFX" -- the 1.5/min house ceiling and the
+    #    `ikki` theme's 8 s gap left 77.6 s with ONE sound moment (3 ticks
+    #    inside the first second). Same change-coincidence detector as ZAE
+    #    (scene>0.30, HF transient within 0.2 s) on the 4 shorts refs:
+    #    80 / 100 / 100 / 80 % of visual changes carry a sound. WARN the
+    #    detector also reads 89 % on IKKI v6, whose only sounds were those
+    #    ticks -- speech sibilants trigger it -- so this proves the refs sound
+    #    their changes, NOT a per-minute rate. The rate is therefore the
+    #    already-measured ZAE/headtop figure, 6.0/min with a 2.0 s gap, and
+    #    Zin asked for SFX explicitly. Stated, not hidden.
+    "short-916": dict(per_min=6.0, gap=2.0,
+                      src="4 shorts refs — ပုံပြောင်းချိန် အသံပါမှု 80/100/100/80% "
+                          "(detector က IKKI v6 မှာလည်း 89% ⇒ ရှိကြောင်းသာ သက်သေ၊ "
+                          "နှုန်းမဟုတ်) · နှုန်းက ZAE/headtop ရဲ့ တိုင်းပြီး 6.0/min · "
+                          "Zin 2026-09-26 SFX တောင်း"),
     "short-video": dict(per_min=6.0, gap=2.0,
                         src="ZAE reference ၂ ပုဒ် (1.mp4 · 2.mp4) — "
                             "ရုပ်ပြောင်းချိန်မှာ အသံပါမှု ၄၃% / ၅၆% ↔ "

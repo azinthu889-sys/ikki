@@ -3018,6 +3018,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    wide=float(rc.get("cap_wide") or 0.86),
                    # short-916: one short line per card (refs: 1-3 words)
                    max_lines=int(rc.get("cap_lines") or 2),
+                   by_word=bool(rc.get("cap_by_word")),
                    accent=_kwc,
                    kw_box=((rc.get("cap_kw_box") or TH.get("RED"))
                            if (_kwc and rc.get("cap_kw_style") == "box") else None),
@@ -3324,6 +3325,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
         # သတ်မှတ်ပြီးသား ဖြစ်သည်။ Legacy `DR.sfx()` ကိုလည်း ပေါင်းလိုက်လျှင်
         # တစ် graphic အတွက် generic whoosh/click နဲ့ semantic cue နှစ်စုံဝင်၍
         # timing မတူသော အသံထပ်ဖြစ်သည်။ Plan မရှိသော style များသာ legacy ကိုသုံး။
+        # B-roll whip (short-916): a whoosh that peaks as the clip lands
+        if rc.get("broll_whip") and not _PLAN:
+            rc["_sfx_extra"] = [(max(0.0, float(_bt) - 0.10), "whoosh_in", -14)
+                                for _bt, _bp, _bd, _btg in (bmov or [])]
         cues = [] if _PLAN else DR.sfx(gfx, caps, rc)
     # ══ plan ရဲ့ sfxEvents — **semantic** လမ်းကြောင်း ═══════════════
     # ⚠️ schema မှာ ရှိပြီး planner က မထုတ်、worker က မခေါ်ခဲ့ပါ ⇒
@@ -3767,6 +3772,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             mv = os.path.join(work, "mus.mp4")
             MU.bed(raw, mv, rc["music"], probe(raw)["dur"], log=log,
+                   target=rc.get("music_lufs"), ratio=rc.get("music_duck"),
                    seed=(os.environ.get("IKKI_SEED")
                          or rc.get("_seed") or job.get("id") or ""))
             pre = mv; _drop(raw)

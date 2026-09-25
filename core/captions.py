@@ -124,6 +124,53 @@ def cards(c, size, maxw, MW, font, max_lines=2, hold=4.0):
         g, a, _b, z = out[-1]; out[-1] = (g, a, max(_b, c["end"]), z)
     return out
 
+def _word_text(text, ws):
+    """card text = the original substring covering these words, so the
+    caption keeps the transcript's own spacing (Burmese words are often
+    written without spaces). Falls back to joining the words."""
+    pos, a, b = 0, None, None
+    for w, _s, _e in ws:
+        i = text.find(w, pos)
+        if i < 0: return "".join(x[0] for x in ws) if not any(" " in x[0] for x in ws) else " ".join(x[0] for x in ws)
+        if a is None: a = i
+        pos = b = i + len(w)
+    return text[a:b].strip()
+
+def word_cards(c, size, maxw, MW, font, hold=1.6, pause=0.28):
+    """One-line cards split **only between words**, each starting on its first
+    word's onset (short-916). Zin 2026-09-26: captions broke words apart and
+    did not match the speech -- the char-share split in `cards()` guessed
+    both. Returns the same tuples as `cards()`, or None without word timings."""
+    ws = c.get("words") or []
+    if len(ws) < 2: return None
+    groups, cur = [], []
+    for w in ws:
+        if cur:
+            t = _word_text(c["text"], cur + [w])
+            gap = w[1] - cur[-1][2]
+            if MW(t, size, font) > maxw or (w[2] - cur[0][1]) > hold or gap >= pause:
+                groups.append(cur); cur = []
+        cur.append(w)
+    if cur: groups.append(cur)
+    out = []
+    for k, g in enumerate(groups):
+        a = g[0][1]
+        nxt = groups[k + 1][0][1] if k + 1 < len(groups) else None
+        # end = last word + 0.45 s, never into the next card. Every card, not
+        # only the last: v7 held "တစ်ခုတည်းအတွက်" 5 s through a pause because
+        # the card ran until the next word started.
+        b = g[-1][2] + 0.45
+        if nxt is not None: b = min(b, nxt)
+        else: b = min(max(b, g[-1][2]), c["end"] + 0.45)
+        txt = _word_text(c["text"], g)
+        sz = size
+        # a single word wider than the line: shrink that card, never split it
+        while MW(txt, sz, font) > maxw * 1.35 and sz > int(size * 0.6):
+            sz -= 3
+        if b - a >= 0.12:
+            out.append(([txt], a, b, sz))
+    return out or None
+
 def plan(segs, spans, max_lines=2):
     """ဖြတ်ပြီးနောက် အချိန်သို့ စာတန်းများကို ပြောင်းသည်。
 
@@ -143,13 +190,23 @@ def plan(segs, spans, max_lines=2):
     for s in segs:
         a=remap(s["start"]); b=remap(s["end"])
         if a is None or b is None or b-a < 0.25: continue
-        out.append(dict(text=s["text"], start=round(a,2), end=round(b,2)))
+        e = dict(text=s["text"], start=round(a,2), end=round(b,2))
+        # word timings (Gemini ASR `words`) -> cut timeline, for word cards
+        ws = []
+        for w in (s.get("words") or []):
+            try: w0, w1 = remap(float(w["s"])), remap(float(w["e"]))
+            except (KeyError, TypeError, ValueError): continue
+            t = str(w.get("w") or "").strip()
+            if t and w0 is not None and w1 is not None and w1 >= w0:
+                ws.append((t, round(w0, 3), round(w1, 3)))
+        if ws: e["words"] = ws
+        out.append(e)
     return out
 
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
-          plate=None, max_lines=2, accent=None, kw_box=None):
+          plate=None, max_lines=2, accent=None, kw_box=None, by_word=False):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -310,7 +367,8 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     line_h = int(size*2.2)
     timed=[]; k=0
     for c in caps:
-        for lines, a, b, sz in cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold):
+        _wc = word_cards(c, size, maxw, MW, font, hold=hold) if by_word else None
+        for lines, a, b, sz in (_wc or cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold)):
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")

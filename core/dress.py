@@ -239,6 +239,8 @@ def sfx(gfx, caps, rc):
         _st = g["at"] + _ent                    # ကတ် အပြည့် ပေါ်ချိန်
         out.append((max(0.0, _st - SETTLE), a, -13))
         out.append((_st, b, -16))
+    # extra timed cues from the worker -- short-916 whooshes each B-roll whip
+    out.extend(rc.get("_sfx_extra") or [])
     # ⚠️ စာတန်းတိုင်းမှာ အသံ မထည့်ရ — Zin ရဲ့ spec: "no per-word SFX"
     if rc.get("captions") == "big" and caps:
         for c in caps[:6]:

@@ -377,10 +377,18 @@ R = {
     # refs use a heavy display face; MyanmarBlack was the closest of three
     # compared side by side (Pyidaungsu-Bold / MyanmarHeadOne / MyanmarBlack)
     captions="big", mmf="MyanmarBlack", latin="Figtree-Black",
-    cap_pct=0.042, cap_base=0.64, cap_max=0.833, cap_wide=0.50, cap_lines=1,
+    # cap_wide 0.72 (778 px, right edge 929 < TikTok rail 940): 0.50 was too
+    # narrow for MyanmarBlack and forced splits inside words.
+    cap_pct=0.042, cap_base=0.64, cap_max=0.833, cap_wide=0.72, cap_lines=1,
     cap_kw=0.33,                            # keyword colour ~1 caption in 3
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
+    cap_by_word=True,                       # cut cards between words, time from word onsets
+    # Zin 2026-09-26 "no background music": the upbeat bed measured -39.9 LUFS
+    # against a -20.2 LUFS voice (-17 dB offset) and was then ducked 4:1 --
+    # inaudible on a phone. Refs keep music forward: bed ~10 dB under voice,
+    # light 2:1 duck.
+    music_lufs=-30.0, music_duck=2.0,
     stroke="brand", stroke_w=0.10, cap_gap=0.18, cap_fade=0.0,   # refs switch cards on a hard cut
     cap_cover=1.0, cap_hold=1.6, scrim=False,
     cap_typo=0.20,
@@ -706,6 +714,10 @@ BOUNDS = dict(
  cap_kw_style=("choice", ["color", "box"]),
  cap_kw_box=("hex",),
  broll_whip=("bool",),
+ cap_by_word=("bool",),
+ # music bed: target loudness of the bed itself, and duck ratio under speech
+ music_lufs=("float", -40.0, -20.0),
+ music_duck=("float", 1.0, 6.0),
  cap_fade = ("float", 0.0, 0.60),
  # ⚠️ ဘောင် 0.6–1.2/min — REF-A 1.1 · REF-B 0.6 (တိုင်းထားသည်)。
  #    1.5 ကျော်လျှင် skill ရဲ့ P3 က ထုတ်ခွင့် ပိတ်သည်。
