@@ -1,0 +1,179 @@
+{
+ "of": "api/fonts_render.json",
+ "by": "tools/font_whitelist.py",
+ "at": 1790401028,
+ "fonts": {
+  "Pyidaungsu": {
+   "substituted": false,
+   "resolved_ps": "Pyidaungsu",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/Pyidaungsu-1.8.3_Regular.ttf",
+    "sha256": "b1423fd20293fbf9e33da647c7641dc72dcf40653b211e57d8fe482d8d74691d",
+    "fontversion": 70975,
+    "bytes": 205844
+   },
+   "also_present": [
+    {
+     "file": "/Users/zinthuaung/Library/Fonts/pyidaungsu-1.2.ttf",
+     "sha256": "d48a92e9d32c0bfe67174e29f532d1261c8406ba4666b5452f50069b137ae40d",
+     "fontversion": 47906,
+     "bytes": 303780
+    },
+    {
+     "file": "/Users/zinthuaung/Library/Fonts/pyidaungsu-1.3.ttf",
+     "sha256": "e29fe4a63bcfcdefc629431169bf95b2e7bbdf31a95356ec1f4034dd4184a1a6",
+     "fontversion": 47906,
+     "bytes": 287680
+    },
+    {
+     "file": "/Users/zinthuaung/Library/Fonts/pyidaungsu.ttf",
+     "sha256": "cdde3a35f3f1bb68df055111e589059072e8a6dc3a211d35985db94976c2d5e2",
+     "fontversion": 47841,
+     "bytes": 295092
+    }
+   ]
+  },
+  "Pyidaungsu-Bold": {
+   "substituted": false,
+   "resolved_ps": "Pyidaungsu-Bold",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/Pyidaungsu-1.8.3_Bold.ttf",
+    "sha256": "c41d39eb2efd93870806f65c16621117a0486671144c486e51f616d802b12c82",
+    "fontversion": 70975,
+    "bytes": 254392
+   },
+   "also_present": []
+  },
+  "MasterpieceUniRound": {
+   "substituted": false,
+   "resolved_ps": "MasterpieceUniRound",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/PaohDragonApp.ttf",
+    "sha256": "81c50788fa9084a4d20a130833fe0b66a5a8a055e1474edad267ed5d4abdfad7",
+    "fontversion": 65536,
+    "bytes": 89100
+   },
+   "also_present": [
+    {
+     "file": "/Users/zinthuaung/Library/Fonts/MasterpieceUniRound.ttf",
+     "sha256": "d8d1c7740b5605ce15b52675be728c49e29f3d9e29562a0efc56b1493ddc0dc8",
+     "fontversion": 65536,
+     "bytes": 59604
+    }
+   ]
+  },
+  "MyanmarYinmar": {
+   "substituted": false,
+   "resolved_ps": "MyanmarYinmar",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarYinmar.ttf",
+    "sha256": "10b58d76b53eade39557caca52044e16e46a211bf8e4bf346dca68ab63ca76c6",
+    "fontversion": 72090,
+    "bytes": 77136
+   },
+   "also_present": []
+  },
+  "MyanmarSansPro": {
+   "substituted": false,
+   "resolved_ps": "MyanmarSansPro",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarSansPro.ttf",
+    "sha256": "b68c1a4b04efefb3c5ea175e221040dc587066fc4413391c7a43fd855f6c78a1",
+    "fontversion": 72090,
+    "bytes": 40836
+   },
+   "also_present": []
+  },
+  "MyanmarHeadOne": {
+   "substituted": false,
+   "resolved_ps": "MyanmarHeadOne",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarThuriya.ttf",
+    "sha256": "69e2593292140a7e7f3a3b40ef9f2fd80c046e9fdc498f8727d85e5478a21709",
+    "fontversion": 72090,
+    "bytes": 31908
+   },
+   "also_present": [
+    {
+     "file": "/Users/zinthuaung/Library/Fonts/MyanmarThuriya_volt.ttf",
+     "sha256": "0347400d8a4f0cbe46b86c93b117c5294150793382df9a2ce94a1d4f27893b88",
+     "fontversion": 72090,
+     "bytes": 66944
+    }
+   ]
+  },
+  "PadaukBook-Bold": {
+   "substituted": false,
+   "resolved_ps": "PadaukBook-Bold",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/PadaukBook-Bold.ttf",
+    "sha256": "d063bccc4b528ea286a4d8598234d769033f012b910cb90139b9cd1fe73d7686",
+    "fontversion": 334233,
+    "bytes": 524748
+   },
+   "also_present": []
+  },
+  "Padauk": {
+   "substituted": false,
+   "resolved_ps": "Padauk",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/PadaukGhostтАЛ.ttf",
+    "sha256": "87f12accb46e43a41dc98e98aee7306937efccc3dd0ed655ed40561e1d3c5083",
+    "fontversion": 163840,
+    "bytes": 245868
+   },
+   "also_present": []
+  },
+  "NotoSansMyanmar-Bold": {
+   "substituted": false,
+   "resolved_ps": "NotoSansMyanmar-Bold",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/NotoSansMyanmar-Bold.ttf",
+    "sha256": "2abcef1067b38489bd2f3bce353ba71f97db8eb3a151e644cab1e30218c3968d",
+    "fontversion": 68157,
+    "bytes": 104692
+   },
+   "also_present": [
+    {
+     "file": "/System/Library/Fonts/NotoSansMyanmar.ttc",
+     "sha256": "52189a3758c54cb0f37d6452d029d24a866fb1ef89bab970e320fe72cd7b0741",
+     "fontversion": 131138,
+     "bytes": 1727576
+    }
+   ]
+  },
+  "MyanmarPonenyet": {
+   "substituted": false,
+   "resolved_ps": "MyanmarPonenyet",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarPonenyet.ttf",
+    "sha256": "3c35f4f8bc4de41acd4bc6f0acae772f6fc37a1f47a283cb1822efaa05a30125",
+    "fontversion": 72090,
+    "bytes": 39032
+   },
+   "also_present": []
+  },
+  "MyanmarBlack": {
+   "substituted": false,
+   "resolved_ps": "MyanmarBlack",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarBlack.ttf",
+    "sha256": "50058338df6ac48d99901c0fdfa39da43702a792514eb80856706bcd874dd25c",
+    "fontversion": 72090,
+    "bytes": 39868
+   },
+   "also_present": []
+  },
+  "MyanmarSagar": {
+   "substituted": false,
+   "resolved_ps": "MyanmarSagar",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/MyanmarSagar.ttf",
+    "sha256": "d927b338bd27eb584b9b3370eba7dfb981afe373940f1c30b5a5216b11c0cbb9",
+    "fontversion": 72090,
+    "bytes": 40960
+   },
+   "also_present": []
+  }
+ }
+}

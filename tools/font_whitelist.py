@@ -98,6 +98,63 @@ def md5(p):
     return hashlib.md5(open(p, "rb").read()).hexdigest()
 
 
+PROV_JSON = os.path.join(ROOT, "api", "fonts_render.prov.json")
+CTPATH = os.path.join(ROOT, "tools", "ctfontpath")          # tools/ctfontpath.swift
+
+
+def _fileinfo(path):
+    ver = subprocess.run(["fc-scan", "--format", "%{fontversion}\n", path],
+                         capture_output=True, text=True).stdout.split()
+    return dict(file=path, sha256=hashlib.sha256(open(path, "rb").read()).hexdigest(),
+                fontversion=int(ver[0]) if ver and ver[0].isdigit() else None,
+                bytes=os.path.getsize(path))
+
+
+def provenance():
+    """R-G3 (Zin, 2026-09-26): the file each verdict depends on.
+
+    Recording every file installed under a name proves nothing — CoreText
+    could switch from one to another with no hash changing.  So CoreText is
+    asked which file it LOADS (tools/ctfontpath: CTFontCreateWithName →
+    kCTFontURLAttribute, the same call cttext.swift:53 makes); that one is
+    `used`, the rest `also_present`.  A later guard compares `used.sha256`.
+    """
+    if not os.path.exists(CTPATH):
+        subprocess.run(["swiftc", "-O", CTPATH + ".swift", "-o", CTPATH], check=True)
+    res = {}
+    for ln in subprocess.run([CTPATH, *FN.IDS], capture_output=True, text=True,
+                             check=True).stdout.splitlines():
+        r = json.loads(ln)
+        res[r["asked"]] = r
+    out = {}
+    for fid in FN.IDS:
+        r = res.get(fid) or {}
+        used = r.get("file") or ""
+        out[fid] = dict(
+            substituted=bool(r.get("substituted")), resolved_ps=r.get("resolved_ps"),
+            used=_fileinfo(used) if used and os.path.exists(used) else None,
+            also_present=[_fileinfo(p) for p in files_for(fid) if p != used])
+    return out
+
+
+def write_prov():
+    """a separate .prov.json, the project convention — the result file the
+    guard reads is not touched"""
+    d = dict(of="api/fonts_render.json", by="tools/font_whitelist.py",
+             at=int(__import__("time").time()), fonts=provenance())
+    tmp = PROV_JSON + ".part"
+    json.dump(d, open(tmp, "w"), ensure_ascii=False, indent=1)
+    os.replace(tmp, PROV_JSON)
+    return d
+
+
+def write_json(d):
+    """atomic — the worker's guard reads this file and fails closed (R-G1)"""
+    tmp = OUT_JSON + ".part"
+    json.dump(d, open(tmp, "w"), ensure_ascii=False, indent=1)
+    os.replace(tmp, OUT_JSON)
+
+
 PANGO = r'''
 import subprocess, sys, json
 fam, wt, out = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -146,6 +203,8 @@ def pango_render(path, fam, wt, work):
 
 
 def main():
+    if not os.path.exists(CTPATH):       # needed before the first verdict
+        subprocess.run(["swiftc", "-O", CTPATH + ".swift", "-o", CTPATH], check=True)
     work = tempfile.mkdtemp(prefix="fontwl_")
     os.makedirs(REP, exist_ok=True)
     # CoreText's silent fallback, for the "was the font really used" test
@@ -160,7 +219,10 @@ def main():
         blank = ok_ct and any(ink(p) is None for p in mac)
         ct_pass = ok_ct and not subst and not blank
         best = None
-        for path in files_for(fid):
+        ct_used = (json.loads(subprocess.run([CTPATH, fid], capture_output=True, text=True)
+                              .stdout or "{}").get("file")
+                   if os.path.exists(CTPATH) else None)
+        for path in sorted(files_for(fid), key=lambda x: x != ct_used):
             fam, style = scan(path)
             wt = weight(style)
             vdir = f"{work}/{fid}_vps_{hashlib.md5(path.encode()).hexdigest()[:6]}"
@@ -169,6 +231,11 @@ def main():
                     else 0.0 for i, m in enumerate(mac)]
             cand = dict(file=path, family=fam, style=style, weight=wt, used=used,
                         ious=[round(x, 3) for x in ious], dir=vdir)
+            # ⚠️ judge the file CoreText LOADS, not the best-scoring one: the
+            #    first run judged Pyidaungsu on the 1.3 file (IoU 0.54) while
+            #    CoreText renders 1.8.3 (IoU 0.15–0.20 under Pango)
+            if path == ct_used:
+                best = cand; break
             if best is None or min(ious) > min(best["ious"]):
                 best = cand
         pg_pass = bool(best and best["used"] and ct_pass and min(best["ious"]) >= GATE)
@@ -198,7 +265,7 @@ def main():
     d.text((200, 10), "each word: CoreText (grey)  |  Pango same file (red-tinted)",
            fill=(200, 200, 200))
     sh.save(os.path.join(REP, "fonts_sheet.png"))
-    json.dump(dict(method="5 words · 120 px · same file · Pango sees only that file · "
+    write_json(dict(method="5 words · 120 px · same file · Pango sees only that file · "
                           f"IoU ≥ {GATE} on every word + eye check",
                    words=WORDS, gate=GATE,
                    coretext=[r["id"] for r in rows if r["coretext"]],
@@ -207,8 +274,8 @@ def main():
                            {"pango_ious": (r["pango_best"] or {}).get("ious"),
                             "pango_file": os.path.basename((r["pango_best"] or {}).get("file", "")),
                             "pango_used": (r["pango_best"] or {}).get("used")}
-                           for r in rows]),
-              open(OUT_JSON, "w"), ensure_ascii=False, indent=1)
+                           for r in rows]))
+    write_prov()
     open(os.path.join(REP, "fonts_mac.txt"), "w").write(
         "\n".join(r["id"] for r in rows if r["coretext"]) + "\n")
     open(os.path.join(REP, "fonts_vps.txt"), "w").write(
@@ -219,4 +286,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--provenance" in sys.argv:
+        # provenance only, without re-rendering; the verdict file is untouched
+        d = write_prov()
+        for k, v in d["fonts"].items():
+            u = v["used"] or {}
+            print(f"{k:22} used {os.path.basename(u.get('file', '—')):30} "
+                  f"v{u.get('fontversion')} {str(u.get('sha256'))[:12]}  "
+                  f"+{len(v['also_present'])} also present"
+                  + ("  ⚠️ SUBSTITUTED" if v["substituted"] else ""))
+    else:
+        main()
