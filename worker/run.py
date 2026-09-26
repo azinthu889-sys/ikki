@@ -5005,8 +5005,8 @@ def _cine_captioner(W, H, sub_lang, log=print):
         import asr as ASR, captions as CP, infogfx as IG, cinevlog as CI
         import fonts as FN
         # render the chosen fonts or refuse (Pyidaungsu is never substituted)
-        FN.guard([CINE_FONTS[l] for l in {"my": ["my"], "en": ["en"],
-                                          "ja_en": ["ja", "en"]}[sub_lang]], log=log)
+        # Burmese captions only — the whitelist covers Burmese fonts
+        if sub_lang == "my": FN.guard([CINE_FONTS["my"]], log=log)
         os.makedirs(work, exist_ok=True)
         cw, mp = CI.compact_talk(talk_wav, windows, os.path.join(work, "talk_only.wav"))
         wav = os.path.join(work, "talk16.wav")
@@ -5057,11 +5057,10 @@ def cine_handle(d, t0):
     pace = over.get("_pace") or "normal"
     srcs = [x for x in (d.get("sources") or [d.get("upload")]) if x]
     # fonts first — refuse before downloading gigabytes, not after the render
-    if sub_lang != "none":
+    if sub_lang == "my":
         import fonts as FN
-        FN.guard([CINE_FONTS[l] for l in {"my": ["my"], "en": ["en"],
-                                          "ja_en": ["ja", "en"]}[sub_lang]],
-                 log=lambda x: print(x, flush=True))
+        if sub_lang == "my":
+            FN.guard([CINE_FONTS["my"]], log=lambda x: print(x, flush=True))
     _sz = sum(float(x.get("size") or 0) for x in srcs) / (1024 ** 3)
     need = _sz * 1.05 + 3.0
     if free_gb(BIG) < need:

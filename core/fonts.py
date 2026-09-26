@@ -77,19 +77,24 @@ class FontRefused(RuntimeError):
 
 
 def guard(names, log=print, r=None):
-    """raise FontRefused when any Burmese font in `names` is not measured-good
-    on this worker's renderer.  Non-picker names (Latin, CJK) are not checked —
-    the whitelist covers the Burmese picker fonts only."""
+    """raise FontRefused when any font in `names` is not measured-good on this
+    worker's renderer.  Callers pass the BURMESE fonts a job will use (recipe
+    `mmf`, theme `MMF`, cine Burmese captions) — every one is checked.
+
+    ⚠️ it used to check only picker ids (`n in IDS`), so `promotional`'s
+       "NotoSansMyanmar" — used by a recipe, not in the picker — was never
+       checked (TH session, 2026-09-26).  The whitelist tool now measures
+       recipe/theme/cine fonts too (tools/font_whitelist.py measure_ids)."""
     r = r or renderer()
     wl = whitelist(r)
-    bad = [n for n in dict.fromkeys(n for n in names if n) if n in IDS and n not in wl]
+    bad = [n for n in dict.fromkeys(n for n in names if n) if n not in wl]
     if bad:
         msg = (f"ဖောင့် {', '.join(bad)} ကို ဒီ worker ({r}) မှာ မှန်မှန်ကန်ကန် မရေးနိုင်ပါ — "
                f"တခြားဖောင့် ရွေးပါ (အစားထိုးပြီး မထုတ်ပါ) · "
                f"font {', '.join(bad)} cannot be rendered faithfully on the {r} worker")
         log(f"  ⛔ {msg}")
         raise FontRefused(msg)
-    log(f"  ✓ ဖောင့် စစ်ပြီး ({r}) · {', '.join(n for n in dict.fromkeys(names) if n in IDS) or '—'}")
+    log(f"  ✓ ဖောင့် စစ်ပြီး ({r}) · {', '.join(n for n in dict.fromkeys(names) if n) or '—'}")
     return True
 
 

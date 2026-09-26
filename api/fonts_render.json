@@ -20,7 +20,8 @@
   "NotoSansMyanmar-Bold",
   "MyanmarPonenyet",
   "MyanmarBlack",
-  "MyanmarSagar"
+  "MyanmarSagar",
+  "NotoSansMyanmar"
  ],
  "pango": [
   "MasterpieceUniRound",
@@ -31,7 +32,8 @@
   "NotoSansMyanmar-Bold",
   "MyanmarPonenyet",
   "MyanmarBlack",
-  "MyanmarSagar"
+  "MyanmarSagar",
+  "NotoSansMyanmar"
  ],
  "detail": [
   {
@@ -40,13 +42,13 @@
    "ct_note": "",
    "pango": false,
    "pango_ious": [
-    0.617,
-    0.762,
-    0.538,
-    0.675,
-    0.722
+    0.2,
+    0.177,
+    0.194,
+    0.171,
+    0.152
    ],
-   "pango_file": "pyidaungsu-1.3.ttf",
+   "pango_file": "Pyidaungsu-1.8.3_Regular.ttf",
    "pango_used": true
   },
   {
@@ -212,6 +214,21 @@
     0.902
    ],
    "pango_file": "MyanmarSagar.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "NotoSansMyanmar",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.864,
+    0.917,
+    0.917,
+    0.869,
+    0.909
+   ],
+   "pango_file": "NotoSansMyanmar-Regular.ttf",
    "pango_used": true
   }
  ]

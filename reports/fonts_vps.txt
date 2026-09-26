@@ -7,3 +7,4 @@ NotoSansMyanmar-Bold
 MyanmarPonenyet
 MyanmarBlack
 MyanmarSagar
+NotoSansMyanmar

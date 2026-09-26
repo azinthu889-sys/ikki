@@ -1,7 +1,7 @@
 {
  "of": "api/fonts_render.json",
  "by": "tools/font_whitelist.py",
- "at": 1790401028,
+ "at": 1790402464,
  "fonts": {
   "Pyidaungsu": {
    "substituted": false,
@@ -172,6 +172,17 @@
     "sha256": "d927b338bd27eb584b9b3370eba7dfb981afe373940f1c30b5a5216b11c0cbb9",
     "fontversion": 72090,
     "bytes": 40960
+   },
+   "also_present": []
+  },
+  "NotoSansMyanmar": {
+   "substituted": false,
+   "resolved_ps": "NotoSansMyanmar",
+   "used": {
+    "file": "/Users/zinthuaung/Library/Fonts/NotoSansMyanmar-Regular.ttf",
+    "sha256": "c155e030b8f6963e20a1024e514213bfeadf6a45fd8ea009b2ee34b373375e40",
+    "fontversion": 68157,
+    "bytes": 107640
    },
    "also_present": []
   }

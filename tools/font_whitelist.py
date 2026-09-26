@@ -46,6 +46,31 @@ OUT_JSON = os.path.join(ROOT, "api", "fonts_render.json")
 REP = os.path.join(ROOT, "reports")
 
 
+def measure_ids():
+    """the picker fonts PLUS every Burmese font a recipe, theme or the cine
+    engine uses.  ⚠️ picker-only missed `promotional` (mmf "NotoSansMyanmar",
+    not a picker id), so the guard never checked it (TH session, 2026-09-26)."""
+    ids = list(FN.IDS)
+    try:
+        import recipes as R
+        for k in R.R:
+            v = (R.get(k) or {}).get("mmf")
+            if v and v not in ids: ids.append(v)
+    except Exception as e:
+        print("⚠️ recipes:", e)
+    try:
+        sys.path.insert(0, FN.MK); import theme as T
+        for tid in list(getattr(T, "THEMES", {}) or {}):
+            T.use(tid); v = T.t().get("MMF")
+            if v and v not in ids: ids.append(v)
+    except Exception as e:
+        print("⚠️ themes:", e)
+    src = open(os.path.join(ROOT, "worker", "run.py"), encoding="utf-8").read()
+    m = re.search(r'CINE_FONTS = \{"my": "([^"]+)"', src)
+    if m and m.group(1) not in ids: ids.append(m.group(1))
+    return ids
+
+
 def ct(text, font, out):
     sp = dict(text=text, font=font, fallback="Figtree", size=SIZE, w=900, h=300,
               fill="#FFFFFF", unit="cluster", align="center",
@@ -122,12 +147,13 @@ def provenance():
     if not os.path.exists(CTPATH):
         subprocess.run(["swiftc", "-O", CTPATH + ".swift", "-o", CTPATH], check=True)
     res = {}
-    for ln in subprocess.run([CTPATH, *FN.IDS], capture_output=True, text=True,
+    ids = measure_ids()
+    for ln in subprocess.run([CTPATH, *ids], capture_output=True, text=True,
                              check=True).stdout.splitlines():
         r = json.loads(ln)
         res[r["asked"]] = r
     out = {}
-    for fid in FN.IDS:
+    for fid in ids:
         r = res.get(fid) or {}
         used = r.get("file") or ""
         out[fid] = dict(
@@ -212,7 +238,7 @@ def main():
     for i, w in enumerate(WORDS):
         p = f"{work}/bogus_{i}.png"; ct(w, "NoSuchFont-ZZZ", p); bogus.append(md5(p))
     rows = []
-    for fid in FN.IDS:
+    for fid in measure_ids():
         mac = [f"{work}/{fid}_mac_{i}.png" for i in range(len(WORDS))]
         ok_ct = all(ct(w, fid, p) for w, p in zip(WORDS, mac))
         subst = ok_ct and all(md5(p) == b for p, b in zip(mac, bogus))
