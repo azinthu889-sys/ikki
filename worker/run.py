@@ -5394,8 +5394,14 @@ def _guard_remote(health=None, sleep=time.sleep, poll=None):
         print(f"  ⚠️ worker တစ်ခုတည်း စစ်ချက် — API မရ ({type(e).__name__}) · ဆက်သွားသည်", flush=True)
         return
     if a2 is not None and float(a2) <= poll * 1.5:
-        raise SystemExit(f"⛔ worker မစပါ — တခြား worker တစ်ခု API ကို {float(a2):.1f}s အတွင်း "
-                         f"ခေါ်နေသည် (VPS ikki-worker ?)。 တစ်ခုတည်းသာ ပြေးရမည်。")
+        raise SystemExit(
+            f"⛔ worker မစပါ — တခြား worker တစ်ခု API ကို {float(a2):.1f}s အတွင်း ခေါ်နေသည်。 "
+            f"တစ်ခုတည်းသာ ပြေးရမည်。 ရှာ/ရပ်ရန်:\n"
+            f"  Mac:  pgrep -fl worker/run.py   (launchd: launchctl list | grep ikki)\n"
+            f"  VPS:  ssh root@srv1866621.hstgr.cloud 'docker ps | grep ikki-worker' ⇒ "
+            f"docker stop ikki-worker && docker update --restart=no ikki-worker\n"
+            f"  ⚠️ VPS ikki-worker မှာ cttext မပါ (မြန်မာစာ ပျက်) — deploy.sh ရဲ့ "
+            f"`docker compose up -d` က ပြန်ဖန်တီးတတ်သည်。")
 
 
 def main(once=False):
