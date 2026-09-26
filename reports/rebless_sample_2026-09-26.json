@@ -1,0 +1,68 @@
+{
+ "rule": "sorted(id) ရဲ့ index 0,25,50,… (every 25th) — deterministic · လက်ရွေးစင် မရွေးရ",
+ "declared_at": "2026-09-26T15:1x (ကိန်း မမြင်ခင်)",
+ "samples": {
+  "gfx_verify": {
+   "total": 616,
+   "n": 25,
+   "ids": [
+    "brows.autocomplete",
+    "callouts.side_note",
+    "charts.pct_grid",
+    "glitch.echo_ghost",
+    "infogfx.steps",
+    "kinetic.spotlight",
+    "kinetic2.stagger_out",
+    "maps.world_dots",
+    "mockups2.bus_stop",
+    "motionfx.hud_corners",
+    "prem.lower_third",
+    "prem4.pov_label",
+    "prem6.social_proof",
+    "retro.label_strip",
+    "thm.chat_pair",
+    "thm.cut_question",
+    "thm.key_hl",
+    "thm.media_stat",
+    "thm.tag_under",
+    "thm.ui_shot",
+    "titles2.alert_strip",
+    "titles2.step_flow",
+    "trans.bars_h",
+    "typew.grad_card",
+    "typo.quote_block"
+   ]
+  },
+  "gfx_textsens": {
+   "total": 616,
+   "n": 25,
+   "ids": [
+    "brows.autocomplete",
+    "callouts.side_note",
+    "charts.pct_grid",
+    "glitch.echo_ghost",
+    "infogfx.steps",
+    "kinetic.spotlight",
+    "kinetic2.stagger_out",
+    "maps.world_dots",
+    "mockups2.bus_stop",
+    "motionfx.hud_corners",
+    "prem.lower_third",
+    "prem4.pov_label",
+    "prem6.social_proof",
+    "retro.label_strip",
+    "thm.chat_pair",
+    "thm.cut_question",
+    "thm.key_hl",
+    "thm.media_stat",
+    "thm.tag_under",
+    "thm.ui_shot",
+    "titles2.alert_strip",
+    "titles2.step_flow",
+    "trans.bars_h",
+    "typew.grad_card",
+    "typo.quote_block"
+   ]
+  }
+ }
+}

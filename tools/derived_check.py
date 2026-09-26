@@ -39,6 +39,7 @@ P2  · **ပြန်စစ်ရမယ့် template စာရင်း** ထ�
 """
 import hashlib
 import json
+import time
 import os
 import re
 import sys
@@ -417,6 +418,74 @@ def table():
     return 1 if nstale else 0
 
 
+def rebless(name, proof_path):
+    """R-G5 (ค) — **နမူနာ တိုက်စစ် သက်သေ**နဲ့ tool hash ကို မှတ်သည်。
+
+    ⛔ လူ့ဆုံးဖြတ်ချက် သက်သက်နဲ့ ဂိတ် မဖွင့်ရ (Zin · ၂၀၂၆-၀၉-၂၆) —
+       `--because "စာသား"` ကို **လက်မခံ**ပါ。 `tools/rebless_sample.py` ရဲ့
+       သက်သေဖိုင်သာ လက်ခံသည်၊ အဲဒီဖိုင်ထဲ:
+         · ကြေညာထားသော နမူနာ စာရင်း (ပြန်တွက်ပြီး တူရမည် — လက်ရွေးစင် မရ)
+         · နမူနာ ≥25 ခု · ကိုက်ချက် **n/n အတိအကျ** (row အပြည့်)
+         · tool hash ဟောင်း/အသစ် — အသစ်က **လက်ရှိ ဖိုင်နဲ့ တူရမည်**
+    ⇒ ဈေးပေါလျှင် ဒီလမ်း မလိုပါ — အပြည့် ပြန်တိုင်းရမည်。
+    """
+    spec = REG[name]
+    try:
+        pr = json.load(open(proof_path, encoding="utf-8"))
+    except Exception as e:
+        print("⛔ သက်သေဖိုင် ဖတ်မရ: %s" % e, file=sys.stderr); return 1
+
+    bad = []
+    if pr.get("name") != name:
+        bad.append("သက်သေက `%s` အတွက် — `%s` မဟုတ်" % (pr.get("name"), name))
+    if pr.get("verdict") != "ok":
+        bad.append("verdict=%r (ok မဟုတ်)" % pr.get("verdict"))
+    ids = list(pr.get("sample_ids") or [])
+    if len(ids) < 25:
+        bad.append("နမူနာ %d ခု — ၂၅ လိုသည်" % len(ids))
+    if pr.get("matched") != len(ids) or pr.get("mismatch") or pr.get("missing"):
+        bad.append("ကိုက်ချက် %s/%d · ကွာ %d · မတွေ့ %d — n/n မဟုတ်"
+                   % (pr.get("matched"), len(ids),
+                      len(pr.get("mismatch") or []), len(pr.get("missing") or [])))
+    # ⚠️ စာရင်းကို **ပြန်တွက်**သည် — သက်သေဖိုင်ထဲ စာရင်းကို မယုံရ
+    op = out_path(spec)
+    try:
+        rows = json.load(open(op, encoding="utf-8"))
+        have = sorted(r["id"] for r in rows)
+        if ids != have[::int(pr.get("step") or 25)]:
+            bad.append("နမူနာ စာရင်း ပြန်တွက်ရာ မကိုက် (လက်ရွေးစင်?)")
+    except Exception as e:
+        bad.append("ထွက်ဖိုင် ပြန်တွက်မရ: %s" % e)
+    # ⚠️ tool hash အသစ်က လက်ရှိ tool နဲ့ တူရမည် — မတူလျှင် သက်သေက ဟောင်းပြီ
+    now = tool_hashes(spec)
+    if (pr.get("new_tools") or {}) != now:
+        bad.append("သက်သေထဲ tool hash က လက်ရှိ tool နဲ့ မတူ (သက်သေ ဟောင်းပြီ)")
+    if bad:
+        print("⛔ rebless ငြင်းသည် — %s" % name, file=sys.stderr)
+        for b in bad: print("   · %s" % b, file=sys.stderr)
+        return 1
+
+    pv = load_prov(spec) or {}
+    pv["tools"] = now
+    pv.setdefault("rebless", []).append({
+        "at": int(time.time()),
+        "at_h": time.strftime("%Y-%m-%dT%H:%M"),
+        "rule": pr.get("rule"), "step": pr.get("step"),
+        "n": len(ids), "matched": pr.get("matched"),
+        "old_tools": pr.get("old_tools"), "new_tools": now,
+        "declared_file": pr.get("declared_file"),
+        "proof": os.path.relpath(os.path.abspath(proof_path), HERE),
+        "sample_ids": ids,
+    })
+    json.dump(pv, open(prov_path(spec), "w"), ensure_ascii=False,
+              indent=1, sort_keys=True)
+    print("  ✓ rebless — %s · နမူနာ %d/%d bit-exact · tool hash မှတ်ပြီး"
+          % (name, pr.get("matched"), len(ids)))
+    print("     မှတ်တမ်း → %s (`rebless` ထဲ %d ခုမြောက်)"
+          % (os.path.basename(prov_path(spec)), len(pv["rebless"])))
+    return 0
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -434,6 +503,19 @@ def main():
         for k in r["stale_ids"]:
             print(k)
         return 0
+    if a[0] == "--rebless" and len(a) > 1:
+        # ⛔ `--because "စာသား"` မရ — သက်သေဖိုင်သာ
+        pf = None
+        for i, x in enumerate(a):
+            if x == "--proof" and i + 1 < len(a): pf = a[i + 1]
+        if any(x == "--because" for x in a):
+            print("⛔ `--because` ကို လက်မခံပါ — R-G5: စာသား မဟုတ်၊ **နမူနာ "
+                  "တိုက်စစ် ရလဒ်**。\n   ပြေးပါ: python3 tools/rebless_sample.py %s"
+                  % a[1], file=sys.stderr)
+            return 1
+        if not pf:
+            pf = os.path.join(HERE, "reports", "rebless_proof_%s.json" % a[1])
+        return rebless(a[1], pf)
     if a[0] == "--gate" and len(a) > 1:
         r = check(a[1])
         if r["status"] == "ok":
@@ -455,7 +537,7 @@ def main():
             ids = [x for x in a[a.index("--ids") + 1].split(",") if x]
         return record(a[1], ids)
     print(__doc__)
-    print("အသုံး: derived_check.py [--stale-list N | --gate N | --warn N | "
+    print("အသုံး: derived_check.py [--rebless N [--proof F] | --stale-list N | --gate N | --warn N | "
           "--record N [--ids a,b]]")
     print("N:", ", ".join(REG))
     return 2
