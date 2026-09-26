@@ -81,8 +81,24 @@ rsync -az \
   --exclude='work' --exclude='scratch' --exclude='reports' \
   ./ root@srv1866621.hstgr.cloud:/srv/ikki/
 
+# ── which worker renders — exactly ONE ─────────────────────────────────
+# ⚠️ 2026-09-26: `docker compose up -d --build` started the VPS worker too,
+#    then this script restarted the Mac worker; the worker guard (53c07a7)
+#    rightly refused to run a second one, so production silently switched to
+#    the VPS worker — which has no CoreText and no Pyidaungsu.  The guard was
+#    right; this script was wrong.  Now one worker is chosen by config:
+#      ~/.ikki/worker_host  →  mac | vps      (IKKI_WORKER_HOST overrides)
+#    default mac — Burmese shaping (CoreText) is IKKI's foundation (Zin).
+WH="${IKKI_WORKER_HOST:-$(cat "$HOME/.ikki/worker_host" 2>/dev/null || echo mac)}"
+case "$WH" in mac|vps) ;; *) echo "⚠️ worker_host '$WH' — mac သို့ vps သာ"; exit 1 ;; esac
+echo "── worker host: $WH ──"
+
 echo "── rebuild ──"
-ssh root@srv1866621.hstgr.cloud 'cd /srv/ikki && docker compose up -d --build 2>&1 | tail -2'
+if [ "$WH" = "vps" ]; then
+  ssh root@srv1866621.hstgr.cloud 'cd /srv/ikki && docker compose up -d --build 2>&1 | tail -2'
+else
+  ssh root@srv1866621.hstgr.cloud 'cd /srv/ikki && docker compose up -d --build ikki 2>&1 | tail -2 && docker compose stop ikki-worker 2>&1 | tail -1'
+fi
 sleep 8
 
 # ⚠️ worker က Mac မှာ **ကုဒ်ကို တစ်ခါပဲ ဖတ်**သည် — ဖိုင် ပြင်ရုံနှင့် မရ、
@@ -94,7 +110,14 @@ sleep 8
 #    (၂၀၂၆-၀၉-၂၀: Mac ထဲ ၃ GB ပဲ ကျန်ပြီး job တစ်ခုက ၂.၇ GB လိုသည်)。
 #    ⇒ ဒီအခြေအနေမှာ shell worker ကိုပဲ ပြန်စသည်。
 _SHW=$(pgrep -f "IKKI_SHELL_WORKER=1" 2>/dev/null | head -1)
-if [ -n "$_SHW" ] || [ -f "$HOME/.ikki/shell_worker" ]; then
+_LOG0=$(wc -l < "$HOME/.ikki/worker.log" 2>/dev/null || echo 0)
+if [ "$WH" = "vps" ]; then
+  echo "── Mac worker ရပ် (VPS worker သုံးသည်) ──"
+  pkill -f "worker/run.py" 2>/dev/null || true
+  if launchctl list | grep -q com.ikki.worker; then
+    launchctl unload ~/Library/LaunchAgents/com.ikki.worker.plist 2>/dev/null || true
+  fi
+elif [ -n "$_SHW" ] || [ -f "$HOME/.ikki/shell_worker" ]; then
   echo "── worker ပြန်စ (shell) ──"
   pkill -f "worker/run.py" 2>/dev/null || true
   sleep 2
@@ -106,9 +129,15 @@ if [ -n "$_SHW" ] || [ -f "$HOME/.ikki/shell_worker" ]; then
   ( cd "$HOME/ikki" && env $(cat "$HOME/.ikki/shell_worker" | tr '\n' ' ') \
       $_SS nohup "$HOME/.ikki/venv/bin/python" worker/run.py \
       < /dev/null >> "$HOME/.ikki/worker.log" 2>&1 & ) &
-  sleep 1
-  sleep 5
-  pgrep -f "worker/run.py" >/dev/null && echo "  ✓ shell worker တက်ပြီ" || echo "  ⚠️ worker မတက်"
+  # ⚠️ pgrep alone lied: a worker the guard refused was still alive for a
+  #    few seconds and got a ✓.  Wait past the guard, then read its log.
+  sleep 15
+  if tail -n +"$((_LOG0 + 1))" "$HOME/.ikki/worker.log" 2>/dev/null | grep -q "⛔"; then
+    echo "  ⛔ Mac worker က စတင်ရန် ငြင်းသည်:"
+    tail -n +"$((_LOG0 + 1))" "$HOME/.ikki/worker.log" | grep "⛔" | tail -2
+    exit 1
+  fi
+  pgrep -f "worker/run.py" >/dev/null && echo "  ✓ shell worker တက်ပြီ" || { echo "  ⚠️ worker မတက်"; exit 1; }
   echo "  ℹ️  Full Disk Access ပေးပြီးလျှင် rm ~/.ikki/shell_worker ⇒ launchd ပြန်သုံးမည်"
 else
 echo "── worker ပြန်စ ──"
