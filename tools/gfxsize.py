@@ -96,11 +96,13 @@ def main(argv):
         if a.startswith("--fmt="):
             fmt = a.split("=", 1)[1]
     want = [a for a in argv[1:] if not a.startswith("-")]
-    fns = DR._verified()
-    idx = {}
-    for e in G.catalog():
-        idx.setdefault(e["fn"], e["id"])
-    ids = [(f, idx[f]) for f in fns if f in idx]
+    # ⚠️⚠️ **bare fn ကြားခံ ဖယ်ပြီး catalog ကနေ တိုက်ရိုက် ယူသည်**。
+    #    အရင်က `DR._verified()` (fn နာမည်) → `idx[fn]` → id ဆိုပြီး
+    #    ကြားခံ ၂ ဆင့် ရှိခဲ့သည် ⇒ (၁) နာမည် ထပ်သူ ၂၁ ခုမှာ **ပထမ module
+    #    တစ်ခုတည်း** ကျန်ပြီး ကျန် ၂၃ ခု ပျောက် · (၂) `_verified()` ဗလာ
+    #    ဖြစ်လျှင် `ids` ဗလာ ⇒ **「၀ ခု」ပြေးပြီး ဖိုင် ဗလာ ရေးချ**သည်
+    #    (၂၀၂၆-၀၉-၂၆: ဤအတိုင်း ၅၉၃ entry ပျက်ခဲ့)。
+    ids = [(e["fn"], e["id"]) for e in G.catalog()]
     if want:
         # ⚠️ **fn နာမည် ရော id ရော လက်ခံရမည်** — `insert.insert_label` လို
         #    id ပေးလျှင် `w in f` (fn သာ) က မတိုက်ဘဲ **၀ ခု** ဖြစ်ပြီး
@@ -116,23 +118,86 @@ def main(argv):
             d = json.loads((r.stdout or "{}").strip().splitlines()[-1])
         except (subprocess.TimeoutExpired, ValueError, IndexError) as e:
             d = {"ok": 0, "why": type(e).__name__}
+        # ⚠️⚠️ **key ကို `module.fn` အပြည့် (id) နဲ့ လုပ်ရမည်**。 `out[fn]` နဲ့
+        #    bare fn သုံးခဲ့သဖြင့် နာမည် ထပ်သူများ **အပြန်အလှန် လွှမ်း**ခဲ့သည် —
+        #    ၂၀၂၆-၀၉-၂၆ တိုင်းချက်: ထပ်သူ fn ၂၁ ခု → template ၄၄ ခု ဖုံး ·
+        #    ဖိုင်ထဲ entry ၂၁ သာ ⇒ **template ၂၃ ခုရဲ့ ဒေတာ ဖျက်ခံရ**。
+        #    အဆိုးဆုံးက `chat_thread` (mockups vs thm) · `tag_pill`
+        #    (qcard vs thm) — အရွယ် တကယ် ကွဲသင့်သူတွေ ဖြစ်ခြင်း。
+        #    (`dress._CIDX` က `fn` နဲ့ key လုပ်တဲ့ အမှားနဲ့ **အတန်း တူ**)
         if d.get("ok"):
             H = float(d["H"]) or 1080.0
-            out[fn] = dict(h=d["h"], w=d["w"], H=d["H"], W=d["W"],
-                           h_pct=round(d["h"] / H, 4),
-                           w_pct=round(d["w"] / float(d["W"] or 1920), 4))
+            out[eid] = dict(h=d["h"], w=d["w"], H=d["H"], W=d["W"],
+                            h_pct=round(d["h"] / H, 4),
+                            w_pct=round(d["w"] / float(d["W"] or 1920), 4))
         else:
-            out[fn] = dict(err=d.get("why", "?"))
+            out[eid] = dict(err=d.get("why", "?"))
         if (k + 1) % 20 == 0 or k + 1 == len(ids):
             okn = sum(1 for v in out.values() if "h_pct" in v)
             print(f"  {k+1:3}/{len(ids)} · ရ {okn} · {time.time()-t0:.0f}s", flush=True)
     tag = fmt.replace(":", "x")
     p = os.path.join(HERE, "assets", f"gfx_size_{tag}.json")
-    with open(p, "w", encoding="utf-8") as f:
+    # ⛔ **ဗလာ ရလဒ်နဲ့ ရေးမချရ** — ရှိပြီးသား ဒေတာ ဖျက်မိမည်。
+    #    ၂၀၂၆-၀၉-၂၁ မှာ comment ရေးထားပြီးသား ဖြစ်လျက် guard မထည့်ခဲ့၍
+    #    ၂၀၂၆-၀၉-၂၆ မှာ entry ၅၉၃ ခု တကယ် ပျက်ခဲ့သည်。
+    if not out:
+        print("  ⛔ ရလဒ် ၀ ခု — ဖိုင် မရေးပါ (ရှိပြီးသား ဒေတာ မဖျက်ရ)")
+        print("     want=%r · catalog=%d" % (want, len(G.catalog())))
+        return 1
+    # ⚠️ အပိုင်းလိုက် ပြေးလျှင် **ပေါင်းရမည်** — လွှမ်းလျှင် ကျန်တာ ပျောက်
+    if want:
+        try:
+            _old = json.load(open(p, encoding="utf-8")).get("items") or {}
+            _old.update(out); out = _old
+            print("  (အပိုင်း — ရှိပြီးသားနဲ့ ပေါင်း ⇒ %d)" % len(out))
+        except Exception:
+            pass
+    # ⛔ **key ပုံစံ ၂ မျိုး မရောစေရ** — `module.fn` (id) သာ。 bare fn ရောလျှင
+    #    `dress._CIDX` က မတွေ့ဘဲ ကျော်မည် ⇒ ရှိပြီးသား ဒေတာ အသုံးမဝင်。
+    _bare = sorted(k for k in out if "." not in k)
+    if _bare:
+        print("  ⛔ key ပုံစံ ရောနေသည် — bare fn %d ခု: %s"
+              % (len(_bare), ", ".join(_bare[:8])))
+        print("     `module.fn` (id) သာ လက်ခံသည် ⇒ ဖိုင် မရေးပါ")
+        return 1
+    # ⛔ **ကျုံ့မှု guard** (Zin ၂၀၂၆-၀၉-၂၆)。 ဗလာ guard က `593 → 4` ကို
+    #    **မဖမ်း**ပါ (၄ ခု ရှိသည်) ⇒ အရေအတွက် ကျုံ့လျှင် ရပ်ရမည်。
+    _prev = {}
+    try:
+        _prev = json.load(open(p, encoding="utf-8")).get("items") or {}
+    except Exception:
+        pass
+    if len(out) < len(_prev) and "--shrink-ok" not in argv:
+        _lost = sorted(set(_prev) - set(out))
+        print("  ⛔ **ကျုံ့မှု** — ရှိပြီးသား %d ခု → အသစ် %d ခု (ပျောက် %d)"
+              % (len(_prev), len(out), len(_lost)))
+        print("     ပျောက်မယ့် key: %s%s"
+              % (", ".join(_lost[:12]), " …" if len(_lost) > 12 else ""))
+        print("     တမင် ဆိုလျှင် `--shrink-ok` ထည့်ပါ ⇒ ဖိုင် မရေးပါ")
+        return 1
+    # ⚠️ **atomic ရေးရမည်** — ကြားထဲ ပြတ်လျှင် ဖိုင် တစ်ဝက် ကျန်ခဲ့မည်。
+    _tmp = p + ".tmp%d" % os.getpid()
+    with open(_tmp, "w", encoding="utf-8") as f:
         json.dump(dict(version=2, fmt=fmt, n=len(out),
                        _doc="⚠️ `h_pct` က ဘောင်အမြင့်ရဲ့ အချိုး — "
                             "`dress._ybox()` နဲ့ တူညီသော နည်းနဲ့ တိုင်းထားသည်。",
                        items=out), f, ensure_ascii=False, indent=0)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(_tmp, p)
+    # ⚠️ **ဘယ်သူ ရေးလဲ မှတ်ရမည်** — ၂၀၂၆-၀၉-၂၆ မှာ entry ၅၉၃ ခု
+    #    ဖျက်ခံရပြီး **ဘယ် session ဖျက်မိလဲ ရှာ၍ မရ**ခဲ့သည်。
+    try:
+        _pv = p[:-len(".json")] + ".prov.json"
+        with open(_pv, "w", encoding="utf-8") as f:
+            json.dump(dict(writer=os.path.abspath(sys.argv[0]),
+                           argv=list(argv[1:]), ts=time.time(),
+                           when=time.strftime("%Y-%m-%d %H:%M:%S"),
+                           n=len(out), n_prev=len(_prev),
+                           subset=bool(want), pid=os.getpid()),
+                      f, ensure_ascii=False, indent=1)
+    except Exception as _pe:
+        print("  ⚠️ prov မရေးရ (%s)" % type(_pe).__name__)
     got = {k: v for k, v in out.items() if "h_pct" in v}
     print(f"\n  ရလဒ် {len(got)}/{len(out)} → {os.path.basename(p)} ({fmt})")
     if got:
