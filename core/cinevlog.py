@@ -58,7 +58,11 @@ LONG_BAND_VO = (0.02, 0.10)
 VO_HEAD = 1.5                 # picture before the first word
 VO_TAIL = 2.5                 # picture after the last word
 VO_GAP_MAX = 1.0              # pauses longer than this are shortened to it
-DUCK_DB = -6.0                # ambience under speech (8 + 6 ≈ the 12 dB measured)
+DUCK_DB = -6.0                # ambience under speech
+# ⚠️ voice over bed measured 8.0 dB on the camp VO test (Riza 5.6–16.9, median
+#    11.9).  Ambience −4 dB moved it 0.0 dB, music −4 dB moved it 0.3 dB, so
+#    neither is the lever; the metric looks bound by the VO recording's own
+#    quiet frames (not verified).  Both trims were reverted — in band as is.
 # talk shots longer than this get cutaways: face first, the voice runs on
 COVER_MIN = 5.0
 FACE_HEAD = 2.5
