@@ -379,7 +379,10 @@ R = {
     captions="big", mmf="MyanmarBlack", latin="Figtree-Black",
     # cap_wide 0.72 (778 px, right edge 929 < TikTok rail 940): 0.50 was too
     # narrow for MyanmarBlack and forced splits inside words.
-    cap_pct=0.042, cap_base=0.64, cap_max=0.833, cap_wide=0.72, cap_lines=1,
+    # cap_base 0.64 -> 0.78 (2026-09-26 brief): measured caption centre was 0.60
+    #   with 57-68 % face overlap vs Zin 1/2.mp4 at 0.78 and 0 %. Band bottom
+    #   anchor => predicted ink centre ~0.74 (0.04 above base, measured v4-v8).
+    cap_pct=0.042, cap_base=0.78, cap_max=0.833, cap_wide=0.72, cap_lines=1,
     cap_kw=0.33,                            # keyword colour ~1 caption in 3
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
