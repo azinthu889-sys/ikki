@@ -40,6 +40,9 @@ for fn in files {
             if w > 0 { open = Double(h / w) }
         }
     }
-    print(String(format: "{\"f\":\"%@\",\"nf\":%d,\"fa\":%.4f,\"fx\":%.3f,\"open\":%.4f}",
-                 fn, faces.count, fa, fx, open))
+    // ⚠️ `boxes` — မျက်နှာ အားလုံး (x,y,w,h · 0–1 · y က အောက်မှ) — split/two-shot ခွဲရန်
+    let boxes = faces.map { String(format: "[%.3f,%.3f,%.3f,%.3f]", $0.boundingBox.minX,
+                                   $0.boundingBox.minY, $0.boundingBox.width, $0.boundingBox.height) }
+    print(String(format: "{\"f\":\"%@\",\"nf\":%d,\"fa\":%.4f,\"fx\":%.3f,\"open\":%.4f,\"boxes\":[%@]}",
+                 fn, faces.count, fa, fx, open, boxes.joined(separator: ",")))
 }
