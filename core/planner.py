@@ -575,6 +575,61 @@ def _num_rows(text):
     return out
 
 
+# ── template param alias — နာမည် ကွဲသော်လည် အဓိပ္ပာယ် တူသူများ ──────
+# ⚠️ တိုင်းချက် (၂၀၂၆-၀၉-၂၆): `m` dict မှာ key **၂၁** ခုသာ ရှိပြီး template
+#    တွေက **နောက်ထပ် ၁၁၄ မျိုး** တောင်းသဖြင့် `required param မသိ` ဟု
+#    **၂၁၇ / ၆၁၆ ခု ပိတ်**ခဲ့သည်。 ချို့နေတဲ့ ၂၈၈ ခုမှာ **၂၀၉ (၇၃%) က
+#    ရိုးရိုး `text`** — ဒေတာက စကားထဲ ရှိပြီးသား၊ **နာမည် ပဲ မတူ**。
+#    ⇒ ဤ alias က render တွေမှာ မတူတဲ့ template **၃၉/၆၁၆** သာ ထွက်ခဲ့ခြင်းရဲ့
+#      အဓိက အကြောင်းရင်းကို ဖြေရှင်းသည် (တိုင်းချက်: ပိတ်နေတဲ့ ၂၁၇ ထဲက
+#      **၁၃၃ ပွင့်**、fill() ဖြည့်နိုင်တာ ၃၁၃ → ၄၄၆)。
+# ⛔ **မှန်းဆ မချိတ်ရ**。 အဓိပ္ပာယ် မသေချာသော နာမည် **၅၅** ခုကို တမင်
+#    ချန်ထားသည် — မှားချိတ်လျှင် template က အဓိပ္ပာယ်မဲ့ စာသား ပြမည်
+#    (`_first_number` ရဲ့ 「N5 → 5」 အမှားနဲ့ အတူတူ)。 ပုံ လမ်းကြောင်း
+#    (`img*`) နဲ့ ပထဝီ (`lat`/`lon`) က ဒေတာ မရှိ ⇒ **ထာဝရ ပိတ်**。
+# ⚠️ `IKKI_GFX_ALIAS=0` ဖြင့် အဟောင်း ပြန်ရသည် (A/B အတွက်)。
+ALIAS = {
+    # ── စာသား တစ်ခုတည်း ──────────────────────
+    "word": "hot",       "big": "hot",        "head": "title",
+    "topic": "title",    "line": "text",      "note": "text",
+    "quote": "text",     "msg": "text",       "caption": "text",
+    "cap": "text",       "answer": "text",
+    "kicker": "label",   "sub": "label",      "subtitle": "label",
+    "tag": "label",      "role": "label",     "who": "name",
+    "brand": "name",     "ask": "q",
+    # ── ၂ ပိုင်း ─────────────────────────────
+    "l1": "line1",       "l2": "line2",       "top": "line1",
+    "bottom": "line2",   "w1": "left",        "w2": "right",
+    "a": "left",         "b": "right",        "t1": "left",
+    "t2": "right",       "a1": "left",        "a2": "right",
+    # ⛔ `wrong`/`correct` · `mid` — **မချိတ်ရ**。 ဤ slot တွေက
+    #    **အခိုင်အမာ ဆိုချက်** ဖြစ်သည် (「ဤဘက် မှား · ဤဘက် မှန်」 ·
+    #    Venn ရဲ့ ထပ်နေသော အပိုင်း)。 `split2()` က ဝါကျကို ၂ ပိုင်း
+    #    ခွဲရုံသာ ဖြစ်၍ အဲဒီ ဆက်နွယ်မှုကို **အာမ မခံနိုင်** ⇒ IKKI က
+    #    ပြောသူ မပြောခဲ့တဲ့ 「မှား/မှန်」 ကို ကိုယ်တိုင် ဆုံးဖြတ်မိမည်。
+    #    dry-run မှာ `charts.venn2` ၂၆ ကြိမ် ထိပ်ဆုံး ရောက်လာ၍ ဖမ်းမိသည်。
+    # ── စာရင်း (စကားစု စာရင်း — ဝါကျကနေ ခွဲ၍ ရသည်) ────
+    "words": "items",    "steps": "items",    "stages": "items",
+    "levels": "items",   "parts": "items",    "names": "items",
+    # ⛔ **ဖွဲ့စည်းပုံ ရှိသော စာရင်းကို မချိတ်ရ** (၂၀၂၆-၀၉-၂၆ dry-run)。
+    #    `kids` (org chart) · `cells` (matrix) · `pts` (scatter) ·
+    #    `vals` (line/bar) တို့သည် **ဆက်နွယ်မှု ရှိသော ဒေတာ** တောင်းသည် —
+    #    ဝါကျကို ၂ ပိုင်း ခွဲထားတာ ထည့်လျှင် ပုံက အဓိပ္ပာယ် မရှိတော့。
+    #    dry-run မှာ `charts.org_chart` ၁၆ ကြိမ် · `charts.venn2` ၁၄ ကြိမ်
+    #    ထိပ်ဆုံး ရောက်လာသဖြင့် ဖမ်းမိသည် ⇒ 「မသေချာ」 ထဲ ပြန်ထည့်。
+    # ── ကိန်း ────────────────────────────────
+    # ⚠️ `_first_number()` က 「နံပါတ်တစ်」「N5」「Class 1」 ကို ဂဏန်း ဟု
+    #    မှတ်နေဆဲ (မှားနှုန်း ၃၈% · သန့်တာ ၁၁% သာ) ⇒ ကိန်း alias တွေက
+    #    အဲဒါ ပြင်ပြီးမှသာ အသုံးဝင်မည်。 ယခု ထည့်ထားခြင်းက template ကို
+    #    ဖွင့်ရန် မဟုတ်、နာမည် တူညီစေရန်သာ。
+    "val": "value",      "price": "value",    "lv": "value",
+    "rv": "target",      "p1": "value",       "p2": "target",
+}
+
+
+GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "1") != "0"
+
+
 def fill(cid, label, text):
     """template ရဲ့ **required param အတိုင်း** ဖြည့်သည် — မဖြည့်နိုင်လျှင် None
 
@@ -611,8 +666,18 @@ def fill(cid, label, text):
         _cat = ""
     _chart_rows = None
     if _cat == "chart":
-        _rq = {q.get("name") for q in (e.get("params") or [])
-               if q.get("required")}
+        # ⚠️ **alias ပြီးမှ စစ်ရမည်**。 `charts.line_chart` က `vals` ·
+        #    `scatter` က `pts` · `matrix4` က `cells` ဟု တောင်းသဖြင့်
+        #    နာမည် `rows` တစ်ခုတည်း ကြည့်လျှင် alias ဖွင့်ပြီးနောက်
+        #    ဤဂိတ်က **မဖမ်းတော့**ဘဲ စာလုံး စာရင်း ဝင်ကာ render ချိန်မှာ
+        #    `ValueError: too many values to unpack` ကျမည် (၂၀၂၆-၀၉-၂၅
+        #    `charts.stacked_bar` မှာ တကယ် ဖြစ်ခဲ့သော အမှား)。
+        _rq = set()
+        for q in (e.get("params") or []):
+            if not q.get("required"):
+                continue
+            _n = q.get("name")
+            _rq.add(ALIAS.get(_n, _n) if GFX_ALIAS else _n)
         if "rows" in _rq:
             _chart_rows = _num_rows(text)
             if len(_chart_rows) < 2:
@@ -649,11 +714,16 @@ def fill(cid, label, text):
     }
     out = {}
     for k in req:
-        if k not in m:
+        _k = k
+        if _k not in m and GFX_ALIAS:
+            # ⚠️ နာမည် ကွဲသော်လည် အဓိပ္ပာယ် တူသူကို ချိတ်သည် (`ALIAS`)。
+            #    မသေချာသူ ၅၅ ခုက `ALIAS` ထဲ မပါ ⇒ အရင်အတိုင်း ကျော်သွားမည်。
+            _k = ALIAS.get(k, k)
+        if _k not in m:
             # ⚠️ မသိသော required param — **မှန်းဆ မဖြည့်ရ**、
             #    ဒီ template ကို ကျော်လိုက်သည်。
             return None
-        v = m[k]
+        v = m[_k]
         if v in ("", [], None):
             return None
         out[k] = v
