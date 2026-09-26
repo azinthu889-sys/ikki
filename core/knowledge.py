@@ -410,10 +410,18 @@ def hide_caps(caps, P):
 
 
 # ══ render ════════════════════════════════════════════════════
-def _ff(args):
-    r = subprocess.run(["ffmpeg", "-v", "error", "-y", *args], capture_output=True)
+def _ff(args, timeout=900):
+    # ⚠️ `-nostdin` + timeout — render ၂ ခုလုံး overlay pass မှာ CPU 0% နဲ့
+    #    ၈၀ မိနစ် ရပ်ခဲ့သည် (၂၀၂၆-၀၉-၂၆)。 job တစ်ခုကို ဘယ်တော့မှ အဆုံးမဲ့ မစောင့်ရ ·
+    #    timeout ဖြစ်လျှင် exception ⇒ caller က ပြောသူ ပြန်ထားသည်。
+    r = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", *args],
+                       capture_output=True, stdin=subprocess.DEVNULL, timeout=timeout)
     if r.returncode:
-        raise RuntimeError("ffmpeg: " + r.stderr.decode("utf-8", "replace")[-400:])
+        # ⚠️ stderr **အပြည့်** — အဆုံး ၄၀၀ လုံးပဲ ထားခဲ့ရာ render အစစ်မှာ
+        #    「…ent)」ပဲ ကျန်ပြီး panel ကျရခြင်း အကြောင်းရင်း မမြင်ရခဲ့。
+        err = r.stderr.decode("utf-8", "replace")
+        lines = [l for l in err.splitlines() if l.strip()]
+        raise RuntimeError("ffmpeg: " + " | ".join(lines[:3] + (["…"] + lines[-3:] if len(lines) > 6 else lines[3:]))[:1200])
 
 
 def _enc(fps):
@@ -499,8 +507,9 @@ def _frames(t, fps):
     return int(round(float(t) * fps))
 
 
-def _seg_talk(cutv, f0, f1, fps, out):
-    _ff(["-ss", f"{f0 / fps:.6f}", "-i", cutv, "-frames:v", str(f1 - f0),
+def _seg_talk(cutv, f0, f1, fps, out, W=None, H=None):
+    vf = ["-vf", f"scale={W}:{H},setsar=1"] if W else []
+    _ff(["-ss", f"{f0 / fps:.6f}", "-i", cutv, "-frames:v", str(f1 - f0), *vf,
          *_enc(fps), out])
 
 
@@ -548,12 +557,24 @@ def bake(P, cutv, work, TH, rc, log=print, cx=0.5):
     if not P or not P.get("events"):
         return cutv
     import numpy as np  # noqa: F401  (PIL/numpy ရှိမှ)
-    W, H = int(TH["W"]), int(TH["H"])
+    # ⚠️ **cutv ရဲ့ အရွယ် အစစ်**နဲ့ လုပ်ရမည် — TH (1920×1080) မဟုတ်。 ⑦ အဆင့်မှာ
+    #    cutv က source အရွယ် (test: 854×480) ဖြစ်နေသေးပြီး TH သို့ ချဲ့တာက
+    #    နောက်ဆုံး composite မှာသာ。 TH နဲ့ လုပ်ခဲ့ရာ panel crop 890×980 က frame
+    #    ထက် ကြီး၍ ကျပြီး、1080p B-roll + 480p talk ကို `-c copy` နဲ့ ဆက်မိကာ
+    #    overlay pass က ရပ်သွားခဲ့သည် (render အစစ် ၂ ခု)。
+    pv = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                         "-show_entries", "stream=width,height", "-of", "csv=p=0", cutv],
+                        capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    try:
+        W, H = [int(x) for x in pv.stdout.strip().split(",")[:2]]
+    except Exception:
+        W, H = int(TH["W"]), int(TH["H"])
+    W, H = W // 2 * 2, H // 2 * 2
     fps = int(round(float(rc.get("fps") or 30)))
     mmf = rc.get("kn_panel_font") or rc.get("mmf") or "Pyidaungsu-Bold"
     pr = subprocess.run(["ffprobe", "-v", "error", "-count_packets", "-select_streams", "v:0",
                          "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", cutv],
-                        capture_output=True, text=True)
+                        capture_output=True, text=True, stdin=subprocess.DEVNULL)
     total = int((pr.stdout or "0").strip().split(",")[0] or 0)
     if total <= 0:
         raise RuntimeError("cutv frame ရေ မတိုင်နိုင်")
@@ -570,7 +591,7 @@ def bake(P, cutv, work, TH, rc, log=print, cx=0.5):
     segs, f, t0 = [], 0, time.time()
     for i, (f0, f1, e) in enumerate(cuts):
         if f0 > f:
-            p = os.path.join(kd, f"t{i:03d}.mp4"); _seg_talk(cutv, f, f0, fps, p); segs.append(p)
+            p = os.path.join(kd, f"t{i:03d}.mp4"); _seg_talk(cutv, f, f0, fps, p, W, H); segs.append(p)
         p = os.path.join(kd, f"c{i:03d}.mp4")
         try:
             if e["kind"] == "broll":
@@ -581,10 +602,19 @@ def bake(P, cutv, work, TH, rc, log=print, cx=0.5):
                 _seg_panel(e, cutv, f0, f1 - f0, W, H, fps, png, p, cx=cx)
         except Exception as ex:                            # တစ်ခု ကျလျှင် ပြောသူ ပြန်ထည့်
             log(f"  ⚠️ knowledge · {e['kind']} @{e['at']}s မရ — ပြောသူ ထားသည်: {ex}")
-            _seg_talk(cutv, f0, f1, fps, p)
+            _seg_talk(cutv, f0, f1, fps, p, W, H)
         segs.append(p); f = f1
     if f < total:
-        p = os.path.join(kd, "t_end.mp4"); _seg_talk(cutv, f, total, fps, p); segs.append(p)
+        p = os.path.join(kd, "t_end.mp4"); _seg_talk(cutv, f, total, fps, p, W, H); segs.append(p)
+    # ⚠️ concat `-c copy` က အရွယ်/fps မတူလျှင် **အမှားမပြဘဲ** ပျက်သော stream
+    #    ထုတ်သည် ⇒ ဆက်ခင် တစ်ခုချင်း စစ်သည်。
+    for sp in segs:
+        q = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                            "-show_entries", "stream=width,height,r_frame_rate", "-of", "csv=p=0",
+                            sp], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        if q.stdout.strip() != f"{W},{H},{fps}/1":
+            raise RuntimeError(f"segment မကိုက်: {os.path.basename(sp)} {q.stdout.strip()} "
+                               f"≠ {W},{H},{fps}/1")
     lst = os.path.join(kd, "list.txt")
     with open(lst, "w") as fh:
         fh.writelines(f"file '{s}'\n" for s in segs)

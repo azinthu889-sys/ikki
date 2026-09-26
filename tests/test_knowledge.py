@@ -143,9 +143,15 @@ if os.path.exists(K.SL.CTBIN):
         dict(kind="jp", at=29.0, dur=3.0, jp="おもてなし", romaji="omotenashi"),
         dict(kind="broll", at=33.0, dur=4.0, clips=[(cps[2], 2.0)]),   # clip တို → tpad
     ])
-    out = K.bake(P, cutv, d, dict(W=W, H=H), dict(fps=FPS, mmf="Pyidaungsu-Bold"),
+    # ⚠️ TH ≠ cutv အရွယ် — worker ⑦ မှာ cutv က source အရွယ် (render အစစ်: 854×480
+    #    vs TH 1920×1080 ⇒ panel crop ကျ · concat ရောပြီး ရပ်) — ဒီ test က ဖမ်းရမည်
+    out = K.bake(P, cutv, d, dict(W=1920, H=1080), dict(fps=FPS, mmf="Pyidaungsu-Bold"),
                  log=lambda *_: None)
     ck("bake frame count", nframes(out) == nframes(cutv), (nframes(out), nframes(cutv)))
+    _wh = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                          "stream=width,height", "-of", "csv=p=0", out], capture_output=True,
+                         text=True).stdout.strip()
+    ck("bake keeps cutv size (not TH)", _wh == f"{W},{H}", _wh)
     ck("bake audio untouched", amd5(out) == amd5(cutv) and amd5(out))
     f = frame_at(out, 2.0, W, H)
     ck("cold open = broll red", f[H // 2, W // 2, 0] > 180 and f[H // 2, W // 2, 1] < 80, f[H // 2, W // 2])
