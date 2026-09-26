@@ -60,8 +60,11 @@ def main():
         good, why = verdict(r)
         (ok if good else bad).append((r["id"], why))
     ok.sort()
-    # ⛔ ဂိတ် မယုံရ (အထက် မှတ်ချက်) — `--write` ကို ပိတ်ထားသည်
-    dry = True if "--i-know-this-gate-is-unreliable" not in sys.argv else ("--write" not in sys.argv)
+    # ⛔ ၂၀၂၆-၀၉-၂၆ Zin ဆုံးဖြတ်ချက် — ရေးလမ်း **လုံးဝ ဖယ်**。
+    #    ဒီ ဂိတ်က `gfx_qual.json` ပေါ် တည်ပြီး အဲဒီဖိုင်မှာ ၆၁၆ ထဲ **၂ ခုသာ**
+    #    တိုင်းထားသည်。 `gfx_ok.txt` ရဲ့ ရေးသူက `tools/gfx_gate.py` တစ်ခုတည်း
+    #    (ဂိတ် ၃ ခု · 616/616 ဒေတာ · provenance)。 ဒီ script က တိုင်းချက် ပြရုံ。
+    dry = True
     print(f"  တိုင်းထား {len(rows)} · အောင် {len(ok)} · ကျ {len(bad)}")
     c = collections.Counter(w.split(" (")[0] for _i, w in bad)
     for k, n in c.most_common(): print(f"    ✖ {k:28} {n}")
@@ -69,7 +72,8 @@ def main():
     m = collections.Counter(i.split(".")[0] for i, _w in ok)
     print("   ", dict(m.most_common(14)))
     if dry:
-        print("\n  (စမ်းကြည့်ရုံသာ — တကယ် ရေးရန် `--write`)")
+        print("\n  ⛔ ဒီ script က **မရေးပါ** (ရေးလမ်း ဖယ်ထားသည်) —")
+        print("     `gfx_ok.txt` ရေးရန်: python3 tools/gfx_gate.py --write")
         return
     p = os.path.join(HERE, "assets", "gfx_ok.txt")
     old = set()

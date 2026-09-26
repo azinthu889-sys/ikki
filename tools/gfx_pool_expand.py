@@ -71,10 +71,15 @@ def main():
     if not new:
         print("\nထပ်ထည့်စရာ မရှိ")
         return 0
-    out = head + sorted(set(cur) | set(new)) + [""]
-    open(OK, "w", encoding="utf-8").write("\n".join(out))
-    print(f"\n✓ ရေးပြီး — {OK} ({len(cur)} → {len(set(cur) | set(new))})")
-    return 0
+    # ⛔ ၂၀၂၆-၀၉-၂၆ Zin ဆုံးဖြတ်ချက် — `gfx_ok.txt` ရဲ့ **တစ်ခုတည်းသော**
+    #    ရေးသူက `tools/gfx_gate.py`。 ဒီ script မှာ ဂိတ် မပါ · `.bak` မချန် ·
+    #    provenance မမှတ် ⇒ ရေးလမ်း ဖယ်လိုက်သည် (တိုင်းချက် ပြရုံ ကျန်သည်)。
+    #    ရေးသူ ၃ ခု ကျန်နေလျှင် `gfx_size_16x9.json` လွှမ်းမိမှု အမျိုးအစား
+    #    ထပ်ဖြစ်မည် — ပိုင်ရှင် တစ်ခုတည်း ဖြစ်ရမည်。
+    print("\n⛔ ဒီ script က **မရေးပါ** — `gfx_ok.txt` ရဲ့ ရေးသူက")
+    print("   `tools/gfx_gate.py` တစ်ခုတည်း (ဂိတ် ၃ ခု + provenance ပါသည်)。")
+    print("   ပြေးရန်: python3 tools/gfx_gate.py --write")
+    return 1
 
 
 if __name__ == "__main__":

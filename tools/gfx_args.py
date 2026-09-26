@@ -10,10 +10,36 @@
 """
 import os, sys, json, subprocess
 
+
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ── W-1…W-4 လုံခြုံ ရေးမှု (`core/derived_io.py`) ─────────────────────
+# ⚠️ ၂၀၂၆-၀၉-၂၆: derived ရေးသူ ၄၈ ခုထဲ ၄၄ မှာ ဗလာ-guard မရှိ · ၄၅ မှာ atomic
+#    မရှိ ⇒ `gfx_size_16x9.json` (၅၉၃ entry) ဗလာနဲ့ လွှမ်းခံရသည်。
+# ⚠️ path ကို **ကိုယ်တိုင် ထည့်ရမည်** — ဒီ script တွေမှာ `core` path insert က
+#    `HERE` ရဲ့ အောက်မှာ ရှိသဖြင့် အပေါ်မှာ import လျှင် ကျမည် (တိုင်းပြီး တွေ့)。
+try:
+    _cp = os.path.join(HERE, "core")
+    if _cp not in sys.path:
+        sys.path.insert(0, _cp)
+    import derived_io as _DIO
+except ImportError as _die:      # ⚠️ fail-closed — guard မရှိဘဲ မရေးရ
+    raise SystemExit("⛔ core/derived_io.py ဖတ်မရ: %s" % _die)
+
+# ⚠️ S-b — ဂိတ်/တိုင်းချက်က **ဟောင်းနေတဲ့ derived ဖိုင်ကနေ ကိန်း မထုတ်ရ**။
+#    ၂၀၂၆-၀၉-၂၅ မှာ ဒီစစ်ချက် မရှိလို့ ၉.၇ နာရီ ဟောင်းတဲ့ `gfx_verify.json`
+#    ကနေ 「၆၁၆/၆၁၆ အောင်」 ဟု တင်ပြခဲ့သည်。
+try:
+    sys.path.insert(0, os.path.join(HERE, "tools"))
+    import derived_check as _DC
+except Exception:
+    _DC = None
 sys.path.insert(0, os.path.join(HERE, "core"))
 TIMEOUT = 60
-ORDER = ("pair", "text", "trip", "dict", "num")
+# ⚠️ **`dict` ကို နောက်ဆုံး ထားရမည်**။ 2-key dict ကို `(a, b)` အဖြစ် ဖြေလျှင်
+#    key နာမည် ရပြီး **အမှား မတက်** ⇒ learner က မှားအောင်ဟု မှတ်သည်
+#    (၉ ခုလုံး ဤအတိုင်း · ၂၀၂၆-၀၉-၂၅)。 `pair2` = (စာသား, စာသား)。
+ORDER = ("pair", "pair2", "text", "trip", "num", "dict")
 
 CHILD = r'''
 import os, sys, json
@@ -46,9 +72,34 @@ def main():
                if l.strip() and not l.startswith("#"))
     # ⚠️ **စာရင်း param ရှိသူများကိုသာ** စစ်ရမည် — ပုံစံ မလိုသူတွေကို
     #    ပုံစံ ၅ မျိုးစီ render လုပ်တာ အချိန်ကုန်ရုံသာ (၄၈၃ ခု × ၅ = ၂၄၁၅ render)。
+    # ⚠️ `type == "list"` တစ်ခုတည်းနဲ့ မလုံလောက် — `pairs` · `pins` · `logos`
+    #    တွေက catalog မှာ **`text`** ဖြစ်ပြီး စာရင်း ဖြစ်သည် ⇒ ပုံစံ
+    #    မသင်ဖြစ်ဘဲ ကျန်ခဲ့သည်。 `gfxcat.fill()` ရဲ့ LISTY နဲ့ တူခဲ့ရမည်。
+    LISTY = ("msgs", "results", "tabs", "levels", "stages", "rows", "items",
+             "lines", "bullets", "steps", "points", "cols", "labels", "values",
+             "data", "pairs", "pins", "fields", "words", "grid", "pts", "cells",
+             "parts", "series", "stats", "names", "vals", "kids", "feats",
+             "bars", "caps", "segments", "slices")
+
     def _listy(e):
-        return any(p.get("type") == "list" for p in (e.get("params") or []))
-    todo = [e for e in G.usable() if e["id"] not in pool and _listy(e)]
+        for p in (e.get("params") or []):
+            if p.get("type") == "list": return True
+            if p.get("type") == "text" and p.get("name") in LISTY: return True
+        return False
+
+    # ⚠️ **မော်ဒ် ၃ မျိုး** — `derived_check --stale-list` နဲ့ တွဲသုံးရန်。
+    #    ပုံမှန်က 「gfx_ok ထဲ မပါသူ」 — gfx_ok မှာ ၁၆၁၆ လုံး ပါသွားသဖြင့်
+    #    「၀ ခု」 ပြန်ပြီး ပြန်လေ့လာရန် မရတော့。
+    _only = [x for x in (os.environ.get("GFX_ONLY") or "").split(",") if x]
+    if _only:
+        _os = set(_only)
+        todo = [e for e in G.catalog() if e["id"] in _os and _listy(e)]
+        print("  (GFX_ONLY — စာရင်း param ရှိသူ %d ခု)" % len(todo), flush=True)
+    elif os.environ.get("GFX_RELEARN"):
+        todo = [e for e in G.catalog() if _listy(e)]
+        print("  (GFX_RELEARN — စာရင်း param ရှိသူ အားလုံး %d ခု)" % len(todo), flush=True)
+    else:
+        todo = [e for e in G.usable() if e["id"] not in pool and _listy(e)]
     print(f"စစ်မည် {len(todo)} ခု × ပုံစံ {len(ORDER)} မျိုး", flush=True)
     found, won = {}, 0
     for i, e in enumerate(todo, 1):
@@ -72,8 +123,13 @@ def main():
         old = {}
     old.update(found)
     print(f"  (ရှိပြီးသား {len(old)-len(found)} နဲ့ ပေါင်း ⇒ {len(old)})", flush=True)
-    json.dump(old, open(_p, "w"), ensure_ascii=False, indent=1, sort_keys=True)
+    _DIO.write_derived(_p, old, writer=__file__)
     print(f"\nအလုပ်ဖြစ် {won}/{len(todo)}", flush=True)
+    if _DC is not None:
+        try:
+            _DC.record("gfx_args", ids=[e["id"] for e in todo])
+        except Exception as _pe:
+            print("  ⚠️ provenance မမှတ်နိုင်: %s" % _pe, flush=True)
     import collections
     print("ပုံစံအလိုက်:", dict(collections.Counter(found.values())))
 

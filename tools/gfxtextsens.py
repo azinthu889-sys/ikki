@@ -37,10 +37,38 @@
 """
 import json, os, subprocess, sys, time
 
+
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ── W-1…W-4 လုံခြုံ ရေးမှု (`core/derived_io.py`) ─────────────────────
+# ⚠️ ၂၀၂၆-၀၉-၂၆: derived ရေးသူ ၄၈ ခုထဲ ၄၄ မှာ ဗလာ-guard မရှိ · ၄၅ မှာ atomic
+#    မရှိ ⇒ `gfx_size_16x9.json` (၅၉၃ entry) ဗလာနဲ့ လွှမ်းခံရသည်。
+# ⚠️ path ကို **ကိုယ်တိုင် ထည့်ရမည်** — ဒီ script တွေမှာ `core` path insert က
+#    `HERE` ရဲ့ အောက်မှာ ရှိသဖြင့် အပေါ်မှာ import လျှင် ကျမည် (တိုင်းပြီး တွေ့)。
+try:
+    _cp = os.path.join(HERE, "core")
+    if _cp not in sys.path:
+        sys.path.insert(0, _cp)
+    import derived_io as _DIO
+except ImportError as _die:      # ⚠️ fail-closed — guard မရှိဘဲ မရေးရ
+    raise SystemExit("⛔ core/derived_io.py ဖတ်မရ: %s" % _die)
+
+# ⚠️ S-b — ဂိတ်/တိုင်းချက်က **ဟောင်းနေတဲ့ derived ဖိုင်ကနေ ကိန်း မထုတ်ရ**။
+#    ၂၀၂၆-၀၉-၂၅ မှာ ဒီစစ်ချက် မရှိလို့ ၉.၇ နာရီ ဟောင်းတဲ့ `gfx_verify.json`
+#    ကနေ 「၆၁၆/၆၁၆ အောင်」 ဟု တင်ပြခဲ့သည်。
+try:
+    sys.path.insert(0, os.path.join(HERE, "tools"))
+    import derived_check as _DC
+except Exception:
+    _DC = None
 sys.path.insert(0, os.path.join(HERE, "core"))
 TIMEOUT = 420           # render ၃ ခါ ဖြစ်နိုင်သဖြင့် ရှည်ရမည်
 DIFF_MIN = 0.02          # ပုံရိပ် ကွာဟမှု အနည်းဆုံး (ဧရိယာ အချိုး)
+# ⚠️ **အစစ်အမှန် ဂိတ်က ဒီတစ်ခု** — A/B ကွာသော pixel အရေအတွက်။
+#    1080x1920 = 2.07M px ထဲ 500 px က 0.024% — မြန်မာ စာလုံး
+#    တစ်လုံးထက် ငယ်သည်။ တိုင်းထားသော အနည်းဆုံး တုံ့ပြန်သူ = 2,302 px
+#    (`thm.cmp_glass`) · မတုံ့ပြန်သူ = 0 px ⇒ ကွာဟမှု ကြီးမား။
+DIFF_PX = 100
 AA_MAX = 0.02            # စာသား တူတူနဲ့ ကွာဟမှု — ဤထက် ကြီးလျှင် မတည်ငြိမ်
 AB_OVER_AA = 3.0         # A/B က A/A ထက် အနည်းဆုံး ဤအဆ ကြီးရမည်
 OUT = os.path.join(HERE, "assets", "gfx_textsens.json")
@@ -56,6 +84,13 @@ ITM_B = ["ပြည်ပ ငွေလွှဲ", "ဘဏ် အကောင့�
 #    `rows` = (စာသား, ကိန်း) အတွဲ လိုသဖြင့် ကိန်းမပါသော နမူနာနဲ့ စစ်လျှင်
 #    「adapter ဖွဲ့စည်းပုံ မကိုက်」နဲ့ ကျပြီး pool ထဲ လုံးဝ မဝင်ခဲ့
 #    (၂၀၂၆-၀၉-၂၄ တိုင်းပြီး)。 ဤနမူနာနဲ့ **တကယ့် စွမ်းရည်** ကို စစ်သည်。
+# ⚠️⚠️ **ကိန်းကိုလည်း A/B ကွာစေရမည်**။ အရင်က `nums=[62,41,27]` ကို
+#    A ရော B ရော **တူတူ** ပေးခဲ့သည် ⇒ ကိန်းကိုပဲ ပြသော template
+#    (`kinetic.count_up` · `odo.money` · `titles2.rating` · `charts.*`) တွေက
+#    ပုံ တစ်ထပ်တည်း ထွက်ပြီး diff = 0.000 — **ဂိတ်က မှားစွဲချက်**
+#    တင်မည် (၂၀၂၆-၀၉-၂၅)။ ⇒ ကိန်း ၂ စုံ သီးသီးခွဲ ထားသည်။
+NUM_A = [62, 41, 27]
+NUM_B = [37, 58, 19]
 ITM_NA = ["ဂျပန် ၅၂", "ကိုးရီးယား ၃၁", "စင်္ကာပူ ၁၇"]
 ITM_NB = ["ပြည်ပ ငွေလွှဲ ၆၈", "ဘဏ် အကောင့် ၂၄", "မိုဘိုင်း ၈"]
 if "--num" in sys.argv:
@@ -93,16 +128,73 @@ def _flat(q):
     return g, im[:, :, 3]
 
 
-def build(txt, items, tag):
-    """engine ရဲ့ လမ်းကြောင်းအတိုင်း — `_tf_args` ⇒ `_call_template`ဂ"""
-    a = DR._tf_args(dict(kind=eid, text=txt, items=items),
+# ⚠️ ပုံ ယူသော template ကို ပုံ မပေးဘဲ စစ်လျှင် ဘယ်တော့မှ မအောင်
+DEMO_IMG = "/Users/zinthuaung/ikki/web/img/ikki-icon-512.png"
+if not os.path.exists(DEMO_IMG): DEMO_IMG = None
+
+
+def _fill_call(txt, items, tag, nums=None):
+    """`G.fill()` (သင်ယူထားသော စာရင်း ပုံစံ) နဲ့ ခေါ်သည် — မရလျှင် `None`။
+
+    ⚠️ `tmplfit` က `thm` ရဲ့ စာရင်း param တွေကို ၁၃-တွဲ အဖြစ် ဖြည့်တတ်သည် —
+       `thm.stat_trio` တို့ **၂-တွဲ** လိုသည် (`too many values to unpack`)။
+       `gfx_args.json` ထဲ သင်ယူထားသော ပုံစံ (`pair`) မှန်ပြီးသား ဖြစ်လျက်
+       `tmplfit` က အရင် ပြေးသဖြင့် မရောက်ခဲ့ ⇒ **ကျရှုံးလျှင် `fill()` နဲ့ ထပ်စမ်း**။
+       (thm စာရင်း param ယူသူ ၃၈ ခုကို demoargs လက်နဲ့ မရေးဘဲ ဖြေရှင်းသည်)
+    """
+    a = G.fill(e, txt, "ZAE", (nums or [62])[0], img=DEMO_IMG, items=items,
+               nums=nums)
+    if a is None:
+        return None
+    if DR._wants_tag(e["fn"]):
+        a = (tag,) + tuple(a)
+    return G.call(e, a, 2.0)
+
+
+def _demoshape_call(txt, items, tag, nums=None):
+    """`argshape` (demoargs ပုံစံ) နဲ့ ခေါ်သည် — မရလျှင် `None`။"""
+    kw = G.fill_kw(e, [txt] + list(items or []), img=DEMO_IMG,
+                   pct=(nums or [62])[0], nums=nums)
+    if not kw:
+        return None
+    _cwd = os.getcwd()
+    try:
+        if G.MK not in sys.path:
+            sys.path.insert(0, G.MK)
+        os.chdir(G.MK)
+        import importlib
+        _m = importlib.import_module(e["module"])
+        _fn = (getattr(_m, "BUILDERS", {}) or {}).get(e["fn"]) or getattr(_m, e["fn"])
+        return DR._call_template(_fn, eid, tag, kw)
+    finally:
+        try: os.chdir(_cwd)
+        except Exception: pass
+
+
+def build(txt, items, tag, nums):
+    """engine ရဲ့ လမ်းကြောင်းအတိုင်း — `_tf_args` ⇒ `_call_template`ဂ
+
+    ⚠️ **ခေါ်ခြင်း ကျရှုံးလျှင်ကိုလည်း `argshape` နဲ့ ထပ်စမ်းရမည်**။
+       `fill()` က **တဝက်တစ်ပြက်** args ပြန်ပေးတတ်သည် (`maps.route_arc`
+       ကို စာသား ၂ ခုတည်း) ⇒ `a is None` မဖြစ်သဖြင့် ပြန်ဆုတ်လမ်း
+       အလုပ်မလုပ်ပါ — `gfx_verify.py` မှာ ပြင်ပြီးသားပေမယ့် ဒီမှာ ကျန်ခဲ့
+       (၂၀၂၆-၀၉-၂၅: maps ၉ ခု · arg အမျိုးအစား အမှား ၃၅ ခု)။
+    """
+    a = DR._tf_args(dict(kind=eid, text=txt, items=items, num=str(nums[0])),
                     accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
     if not a:
-        a = G.fill(e, txt, "ZAE", 62)
+        a = G.fill(e, txt, "ZAE", nums[0], img=DEMO_IMG, items=items,
+                   nums=nums)
         # ⚠️ `fill()` က param မလိုသော template အတွက် `()` ပြန်ပေးသည် (မှန်သည်)。
         #    `not a` နဲ့ စစ်လျှင် ကျရှုံးဟု မှတ်မိသည် ⇒ `is None` သာ。
         if a is None:
-            return None, "fill ဗလာ"
+            # ⚠️ **`demoargs` ပုံစံ ပြန်ဆုတ်လမ်း** — `fill()` ရော `tmplfit` ရော
+            #    တည်ဆောက်ပုံ ရှုပ်သော param ကို မဘြည့်နိုင်။ ဒီဂိတ်မှာ မပါလျှင်
+            #    render အောင်ပြီးသား template ကိုပါ `gfx_ok.txt` ထဲ မရောက်ပါ
+            #    (၂၀၂၆-၀၉-၂၅: ၁၅၃ ခု ဒီအတိုင်း ကျန်ခဲ့)။
+            a = G.fill_kw(e, [txt] + list(items or []), img=DEMO_IMG, pct=62)
+            if not a:
+                return None, "fill ဗလာ"
         # ⚠️ **`"g0"` ကိန်းသေ သုံး၍ မရ** — A နဲ့ B run နှစ်ခုလုံး တူညီသော
         #    ဖိုင်နာမည်သို့ ရေးသဖြင့် `prem._crop()` ရဲ့ cache
         #    (`if not os.path.exists(q)`) က B အတွက် A ရဲ့ PNG ကို ပြန်ပေးကာ
@@ -110,7 +202,12 @@ def build(txt, items, tag):
         #    (၂၀၂၆-၀၉-၂၄: thm ၂၈ ခုထဲ ၁၇ ခု ဤအကြောင်းကြောင့် မှားကျခဲ့)。
         if DR._wants_tag(e["fn"]):
             a = (tag,) + tuple(a)
-        el = G.call(e, a, 2.0)
+        try:
+            el = G.call(e, a, 2.0)
+        except BaseException:
+            el = _demoshape_call(txt, items, tag, nums)
+            if el is None:
+                raise
     else:
         # ⚠️ template တွေက frame ကို **motionkit ရဲ့ cwd** နဲ့ ဆက်စပ်ပြီး
         #    ရေးသည် (`gfxcat.call()` က `os.chdir(MK)` လုပ်သည်) ⇒
@@ -122,7 +219,23 @@ def build(txt, items, tag):
             os.chdir(G.MK)
             import importlib
             _m = importlib.import_module(e["module"])
-            el = DR._call_template(getattr(_m, e["fn"]), eid, tag, a)
+            # ⚠️ `trans` ရဲ့ ၂၄ ခုက factory closure မို့ `BUILDERS` ထဲမှာသာ ရှိသည်
+            _fnx = (getattr(_m, "BUILDERS", {}) or {}).get(e["fn"]) \
+                or getattr(_m, e["fn"])
+            try:
+                el = DR._call_template(_fnx, eid, tag, a)
+            except BaseException:
+                os.chdir(_cwd)
+                el = None
+                try:
+                    el = _fill_call(txt, items, tag, nums)
+                except BaseException:
+                    el = None
+                if el is None:
+                    el = _demoshape_call(txt, items, tag, nums)
+                if el is None:
+                    raise
+                os.chdir(G.MK)
         finally:
             try: os.chdir(_cwd)
             except Exception: pass
@@ -136,24 +249,31 @@ def build(txt, items, tag):
     def rp(q):
         return q if os.path.isabs(q) else os.path.join(G.MK, q)
 
-    # ⚠️ **မှင် အများဆုံး frame** — နောက်ဆုံး frame က fade ထွက်ပြီး ဗလာနီးပါး
-    best, bink = None, -1.0
-    idx = sorted({int(len(fr) * f) for f in (0.35, 0.45, 0.55, 0.65, 0.75, 0.85)}
-                 | ({len(fr) - 1} if fr else set()))
-    for j in idx:
-        if not (0 <= j < len(fr)):
-            continue
-        it = fr[j]
-        q = rp(it[0] if isinstance(it, (list, tuple)) else it)
-        if not os.path.exists(q):
-            continue
-        g, al = _flat(q)
-        ik = float((al > 16).mean())
-        if ik > bink:
-            bink, best = ik, (g, al)
+    # ⚠️⚠️ **「မှင် အများဆုံး frame」ကို ရွေး၍ မရ** — မှင်မျဉ်းကွေးက ထိပ်နားမှာ
+    #    ပြားနေသဖြင့် run တစ်ခုနဲ့တစ်ခု အနည်းငယ် ကွာရုံနဲ့ **ရွေးချယ်တဲ့
+    #    frame ကွဲ**သွားသည် (0.45 vs 0.55) ⇒ စာသား တူတူနဲ့ ပြန် render လျှင်
+    #    မတူတဲ့ frame ၂ ခု နှိုင်းရာ A/A ကွာဟမှု 0.44–0.63 ထွက်ကာ
+    #    「မတည်ငြိမ်」ဟု **မှားစွဲချက်** တင်ခဲ့သည် (thm.cmp_* ၆ ခု ·
+    #    ၂၀၂၆-၀၉-၂၅)。 template က မမှား၊ တိုင်းချက်က မှား。
+    # ⇒ **အတည်တကျ အညွှန်း**တွေမှာသာ နမူနာယူသည် — run နှစ်ခုလုံး တူညီသော
+    #    အချိန်ကို နှိုင်းရမည်。 နောက်ဆုံး frame က မှိန်ထွက်ပြီး ဗလာနီးပါး
+    #    ဖြစ်တာမို့ ချန်သည်。
+    out_fr = []
+    # ⚠️ `fr` ဗလာ ဖြစ်နိုင်သည် (board က `statics` တစ်ခုတည်း) ⇒ စစ်ရမည်
+    if fr:
+        # ⚠️ **နောက်ပိုင်း ပေါ်လာသော စာသားကို မလွတ်စေရ** — မြေပုံ/အညွှန်း
+        #    template အများက အညွှန်းကို နောက်ဆုံးမှာပဲ ချသည်။ ၀.၈၈ ကို
+        #    မထည့်ရ — နောက်ဆုံး frame က မှိန်ထွက်ပြီး ဗလာနီးပါး။
+        for f in (0.35, 0.45, 0.55, 0.65, 0.75, 0.88):
+            j = min(len(fr) - 1, max(0, int(len(fr) * f)))
+            it = fr[j]
+            q = rp(it[0] if isinstance(it, (list, tuple)) else it)
+            if not os.path.exists(q):
+                continue
+            out_fr.append(_flat(q))
 
     # ⚠️ **`statics` ကို မကျန်စေရ** — စာသားက များသောအားဖြင့် ဤထဲ ရှိသည်
-    out = [] if best is None else [best]
+    out = list(out_fr)
     for it in st:
         q = rp(it[0] if isinstance(it, (list, tuple)) else it)
         if os.path.exists(q):
@@ -172,21 +292,22 @@ def cmp(p, q):
     """
     if len(p) != len(q) or any(x[0].shape != y[0].shape for x, y in zip(p, q)):
         return None
-    d = 0.0
+    d = 0.0; px = 0
     for (g1, a1), (g2, a2) in zip(p, q):
         m = (a1 > 16) | (a2 > 16)
         un = float(m.sum())
-        if not un:
-            continue
-        d = max(d, float(((np.abs(g1 - g2) > TOL) & m).sum() / un))
-    return d
+        ch = int(((np.abs(g1 - g2) > TOL) & m).sum())
+        px = max(px, ch)
+        if un:
+            d = max(d, float(ch / un))
+    return (d, px)
 
 
 try:
-    A, w = build(%(TA)r, %(IA)r, "s0")
+    A, w = build(%(TA)r, %(IA)r, "s0", %(NA)r)
     if A is None:
         print(json.dumps({"ok": 0, "why": w})); raise SystemExit
-    B, w = build(%(TB)r, %(IB)r, "s1")
+    B, w = build(%(TB)r, %(IB)r, "s1", %(NB)r)
     if B is None:
         print(json.dumps({"ok": 0, "why": w})); raise SystemExit
 except SystemExit:
@@ -197,41 +318,84 @@ except BaseException as _ex:
     raise SystemExit
 
 ink = max(float((a > 16).mean()) for _, a in A)
-ab = cmp(A, B)
+_r = cmp(A, B)
+ab, abpx = (None, None) if _r is None else _r
 if ab is None:
     # အရွယ် ကွာ = စာသားကြောင့် ပုံစံ ပြောင်းသည် ⇒ အောင်
     print(json.dumps({"ok": 1, "diff": 1.0, "aa": 0.0, "ink": round(ink, 5),
                       "why": "အရွယ် ကွာ"}))
     raise SystemExit
 
-if ab < %(DM)f:
-    print(json.dumps({"ok": 0, "diff": round(ab, 4), "ink": round(ink, 5),
-                      "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (%%0.3f)" %% ab}))
+# ⚠⚠ **အချိုး (union) နဲ့ မစစ်ရ** — `diff` က မှင် union နဲ့ စားသဖြင့်
+#    နောက်ခံ ကြီးသော template မှာ စာသား အပြောင်းအလဲ ပျောက်သည်။
+#    တိုင်းချက် (၂၀၂၆-၀၉-၂၅): `thm.cmp_glass` က pixel ၂,၃၀၂ ပြောင်းသည်
+#    ဖြစ်လျက် union ၀.၀၀၉ ⇒ ၀.၀၂ အောက်ကျ — `cmp_frame` (၂,၅၂၁ px)
+#    ကတော့ union ၀.၀၄၉ ⇒ အောင်။ **တူသော လုပ်ဆောင်မှု · ဘောင်အရွယ်ကြောင့်
+#    ဆုံးဖြတ်ချက် ကွဲ**။
+#    A/A ထိန်းချုပ်မှုက template ၁၀ ခုမှာ **pixel ၀ တိတိ** ⇒ ဆူညံမှု
+#    အောက်ခံက သုည။ ⇒ pixel အရေအတွက်နဲ့ ဂိတ်လုပ်သည် (ဘောင်အရွယ်နဲ့ မဆိုင်)။
+if abpx < %(DPX)d:
+    print(json.dumps({"ok": 0, "diff": round(ab, 4), "dpx": abpx,
+                      "ink": round(ink, 5),
+                      "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (pixel %%d · union %%0.4f)"
+                             %% (abpx, ab)}))
     raise SystemExit
 
 # ⚠️ **A/A ထိန်းချုပ်မှု** — စာသား တူတူနဲ့ ထပ် render လုပ်ပြီး ကျပန်းလား စစ်သည်ဂ
 #    ဂိတ် ကျော်ပြီးမှ လုပ်သဖြင့် ကျသွားသော template တွေမှာ အချိန် မကုန်ဂ
 try:
-    A2, w = build(%(TA)r, %(IA)r, "s2")
+    A2, w = build(%(TA)r, %(IA)r, "s2", %(NA)r)
 except BaseException as _ex:
     A2, w = None, "%%s: %%s" %% (type(_ex).__name__, str(_ex)[:60])
 if A2 is None:
     print(json.dumps({"ok": 0, "diff": round(ab, 4), "ink": round(ink, 5),
                       "why": "A/A မရ (%%s)" %% w}))
     raise SystemExit
-aa = cmp(A, A2)
+_r2 = cmp(A, A2)
+aa, aapx = (None, None) if _r2 is None else _r2
 if aa is None:
     print(json.dumps({"ok": 0, "diff": round(ab, 4), "aa": 1.0, "ink": round(ink, 5),
                       "why": "မတည်ငြိမ် — စာသား တူလျက် အရွယ် ကွာ"}))
     raise SystemExit
 
-ok = 1 if (aa <= %(AAM)f and ab >= aa * %(AOA)f) else 0
+# ⚠️ A/A ကို pixel နဲ့ပါ စစ်သည် — တိုင်းရမှာ A/A = ၀ px ဖြစ်သဖြင့်
+#    A/B က A/A ထက် သိမ်သိမ် များရမည်။
+ok = 1 if (abpx >= %(DPX)d and abpx >= 4 * aapx) else 0
 print(json.dumps({"ok": ok, "diff": round(ab, 4), "aa": round(aa, 4),
+                  "dpx": abpx, "aapx": aapx,
                   "ink": round(ink, 5),
                   "why": "" if ok else
-                         "မတည်ငြိမ် — စာသား တူလျက် ကွာ %%0.3f (A/B %%0.3f)" %% (aa, ab)}))
+                         "မတည်ငြိမ် — စာသား တူလျက် pixel %%d ကွာ (A/B %%d)" %% (aapx, abpx)}))
 ''' % {"HERE": HERE, "TA": TXT_A, "TB": TXT_B, "IA": ITM_A, "IB": ITM_B,
-       "DM": DIFF_MIN, "AAM": AA_MAX, "AOA": AB_OVER_AA}
+       "DM": DIFF_MIN, "AAM": AA_MAX, "AOA": AB_OVER_AA, "DPX": DIFF_PX,
+       "NA": NUM_A, "NB": NUM_B}
+
+
+# ⚠️ **စာသား param မရှိသော template ကို ဂိတ်③နဲ့ မစစ်ရ**。 ဂိတ်③ က စာသား
+#    ၂ မျိုး ပေးပြီး ပုံရိပ် ပြောင်းမပြောင်း တိုင်းသည် — `trans` ၂၄ ခု ·
+#    `motionfx` ၁၉ ခု စသဖြင့် **၆၁ ခု**က စာသား လုံးဝ မယူပါ (အသွင်ကူး ·
+#    နောက်ခံ လှုပ်ရှားမှု)。 အဲဒါတွေကို စစ်လျှင် diff = 0.000 နဲ့
+#    「စာသား မရေး」ဟု ကျပြီး `gfx_ok.txt` ကနေ **ထုတ်ပစ်**မည် — ဂိတ်က
+#    မှားခြင်း ဖြစ်သည်၊ template က မမှား (၂၀၂၆-၀၉-၂၅)。
+#    ⇒ signature ကနေ ကြည့်ပြီး ကင်းလွတ် ပေးသည် (လက်နဲ့ စာရင်း မရေးရ)。
+# ⚠️ **enum/စတိုင် ရွေးချယ် param ကို စာသား ဓု မမှတ်ရ** — `shape="circle"` က
+#    စာရိုက်ပုံ ရွေးချယ်မှု ဖြစ်ပြီး အကြောင်းအရာ မဗုတ်။ catalog က default စာသား
+#    ဖြစ်လျှင် "text" ဟု မှတ်သဖြင့် `motionfx.shape_wipe` က စာသား ပါသည်
+#    ဟု ထင်ပြီး ဂိတ်③ တင်ကာ မအောင်နိုင်ခဲ့ (၂၀၂၆-၀၉-၂၅)။
+_ENUM_SKIP = ("shape", "kind", "style", "align", "mode", "variant", "dir",
+              "side", "layout", "anim", "ease", "fit", "pos")
+_NOTEXT_SKIP = ("img", "imgs", "img_path", "logo", "logos", "image",
+                "img1", "img2", "img_a", "img_b", "base", "src") + _ENUM_SKIP
+
+
+def has_text_param(ent):
+    """template က စာသား/စာရင်း param ယူသလား — ဂိတ်③ သက်ဆိုင်မသက်ဆိုင်。"""
+    for p in ent.get("params") or []:
+        if p.get("auto") or p.get("name") in ("dur", "tag"):
+            continue
+        if p.get("type") in ("text", "list") and p.get("name") not in _NOTEXT_SKIP:
+            return True
+    return False
 
 
 def main():
@@ -243,7 +407,15 @@ def main():
             only = set(sys.argv[i + 1].split(","))
         elif a == "--limit" and i + 1 < len(sys.argv):
             limit = int(sys.argv[i + 1])
-    ents = G.usable()
+    # ⚠️ **`usable()` က ၅၀၂ ခုသာ ပြန်ပေးသည်** — `mockup` · `transition` ·
+    #    `motion` ၁၁၄ ခုကို ဘယ်တော့မှ မစစ်ဖြစ် ⇒ `gfx_gate` မှာ းကို
+    #    မစစ်ရသောပေ အဖြစ်သာ ကျန်နေသည်။ `gfx_verify.py` နဲ့ တူသည့်
+    #    `GFX_ALL=1` ဆွာ ရှိရမည် (၂၀၂၆-၀၉-၂၅)။
+    ents = G.catalog() if os.environ.get("GFX_ALL") else G.usable()
+    # ⚠️ `GFX_ONLY` ကိုလည်း လက်ခံရမည် — `gfx_verify.py` က env နဲ့ပဲ ရှိသဖြင့်
+    #    `--only` တစ်ခုတည်း ဆိုလျှင် တိတ်ဆိတ် ၁၅၀၂ ခုလုံး ပြေးသွားတတ်သည်။
+    if not only and os.environ.get("GFX_ONLY"):
+        only = set(os.environ["GFX_ONLY"].split(","))
     if only:
         ents = [e for e in ents if e["id"] in only]
     if limit:
@@ -253,6 +425,13 @@ def main():
     res, t0 = [], time.time()
     for i, e in enumerate(ents, 1):
         r = {"id": e["id"], "category": e.get("category")}
+        if not has_text_param(e):
+            r.update({"ok": 1, "diff": None, "aa": None,
+                      "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"})
+            res.append(r)
+            print(f"  [{i:3d}/{len(ents)}] – {e['id']:34s} "
+                  f"စာသား param မရှိ — ကိင်းလွတ်", flush=True)
+            continue
         try:
             p = subprocess.run([sys.executable, "-c", CHILD, e["id"]],
                                capture_output=True, text=True, timeout=TIMEOUT,
@@ -277,9 +456,17 @@ def main():
         except Exception: old = []
     merged = {r["id"]: r for r in old}
     merged.update({r["id"]: r for r in res})
-    json.dump(sorted(merged.values(), key=lambda r: r["id"]),
-              open(OUT, "w"), ensure_ascii=False, indent=1)
+    _DIO.write_derived(OUT, sorted(merged.values(), key=lambda r: r["id"]),
+                       writer=__file__)
     print(f"ရေးပြီး — {OUT} ({len(merged)} entry)")
+    # ⚠️ S-c — provenance **သာ** မှတ်သည် · ဖိုင် ပြန်မထုတ်ပါ။
+    #    ဒီ run မှာ တကယ် စစ်ခဲ့သော id များသာ မှတ်ရမည် — အပိုင်းလိုက်
+    #    ပြေးလျှင် ကျန် template များ ဟောင်းတုန်း ဖြစ်ရမည် (S-a)。
+    if _DC is not None:
+        try:
+            _DC.record("gfx_textsens", ids=[r["id"] for r in res])
+        except Exception as _pe:
+            print("  ⚠️ provenance မမှတ်နိုင်: %s" % _pe, flush=True)
 
 
 if __name__ == "__main__":

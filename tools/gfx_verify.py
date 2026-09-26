@@ -14,7 +14,30 @@
 """
 import os, sys, json, subprocess, time
 
+
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ── W-1…W-4 လုံခြုံ ရေးမှု (`core/derived_io.py`) ─────────────────────
+# ⚠️ ၂၀၂၆-၀၉-၂၆: derived ရေးသူ ၄၈ ခုထဲ ၄၄ မှာ ဗလာ-guard မရှိ · ၄၅ မှာ atomic
+#    မရှိ ⇒ `gfx_size_16x9.json` (၅၉၃ entry) ဗလာနဲ့ လွှမ်းခံရသည်。
+# ⚠️ path ကို **ကိုယ်တိုင် ထည့်ရမည်** — ဒီ script တွေမှာ `core` path insert က
+#    `HERE` ရဲ့ အောက်မှာ ရှိသဖြင့် အပေါ်မှာ import လျှင် ကျမည် (တိုင်းပြီး တွေ့)。
+try:
+    _cp = os.path.join(HERE, "core")
+    if _cp not in sys.path:
+        sys.path.insert(0, _cp)
+    import derived_io as _DIO
+except ImportError as _die:      # ⚠️ fail-closed — guard မရှိဘဲ မရေးရ
+    raise SystemExit("⛔ core/derived_io.py ဖတ်မရ: %s" % _die)
+
+# ⚠️ S-b — ဂိတ်/တိုင်းချက်က **ဟောင်းနေတဲ့ derived ဖိုင်ကနေ ကိန်း မထုတ်ရ**။
+#    ၂၀၂၆-၀၉-၂၅ မှာ ဒီစစ်ချက် မရှိလို့ ၉.၇ နာရီ ဟောင်းတဲ့ `gfx_verify.json`
+#    ကနေ 「၆၁၆/၆၁၆ အောင်」 ဟု တင်ပြခဲ့သည်。
+try:
+    sys.path.insert(0, os.path.join(HERE, "tools"))
+    import derived_check as _DC
+except Exception:
+    _DC = None
 sys.path.insert(0, os.path.join(HERE, "core"))
 TIMEOUT = 150
 MIN_FRAMES = 2
@@ -46,7 +69,8 @@ e = e[0]
 DEMO_IMG = "/Users/zinthuaung/ikki/web/img/ikki-icon-512.png"
 if not os.path.exists(DEMO_IMG): DEMO_IMG = None
 DEMO_TEXTS = ["ဂျပန်မှာ အလုပ်", "ပညာသင် ဗီဇာ", "အခုပဲ စမယ်", "သင်တန်း ၃ လ"]
-args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62, img=DEMO_IMG)
+args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62, img=DEMO_IMG,
+              items=DEMO_TEXTS, nums=[62, 41, 27])
 kw = None
 # ⚠️ `fill()` က **param မလိုသော** template အတွက် `()` ပြန်ပေးသည် (မှန်သည် —
 #    `gfxcat.fill` ကိုယ်တိုင် "`()` ပြန်ရမည်" ဟု ရေးထားပြီးသား)。 `if not args`
@@ -70,6 +94,27 @@ if args is None:
         kw = G.fill_kw(e, DEMO_TEXTS, img=DEMO_IMG, pct=62)
     if not kw:
         print(json.dumps({"ok":0,"why":"fill ဗလာ (tmplfit · demoargs ပုံစံ လည်း မရ)"})); raise SystemExit
+# ⚠️ **ကျရှုံးလျှင် `argshape` နဲ့ ထပ်စမ်းရမည်** (၂၀၂၆-၀၉-၂၅)။
+#    `fill()` က **တဝက်တစ်ပြက်** args ပြန်ပေးတတ်သည် (`scatter` ကို
+#    `(title,)` တစ်ခုတည်း)။ ဘလာ မဟုတ်သဖြင့် `if not kw` ဂိတ်ကို
+#    မမိဘဲ ခေါ်မိပြီး `missing 1 required positional argument`
+#    နဲ့ ကျသည် — ပထမ အကြိမ်မှာ ၂၀ ခု ဒီအတိုင်း ကျခဲ့သည်။
+#    ⇒ **ခေါ်ခြင်း ကျရှုံးမှုကိုလည်း** အခြား လမ်းကြောင်း အဖြစ် သတ်မှတ်ရမည်။
+def _try_demoshape():
+    kw2 = G.fill_kw(e, DEMO_TEXTS, img=DEMO_IMG, pct=62)
+    if not kw2: return None
+    _m = __import__(e["module"])
+    _fn2 = getattr(_m, "BUILDERS", {}).get(e["fn"]) or getattr(_m, e["fn"])
+    import hashlib as _h3
+    _t3 = "v" + _h3.sha1(eid.encode()).hexdigest()[:8]
+    _c3 = os.getcwd()
+    try:
+        os.chdir(G.MK)
+        return DR._call_template(_fn2, eid, _t3, kw2)
+    finally:
+        try: os.chdir(_c3)
+        except Exception: pass
+
 # ⚠️ **template ရဲ့ exception ကို ဖမ်းရမည်** — မဖမ်းလျှင် child က print
 #    မရောက်ခင် သေပြီး parent က 「ထွက်ချက် ဗလာ」ဟုသာ မှတ်ကာ **အကြောင်းရင်း
 #    ပျောက်**သည် (၆၄ ခု ဤအတိုင်း ဖြစ်ခဲ့ — တကယ်က စာရင်းပုံစံ မကိုက်ခြင်း)。
@@ -102,8 +147,13 @@ if kw is not None:
             except Exception: pass
     except BaseException as _ex:
         if isinstance(_ex, KeyboardInterrupt): raise
-        print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
-        raise SystemExit
+        try:
+            el = _try_demoshape()
+        except BaseException:
+            el = None
+        if el is None:
+            print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
+            raise SystemExit
 else:
     # ⚠️ production (dress.py) နှင့် **အတိအကျ တူရမည်** — tag ရှေ့က ထည့်
     # ⚠️ **template တိုင်းကို `g0` နဲ့ ခေါ်လျှင် တစ်ခုနဲ့တစ်ခု ဖိုင် ထပ်သည်**。
@@ -119,8 +169,13 @@ else:
         el = G.call(e, args, 2.0)
     except BaseException as _ex:
         if isinstance(_ex, KeyboardInterrupt): raise
-        print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
-        raise SystemExit
+        try:
+            el = _try_demoshape()
+        except BaseException:
+            el = None
+        if el is None:
+            print(json.dumps({"ok":0,"why":"%%s: %%s" %% (type(_ex).__name__, str(_ex)[:90])}))
+            raise SystemExit
 if not isinstance(el, dict):
     print(json.dumps({"ok":0,"why":"dict မဟုတ် (%%s)" %% type(el).__name__})); raise SystemExit
 fr = el.get("anim") or el.get("frames") or []
@@ -144,8 +199,13 @@ for _k in _cand:
     if _k < 0 or _k >= len(fr): continue
     _it = fr[_k]
     _im = Image.open(rp(_it[0] if isinstance(_it,(list,tuple)) else _it)).convert("RGBA")
-    _a = _im.split()[3]
-    ink = max(ink, sum(1 for v in _a.getdata() if v > 16) / float(_im.width*_im.height))
+    # ⚠️ မှင်ကို Python loop နဲ့ ရေတွက်ပါက **ပိက်ဆ၁ ၂ သိန်းကို
+    #    တစ်ခုချင်း** စစ်ရသည် — 1080×1920 × frame ၅ = ၁၀ သန်း ပတ်ပတ်
+    #    ⇒ template တစ်ခု ၁၀–၂၀s။ ၆၁၆ ခု ပြေးလျှင် နာရီ နှစ်ချီ။
+    #    numpy က အောက်မှာ သုံးပြီးးသား ⇒ ဒီမှာလည်း သုံးရမည်။
+    import numpy as _np0
+    _a = _np0.array(_im)[:, :, 3]
+    ink = max(ink, float((_a > 16).sum()) / float(_im.width*_im.height))
 im = _im
 # ⚠️ **bbox ကိုပါ မှတ်ရမည်** — planner ရဲ့ pool ကို လက်ရေး ၃၀ ကနေ ၂၇၁+ သို့
 #    ချဲ့လိုက်သဖြင့် 「ဂရပ်ဖစ်က စာတန်းကို ဖုံးသလား」ကို **တိုင်း**ရမည်。
@@ -251,7 +311,15 @@ def main():
               f"{len(res_all)})", flush=True)
     else:
         res_all = res
-    json.dump(res_all, open(_p, "w"), ensure_ascii=False, indent=1)
+    _DIO.write_derived(_p, res_all, writer=__file__)
+    # ⚠️ S-c — provenance **သာ** မှတ်သည် · ဖိုင် ပြန်မထုတ်ပါ။
+    #    ဒီ run မှာ တကယ် စစ်ခဲ့သော id များသာ မှတ်ရမည် — အပိုင်းလိုက်
+    #    ပြေးလျှင် ကျန် template များ ဟောင်းတုန်း ဖြစ်ရမည် (S-a)。
+    if _DC is not None:
+        try:
+            _DC.record("gfx_verify", ids=[r["id"] for r in res])
+        except Exception as _pe:
+            print("  ⚠️ provenance မမှတ်နိုင်: %s" % _pe, flush=True)
     from collections import Counter
     print("module အလိုက် အောင်:", dict(Counter(r["id"].split(".")[0] for r in ok)))
 

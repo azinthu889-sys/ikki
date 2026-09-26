@@ -10,6 +10,18 @@
 """
 import os, sys, json, subprocess, tempfile
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ── W-1…W-4 လုံခြုံ ရေးမှု (`core/derived_io.py`) ─────────────────────
+# ⚠️ ၂၀၂၆-၀၉-၂၆: derived ရေးသူ ၄၈ ခုထဲ ၄၄ မှာ ဗလာ-guard မရှိ · ၄၅ မှာ atomic
+#    မရှိ ⇒ `gfx_size_16x9.json` (၅၉၃ entry) ဗလာနဲ့ လွှမ်းခံရသည်。
+# ⚠️ path ကို **ကိုယ်တိုင် ထည့်ရမည်** — `core` path insert က အောက်မှာ ရှိသည်。
+try:
+    _cp = os.path.join(HERE, "core")
+    if _cp not in sys.path:
+        sys.path.insert(0, _cp)
+    import derived_io as _DIO
+except ImportError as _die:      # ⚠️ fail-closed — guard မရှိဘဲ မရေးရ
+    raise SystemExit("⛔ core/derived_io.py ဖတ်မရ: %s" % _die)
 sys.path.insert(0, os.path.join(HERE, "core"))
 TIMEOUT = int(os.environ.get("GFX_TIMEOUT", "90"))
 
@@ -104,8 +116,25 @@ def main():
               f"detail={r.get('detail','—')} clip={r.get('clip','—')} "
               f"vn={r.get('vn','—')} vedge={r.get('vedge','—')} {r.get('why','')[:40]}",
               flush=True)
-    json.dump(out, open(os.path.join(HERE, "assets", "gfx_qual.json"), "w"),
-              ensure_ascii=False, indent=1)
+    # ⚠️ **လွှမ်း၍ မရ** — `GFX_ONLY` နဲ့ အပိုင်း ပြေးလျှင် ရှိပြီးသား ဒေတာ
+    #    ပျောက်မည် (`gfx_verify.py` မှာ ၁၇၂ ⇒ ၂ ဖြစ်ခဲ့သည်; ဒီဖိုင်မှာ ၆၁၆ ထဲ
+    #    ၂ ခုသာ တိုင်းထားသဖြင့် အပိုင်း ပြေးရမှာ သေချာသည်) ⇒ **ပေါင်း**သည်。
+    #    အပြည့် ပြေးလျှင် အသစ် ရေးသည် (bare-fn key လို ဟောင်းပုံစံ မကျန်စေရန်)。
+    _p = os.path.join(HERE, "assets", "gfx_qual.json")
+    if only:
+        _old = []
+        try:
+            _old = json.load(open(_p, encoding="utf-8")) or []
+        except Exception:
+            _old = []
+        _m = {r["id"]: r for r in _old if isinstance(r, dict) and "id" in r}
+        _m.update({r["id"]: r for r in out})
+        out_all = sorted(_m.values(), key=lambda r: r["id"])
+        print(f"  (အပိုင်း ပြေးပြီး — ရှိပြီးသား {len(_old)} နဲ့ ပေါင်း ⇒ "
+              f"{len(out_all)})", flush=True)
+    else:
+        out_all = out
+    _DIO.write_derived(_p, out_all, writer=__file__)
     print(f"\nပြီး — assets/gfx_qual.json", flush=True)
 
 
