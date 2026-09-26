@@ -76,7 +76,10 @@ PAPER_W = 0.489                        # ဘယ်ဘက် ဘောင်က�
 PAPER_RGB = (238, 234, 220)            # hrms ပျမ်းမျှ #EEEADC (qUCE #F5F5D8)
 PAPER_INK = (24, 22, 20)
 SPEAKER_ZOOM = 1.10                    # ညာဘက်တစ်ဝက်ထဲ ပြောသူ (မျက်စိဖြင့် ~1.1×)
-PAPER_TXT = 0.052                      # စာလုံး em ÷ H (ink span 2 ကြောင်း 0.106–0.115)
+# ⚠️ ပထမ render: em 0.052 ⇒ ink 0.042H/ကြောင်း — ref (hrms 0:31) ink 0.073H
+#    နဲ့ နှိုင်းလျှင် ~1.6× သေးပြီး ပါးလွှာ ⇒ 0.083 + Pyidaungsu-Bold + အဖြူ outline
+PAPER_TXT = 0.083
+PAPER_FONT = "Pyidaungsu-Bold"
 
 KINDS = ("panel", "number", "jp", "no", "none")
 
@@ -397,6 +400,10 @@ def plan(lines, dur, rc=None, log=print):
         f"share {st['share']:.0%} (ပစ်မှတ် {SPEC['share']:.0%}) · "
         f"panel {st['n_panel']} · B-roll {st['n_broll']} · overlay {st['n_over']} · "
         f"cold open {st['cold']:.1f}s · ပြောသူ အရှည်ဆုံး {st['max_talk']}s")
+    for e in ev:
+        what = (e.get("text") or e.get("num") or e.get("jp")
+                or " + ".join(" · ".join((c.get("my") or [])[:2]) for c, _d in e.get("clips", [])))
+        log(f"    {e['at']:7.2f}s  {e['dur']:4.1f}s  {e['kind']:6s} {str(what)[:60]}")
     return dict(events=ev, dur=dur, stats=st)
 
 
@@ -441,24 +448,42 @@ def _paper_png(text, W, H, out, mmf):
     rng = np.random.default_rng(len(text) * 7919 + W)
     base = np.empty((H, pw, 3), np.float32)
     base[:] = PAPER_RGB
-    # စက္ကူ texture — အမှုန်သေး + အကွက်ကြီး ဖျော့ (ref မှာ fibre အစက် မြင်ရ)
-    base += rng.normal(0, 3.2, (H, pw, 1))
-    coarse = rng.normal(0, 2.0, (H // 24 + 2, pw // 24 + 2, 1))
-    coarse = np.kron(coarse, np.ones((24, 24, 1)))[:H, :pw]
-    base += coarse
+    # စက္ကူ texture — အမှုန်သေး + **ချောမွေ့သော** အလင်းကွာ。 ⚠️ ပထမ version က
+    #    24px block (np.kron) သုံး၍ လေးထောင့်ကွက်တွေ မြင်ရခဲ့ (render အစစ်)。
+    from PIL import ImageFilter
+    base += rng.normal(0, 3.0, (H, pw, 1))
+    low = Image.fromarray(np.clip(rng.normal(128, 40, (H // 8 + 1, pw // 8 + 1)), 0, 255)
+                          .astype(np.uint8)).resize((pw, H), Image.BICUBIC) \
+        .filter(ImageFilter.GaussianBlur(H * 0.02))
+    base += ((np.asarray(low, np.float32) - 128) / 128 * 3.0)[..., None]
+    fib = rng.random((H, pw)) > 0.9985                       # ref မှာ မြင်ရသော အစက်သေး
+    base[fib] -= 38
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     im.paste(Image.fromarray(np.clip(base, 0, 255).astype(np.uint8)), (0, 0))
+    font = PAPER_FONT if mmf in (None, "", "auto") else PAPER_FONT
     px = int(round(H * PAPER_TXT))
-    maxw = int(pw * 0.80)
-    lines = SL._wrap(text, px, mmf, maxw)
-    while len(lines) > 3 and px > int(H * 0.034):
-        px = int(px * 0.9); lines = SL._wrap(text, px, mmf, maxw)
-    arrs = [SL._text_png(l, px, mmf, PAPER_INK, align="center") for l in lines[:3]]
-    lh = int(px * 1.55)
-    y = int(H * 0.46 - lh * len(arrs) / 2)
+    maxw = int(pw * 0.82)
+    lines = SL._wrap(text, px, font, maxw)
+    while len(lines) > 3 and px > int(H * 0.05):
+        px = int(px * 0.9); lines = SL._wrap(text, px, font, maxw)
+    arrs = [SL._text_png(l, px, font, PAPER_INK, align="center") for l in lines[:3]]
+    lh = int(px * 1.62)
+    txt = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    y = int(H * 0.44 - lh * len(arrs) / 2)
     for a in arrs:
-        SL._paste(im, a, (pw - a.shape[1]) // 2, y + (lh - a.shape[0]) // 2)
+        SL._paste(txt, a, (pw - a.shape[1]) // 2, y + (lh - a.shape[0]) // 2)
         y += lh
+    # ref: စာလုံးမည်း + **အဖြူ outline** + ညိုမှိုင်း shadow (စက္ကူပေါ် ကြွနေ)
+    al = txt.split()[3]
+    k = max(3, int(px * 0.09) | 1)
+    halo = al.filter(ImageFilter.MaxFilter(k))
+    sh = halo.filter(ImageFilter.GaussianBlur(px * 0.10))
+    shadow = Image.new("RGBA", (W, H), (40, 30, 20, 0)); shadow.putalpha(sh.point(lambda v: int(v * 0.45)))
+    white = Image.new("RGBA", (W, H), (255, 255, 255, 0)); white.putalpha(halo)
+    off = max(1, int(px * 0.05))
+    im.alpha_composite(shadow, (off, off))
+    im.alpha_composite(white)
+    im.alpha_composite(txt)
     im.save(out)
     return out
 
