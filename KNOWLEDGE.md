@@ -3365,3 +3365,36 @@ alias 50 လုံး တပ်လျှင် ⇒ **ပိတ်နေတဲ့
 ```
 ⚠️ **မသေချာ ၅၅ ကို မှန်းဆ မချိတ်ရ** — မှားချိတ်လျှင် template က အဓိပ္ပာယ်မဲ့
    စာသား ပြမည် (`_first_number` ရဲ့ 「N5 → 5」 အမှားနဲ့ အတူတူ)。
+
+## Mac worker — **launchd မဟုတ်တော့၊ shell ကနေ ပြေးသည်** (၂၀၂၆-၀၉-၂၆)
+
+```
+launchctl list | grep ikki   → ဘာမှ မရှိ (agent unload ဖြစ်ထား · plist မဖျက်)
+worker = shell process · IKKI_SHELL_WORKER=1 · env က ~/.ikki/shell_worker
+```
+⚠️ **အကြောင်းရင်း** — launchd agent မှာ Full Disk Access မရှိ၍ `/Volumes` ကို
+   မရေးနိုင် ([[ikki-deploy-rules]]) ⇒ `deploy.sh` က shell worker စသည်。
+   `KeepAlive` ကြောင့် agent ကလည် ပြန်တက်ကာ **worker ၂ ခု ပြိုင်**ခဲ့သဖြင့်
+   agent ကို unload လုပ်ထားသည်。
+⚠️ ⇒ `launchctl setenv X` + `kickstart` က **အဲဒီ worker ဆီ မရောက်ပါ**。
+   env အသစ် (A/B အတွက် `IKKI_SEED` · `IKKI_GFX_ALIAS`) ထည့်ရန် —
+```
+kill <pid>
+cd ~/ikki && env $(cat ~/.ikki/shell_worker | tr '\n' ' ') \
+  IKKI_SEED=… IKKI_GFX_ALIAS=… \
+  nohup ~/.ikki/venv/bin/python worker/run.py < /dev/null >> ~/.ikki/worker.log 2>&1 &
+```
+   ⛔ `launchctl load` **မလုပ်ရ** (race)。 fd ၃ ခုလုံး ပိတ်ရမည်。
+⚠️ restart မလုပ်ခင် `~/.ikki/busy` စစ်ရမည် (ရှိလျှင် job ပြေးနေသည်) ·
+   အခြား session ကို **အရင် မေးရမည်** — production worker ဖြစ်သည်。
+⚠️ `IKKI_SEED` က worker တစ်ခုလုံးအတွက် ⇒ A/B ကာလအတွင်း ဝင်လာသော
+   **customer job တွေပါ seed တူ** ဖြစ်မည် (Zin ၂၀၂၆-၀၉-၂၆ အသိနဲ့ ခွင့်ပြု)。
+
+### ⛔ upload အဟောင်း — **source ဖိုင် ပျောက်တတ်သည်**
+
+`u_252473f4a646` (TH · Sep 21) နဲ့ job ဖန်တီးရာ worker က `fetch_src` မှာ
+**HTTP 404** နဲ့ ကျသည် — R2 ထဲ source မရှိတော့。 ⇒ ဟောင်းသော upload_id ကို
+A/B အတွက် **မယုံရ**、ပြန်တင်ရမည် (`scratchpad/up.py` · ~၅၀s / ၁၈၃ MB)。
+⚠️ `up.py` က တင်ပြီးတာနဲ့ **job ကိုပါ ဖန်တီး**သည် (ZAE `short-video` · `3:4`)
+   ⇒ TH အတွက် လိုချင်လျှင် အဲဒါကို `POST /api/jobs/{id}/cancel` နဲ့ ဖျက်ပြီး
+   `recipe=headtop` နဲ့ ပြန်ဖန်တီးရမည် (ဖျက်လျှင် မိနစ် ပြန်အမ်းသည်)。
