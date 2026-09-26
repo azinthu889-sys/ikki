@@ -58,6 +58,12 @@ os.makedirs(SCRATCH, exist_ok=True)
 sys.path.insert(0, MK)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "core"))
 from video_codec import h264_args, preferred_codec
+# which text renderer this worker has — the API shows only fonts measured
+# good on it (api/fonts_render.json, tools/font_whitelist.py)
+try:
+    import fonts as _FNR; _RENDERER = _FNR.renderer()
+except Exception:
+    _RENDERER = "unknown"
 
 # ⚠️ **ယာယီ အမှားကြောင့် render တစ်ခုလုံး မဆုံးရှုံးရ**。
 #    ၂၀၂၆-၀၉-၂၀: deploy က API container ကို ပြန်ဆောက်နေစဉ် Caddy က
@@ -1075,8 +1081,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
         log(f"  စာတန်း အရွယ် · သုံးစွဲသူ ရွေး {jcap} ({rc['cap_pct']})")
     jf = (job.get("font") or "").strip()
     if jf:
+        # ⚠️ an unknown font used to fall back to the recipe default with only
+        #    a log line — the user chose a font and got another.  Refuse.
         if FN.ok(jf): rc["mmf"] = jf
-        else: log(f"  ⚠️ ဖောင့် '{jf}' စာရင်းထဲ မရှိ — ပုံသေ သုံးသည်")
+        else:
+            raise FN.FontRefused(f"ဖောင့် '{jf}' စာရင်းထဲ မရှိပါ — တခြားဖောင့် ရွေးပါ · "
+                                 f"font '{jf}' is not in the picker list")
+    # render the chosen fonts or refuse — never a silent substitution
+    try:
+        import theme as _thg; _thg.use(rc["theme"]); _thm = _thg.t().get("MMF")
+    except Exception:
+        _thm = None
+    FN.guard([rc.get("mmf"), _thm], log=log)
     # ⚠️ **render မစမီ motionkit ရဲ scratch ကို ရှင်းရမည်**。 template တစ်ခု
     #    ဆောက်တိုင်း PNG ၆၀–၂၀၀ ထွက်ပြီး ဘယ်သူမှ မဖျက်ခဲ့— ၂၀၂၆-၀၉-၂၁ မှာ
     #    **၁၁ GB** စုမိပြီး Mac ရဲ disk ပြည့်ကာ render တွေ ကျခဲ့သည်。
@@ -4987,6 +5003,10 @@ def _cine_size(IG, lang, H, work, log=print):
 def _cine_captioner(W, H, sub_lang, log=print):
     def cap(talk_wav, total, work, windows):
         import asr as ASR, captions as CP, infogfx as IG, cinevlog as CI
+        import fonts as FN
+        # render the chosen fonts or refuse (Pyidaungsu is never substituted)
+        FN.guard([CINE_FONTS[l] for l in {"my": ["my"], "en": ["en"],
+                                          "ja_en": ["ja", "en"]}[sub_lang]], log=log)
         os.makedirs(work, exist_ok=True)
         cw, mp = CI.compact_talk(talk_wav, windows, os.path.join(work, "talk_only.wav"))
         wav = os.path.join(work, "talk16.wav")
@@ -5036,6 +5056,12 @@ def cine_handle(d, t0):
     sub_lang = over.get("_sub_lang") or "none"
     pace = over.get("_pace") or "normal"
     srcs = [x for x in (d.get("sources") or [d.get("upload")]) if x]
+    # fonts first — refuse before downloading gigabytes, not after the render
+    if sub_lang != "none":
+        import fonts as FN
+        FN.guard([CINE_FONTS[l] for l in {"my": ["my"], "en": ["en"],
+                                          "ja_en": ["ja", "en"]}[sub_lang]],
+                 log=lambda x: print(x, flush=True))
     _sz = sum(float(x.get("size") or 0) for x in srcs) / (1024 ** 3)
     need = _sz * 1.05 + 3.0
     if free_gb(BIG) < need:
@@ -5436,7 +5462,7 @@ def main(once=False):
             if time.time() - _bt > 30:
                 _bt = time.time(); pull_broll()
             # ⚠️ ကိုယ်ပိုင် အမှတ် ပါမှ worker အများကြီး ဘေးကင်း (claim race)
-            d = req("/api/w/claim", {"worker": WORKER_ID})
+            d = req("/api/w/claim", {"worker": WORKER_ID, "renderer": _RENDERER})
             if d.get("job"):
                 jid = d["job"]["id"]
                 # ⚠️ **render လုပ်နေကြောင်း အမှတ် ချန်ရမည်**。 `deploy.sh` က

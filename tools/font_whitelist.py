@@ -1,0 +1,222 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Per-renderer font whitelist — which picker fonts really render, and where.
+
+Zin, 2026-09-26: "render the chosen font, or refuse — never substitute
+silently", and "⛔ no VPS until the whitelist exists".  So every font in the
+picker is rendered on BOTH renderers from the SAME font file and compared:
+
+  CoreText (Mac worker, motionkit `cttext`)
+  Pango    (VPS worker image, rsvg-convert — called DIRECTLY, because
+            motionkit's cttext_rsvg FONT_MAP rewrites 9 of these names to
+            Noto Sans Myanmar before Pango ever sees them)
+
+Five words with stacked consonants and reordering vowels, 120 px each.
+
+A font passes a renderer only if
+  · the renderer really used that font — CoreText: the render differs from
+    a nonexistent-font render (CoreText substitutes silently); Pango: the
+    container sees ONLY this one file (FONTCONFIG_FILE) and fc-match returns it
+  · shaping matches: ink IoU vs the CoreText render of the same file ≥ GATE on
+    every word.  Calibrated 2026-09-26 on this same test: Noto (correct on
+    both) 0.80–0.86, Pyidaungsu under Pango (dotted circles) 0.15–0.20.
+  · and a person has looked at the sheet (IoU alone lied once already: across
+    different faces it measures design, not shaping).
+
+CoreText itself is the reference, so its own pass = "used, not substituted,
+not blank".
+
+Writes api/fonts_render.json (read by API + worker), reports/fonts_mac.txt,
+reports/fonts_vps.txt and reports/fonts_sheet.png.
+
+    python3 tools/font_whitelist.py            # needs ssh to the VPS
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, tempfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "core"))
+import fonts as FN                                        # noqa: E402
+
+WORDS = ["ကျွန်တော်", "ကြိုဆို", "ဖြစ်ပါတယ်", "ကျောင်း", "လျှောက်"]
+SIZE = 120
+GATE = 0.70
+VPS = "root@srv1866621.hstgr.cloud"
+IMAGE = "ikki-ikki-worker"
+OUT_JSON = os.path.join(ROOT, "api", "fonts_render.json")
+REP = os.path.join(ROOT, "reports")
+
+
+def ct(text, font, out):
+    sp = dict(text=text, font=font, fallback="Figtree", size=SIZE, w=900, h=300,
+              fill="#FFFFFF", unit="cluster", align="center",
+              frames=[{"out": out, "words": []}])
+    r = subprocess.run([os.path.join(FN.MK, "cttext")], input=json.dumps(sp).encode(),
+                       capture_output=True)
+    return r.returncode == 0 and os.path.exists(out)
+
+
+def files_for(ps):
+    out = subprocess.run(["fc-list", ":", "postscriptname", "file"], capture_output=True,
+                         text=True).stdout
+    return sorted({ln.split(": ")[0] for ln in out.splitlines()
+                   if re.search(rf"postscriptname={re.escape(ps)}$", ln.strip())})
+
+
+def scan(path):
+    # ⚠️ a collection file prints one record per face — take the first
+    out = subprocess.run(["fc-scan", "--format", "%{family[0]}|%{style[0]}\n", path],
+                         capture_output=True, text=True).stdout.splitlines()
+    fam, style = (out[0].split("|") + [""])[:2] if out else ("", "")
+    return fam.strip(), style.strip()
+
+
+def weight(style):
+    s = style.lower()
+    return 900 if "black" in s or "heavy" in s else 700 if "bold" in s else \
+        300 if "light" in s else 400
+
+
+def ink(p):
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(Image.open(p).convert("RGBA"))[:, :, 3]
+    ys, xs = np.nonzero(a > 40)
+    return a[ys.min():ys.max() + 1, xs.min():xs.max() + 1] if len(ys) else None
+
+
+def iou(a, b):
+    import numpy as np
+    from PIL import Image
+    if a is None or b is None:
+        return 0.0
+    bb = np.asarray(Image.fromarray(b).resize((a.shape[1], a.shape[0]), Image.BILINEAR))
+    A, B = a > 128, bb > 128
+    return float((A & B).sum() / max(1, (A | B).sum()))
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+PANGO = r'''
+import subprocess, sys, json
+fam, wt, out = sys.argv[1], sys.argv[2], sys.argv[3]
+W = WORDS_JSON
+m = subprocess.run(["fc-match", "-f", "%{file}", f"{fam}:weight={wt}"],
+                   capture_output=True, text=True).stdout
+print("MATCH", m)
+for i, t in enumerate(W):
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300">'
+           f'<text x="450" y="190" text-anchor="middle" font-family="{fam}" '
+           f'font-weight="{wt}" font-size="{int(sys.argv[5])}" fill="#FFFFFF">{t}</text></svg>')
+    open(f"{out}/{i}.svg", "w").write(svg)
+    subprocess.run(["rsvg-convert", "-o", f"{out}/{i}.png", f"{out}/{i}.svg"], check=True)
+'''
+
+
+def pango_render(path, fam, wt, work):
+    """one offline container per file; fontconfig sees ONLY that file."""
+    rdir = f"/tmp/fw_{hashlib.md5(path.encode()).hexdigest()[:8]}"
+    subprocess.run(["ssh", VPS, f"rm -rf {rdir} && mkdir -p {rdir}/f {rdir}/o"], check=True)
+    subprocess.run(["scp", "-q", path, f"{VPS}:{rdir}/f/font.ttf"], check=True)
+    conf = ('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig>'
+            '<dir>/fw</dir><cachedir>/tmp/fc</cachedir></fontconfig>')
+    open("/tmp/claude-fw.conf", "w").write(conf)
+    # ⚠️ the words live IN the script: passed as argv through ssh → sh -c the
+    #    JSON lost its quotes and every Pango render silently produced nothing
+    open("/tmp/claude-fw.py", "w").write(
+        PANGO.replace("WORDS_JSON", json.dumps(WORDS, ensure_ascii=False)))
+    subprocess.run(["scp", "-q", "/tmp/claude-fw.conf", f"{VPS}:{rdir}/fonts.conf"], check=True)
+    subprocess.run(["scp", "-q", "/tmp/claude-fw.py", f"{VPS}:{rdir}/r.py"], check=True)
+    cmd = (f"docker run --rm --network none --entrypoint sh "
+           f"-e FONTCONFIG_FILE=/cfg/fonts.conf -v {rdir}/fonts.conf:/cfg/fonts.conf:ro "
+           f"-v {rdir}/f:/fw:ro -v {rdir}/o:/o -v {rdir}/r.py:/r.py:ro {IMAGE} -c "
+           f"\"fc-cache -f >/dev/null 2>&1; python /r.py '{fam}' {wt} /o x {SIZE}\"")
+    r = subprocess.run(["ssh", VPS, cmd], capture_output=True, text=True)
+    match = ""
+    for ln in r.stdout.splitlines():
+        if ln.startswith("MATCH"):
+            match = ln[5:].strip()
+    os.makedirs(work, exist_ok=True)
+    subprocess.run(["scp", "-q", f"{VPS}:{rdir}/o/*.png", work + "/"])
+    subprocess.run(["ssh", VPS, f"rm -rf {rdir}"])
+    if not all(os.path.exists(f"{work}/{i}.png") for i in range(len(WORDS))):
+        raise RuntimeError(f"Pango render produced no images for {path}: {r.stderr[-400:]}")
+    return match == "/fw/font.ttf", match, r.stderr[-300:]
+
+
+def main():
+    work = tempfile.mkdtemp(prefix="fontwl_")
+    os.makedirs(REP, exist_ok=True)
+    # CoreText's silent fallback, for the "was the font really used" test
+    bogus = []
+    for i, w in enumerate(WORDS):
+        p = f"{work}/bogus_{i}.png"; ct(w, "NoSuchFont-ZZZ", p); bogus.append(md5(p))
+    rows = []
+    for fid in FN.IDS:
+        mac = [f"{work}/{fid}_mac_{i}.png" for i in range(len(WORDS))]
+        ok_ct = all(ct(w, fid, p) for w, p in zip(WORDS, mac))
+        subst = ok_ct and all(md5(p) == b for p, b in zip(mac, bogus))
+        blank = ok_ct and any(ink(p) is None for p in mac)
+        ct_pass = ok_ct and not subst and not blank
+        best = None
+        for path in files_for(fid):
+            fam, style = scan(path)
+            wt = weight(style)
+            vdir = f"{work}/{fid}_vps_{hashlib.md5(path.encode()).hexdigest()[:6]}"
+            used, match, err = pango_render(path, fam, wt, vdir)
+            ious = [iou(ink(m), ink(f"{vdir}/{i}.png")) if os.path.exists(f"{vdir}/{i}.png")
+                    else 0.0 for i, m in enumerate(mac)]
+            cand = dict(file=path, family=fam, style=style, weight=wt, used=used,
+                        ious=[round(x, 3) for x in ious], dir=vdir)
+            if best is None or min(ious) > min(best["ious"]):
+                best = cand
+        pg_pass = bool(best and best["used"] and ct_pass and min(best["ious"]) >= GATE)
+        rows.append(dict(id=fid, coretext=ct_pass, ct_note=("substituted" if subst else
+                         "blank" if blank else "" if ok_ct else "cttext failed"),
+                         pango=pg_pass, pango_best=best))
+        print(f"{fid:22} CoreText {'✓' if ct_pass else '✗'}  Pango {'✓' if pg_pass else '✗'}  "
+              f"min IoU {min(best['ious']) if best else 0:.2f}  used={best and best['used']}  "
+              f"{os.path.basename(best['file']) if best else ''}", flush=True)
+    # sheet for the eye check
+    from PIL import Image, ImageDraw
+    sh = Image.new("RGB", (200 + len(WORDS) * 2 * 190, 40 + len(rows) * 90), (30, 30, 30))
+    d = ImageDraw.Draw(sh)
+    for r_i, r in enumerate(rows):
+        y = 40 + r_i * 90
+        d.text((8, y + 30), f"{r['id']}\nCT {'ok' if r['coretext'] else 'NO'} "
+                            f"PG {'ok' if r['pango'] else 'NO'}", fill=(255, 220, 120))
+        for i in range(len(WORDS)):
+            for k, p in enumerate([f"{work}/{r['id']}_mac_{i}.png",
+                                   f"{r['pango_best']['dir']}/{i}.png" if r["pango_best"] else ""]):
+                if not p or not os.path.exists(p):
+                    continue
+                im = Image.open(p).convert("RGBA"); im.thumbnail((180, 80))
+                bg = Image.new("RGB", im.size, (30, 30, 30) if k == 0 else (45, 30, 30))
+                bg.paste(im, (0, 0), im)
+                sh.paste(bg, (200 + (i * 2 + k) * 190, y))
+    d.text((200, 10), "each word: CoreText (grey)  |  Pango same file (red-tinted)",
+           fill=(200, 200, 200))
+    sh.save(os.path.join(REP, "fonts_sheet.png"))
+    json.dump(dict(method="5 words · 120 px · same file · Pango sees only that file · "
+                          f"IoU ≥ {GATE} on every word + eye check",
+                   words=WORDS, gate=GATE,
+                   coretext=[r["id"] for r in rows if r["coretext"]],
+                   pango=[r["id"] for r in rows if r["pango"]],
+                   detail=[{k: v for k, v in r.items() if k != "pango_best"} |
+                           {"pango_ious": (r["pango_best"] or {}).get("ious"),
+                            "pango_file": os.path.basename((r["pango_best"] or {}).get("file", "")),
+                            "pango_used": (r["pango_best"] or {}).get("used")}
+                           for r in rows]),
+              open(OUT_JSON, "w"), ensure_ascii=False, indent=1)
+    open(os.path.join(REP, "fonts_mac.txt"), "w").write(
+        "\n".join(r["id"] for r in rows if r["coretext"]) + "\n")
+    open(os.path.join(REP, "fonts_vps.txt"), "w").write(
+        "\n".join(r["id"] for r in rows if r["pango"]) + "\n")
+    print(f"\nCoreText {sum(r['coretext'] for r in rows)}/{len(rows)} · "
+          f"Pango {sum(r['pango'] for r in rows)}/{len(rows)} → {OUT_JSON}")
+    print(f"sheet → {os.path.join(REP, 'fonts_sheet.png')}  (look at it before trusting the list)")
+
+
+if __name__ == "__main__":
+    main()

@@ -38,6 +38,61 @@ def api():
 def ok(name):
     return name in IDS
 
+# ── per-renderer whitelist (tools/font_whitelist.py) ─────────────────────
+# ⚠️ Zin, 2026-09-26: "render the chosen font, or refuse — no silent
+#    substitution".  motionkit's Linux renderer (cttext_rsvg FONT_MAP) turns
+#    Pyidaungsu and 8 others into Noto Sans Myanmar without a word, and
+#    CoreText falls back to a system font for an unknown name.  So a worker
+#    checks every Burmese font a job will use against the list MEASURED for
+#    its own renderer, and refuses the job naming the font otherwise.
+_RJ = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "api",
+                    "fonts_render.json"), "/app/api/fonts_render.json"]
+
+
+def renderer():
+    """'coretext' when motionkit's cttext binary will be used, else 'pango'
+    (same rule motionkit/infogfx.py applies)."""
+    if os.environ.get("MK_TEXT") == "rsvg":
+        return "pango"
+    return "coretext" if os.path.exists(os.path.join(MK, "cttext")) else "pango"
+
+
+def whitelist(r=None):
+    r = r or renderer()
+    for p in _RJ:
+        if os.path.exists(p):
+            try:
+                return list(json.load(open(p, encoding="utf-8")).get(r) or [])
+            except Exception:
+                return []
+    return []          # not measured ⇒ nothing is allowed on that renderer
+
+
+def allowed(name, r=None):
+    return name in whitelist(r)
+
+
+class FontRefused(RuntimeError):
+    pass
+
+
+def guard(names, log=print, r=None):
+    """raise FontRefused when any Burmese font in `names` is not measured-good
+    on this worker's renderer.  Non-picker names (Latin, CJK) are not checked —
+    the whitelist covers the Burmese picker fonts only."""
+    r = r or renderer()
+    wl = whitelist(r)
+    bad = [n for n in dict.fromkeys(n for n in names if n) if n in IDS and n not in wl]
+    if bad:
+        msg = (f"ဖောင့် {', '.join(bad)} ကို ဒီ worker ({r}) မှာ မှန်မှန်ကန်ကန် မရေးနိုင်ပါ — "
+               f"တခြားဖောင့် ရွေးပါ (အစားထိုးပြီး မထုတ်ပါ) · "
+               f"font {', '.join(bad)} cannot be rendered faithfully on the {r} worker")
+        log(f"  ⛔ {msg}")
+        raise FontRefused(msg)
+    log(f"  ✓ ဖောင့် စစ်ပြီး ({r}) · {', '.join(n for n in dict.fromkeys(names) if n in IDS) or '—'}")
+    return True
+
+
 def verify(cand=None, text="ကျွန်တော်တို့ ဇင်ဂျပန်လိုက် — JLPT N5 · 日本語", size=64):
     """ဖောင့်တစ်ခုချင်း တကယ် ရေးတတ်လား စစ်သည် (ink% + အကျယ်)。"""
     out=[]

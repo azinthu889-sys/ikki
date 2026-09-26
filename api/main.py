@@ -1042,10 +1042,31 @@ FONTS = [
       dict(id="MyanmarSagar",         name="Myanmar Sagar",          look="သေးသွယ်",               good="ကြောင်းသေး"),
     ]
 
+# ⚠️ show only the fonts the LIVE worker renders faithfully (Zin, 2026-09-26:
+#    no button that doesn't work; no silent substitution).  The worker says
+#    which renderer it has on every claim poll; the list per renderer was
+#    measured by tools/font_whitelist.py.  Until a worker has polled, or if the
+#    list was never measured, nothing is hidden — the worker's own guard still
+#    refuses the job.
+_LIVE = {"renderer": None, "at": 0.0}
+_FR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts_render.json")
+
+
+def _font_whitelist(r):
+    try:
+        return set(json.load(open(_FR, encoding="utf-8")).get(r) or [])
+    except Exception:
+        return None
+
+
 @app.get("/api/fonts")
 def fonts(authorization: str = Header(None)):
     auth(authorization, UTOKEN)
-    return {"fonts": FONTS}
+    r = _LIVE["renderer"] if time.time() - _LIVE["at"] < 120 else None
+    wl = _font_whitelist(r) if r else None
+    shown = [f for f in FONTS if wl is None or f["id"] in wl]
+    return {"fonts": shown, "renderer": r,
+            "hidden": [f["id"] for f in FONTS if f not in shown]}
 
 @app.get("/api/usage")
 def usage(authorization: str = Header(None)):
@@ -1326,6 +1347,8 @@ async def w_claim(req: Request, authorization: str = Header(None)):
     _beat()
     try: wb = await req.json()
     except Exception: wb = {}
+    if (wb or {}).get("renderer") in ("coretext", "pango"):
+        _LIVE.update(renderer=wb["renderer"], at=time.time())
     j = db.one("SELECT * FROM jobs WHERE status='queued' ORDER BY created LIMIT 1")
     if not j: return {"job": None}
     # ⚠️ **worker အများကြီး အတွက် အရေးကြီး**。 အရင်က status ကိုပဲ ပြန်စစ်ခဲ့ပြီး

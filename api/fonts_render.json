@@ -1,0 +1,218 @@
+{
+ "method": "5 words · 120 px · same file · Pango sees only that file · IoU ≥ 0.7 on every word + eye check",
+ "words": [
+  "ကျွန်တော်",
+  "ကြိုဆို",
+  "ဖြစ်ပါတယ်",
+  "ကျောင်း",
+  "လျှောက်"
+ ],
+ "gate": 0.7,
+ "coretext": [
+  "Pyidaungsu",
+  "Pyidaungsu-Bold",
+  "MasterpieceUniRound",
+  "MyanmarYinmar",
+  "MyanmarSansPro",
+  "MyanmarHeadOne",
+  "PadaukBook-Bold",
+  "Padauk",
+  "NotoSansMyanmar-Bold",
+  "MyanmarPonenyet",
+  "MyanmarBlack",
+  "MyanmarSagar"
+ ],
+ "pango": [
+  "MasterpieceUniRound",
+  "MyanmarYinmar",
+  "MyanmarSansPro",
+  "MyanmarHeadOne",
+  "PadaukBook-Bold",
+  "NotoSansMyanmar-Bold",
+  "MyanmarPonenyet",
+  "MyanmarBlack",
+  "MyanmarSagar"
+ ],
+ "detail": [
+  {
+   "id": "Pyidaungsu",
+   "coretext": true,
+   "ct_note": "",
+   "pango": false,
+   "pango_ious": [
+    0.617,
+    0.762,
+    0.538,
+    0.675,
+    0.722
+   ],
+   "pango_file": "pyidaungsu-1.3.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "Pyidaungsu-Bold",
+   "coretext": true,
+   "ct_note": "",
+   "pango": false,
+   "pango_ious": [
+    0.3,
+    0.255,
+    0.3,
+    0.271,
+    0.247
+   ],
+   "pango_file": "Pyidaungsu-1.8.3_Bold.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MasterpieceUniRound",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.731,
+    0.904,
+    0.763,
+    0.89,
+    0.76
+   ],
+   "pango_file": "PaohDragonApp.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarYinmar",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.954,
+    0.931,
+    0.948,
+    0.941,
+    0.93
+   ],
+   "pango_file": "MyanmarYinmar.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarSansPro",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.881,
+    0.876,
+    0.874,
+    0.878,
+    0.898
+   ],
+   "pango_file": "MyanmarSansPro.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarHeadOne",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.938,
+    0.934,
+    0.929,
+    0.914,
+    0.936
+   ],
+   "pango_file": "MyanmarThuriya.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "PadaukBook-Bold",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.909,
+    0.913,
+    0.905,
+    0.928,
+    0.939
+   ],
+   "pango_file": "PadaukBook-Bold.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "Padauk",
+   "coretext": true,
+   "ct_note": "",
+   "pango": false,
+   "pango_ious": [
+    0.441,
+    0.241,
+    0.661,
+    0.521,
+    0.274
+   ],
+   "pango_file": "PadaukGhostтАЛ.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "NotoSansMyanmar-Bold",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.954,
+    0.937,
+    0.939,
+    0.943,
+    0.949
+   ],
+   "pango_file": "NotoSansMyanmar-Bold.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarPonenyet",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.946,
+    0.936,
+    0.953,
+    0.952,
+    0.952
+   ],
+   "pango_file": "MyanmarPonenyet.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarBlack",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.964,
+    0.951,
+    0.957,
+    0.962,
+    0.963
+   ],
+   "pango_file": "MyanmarBlack.ttf",
+   "pango_used": true
+  },
+  {
+   "id": "MyanmarSagar",
+   "coretext": true,
+   "ct_note": "",
+   "pango": true,
+   "pango_ious": [
+    0.902,
+    0.921,
+    0.927,
+    0.925,
+    0.902
+   ],
+   "pango_file": "MyanmarSagar.ttf",
+   "pango_used": true
+  }
+ ]
+}
