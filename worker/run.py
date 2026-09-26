@@ -5059,6 +5059,12 @@ def cine_handle(d, t0):
             "minutes": (time.time() - t0) / 60})
         got = fetch_src(jid, dest, cb) if n == 0 else fetch_take(jid, n, dest, cb)
         paths.append(got or dest)
+    # ② voice-over — the job's separate audio file (API marks it `_vo`)
+    vo_path = None
+    if over.get("_vo"):
+        vo_path = os.path.join(BIG, f"{jid}_vo")
+        vo_path = fetch_src(jid, vo_path, path="src2") or vo_path
+        log(f"  🎙 voice-over {os.path.getsize(vo_path)/1e6:.1f} MB")
     fk = (job.get("fmt") or "").strip() or "16:9"
     fd = FM.FORMATS.get(fk) or FM.FORMATS["16:9"]
     W, H = int(fd["W"]), int(fd["H"])
@@ -5082,10 +5088,13 @@ def cine_handle(d, t0):
                      seed=job.get("id") or "", lufs=rc.get("lufs") or -14.0,
                      sub_lang=sub_lang,
                      captioner=_cine_captioner(W, H, sub_lang, log=log),
-                     log=log, stage=stage,
+                     log=log, stage=stage, vo_path=vo_path,
                      cache_dir=os.path.join(BIG, jid + "_cine_cache"))
         st = res["qc"]["stats"]; rp = res["report"]
-        lines += [f"INPUT     clip {rp['clips']} · usable {rp['usable']} · "
+        lines += [f"MODE      {'voice-over' if res.get('vo') else 'camera audio + cutaways'} · "
+                  f"speech {st.get('speech_frac', 0)*100:.0f}% · "
+                  f"cuts under speech {st.get('cuts_in_speech', 0)*100:.0f}%",
+                  f"INPUT     clip {rp['clips']} · usable {rp['usable']} · "
                   f"talk {rp['talk_clips']} · B-roll {rp['broll_clips']} · "
                   f"{res['src_dur']:.0f}s footage",
                   f"OUTPUT    {W}x{H} · {res['dur']:.1f}s · shot {st['shots']} · "
@@ -5127,7 +5136,7 @@ def cine_handle(d, t0):
         # the downloaded clips are kept on failure so a retry does not pull
         # gigabytes again; on success everything goes.
         if not failed:
-            for p in paths:
+            for p in paths + ([vo_path] if vo_path else []):
                 if p.startswith(BIG):
                     _drop(p)
             shutil.rmtree(work, ignore_errors=True)

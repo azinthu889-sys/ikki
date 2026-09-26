@@ -491,9 +491,10 @@ async def job_new(req: Request, authorization: str = Header(None)):
         pc = (b.get("pace") or "normal").strip()
         if pc not in CINE_PACES:
             raise HTTPException(400, f"အရှိန် မရှိ: {pc}")
+        # For a cinematic job the separate audio file is a VOICE-OVER, not a
+        # recorder track: it becomes the film's spine (core/cinevlog.py ②).
         if au:
-            raise HTTPException(400, "Cinematic Vlog မှာ recorder အသံ မပေါင်းနိုင်သေးပါ — "
-                                     "clip တစ်ခုချင်းရဲ့ ကင်မရာအသံကို သုံးပါသည်")
+            over["_vo"] = 1
         over["_sub_lang"] = sl
         over["_pace"] = pc
         # ⚠️ the marker, not the recipe name, routes a job to the engine —
@@ -506,7 +507,7 @@ async def job_new(req: Request, authorization: str = Header(None)):
         if not a["done"]: raise HTTPException(400, "အသံ upload မပြီးသေး")
         # One external recorder track cannot be safely aligned against several
         # takes. Refuse clearly instead of silently using it on take one only.
-        if len(sources) > 1:
+        if len(sources) > 1 and not _cine:
             raise HTTPException(400, "take များစွာနဲ့ recorder အသံတစ်ဖိုင်ကို မပေါင်းနိုင်သေးပါ — take တစ်ခုတည်းသုံးပါ၊ သို့မဟုတ် camera audio ကိုသုံးပါ")
         over["_audio"] = au
     # ── Reference Style DNA — **setup မှာ ရွေးထားလျှင်** ──

@@ -49,6 +49,20 @@ PACE = {                      # median shot per pace, from the five videos
     "normal": 3.0,            # camping 3.0 · town 3.4
     "calm": 4.5,              # baby 3.9 · year-end 5.6
 }
+# ── voice-over mode — measured on 10 Life of Riza vlogs (zjl-study/riza) ──
+#    speech 55–80 % of runtime · 73 % of picture cuts land inside speech ·
+#    median shot 1.6–4.0 (2.5) s · shots ≥10 s only 2–10 % (5.6 %) ·
+#    voice ~12 dB over the bed · phrase 3.9 s · pause ~1.0 s · speech at ~1.6 s
+PACE_VO = {"fast": 1.8, "normal": 2.5, "calm": 3.8}
+LONG_BAND_VO = (0.02, 0.10)
+VO_HEAD = 1.5                 # picture before the first word
+VO_TAIL = 2.5                 # picture after the last word
+VO_GAP_MAX = 1.0              # pauses longer than this are shortened to it
+DUCK_DB = -6.0                # ambience under speech (8 + 6 ≈ the 12 dB measured)
+# talk shots longer than this get cutaways: face first, the voice runs on
+COVER_MIN = 5.0
+FACE_HEAD = 2.5
+FACE_TAIL = 2.0
 OPEN_S = 60.0                 # the fast opening minute (②)
 OPEN_K = 0.70
 SR = 48000
@@ -477,10 +491,16 @@ def _has_talk(c, a, b):
     return any(x < b and y > a for x, y in c.get("talk") or [])
 
 
-def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
-    """Order, choose and time every shot.  Returns (edl, report)."""
+def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print, vo=False):
+    """Order, choose and time every shot.  Returns (edl, report).
+
+    `vo=True` — a separate voice-over carries the film: every clip is picture
+    only, windows avoid on-camera speech (moving lips under someone else's
+    voice), no teaser, no fast opening, and long takes at the Riza rate.
+    """
     rng = random.Random(hashlib.sha1(str(seed).encode()).hexdigest())
-    med = PACE.get(pace, PACE["normal"])
+    med = (PACE_VO if vo else PACE).get(pace, (PACE_VO if vo else PACE)["normal"])
+    long_goal = 0.06 if vo else 0.15
     ok = [c for c in clips if c.get("ok") and c["dur"] >= 1.0]
     bad = [os.path.basename(c["path"]) for c in clips if c not in ok]
     # ① order — the day as it happened
@@ -490,6 +510,8 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
     for c in ok:
         c["q"] = score_curve(c, sharp_ref, motion_ref)
         c["role"], c["tspans"] = role_of(c)
+        if vo:
+            c["role"], c["tspans"] = "broll", []
         u = np.asarray(c["t"]); qq = c["q"]
         inner = (u > HEAD_SKIP) & (u < c["dur"] - TAIL_SKIP)
         c["qmed"] = float(np.median(qq[inner])) if inner.any() else float(np.median(qq))
@@ -517,25 +539,27 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
         if L < 0.9:
             c["reject"] = "too short"
             continue
-        w = best_window(c, L, c["q"])
+        mute = [(a_ - 0.3, b_ + 0.3) for a_, b_ in (c.get("talk") or [])] if vo else []
+        w = best_window(c, L, c["q"], avoid=mute)
         if w is None:
             continue
-        ss = speech_safe(c, w[0], w[0] + L)
+        ss = speech_safe(c, w[0], w[0] + L) if not vo else (w[0], w[0] + L)
         if not ss:
             continue
         shots.append(dict(clip=c, a=ss[0], b=ss[1], kind="broll", q=w[1]))
         if avail >= 3 * L + 4.0 and avail >= 12.0:
             L2 = lognorm(6.0)
-            w2 = best_window(c, L2, c["q"], avoid=[ss])
-            ss2 = speech_safe(c, w2[0], w2[0] + L2) if w2 else None
+            w2 = best_window(c, L2, c["q"], avoid=[ss] + mute)
+            ss2 = (speech_safe(c, w2[0], w2[0] + L2) if not vo else (w2[0], w2[0] + L2)) \
+                if w2 else None
             if ss2 and w2[1] >= 0.7 * w[1]:
                 shots.append(dict(clip=c, a=ss2[0], b=ss2[1], kind="broll", q=w2[1]))
     def _key(s):
         return (_ts(s["clip"].get("created")) or 9e18, _natkey(s["clip"]["path"]), s["a"])
     shots.sort(key=_key)
     # ④ teaser — the best moments of the whole day, spread evenly, no speech
-    use_teaser = (teaser is True or teaser == "on"
-                  or (teaser == "auto" and n_b >= 15))
+    use_teaser = not vo and (teaser is True or teaser == "on"
+                             or (teaser == "auto" and n_b >= 15))
     tz = []
     if use_teaser:
         pool = [c for c in usable if c["role"] == "broll"]
@@ -553,7 +577,7 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
     #       film the same 60 s would swallow half of it (a 136 s cut had 44 %
     #       marked "opening", which also barred every long take from it).
     est = sum(s["b"] - s["a"] for s in shots) + sum(s["b"] - s["a"] for s in tz)
-    open_s = min(OPEN_S, 0.12 * est)
+    open_s = 0.0 if vo else min(OPEN_S, 0.12 * est)
     tt = sum(s["b"] - s["a"] for s in tz)
     for s in shots:
         if tt >= open_s:
@@ -575,7 +599,7 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
     cands.sort(key=lambda c: (c["steady"], -c["qmed"]))
     promoted = 0
     for c in cands:
-        if long_frac() >= 0.15:
+        if long_frac() >= long_goal:
             break
         mine = [s for s in shots if s["clip"] is c]
         if not mine:
@@ -584,8 +608,9 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
         #    later, so overlapping is the point — and a 1.1 s teaser window in
         #    the middle of an 18 s clip left no 10 s gap (5 of 8 promoted).
         L = min(c["dur"] - HEAD_SKIP - TAIL_SKIP, rng.uniform(LONG_S + 0.5, 15.0))
-        w = best_window(c, L, c["q"])
-        ss = speech_safe(c, w[0], w[0] + L) if w else None
+        mute = [(a_ - 0.3, b_ + 0.3) for a_, b_ in (c.get("talk") or [])] if vo else []
+        w = best_window(c, L, c["q"], avoid=mute)
+        ss = (speech_safe(c, w[0], w[0] + L) if not vo else (w[0], w[0] + L)) if w else None
         if not ss or ss[1] - ss[0] < LONG_S:
             continue
         keep = mine[0]
@@ -593,7 +618,7 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
             edl.remove(s); shots.remove(s)
         keep.update(a=ss[0], b=ss[1], kind="long", q=w[1])
         promoted += 1
-    want_long = int(math.ceil(0.12 * len(edl)))
+    want_long = int(math.ceil((0.02 if vo else 0.12) * len(edl)))
     # ⑦ optional length target — drop the weakest short B-roll first
     if target:
         while sum(s["b"] - s["a"] for s in edl) > target:
@@ -607,8 +632,194 @@ def plan(clips, pace="normal", teaser="auto", seed="", target=None, log=print):
                   if c.get("reject")] + [(b, "unreadable") for b in bad],
         teaser=len(tz), long_promoted=promoted, long_wanted=want_long,
         long_possible=len(cands) + sum(1 for s in edl if s["kind"] == "talk"
-                                       and s["b"] - s["a"] >= LONG_S))
+                                       and s["b"] - s["a"] >= LONG_S), vo=vo,
+        usable_clips=usable)
     return edl, rep
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ① cutaways — the face opens the thought, the picture moves on, the voice runs
+# ═══════════════════════════════════════════════════════════════════════════
+def _used(edl, c):
+    return [(s["a"], s["b"]) for s in edl if s["clip"] is c]
+
+
+def cutaways(edl, usable, rng, log=print):
+    """Split each long talk shot into face → B-roll cover(s) → face.
+
+    The talk audio stays one continuous event (see `audio_events`); only the
+    picture changes, which is how 73 % of the Riza cuts fall inside speech.
+    Cover comes from the B-roll clips filmed nearest in time, never a moment
+    already used, and never a window with its own speech (moving lips).
+    """
+    order = {id(c): i for i, c in enumerate(usable)}
+    pool = [c for c in usable if c.get("role") == "broll"]
+    out, n_cov, sid = [], 0, 0
+    for s in edl:
+        d = s["b"] - s["a"]
+        if s["kind"] != "talk" or d < COVER_MIN or not pool:
+            out.append(s); continue
+        sid += 1
+        face1 = min(FACE_HEAD, 0.4 * d)
+        tail = FACE_TAIL if d >= 8.0 else 0.0
+        cover = d - face1 - tail
+        k = max(1, int(round(cover / 3.0)))
+        near = sorted(pool, key=lambda c: abs(order[id(c)] - order.get(id(s["clip"]), 0)))
+        pieces, t = [dict(s, b=s["a"] + face1, sid=sid, sa=s["a"])], s["a"] + face1
+        ok = True
+        for j in range(k):
+            L = cover / k
+            got = None
+            for c in near[:8]:
+                mute = [(a_ - 0.3, b_ + 0.3) for a_, b_ in (c.get("talk") or [])]
+                w = best_window(c, L, c["q"], avoid=_used(edl + out + pieces, c) + mute)
+                if w:
+                    got = dict(clip=c, a=w[0], b=w[0] + L, kind="cover", q=w[1],
+                               sid=sid, aclip=s["clip"], sa=s["a"]); break
+            if not got:
+                ok = False; break
+            pieces.append(got); t += L
+        if not ok:
+            out.append(s); continue
+        if tail:
+            pieces.append(dict(s, a=t, b=s["b"], sid=sid, sa=s["a"]))
+        out.extend(pieces)
+        n_cov += len(pieces) - 1 - (1 if tail else 0)
+    if n_cov:
+        log(f"  ① cutaway {n_cov} ခု — talk {sid} ခုမှာ မျက်နှာနဲ့စ၊ B-roll ပြောင်း၊ အသံ ဆက်")
+    return out
+
+
+def sync_spans(edl):
+    """after quantising, re-derive each face piece's source time from its
+    place on the timeline — the voice is continuous, so lips stay in sync."""
+    first = {}
+    for s in edl:
+        if s.get("sid"):
+            first.setdefault(s["sid"], s)
+    for s in edl:
+        if s.get("sid") and s["kind"] == "talk":
+            f = first[s["sid"]]
+            s["a"] = f["sa"] + (s["o0"] - f["o0"])
+            s["b"] = s["a"] + s["n"] / FPS
+
+
+def fill_to(edl, T, usable, rng, log=print):
+    """voice-over mode: make the picture exactly as long as the voice.
+
+    Too long → drop the weakest short B-roll.  Too short → lengthen shots
+    (up to 7.5 s, what the clip allows), then add second moments.  If the
+    footage still cannot cover the voice, say so instead of freezing a frame.
+    """
+    tot = lambda: sum(s["b"] - s["a"] for s in edl)
+    # ⚠️ trimming to the voice must not keep the long takes and drop the rest:
+    #    a 63 s film came out 3 long in 15 shots (20 %, band 2–10 %), a 30 s
+    #    one 3 in 4.  So: decide how many long takes this length can hold
+    #    (6 % of the shots it will have), demote the rest, then drop the
+    #    weakest short B-roll, then shorten whatever is still longest.
+    if tot() > T + 0.5:
+        n_exp = max(1, int(T / 2.5))
+        allow = int(round(0.06 * n_exp))
+        longs = sorted([s for s in edl if s["b"] - s["a"] >= LONG_S],
+                       key=lambda s: -s.get("q", 0))
+        for s in longs[allow:]:
+            mid = (s["a"] + s["b"]) / 2
+            L = min(6.0, s["b"] - s["a"])
+            s["a"], s["b"], s["kind"] = mid - L / 2, mid + L / 2, "broll"
+    while tot() > T + 0.5:
+        drop = [s for s in edl if s["kind"] == "broll"]
+        if len(drop) <= 1 or len(edl) <= 2:
+            break
+        edl.remove(min(drop, key=lambda s: s.get("q", 0)))
+    while tot() > T + 0.05:
+        s = max(edl, key=lambda s: s["b"] - s["a"])
+        cut = min(tot() - T, s["b"] - s["a"] - 2.0)
+        if cut <= 0.01:
+            break
+        s["b"] -= cut
+        if s["b"] - s["a"] < LONG_S and s["kind"] == "long":
+            s["kind"] = "broll"
+    for cap in (5.0, 7.5):
+        for s in sorted(edl, key=lambda s: s["b"] - s["a"]):
+            if tot() >= T:
+                break
+            c = s["clip"]
+            room = c["dur"] - TAIL_SKIP - s["b"]
+            mute = [x for x in (c.get("talk") or []) if x[0] >= s["b"]]
+            lim = min([x[0] - 0.3 for x in mute] + [s["b"] + room])
+            grow = min(cap - (s["b"] - s["a"]), lim - s["b"], T - tot())
+            if grow > 0.05:
+                s["b"] += grow
+    if tot() < T:
+        for c in usable:
+            if tot() >= T:
+                break
+            mute = [(a_ - 0.3, b_ + 0.3) for a_, b_ in (c.get("talk") or [])]
+            L = min(4.0, T - tot())
+            if L < 1.0:
+                L = 1.0
+            w = best_window(c, L, c["q"], avoid=_used(edl, c) + mute)
+            if w:
+                edl.append(dict(clip=c, a=w[0], b=w[0] + L, kind="broll", q=w[1]))
+        key = lambda s: (_ts(s["clip"].get("created")) or 9e18, _natkey(s["clip"]["path"]), s["a"])
+        edl.sort(key=key)
+    short = T - tot()
+    if short > 1.0:
+        raise RuntimeError(f"Voice-over ({T:.0f}s) က သုံးလို့ရတဲ့ footage ({tot():.0f}s) ထက် "
+                           f"ရှည်နေပါတယ် — clip ထပ်ထည့်ပါ၊ သို့မဟုတ် VO ကို တိုပါ")
+    if short > 0:
+        edl[-1]["b"] += short
+    return edl
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ② voice-over file → the film's spine
+# ═══════════════════════════════════════════════════════════════════════════
+def prepare_vo(path, work, log=print):
+    """voice file → (vo.wav at SR stereo, phrases [(t0, t1)] from 0, length).
+
+    Leading/trailing silence goes; pauses longer than VO_GAP_MAX shrink to it
+    (Riza's pauses: median 1.0 s); the voice is levelled to TALK_DB on its
+    speech frames only (silence would drag an RMS down and over-boost it).
+    """
+    db, voice, dur = M.analyse(path)
+    if not len(db):
+        raise RuntimeError("Voice-over ဖိုင်ထဲမှာ အသံ မတွေ့ပါ")
+    mk = M.mask(db, voice, M.thr_of(db))
+    runs = [(a, b) for a, b in M.runs(mk, True) if b - a >= 0.2]
+    if not runs:
+        raise RuntimeError("Voice-over ဖိုင်ထဲမှာ စကားသံ မတွေ့ပါ")
+    ph = []
+    for a, b in runs:
+        a, b = max(0.0, a - 0.12), min(dur, b + 0.25)
+        if ph and a - ph[-1][1] < 0.6:
+            ph[-1][1] = b
+        else:
+            ph.append([a, b])
+    x = _read_audio(path, 0.0, dur)
+    parts, out_ph, t = [], [], 0.0
+    for i, (a, b) in enumerate(ph):
+        if i:
+            gap = min(VO_GAP_MAX, a - ph[i - 1][1])
+            parts.append(np.zeros((int(round(gap * SR)), 2), np.float32)); t += gap
+        seg = x[int(a * SR): int(b * SR)].copy()
+        n = min(len(seg), int(0.01 * SR))
+        if n:
+            seg[:n] *= np.linspace(0, 1, n)[:, None]; seg[-n:] *= np.linspace(1, 0, n)[:, None]
+        parts.append(seg)
+        out_ph.append((round(t, 3), round(t + len(seg) / SR, 3))); t += len(seg) / SR
+    y = np.concatenate(parts)
+    sp = np.concatenate([p for p in parts if p.any()]) if parts else y
+    g = max(-GAIN_CAP, min(GAIN_CAP, TALK_DB - _rms_db(sp)))
+    y *= 10 ** (g / 20.0)
+    pk = float(np.abs(y).max() or 1.0)
+    if pk > 0.95:
+        y *= 0.95 / pk
+    p = os.path.join(work, "vo.wav"); _wav(p, y)
+    cut = dur - t
+    log(f"  ② voice-over {dur:.1f}s → {t:.1f}s · ဝါကျ {len(out_ph)} · "
+        f"ရပ်ချိန် >{VO_GAP_MAX:.0f}s ချုံ့ ({cut:.1f}s) · gain {g:+.1f} dB")
+    return p, out_ph, t
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -795,44 +1006,79 @@ def _rms_db(x):
     return 20 * math.log10(float(np.sqrt((x.astype(np.float64) ** 2).mean())) + 1e-9)
 
 
-def mix(edl, total, work, log=print):
-    """dialogue+ambience track and a talk-only track (for ASR), in numpy.
+def audio_events(edl, vo=None):
+    """speech as continuous events, decoupled from the picture cuts.
+
+    talk: one event per original talk span, however many cutaways cover it.
+    vo:   the whole levelled voice-over, starting at VO_HEAD.
+    → [dict(path, a, d, o0, kind, speech=[(t0, t1)] in film time)]
+    """
+    ev = []
+    if vo:
+        p, ph, L = vo
+        ev.append(dict(path=p, a=0.0, d=L, o0=VO_HEAD, kind="vo", level=False,
+                       speech=[(VO_HEAD + a, VO_HEAD + b) for a, b in ph]))
+        return ev
+    cur = None
+    for s in edl:
+        if s["kind"] == "talk" and not s.get("sid"):
+            ev.append(dict(path=s["clip"]["path"], a=s["a"], d=s["b"] - s["a"],
+                           o0=s["o0"], kind="talk", level=True,
+                           speech=[(s["o0"], s["o1"])]))
+        elif s.get("sid"):
+            if cur is None or cur["sid"] != s["sid"]:
+                c = s.get("aclip") or s["clip"]
+                cur = dict(path=c["path"], a=s["sa"], d=0.0, o0=s["o0"], kind="talk",
+                           level=True, sid=s["sid"], speech=[])
+                ev.append(cur)
+            cur["d"] += s["n"] / FPS
+            cur["speech"] = [(cur["o0"], cur["o0"] + cur["d"])]
+    return ev
+
+
+def mix(edl, total, work, events=(), log=print):
+    """ambience (per picture shot) + speech events, in numpy.
 
     ⚠️ numpy, not an ffmpeg graph: a 100-shot amix hits the input limit, and a
-       concat of AAC segments drifts (zjl-render-spans).  Every shot is placed
+       concat of AAC segments drifts (zjl-render-spans).  Every piece is placed
        at its exact sample with a short overlap so no cut clicks.
+    ⚠️ picture and sound are separate: a cutaway shows B-roll while the talk
+       event keeps running, so cover shots contribute no audio of their own.
     """
     N = int(round(total * SR)) + SR
-    full = np.zeros((N, 2), np.float32)
+    amb = np.zeros((N, 2), np.float32)
     talk = np.zeros((N, 2), np.float32)
     for s in edl:
         c = s["clip"]
-        if not c.get("audio"):
+        if not c.get("audio") or s["kind"] in ("talk", "cover"):
             continue
-        xf = 0.02 if s["kind"] == "talk" else 0.25       # crossfade half-width
+        xf = 0.25
         pre = min(xf, s["a"])
         post = min(xf, max(0.0, c["dur"] - s["b"]))
         d = (s["b"] - s["a"]) + pre + post
         x = _read_audio(c["path"], s["a"] - pre, d)
         if not len(x):
             continue
-        if s["kind"] == "talk":
-            ref = _rms_db(x) if len(x) else -60
-            g = max(-GAIN_CAP, min(GAIN_CAP, TALK_DB - ref))
-        else:
-            g = max(-GAIN_CAP, min(GAIN_CAP, AMB_DB - _rms_db(x)))
-        x *= 10 ** (g / 20.0)
-        nf = min(len(x), max(1, int(round((pre + xf) * SR))))
-        nb = min(len(x), max(1, int(round((post + xf) * SR))))
-        x[:nf] *= (0.5 - 0.5 * np.cos(np.linspace(0, math.pi, nf)))[:, None]
-        x[len(x) - nb:] *= (0.5 + 0.5 * np.cos(np.linspace(0, math.pi, nb)))[:, None]
-        i0 = int(round((s["o0"] - pre) * SR))
-        j0 = max(0, i0)
-        seg = x[j0 - i0:]
-        seg = seg[: max(0, N - j0)]
-        full[j0: j0 + len(seg)] += seg
-        if s["kind"] == "talk":
-            talk[j0: j0 + len(seg)] += seg
+        x *= 10 ** (max(-GAIN_CAP, min(GAIN_CAP, AMB_DB - _rms_db(x))) / 20.0)
+        _place(amb, x, s["o0"] - pre, pre + xf, post + xf, N)
+    for e in events:
+        xf = 0.02
+        pre = min(xf, e["a"])
+        x = _read_audio(e["path"], e["a"] - pre, e["d"] + pre + xf)
+        if not len(x):
+            continue
+        if e.get("level"):
+            x *= 10 ** (max(-GAIN_CAP, min(GAIN_CAP, TALK_DB - _rms_db(x))) / 20.0)
+        _place(talk, x, e["o0"] - pre, pre + xf, 2 * xf, N)
+    # duck the ambience under speech — smoothed so it breathes, not pumps
+    duck = np.ones(N, np.float32)
+    k = 10 ** (DUCK_DB / 20.0)
+    for e in events:
+        for a, b in e.get("speech") or []:
+            duck[max(0, int((a - 0.15) * SR)): int((b + 0.25) * SR)] = k
+    w = int(0.20 * SR)
+    duck = np.convolve(duck, np.ones(w, np.float32) / w, "same")
+    full = amb * duck[:, None] + talk
     n_out = int(round(total * SR))
     fl = int(FADE_S * SR)
     env = np.ones(n_out, np.float32)
@@ -846,6 +1092,17 @@ def mix(edl, total, work, log=print):
     pa = os.path.join(work, "mix.wav"); pt = os.path.join(work, "talk.wav")
     _wav(pa, full); _wav(pt, talk)
     return pa, pt
+
+
+def _place(buf, x, t0, fin, fout, N):
+    nf = min(len(x), max(1, int(round(fin * SR))))
+    nb = min(len(x), max(1, int(round(fout * SR))))
+    x[:nf] *= (0.5 - 0.5 * np.cos(np.linspace(0, math.pi, nf)))[:, None]
+    x[len(x) - nb:] *= (0.5 + 0.5 * np.cos(np.linspace(0, math.pi, nb)))[:, None]
+    i0 = int(round(t0 * SR))
+    j0 = max(0, i0)
+    seg = x[j0 - i0:][: max(0, N - j0)]
+    buf[j0: j0 + len(seg)] += seg
 
 
 def _wav(p, x):
@@ -1001,17 +1258,29 @@ def timed_cards(segs, max_chars):
 # ═══════════════════════════════════════════════════════════════════════════
 # QC
 # ═══════════════════════════════════════════════════════════════════════════
-def qc(edl, out, rep, caps=None, lufs_target=-14.0, log=print):
+def qc(edl, out, rep, caps=None, lufs_target=-14.0, log=print, events=()):
     st = stats(edl)
     checks = []
     lf = st.get("long_frac", 0)
-    ok_long = LONG_BAND[0] - 0.03 <= lf <= LONG_BAND[1] + 0.03
+    band = LONG_BAND_VO if rep.get("vo") else LONG_BAND
+    ok_long = band[0] - 0.03 <= lf <= band[1] + 0.03
     why = ""
     if not ok_long and rep.get("long_possible", 0) < rep.get("long_wanted", 0):
         why = (f" — 10s ကျော် တည်ငြိမ်သော clip {rep.get('long_possible')} ခုသာ ရှိ "
                f"(လို {rep.get('long_wanted')})")
     checks.append(("long_takes", ok_long,
-                   f"10s ကျော် shot {lf * 100:.0f}% (ပစ်မှတ် 12–18%){why}"))
+                   f"10s ကျော် shot {lf * 100:.0f}% (ပစ်မှတ် {band[0]*100:.0f}–{band[1]*100:.0f}%){why}"))
+    # how often the picture changes while someone keeps talking (Riza 43–91 %, 73 %)
+    sp = [x for e in events for x in (e.get("speech") or [])]
+    if sp:
+        cuts = [s_["o0"] for s_ in edl[1:]]
+        inside = sum(1 for c in cuts if any(a + 0.15 < c < b - 0.15 for a, b in sp))
+        st["cuts_in_speech"] = round(inside / max(1, len(cuts)), 3)
+        st["speech_frac"] = round(sum(b - a for a, b in sp) / max(1e-6, st.get("total", 1)), 3)
+        if rep.get("vo"):
+            checks.append(("vo_cuts", st["cuts_in_speech"] >= 0.40,
+                           f"VO ပြောနေတုန်း ဖြတ်ချက် {st['cuts_in_speech']*100:.0f}% "
+                           f"(Riza 43–91%)"))
     checks.append(("median_shot", 1.2 <= st.get("median", 0) <= 6.0,
                    f"shot အလယ် {st.get('median')}s (reference 1.5–5.6s)"))
     # loudness
@@ -1045,7 +1314,8 @@ def qc(edl, out, rep, caps=None, lufs_target=-14.0, log=print):
 # ═══════════════════════════════════════════════════════════════════════════
 def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
         music=None, seed="", lufs=-14.0, sub_lang="none", captioner=None,
-        target=None, log=print, stage=None, cache_dir=None):
+        target=None, log=print, stage=None, cache_dir=None, vo_path=None,
+        cutaway=True):
     """paths → out.  `captioner(talk_wav, total, work, windows) → ([(mov, y)], caps) | None`
     is supplied by the worker (it owns ASR, fonts and the text renderer)."""
     stage = stage or (lambda n, name: None)
@@ -1070,11 +1340,19 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     log(f"  ① analyse {time.time() - t0:.0f}s")
     # ── ② plan ──
     stage(2, "plan")
-    edl, rep = plan(clips, pace=pace, teaser=teaser, seed=seed, target=target, log=log)
+    edl, rep = plan(clips, pace=pace, teaser=teaser, seed=seed, target=target, log=log,
+                    vo=bool(vo_path))
     if not edl:
         raise RuntimeError("သုံးလို့ရသော shot မရှိပါ — clip များ တိုလွန်း သို့ မှုန်လွန်းသည်")
     for r_ in rep["rejected"]:
         log(f"  ✗ {r_[0]} — {r_[1]}")
+    usable = rep.pop("usable_clips")
+    rng = random.Random(hashlib.sha1(("cover" + str(seed)).encode()).hexdigest())
+    vo = None
+    if vo_path:
+        vo = prepare_vo(vo_path, work, log=log)
+    elif cutaway:
+        edl = cutaways(edl, usable, rng, log=log)
     bed = None
     if music:
         try:
@@ -1091,7 +1369,12 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
                         f"B-roll ဖြတ်မှတ် {n} ခု beat ပေါ် ချ")
         except Exception as e:
             log(f"  ⚠️ beat မတွက်နိုင် ({type(e).__name__}: {e}) — beat မချိန်ဘဲ ဆက်")
+    if vo:
+        T = VO_HEAD + vo[2] + VO_TAIL
+        edl = fill_to(edl, T, usable, rng, log=log)
     total = quantise(edl)
+    sync_spans(edl)
+    events = audio_events(edl, vo)
     st = stats(edl)
     log(f"  ② shot {st['shots']} · {total:.1f}s · အလယ် {st['median']}s · "
         f"10s+ {st['long_frac'] * 100:.0f}% · 2s- {st['short_frac'] * 100:.0f}% · "
@@ -1112,7 +1395,7 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     vid = concat_video(files, os.path.join(work, "video.mp4"), work)
     # ── ⑤ sound ──
     stage(4, "sound")
-    amix, atalk = mix(edl, total, work, log=log)
+    amix, atalk = mix(edl, total, work, events=events, log=log)
     base = mux(vid, amix, os.path.join(work, "base.mp4"), total)
     _rm(vid)
     for f in files:
@@ -1121,8 +1404,8 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     # ── ⑥ captions ──
     caps = None
     stage(5, "captions")
-    if sub_lang != "none" and captioner and any(s["kind"] == "talk" for s in edl):
-        wins = [(s["o0"], s["o1"]) for s in edl if s["kind"] == "talk"]
+    wins = [x for e in events for x in (e.get("speech") or [])]
+    if sub_lang != "none" and captioner and wins:
         res = captioner(atalk, total, work, wins)
         if res:
             layers, caps = res            # [(alpha_mov, y_px), …]
@@ -1162,12 +1445,12 @@ def run(paths, out, work, W=1920, H=1080, pace="normal", teaser="auto",
     stage(7, "render")
     SP.loudness(pre, out, lufs=lufs)
     _rm(pre)
-    q = qc(edl, out, rep, caps=caps, lufs_target=lufs, log=log)
+    q = qc(edl, out, rep, caps=caps, lufs_target=lufs, log=log, events=events)
     log(f"  ✓ cinematic · {total:.1f}s · {time.time() - t0:.0f}s")
     shots = [dict(src=os.path.basename(s["clip"]["path"]), a=round(s["a"], 2),
                   b=round(s["b"], 2), o0=round(s["o0"], 2), o1=round(s["o1"], 2),
                   kind=s["kind"], ev=s.get("ev"), look=s.get("look"))
              for s in edl]
-    return dict(dur=total, shots=shots, report=rep, qc=q,
+    return dict(dur=total, shots=shots, report=rep, qc=q, vo=bool(vo),
                 src_dur=round(sum(c.get("dur", 0) for c in clips), 2),
                 caps=caps or [], secs=round(time.time() - t0, 1))

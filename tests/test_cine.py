@@ -120,6 +120,65 @@ def main():
     check(len(cards) >= 2 and abs(cards[-1]["end"] - 5.0) < 0.02 and cards[0]["start"] == 1.0,
           f"caption split into {len(cards)} one-line cards covering the segment")
 
+    # 10 · ① cutaways — face first, B-roll cover, voice continuous
+    import numpy as np
+    cl2 = []
+    for i in range(12):
+        talk = [(1.0, 12.0)] if i == 5 else []
+        cl2.append(clip(f"D{i}", 14.0, talk, created=f"2020-12-19T02:{i:02d}:00Z"))
+    e2, r2 = CI.plan(cl2, seed="c", teaser="off")
+    e2 = CI.cutaways(e2, r2.pop("usable_clips"), random.Random(1), log=lambda *_: None)
+    CI.quantise(e2); CI.sync_spans(e2)
+    sp = [s for s in e2 if s.get("sid")]
+    check(len(sp) >= 3 and sp[0]["kind"] == "talk" and any(s["kind"] == "cover" for s in sp)
+          and sp[-1]["kind"] == "talk", f"talk split face→cover→face ({[s['kind'] for s in sp]})")
+    check(all(not CI._has_talk(s["clip"], s["a"], s["b"]) for s in sp if s["kind"] == "cover"),
+          "cover shots carry no on-camera speech")
+    last = sp[-1]
+    check(abs((last["a"] - sp[0]["sa"]) - (last["o0"] - sp[0]["o0"])) < 1e-6,
+          "closing face piece is in lip sync with the running voice")
+    ev = CI.audio_events(e2)
+    tev = [x for x in ev if x.get("sid")]
+    check(len(tev) == 1 and abs(tev[0]["d"] - sum(s["n"] / CI.FPS for s in sp)) < 1e-6,
+          "one continuous audio event spans every piece")
+
+    # 11 · ② voice-over: long pauses shortened, levelled, phrases found
+    import tempfile, wave as _w
+    sr = 48000; d = tempfile.mkdtemp()
+    # voice-band "speech": 600–1400 Hz, syllable-rate amplitude wobble
+    def tone(L):
+        t = np.arange(int(L * sr)) / sr
+        return (0.2 * (0.6 + 0.4 * np.sin(2 * np.pi * 4 * t)) *
+                np.sin(2 * np.pi * (1000 + 400 * np.sin(2 * np.pi * 0.7 * t)) * t)).astype(np.float32)
+    sil = lambda L: np.zeros(int(L * sr), np.float32)
+    x = np.concatenate([sil(2.0), tone(3.0), sil(0.8), tone(2.0), sil(4.0), tone(3.0), sil(3.0)])
+    vp = os.path.join(d, "vo.wav")
+    with _w.open(vp, "wb") as f:
+        f.setnchannels(1); f.setsampwidth(2); f.setframerate(sr)
+        f.writeframes((x * 32767).astype("<i2").tobytes())
+    p_, ph, L = CI.prepare_vo(vp, d, log=lambda *_: None)
+    gaps = [ph[i + 1][0] - ph[i][1] for i in range(len(ph) - 1)]
+    check(ph and ph[0][0] == 0.0, "leading silence removed")
+    check(gaps and max(gaps) <= CI.VO_GAP_MAX + 0.01, f"pauses ≤ {CI.VO_GAP_MAX}s ({[round(g,2) for g in gaps]})")
+    # 8 s of voice + pauses (0.8 kept, 4.0→1.0) + the 0.12/0.25 pads ≈ 10.2 s
+    check(9.3 <= L <= 11.0, f"VO {x.size/sr:.1f}s → {L:.1f}s (voice kept, only silence cut)")
+
+    # 12 · ② fill the picture to exactly the voice length
+    cl3 = [clip(f"E{i}", 12.0, created=f"2020-12-19T03:{i:02d}:00Z") for i in range(20)]
+    e3, r3 = CI.plan(cl3, seed="v", vo=True)
+    us = r3.pop("usable_clips")
+    T = 60.0
+    e3 = CI.fill_to(e3, T, us, random.Random(2), log=lambda *_: None)
+    tot = CI.quantise(e3)
+    check(abs(tot - T) < 0.6, f"picture {tot:.2f}s fits VO {T}s")
+    check(not any(s["kind"] == "teaser" for s in e3), "no teaser in voice-over mode")
+    try:
+        CI.fill_to(CI.plan(cl3[:2], seed="v", vo=True)[0], 300.0, us[:2], random.Random(2),
+                   log=lambda *_: None)
+        check(False, "too-long VO must be refused")
+    except RuntimeError:
+        check(True, "VO longer than the footage is refused with a reason")
+
     print(f"\n{len(fails)} failed" if fails else "\nall passed")
     return 1 if fails else 0
 

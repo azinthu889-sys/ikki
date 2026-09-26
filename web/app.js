@@ -133,7 +133,7 @@ function isCine(){ return state.style==='cinematic-vlog' }
 function paintCine(){
   var on=isCine();
   var box=$('cinebox'); if(box) box.hidden=!on;
-  ['vfmthead','vfmtbox','vfmtnote','speedbox','audiobox'].forEach(function(id){
+  ['vfmthead','vfmtbox','vfmtnote','speedbox'].forEach(function(id){
     var n=$(id); if(n) n.hidden=on; });
   [].forEach.call(document.querySelectorAll('[data-sub]'),function(b){
     b.setAttribute('aria-pressed', b.getAttribute('data-sub')===state.sub?'true':'false'); });
@@ -142,6 +142,17 @@ function paintCine(){
   var dn=$('dropnote'), ul=$('uplede');
   function put(n,my,en){ if(!n) return; n.setAttribute('data-my',my); n.setAttribute('data-en',en);
     n.textContent=cur==='my'?my:en; }
+  /* the audio box doubles as the voice-over picker for Cinematic (②) */
+  if(on){
+    put($('audtitle'),'Voice-over ထည့်မလား? (မထည့်လည်း ရပါတယ်)','Add a voice-over? (optional)');
+    put($('audwhy'),'VO ပါရင် ဗီဒီယိုက VO အရှည်အတိုင်း ထွက်ပြီး B-roll တွေကို VO အောက်မှာ ~2.5s ခြား ချပါမယ် — ရပ်ချိန် 1s ထက်ရှည်ရင် ချုံ့ပါမယ်။ မပါရင် clip တွေထဲက စကားပြောတာကို သုံးပါမယ်။',
+        'With a voice-over the film runs as long as it, B-roll cut about every 2.5 s underneath; pauses over 1 s are shortened. Without one, the clips\' own speech is used.');
+  } else {
+    put($('audtitle'),'အသံ သီးသန့် ရိုက်ထားလား? (dual-system)','Recorded audio separately?');
+    put($('audwhy'),'ဒီ recorder အသံက ချိန်ညှိပြီးလျှင် ကင်မရာအသံကို အစားထိုးပါမယ် — နောက်ခံ တီးလုံး မဟုတ်ပါ။',
+        'This recorder track will replace camera audio after sync; it is not background music.');
+  }
+  if(!AUD){ var an=$('audnote'); if(an) an.textContent=audLabel(); }
   if(on){
     put(dn,'clip '+CINE_MAX+' ခုအထိ တစ်ခါတည်း ရွေးပါ · MP4 · MOV · 4K','Select up to '+CINE_MAX+' clips at once · MP4 · MOV · 4K');
     put(ul,'Engine က clip တွေထဲက ကောင်းတဲ့ အပိုင်းကို ရွေး၊ ရိုက်ခဲ့တဲ့ အချိန်အတိုင်း စီပြီး တန်းထုတ်ပေးပါမယ်။ ဘယ် shot ယူခဲ့လဲ report မှာ ကြည့်နိုင်ပါတယ်။',
@@ -941,7 +952,7 @@ function start(input){
   nextTake().then(function(videoIds){
     // ⚠️ dual-system audio has one timeline only.  The API explicitly rejects
     // it with multi-take projects instead of silently aligning it to take one.
-    if(!AUD || cine) return {upload_ids:videoIds, audio:null};
+    if(!AUD) return {upload_ids:videoIds, audio:null};
     return upload(AUD).then(function(a){ return {upload_ids:videoIds, audio:a.upload_id} });
   }).then(function(d){
     return api('/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -982,6 +993,9 @@ var AUD=null;
 var AEXT=['wav','m4a','mp3','flac','aac','aif','aiff','mp4','caf','ogg','opus','wma'];
 var AMAX=2*1024*1024*1024;      /* ၂ GB — ၃ နာရီ 24-bit WAV ~၂ GB */
 function audLabel(){
+  if(typeof isCine==='function' && isCine())
+    return cur==='my' ? 'ဖုန်းနဲ့ ပြောထားတဲ့ narration ဖိုင် (m4a · wav · mp3) — ဗီဒီယိုအရှည်ကို VO က ဆုံးဖြတ်ပါမယ်'
+                      : 'Your narration (m4a · wav · mp3) — the film runs as long as the voice-over';
   return cur==='my' ? 'recorder ဖိုင် တင်ပါ — အလိုအလျောက် ချိန်ညှိပြီး ပေါင်းပါမယ်'
                     : 'Upload the recorder file — we align and merge it';
 }
