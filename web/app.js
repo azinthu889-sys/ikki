@@ -18,8 +18,8 @@ var STYLES={creator:[
    "Brisk · karaoke captions","MyanmarYinmar","30fps"],
   ["podcast","Podcast","စကား အဓိက · ထပ်နေတာ ဖြုတ်",
    "Talk first · repeats removed","Pyidaungsu","30fps"],
-  ["knowledge","Knowledge Sharing","infographic များများ",
-   "Heavy on infographics","MyanmarSansPro","30fps"],
+  ["knowledge","Knowledge Sharing","B-roll montage · စက္ကူ panel · အဓိက စာသား",
+   "B-roll montages · paper panels · key-point text","MasterpieceUniRound","30fps"],
   /* ⚠️ style ထည့်တိုင်း **နှစ်နေရာ** ထည့်ရမည်: `core/recipes.py` + ဒီစာရင်း。
      ⚠️ အောက်က ၃ ခုက **reference ၃ ပုဒ် တိုင်းပြီး** ဆောက်ထားသည်
         (`assets/calib/ref_hype_2026.json`) — ပုံစံ ၃ မျိုး ကွဲသဖြင့်

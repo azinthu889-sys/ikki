@@ -2995,6 +2995,24 @@ def render(job, brand, src, out, stage, log=print, over=None):
     except Exception as _eze:
         log(f"  ⚠️ pop/slide ease ပြန်ချိန် မရ: {type(_eze).__name__}: {_eze}")
 
+    # ── Knowledge Sharing engine (`core/knowledge.py`) ──
+    #    timeline (cold open · B-roll montage · paper panel · ဂဏန်း/ribbon) ကို
+    #    engine က ဆောက်သည်。 ⚠️ **စာတမ်း အပြည့်**ကို ပေးရမည် — `caps` က
+    #    emphasis ၁၅% သာ ကျန်သဖြင့် B-roll ကိုက်စရာ မရှိတော့。
+    KN_PLAN = None
+    if rc.get("engine") == "knowledge" and segs:
+        try:
+            import knowledge as KN
+            KN_PLAN = KN.plan(CP.plan(segs, spans), sum(y - x for x, y in spans),
+                              rc, log=log)
+            _nc = len(caps)
+            caps = KN.hide_caps(caps, KN_PLAN)
+            if len(caps) != _nc:
+                log(f"  knowledge · panel အောက် စာတန်း {_nc - len(caps)} ကြောင်း ဖျောက်")
+        except Exception as _ke:
+            log(f"  ⚠️ knowledge plan မရ — ပြောသူ ချည်း: {type(_ke).__name__}: {_ke}")
+            KN_PLAN = None
+
     # ── စာတန်း track (ဂရပ်ဖစ် သိပြီးမှ — ဖျောက်ရန်) ──
     capv = os.path.join(work, "caps.mov") if (caps and csize) else None
     if capv:
@@ -3528,6 +3546,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
 
     # ── ⑦ ဂရပ်ဖစ် ထပ် + အသံ ညှိ + ထုတ် ─────────────────────
     stage(7, "render")
+    if KN_PLAN:
+        try:
+            # panel: ညာတစ်ဝက်ထဲ ပြောသူကို **သူ့ နေရာ**ကနေ crop (ဘေးထိုင်လျှင် ပြတ်မည်)
+            _kx = None
+            try:
+                _kx = subject_x(cutv, TH["W"], TH["H"], log=log)
+            except Exception:
+                pass
+            cutv = KN.bake(KN_PLAN, cutv, work, TH, rc, log=log, cx=_kx or 0.5)
+            REPORT["knowledge"] = KN.summary(KN_PLAN)
+        except Exception as _kb:
+            log(f"  ⚠️ knowledge bake မရ — cutaway မပါ: {type(_kb).__name__}: {_kb}")
     pngs = []
     # ⚠️ slide ကို **အရင်ဆုံး** ထည့်ရမည် — အောက်ဆုံးအလွှာ ဖြစ်စေရန် မဟုတ်ဘဲ
     #    ဗီဒီယိုပေါ် တိုက်ရိုက် ဖုံးရန်。 ပြီးမှ တခြား ဂရပ်ဖစ် အပေါ်က တက်သည်。
@@ -3988,6 +4018,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    လုံးဝ မထွက်လျှင် gfx_share က သတိပေးချက်သာ ဖြစ်ပြီး **ဂရပ်ဖစ် မပါတဲ့
     #    ဗီဒီယို အသံတိတ်တိတ် ထွက်သွား**သည်。 ⇒ ဂိတ်ကို ပြောင်းပြန် ပြန်လှန်。
     ADVISORY = set()
+    if KN_PLAN:
+        _kc = KN.checks(KN_PLAN)
+        checks.extend(_kc)
+        ADVISORY |= {x["key"] for x in _kc if x.get("advisory")}
     if rc.get("slides") and not slides:
         raise RuntimeError(
             "QC မအောင်: slide ၀ ခု — ဂရပ်ဖစ် အဆင့် လုံးဝ ကျသည်။ "

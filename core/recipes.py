@@ -208,7 +208,28 @@ R = {
      lufs=-14.0, sat=1.10, vign=0.6, scrim=False,
  ),
 
+ # ── Knowledge Sharing v2 = **ZIN JAPAN LIFE engine** (Zin ၂၀၂၆-၀၉-၂၆) ──
+ #    ref: @zinjapanlife9742 ထဲက knowledge sharing ၈ ပုဒ် ·「အသစ် ၄ ပုဒ်」
+ #    (wYuKaoQSZzc · VD71ZDffqzk · Ih7GRtpK8rc · aW32UAtX46A) က ပစ်မှတ်。
+ #    တိုင်းချက်: /Volumes/a/ikki_refs/knowledge/measure/KNOWLEDGE_STYLE_zjl.md
+ #      ပြောသူ 58–66% · full-frame B-roll montage 34–42% · 1.5–3.4/min
+ #      cold open montage 20–40s · စာတန်း **emphasis သာ** (၀–၁/၈ frame)
+ #      panel (စက္ကူ ဘယ် 0.489W) · 3D ဂဏန်း · ဂျပန် ribbon — chart **၀**
+ #      pause 0.3–1.4/min (tight) · နွေး grade (R−B +33…+53) · LUFS −16…−29
+ #    ⇒ timeline ကို `core/knowledge.py` က ဆောက်သည် (`engine`)。 worker ရဲ့
+ #      slide · gfx · B-roll လမ်းကြောင်း အဟောင်းကို **ပိတ်**ထားသည်。
  "knowledge": dict(
+    label="Knowledge Sharing", theme="zjl", fps=30, engine="knowledge",
+    keep_pause=0.26, min_sil=0.45,
+    captions="accent", cap_cover=0.15, cap_typo=0.0,
+    cap_pct=0.030, cap_base=0.860, cap_max=0.900,   # wYuK: y 0.85–0.92 · ပါးလွှာ
+    mmf="MasterpieceUniRound", latin="Figtree-Black", accent="#E5BC32",
+    gfx=0, gfx_share=None, slides=False, insert_per_min=None, slide_amt=None,
+    broll=0, broll_strict=True,
+    music="calm", lufs=-14.0, sfx_per_min=0.6,
+    natural=True, scrim=False, sat=1.0, vign=0.0),
+ # ⚠️ ယခင် knowledge (slide ပုံစံ · ref KCN4/01Bnh) — ပြန်ကြည့်/rollback အတွက်သာ。
+ "knowledge-v1": dict(
     # ⚠️ Slide Heavy ကို ဤပုံစံထဲ ပေါင်းထားသည် (Zin ၂၀၂၆-၀၉-၂၀)。
     #    `slide_amt="heavy"` ရွေးလျှင် ဘောင်အပြည့် ကတ် အဓိက ပုံစံ ရမည်。
     slide_amt="light",
@@ -497,7 +518,7 @@ DEF = dict(
 #       `recipe` ကော်လံမှာ အဲဒီနာမည် ရေးထားပြီး၊ ဖျက်လျှင် `get()` က
 #       `cinematic-vlog` သို့ ပြန်ဆုတ်ကာ **ပုံစံ တိတ်တဆိတ် ပြောင်း**မည်。
 #       ⇒ `_hidden` နဲ့ UI ကနေသာ ဖယ်သည်。
-HIDDEN = {"ref-talk", "ref-slides", "ref-fast"}
+HIDDEN = {"ref-talk", "ref-slides", "ref-fast", "knowledge-v1"}
 
 # slide ပမာဏ — Knowledge Sharing
 # ⚠️ `card_max_s` ကို **ဖယ်ထားသည်**。 ဂိတ်ဆီ မရောက်ဘဲ (run.py:1609 က `pass`)
@@ -536,6 +557,11 @@ def _expand(r):
     if sa: r.update({k: v for k, v in sa.items() if v is not None})
     pc = PACE.get(r.get("pace") or "")
     if pc: r.update(pc)
+    # ⚠️ knowledge engine — user override ထဲ `slide_amt` ကျန်နေလည်း slide/gfx
+    #    လမ်းကြောင်း အဟောင်း **ပြန်မဖွင့်ရ** (timeline ကို engine က ပိုင်သည်)。
+    if r.get("engine") == "knowledge":
+        r.update(gfx=0, gfx_share=None, slides=False, insert_per_min=None, broll=0,
+                 cap_typo=0.0)
 
     # ══ Headtop ထိန်းချုပ်ချက် → တကယ့် ကိန်းများ ════════════════
     # ⚠️ ၂၀၂၆-၀၉-၂၁ စစ်၍ တွေ့ — `motion` · `broll_freq` · `sfx_on` ·

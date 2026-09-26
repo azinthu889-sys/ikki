@@ -40,7 +40,7 @@ ck("SFX_CEIL = qc.SFX_MAX_PER_MIN", RC.SFX_CEIL == QC.SFX_MAX_PER_MIN,
    (RC.SFX_CEIL, QC.SFX_MAX_PER_MIN))
 
 print("\n── ② auto · balanced = recipe ရဲ့ ပုံသေ ──")
-b = RC.get("knowledge")
+b = RC.get("knowledge-v1")   # gfx ပါသော နမူနာ (v2 က engine ပိုင်၍ gfx=0)
 for lv in ("auto", "balanced"):
     r = RC.motion(b, lv)
     ck(f"{lv} — gfx · sfx · zoom မပြောင်း",
@@ -91,7 +91,7 @@ ck("floor က `motion_lv != \"minimal\"` နဲ့ ကာထား",
    'if _g0 and _g0 < 10 and motion_lv != "minimal":' in _W)
 ck("minimal ဆိုလျှင် အတိုင်း ထားကြောင်း log ရေး",
    "floor 10 မတင်ပါ" in _W)
-_mn = RC.motion(RC.get("knowledge"), "minimal")
+_mn = RC.motion(RC.get("knowledge-v1"), "minimal")
 ck("minimal ⇒ gfx < 10 ဖြစ်နိုင် (floor နဲ့ ပြိုမည်)", _mn["gfx"] < 10, _mn["gfx"])
 
 print(f"\n  ⇒ အောင် {OK} · ကျ {FAIL}")
