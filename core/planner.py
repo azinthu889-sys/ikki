@@ -587,7 +587,9 @@ def _num_rows(text):
 #    ချန်ထားသည် — မှားချိတ်လျှင် template က အဓိပ္ပာယ်မဲ့ စာသား ပြမည်
 #    (`_first_number` ရဲ့ 「N5 → 5」 အမှားနဲ့ အတူတူ)。 ပုံ လမ်းကြောင်း
 #    (`img*`) နဲ့ ပထဝီ (`lat`/`lon`) က ဒေတာ မရှိ ⇒ **ထာဝရ ပိတ်**。
-# ⚠️ `IKKI_GFX_ALIAS=0` ဖြင့် အဟောင်း ပြန်ရသည် (A/B အတွက်)。
+# ⚠️ **default က ပိတ်**。 Zin မျက်စိနဲ့ ကြည့်ပြီး လက်ခံမှသာ ဖွင့်ရမည် —
+#    ဖွင့်ထားလျှင် customer render အားလုံး ချက်ချင်း ပြောင်းသွားမည်
+#    (သူ မမြင်ရသေးဘဲ)。 `IKKI_GFX_ALIAS=1` ⇒ ဖွင့် (A/B အတွက်)。
 ALIAS = {
     # ── စာသား တစ်ခုတည်း ──────────────────────
     "word": "hot",       "big": "hot",        "head": "title",
@@ -627,7 +629,7 @@ ALIAS = {
 }
 
 
-GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "1") != "0"
+GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "0") == "1"
 
 
 def fill(cid, label, text):
