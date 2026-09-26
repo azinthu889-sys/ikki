@@ -5319,7 +5319,80 @@ def push_index(force=False):
         print(f"  ⚠️ အညွှန်း မပို့နိုင်: {type(e).__name__}: {e}", flush=True)
 
 
+# == production start guards (2026-09-26, Zin) ==========================
+# Enforced in code, not remembered: on the day the first customer arrives no
+# one will recall "unset the A/B env".
+#  1. IKKI_SEED / IKKI_GFX_ALIAS are test knobs. IKKI_SEED pins graphics,
+#     music and B-roll for EVERY job the worker claims -- customer jobs would
+#     all come out alike. Any value (even "0") refuses the production loop.
+#     The render() harness never calls main(), so tests keep them.
+#  2. One worker only. 2026-09-26 a launchd worker, a shell worker and a VPS
+#     container ran at once and raced for jobs; and each start calls
+#     /api/w/reclaim, which requeues every `running` job -- i.e. a second
+#     worker would kill the first worker's render. Checked BEFORE reclaim:
+#       a) an exclusive flock on this Mac (launchd vs shell worker)
+#       b) /api/health: another worker polled within 1.5 x POLL, twice,
+#          2 x POLL + 3 s apart (other hosts; a just-killed predecessor's
+#          last poll ages out between the two reads).
+TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS")
+LOCK = os.environ.get("IKKI_LOCK") or os.path.expanduser("~/.ikki/worker.lock")
+_LOCK_FD = None
+
+
+def _guard_env(env=None):
+    env = os.environ if env is None else env
+    bad = [k for k in TEST_ONLY_ENV if k in env]
+    if bad:
+        raise SystemExit(
+            f"⛔ production worker မစပါ — test-only env {', '.join(bad)} ပါနေသည် "
+            f"(job တိုင်း seed/alias တူသွားမည်)。 env ဖြုတ်ပြီး ပြန်စပါ — "
+            f"A/B ကို render() harness နဲ့ လုပ်ပါ。")
+
+
+def _guard_lock(path=None):
+    """exclusive lock for the life of this process; returns the fd"""
+    import fcntl
+    global _LOCK_FD
+    path = path or LOCK
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        os.close(fd)
+        raise SystemExit(f"⛔ worker မစပါ — ဒီ Mac မှာ worker နောက်တစ်ခု ပြေးနေသည် ({path} lock)。"
+                         f" launchd နဲ့ shell worker တစ်ပြိုင်နက် မစရ。")
+    os.ftruncate(fd, 0); os.write(fd, f"{os.getpid()}\n".encode())
+    _LOCK_FD = fd
+    return fd
+
+
+def _guard_remote(health=None, sleep=time.sleep, poll=None):
+    """refuse when another worker (any host) is polling the API right now"""
+    poll = float(poll or POLL)
+    def _ago():
+        if health is not None:
+            return health()
+        with urllib.request.urlopen(API + "/api/health", timeout=15) as f:
+            return json.loads(f.read()).get("worker_ago")
+    try:
+        a1 = _ago()
+        if a1 is None or float(a1) > poll * 1.5:
+            return
+        sleep(poll * 2 + 3)
+        a2 = _ago()
+    except Exception as e:
+        print(f"  ⚠️ worker တစ်ခုတည်း စစ်ချက် — API မရ ({type(e).__name__}) · ဆက်သွားသည်", flush=True)
+        return
+    if a2 is not None and float(a2) <= poll * 1.5:
+        raise SystemExit(f"⛔ worker မစပါ — တခြား worker တစ်ခု API ကို {float(a2):.1f}s အတွင်း "
+                         f"ခေါ်နေသည် (VPS ikki-worker ?)。 တစ်ခုတည်းသာ ပြေးရမည်。")
+
+
 def main(once=False):
+    _guard_env()
+    _guard_lock()
+    _guard_remote()
     print(f"worker → {API}  ·  {POLL}s တစ်ကြိမ်", flush=True)
     # ⚠️ **သေနေသော job ကို အရင် ပြန်တန်းစီ**ရမည်。 render လုပ်နေရင်း worker
     #    ပြန်စတင်သွားလျှင် (crash · launchd · deploy · Mac အိပ်) job က
