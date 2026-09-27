@@ -731,6 +731,10 @@ BOUNDS = dict(
  cap_by_word=("bool",),
  # "word" = ASR word times · "speech" = cut-engine speech runs (on/off at voice)
  cap_timing=("choice", ["word", "speech"]),
+ # speech-timed off: trail after the voice · shortest card · hold gaps shorter than bridge
+ cap_trail=("float", 0.0, 1.0),
+ cap_min=("float", 0.0, 2.0),
+ cap_bridge=("float", 0.0, 99.0),
  cam_moves=("bool",),
  kin_title=("bool",),
  kin_share=("float", 0.1, 1.0),

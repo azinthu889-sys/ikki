@@ -219,7 +219,8 @@ def cut_energy(db, spans, frame=0.02):
     return np.concatenate(parts) if parts else np.array([])
 
 def speech_cards(caps, runs, db, size, maxw, MW, font, max_dur=4.0, short=0.6,
-                 merge_gap=0.35, dip_win=0.25, frame=0.02, min_piece=0.30):
+                 merge_gap=0.35, dip_win=0.25, frame=0.02, min_piece=0.30,
+                 trail=0.0, min_dur=0.0, bridge=0.0, max_lines=1):
     """Cards timed by the cut engine's speech runs, not by ASR word times
     (short-916 · Zin 2026-09-27: "on as the voice starts, off as it ends").
 
@@ -290,21 +291,110 @@ def speech_cards(caps, runs, db, size, maxw, MW, font, max_dur=4.0, short=0.6,
         # cuts in order, each piece >= min_piece: ASR word times clump, so two
         # independent dips could land 40 ms apart (a 0.00-0.04 s card, 2026-09-27).
         # No room -> that piece's words join the previous card (none dropped).
+        # A join must still fit the line (2026-09-27: joining regardless of width
+        # made 1765 px cards shrunk to 47 px). If it would not fit, the floor
+        # relaxes to 0.30 s for that cut instead -- a short card beats tiny text.
         edges, kept = [ra], [pieces[0]]
         for nxt in pieces[1:]:
-            lo, hi = edges[-1] + min_piece, rb - min_piece
-            c = dip(kept[-1][-1][1], nxt[0][0], lo - frame, hi + frame) if hi > lo else None
-            if c is None or not (lo - 1e-6 <= c <= hi + 1e-6):
+            fits = MW(text_of(kept[-1] + nxt), size, font) <= maxw
+            c = None
+            for mp in ((min_piece, 0.30) if not fits else (min_piece,)):
+                lo, hi = edges[-1] + mp, rb - mp
+                c = dip(kept[-1][-1][1], nxt[0][0], lo - frame, hi + frame) if hi > lo else None
+                if c is not None and lo - 1e-6 <= c <= hi + 1e-6: break
+                c = None
+            if c is None:
                 kept[-1] = kept[-1] + nxt; continue
             edges.append(c); kept.append(nxt)
         edges.append(rb); pieces = kept
         for i, pc in enumerate(pieces):
             txt = text_of(pc); sz = size
-            while MW(txt, sz, font) > maxw and sz > int(size * 0.6):
-                sz -= 3                       # one word wider than the line: shrink, never split
+            lines = [txt]
+            if MW(txt, sz, font) > maxw and max_lines >= 2:
+                two = split_two(txt, MW, sz, font, maxw)   # syllable boundary, never mid-cluster
+                if two: lines = two
+            while max(MW(l, sz, font) for l in lines) > maxw and sz > int(size * 0.6):
+                sz -= 3                       # still too wide: shrink
             kw = sorted({k for x in pc for k in (caps[x[3]].get("kw") or [])})
-            cards.append(dict(lines=[txt], a=round(edges[i], 3), b=round(edges[i + 1], 3), sz=sz, kw=kw))
-    return cards
+            cards.append(dict(lines=lines, a=round(edges[i], 3), b=round(edges[i + 1], 3), sz=sz, kw=kw,
+                              **({"split": True} if len(lines) > 1 else {})))
+    return settle(cards, trail=trail, min_dur=min_dur if max_lines >= 2 else 0.0, bridge=bridge,
+                  size=size, maxw=maxw, MW=MW, font=font)
+
+def settle(cards, trail=0.0, min_dur=0.0, bridge=0.0, size=None, maxw=None, MW=None, font=None):
+    """Off-times after the voice (Zin 2026-09-27: speech-edge off read "too fast").
+    - trail: the card stays `trail` s after its run ends (never past the next card)
+    - bridge: a gap to the next card shorter than `bridge` s is held, not blanked
+      (float('inf') = hold until the next card always)
+    - min_dur: a card still shorter than this joins its closer neighbour
+      (text kept whole and in order -- R1). On-times are never moved (G1)."""
+    cards = [dict(c) for c in sorted(cards, key=lambda c: c["a"])]
+    if not cards or (trail <= 0 and bridge <= 0 and min_dur <= 0): return cards
+    for i, c in enumerate(cards):
+        nxt = cards[i + 1]["a"] if i + 1 < len(cards) else float("inf")
+        if nxt - c["b"] < bridge: c["b"] = nxt
+        else: c["b"] = min(c["b"] + trail, nxt)
+    if min_dur <= 0: return cards
+    # Roll-up (2026-09-28): a card that has not been up for `min_dur` stays as
+    # the top line while the next card enters underneath AT ITS OWN on-time.
+    # Joining text into one earlier card instead showed words before they were
+    # spoken, and pushing split points later made text lag the voice
+    # (G13: 23 % of words outside their card, 34/81 cards > 0.3 s late).
+    out = []
+    for c in cards:
+        p = out[-1] if out else None
+        if (p is not None and not p.get("split") and not c.get("split")
+                and abs(c["a"] - p["b"]) <= 0.05
+                and c["a"] - p.get("_since", p["a"]) < min_dur - 1e-6):
+            top = p["lines"][-1]
+            out.append(dict(lines=[top, c["lines"][0]], a=c["a"], b=c["b"],
+                            sz=min(p["sz"], c["sz"]),
+                            kw=sorted(set(p.get("kw") or []) | set(c.get("kw") or [])),
+                            _since=c["a"], _top_since=p.get("_since", p["a"])))
+        else:
+            d = dict(c); d["_since"] = c["a"]; out.append(d)
+    for d in out:
+        d.pop("_since", None); d.pop("_top_since", None)
+    return out
+
+MM_CONS = "\u1000-\u1021"
+def syllables(txt):
+    """Burmese syllable pieces (break before a consonant that is not stacked
+    under a virama and not killed by an asat), Latin/digits kept as whole words.
+    Joining the pieces gives the text back exactly."""
+    import re
+    out, cur = [], ""
+    for i, ch in enumerate(txt):
+        brk = False
+        if cur:
+            j = i + 1
+            while j < len(txt) and txt[j] == "\u1037": j += 1     # dot-below may sit before the asat
+            nxt = txt[j] if j < len(txt) else ""
+            prv = txt[i - 1]
+            if "\u1000" <= ch <= "\u1021" and prv != "\u1039" and nxt not in ("\u103a", "\u1039"):
+                brk = True
+            elif ch == " ":
+                brk = True
+            elif re.match(r"[A-Za-z0-9]", ch) and not re.match(r"[A-Za-z0-9]", prv):
+                brk = True
+        if brk: out.append(cur); cur = ""
+        cur += ch
+    if cur: out.append(cur)
+    return out
+
+def split_two(txt, MW, size, font, maxw):
+    """one over-wide line -> two lines at the syllable boundary that best
+    balances the widths (None if the text has no boundary)."""
+    sy = syllables(txt)
+    best = None
+    for k in range(1, len(sy)):
+        l1, l2 = "".join(sy[:k]).rstrip(), "".join(sy[k:]).lstrip()
+        if not l1 or not l2: continue
+        w1, w2 = MW(l1, size, font), MW(l2, size, font)
+        if best is None or max(w1, w2) < best[0]:
+            best = (max(w1, w2), [l1, l2])
+    # the most balanced split; the caller shrinks if a line still overflows
+    return best[1] if best and best[0] < MW(txt, size, font) else None
 
 def plan(segs, spans, max_lines=2):
     """ဖြတ်ပြီးနောက် အချိန်သို့ စာတန်းများကို ပြောင်းသည်。

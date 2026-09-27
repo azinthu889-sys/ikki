@@ -71,5 +71,78 @@ class SpeechCards(unittest.TestCase):
         self.assertEqual(runs, [(1.0, 2.0), (2.0, 2.5)])
 
 
+
+class Settle(unittest.TestCase):
+    """off-time after the voice (Zin 2026-09-27: speech-edge off was "too fast")"""
+
+    def cards(self):
+        return [dict(lines=["က"], a=1.0, b=1.8, sz=40), dict(lines=["ခ"], a=2.1, b=2.4, sz=40),
+                dict(lines=["ဂ"], a=4.0, b=5.0, sz=40)]
+
+    def test_trail_never_past_next_card(self):
+        out = CP.settle(self.cards(), trail=0.5)
+        self.assertAlmostEqual(out[0]["b"], 2.1)          # 1.8 + 0.5 capped at the next on
+        self.assertAlmostEqual(out[1]["b"], 2.9)
+        self.assertAlmostEqual(out[2]["b"], 5.5)
+
+    def test_bridge_holds_small_gaps_only(self):
+        out = CP.settle(self.cards(), bridge=0.5)
+        self.assertAlmostEqual(out[0]["b"], 2.1)          # gap 0.3 < 0.5 -> held
+        self.assertAlmostEqual(out[1]["b"], 2.4)          # gap 1.6 -> blank
+
+    def test_bridge_all(self):
+        out = CP.settle(self.cards(), bridge=99, trail=0.5)
+        self.assertEqual([round(c["b"], 2) for c in out], [2.1, 4.0, 5.5])
+
+    def test_min_dur_rolls_up_and_never_shows_a_word_early(self):
+        cs = [dict(lines=["က"], a=1.0, b=1.3, sz=40), dict(lines=["ခ"], a=1.3, b=1.6, sz=40),
+              dict(lines=["ဂ"], a=1.6, b=2.6, sz=40)]
+        out = CP.settle(cs, min_dur=0.9)
+        # every on-time is still a card's own on-time (G1 / G13: nothing early)
+        self.assertEqual([c["a"] for c in out], [1.0, 1.3, 1.6])
+        self.assertEqual(out[1]["lines"], ["က", "ခ"])        # "က" stays up as the top line
+        self.assertEqual(out[2]["lines"], ["ခ", "ဂ"])
+        self.assertTrue(all(len(c["lines"]) <= 2 for c in out))
+
+    def test_roll_up_needs_touching_cards(self):
+        cs = [dict(lines=["က"], a=1.0, b=1.3, sz=40), dict(lines=["ခ"], a=2.0, b=2.4, sz=40)]
+        self.assertEqual([c["lines"] for c in CP.settle(cs, min_dur=0.9)], [["က"], ["ခ"]])
+
+    def test_defaults_unchanged(self):
+        self.assertEqual([(c["a"], c["b"]) for c in CP.settle(self.cards())],
+                         [(1.0, 1.8), (2.1, 2.4), (4.0, 5.0)])
+
+    def test_split_card_is_never_broken_by_roll_up(self):
+        cs = [dict(lines=["က", "ခ"], a=1.0, b=1.3, sz=40, split=True), dict(lines=["ဂ"], a=1.3, b=2.4, sz=40)]
+        out = CP.settle(cs, min_dur=0.9)
+        self.assertEqual([c["lines"] for c in out], [["က", "ခ"], ["ဂ"]])
+
+    def test_split_join_respects_width(self):
+        ws = [(f"w{i}", 0.1 + i * 0.35, 0.1 + i * 0.35 + 0.3) for i in range(8)]
+        c = cap(" ".join(w[0] for w in ws), ws)
+        wide = lambda t, size, font=None: 300 * (t.count(" ") + 1)     # > 2 words overflow 778
+        out = CP.speech_cards([c], [(0.1, 3.0)], np.zeros(200), 40, 778, wide, None, min_piece=0.9)
+        self.assertTrue(all(wide(x["lines"][0], 40) <= 778 for x in out), [x["lines"][0] for x in out])
+
+
+
+class Syllables(unittest.TestCase):
+
+    def test_roundtrip_and_known_breaks(self):
+        for t in ["တစ်နှစ်", "ကျောင်းတက်", "သက္ခာလာနိုဘာဘာ", "comment မှာ Tokutei", "အခမဲ့တိုင်ပင်ဆွေးနွေးပေးသွားပါမယ်နော်"]:
+            self.assertEqual("".join(CP.syllables(t)), t)
+        self.assertEqual(CP.syllables("တစ်နှစ်"), ["တစ်", "နှစ်"])
+        self.assertEqual(CP.syllables("ကျောင်း"), ["ကျောင်း"])
+        self.assertIn("သက္ခာ", CP.syllables("သက္ခာလာ"))                # virama stack kept whole
+        self.assertEqual(CP.syllables("ကိုယ့်ခြေ"), ["ကိုယ့်", "ခြေ"])   # dot-below before the asat
+
+    def test_split_two_balances_and_fits(self):
+        MW = lambda t, size, font=None: len(t) * 20
+        two = CP.split_two("အခမဲ့တိုင်ပင်ဆွေးနွေးပေးသွားပါမယ်နော်", MW, 40, None, 500)
+        self.assertEqual(len(two), 2)
+        self.assertEqual("".join(two), "အခမဲ့တိုင်ပင်ဆွေးနွေးပေးသွားပါမယ်နော်")
+        self.assertTrue(all(MW(l, 40) <= 500 for l in two))
+
+
 if __name__ == "__main__":
     unittest.main()

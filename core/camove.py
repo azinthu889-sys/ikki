@@ -25,33 +25,34 @@ def _ease(u, kind):
     u = min(1.0, max(0.0, u))
     if kind == "expo":                      # the open: very front-loaded (r3 share 0.97)
         return 1.0 if u >= 1 else 1 - 2 ** (-10 * u)
+    if kind == "inout":                     # the return to 1.00: no jolt at either end
+        return 0.5 - 0.5 * math.cos(math.pi * u)
     return 1 - (1 - u) ** 3                 # cubic ease-out (share 0.875)
 
-def plan(dur, caps, avoid, gap=5.5, z_in=1.16, first=0.9, move=0.9, pull=1.2, outro=1.4):
-    """-> [(t, d, z0, z1, ease)] on the cut timeline.
+# Zin 2026-09-27: "a zoom in/out now and then" is liked, "staying zoomed" is not.
+# => the base is always 1.00x; every move is a round trip: in -> hold -> back.
+#    Gates (from his words, provisional -- not measured on a reference):
+#    G10 every move returns to 1.00 (+-0.005) · G11 > 1.02 for <= 3.0 s at a
+#    stretch · G12 > 1.02 for <= 20 % of the video (planned against 18 %).
+IN_D, HOLD, OUT_D = 0.8, 1.0, 1.0
+
+def plan(dur, caps, avoid, gap=5.5, z_in=1.16, budget=0.18, open_=True):
+    """-> [(t, d, z0, z1, ease)] on the cut timeline, in/out pairs.
     caps: [{start, end}] sentence starts; avoid: [(a, b)] B-roll / graphic windows."""
     z_in = min(ZMAX, z_in)
-    def blocked(t, d):
-        return any(not (t + d + 0.3 <= a or t - 0.3 >= b) for a, b in avoid)
-    moves = []; z = 1.0
-    if dur > 3 and not blocked(0.0, first):
-        moves.append((0.0, first, 1.0, z_in, "expo")); z = z_in
+    span = IN_D + HOLD + OUT_D
+    def blocked(t):
+        return any(not (t + span + 0.3 <= a or t - 0.3 >= b) for a, b in avoid)
     starts = sorted(float(c["start"]) for c in caps if c.get("start") is not None)
-    last = moves[-1][0] + moves[-1][1] if moves else -9
-    end_t = max(0.0, dur - outro - 0.4)
+    if open_ and dur > span + 1: starts = [0.0] + [t for t in starts if t > 0.05]
+    moves = []; last = -9.0; used = 0.0
     for t in starts:
-        if t - last < gap or t >= end_t - gap * 0.5: continue
-        zn = 1.0 if z > 1.0 else z_in
-        d = pull if zn < z else move
-        if blocked(t, d): continue
-        moves.append((round(t, 3), d, z, zn, "cubic")); z = zn; last = t + d
-    # the close: pull out (push in first if we sit at 1.00 and there is room)
-    if dur > 6:
-        t = round(end_t, 3)
-        if z == 1.0 and t - last >= gap and not blocked(t - move - 0.2, move):
-            moves.append((round(t - move - 0.2, 3), move, 1.0, z_in, "cubic")); z = z_in
-        if z > 1.0 and not blocked(t, outro):
-            moves.append((t, outro, z, 1.0, "cubic")); z = 1.0
+        if t - last < gap or t + span > dur - 0.2 or blocked(t): continue
+        if used + span > budget * dur: break
+        e = "expo" if t == 0.0 else "cubic"
+        moves.append((round(t, 3), IN_D, 1.0, z_in, e))
+        moves.append((round(t + IN_D + HOLD, 3), OUT_D, z_in, 1.0, "inout"))
+        last = t + span; used += span
     return moves
 
 def zoom_at(t, moves):
