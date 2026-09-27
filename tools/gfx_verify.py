@@ -6,8 +6,9 @@
      PASS = ① fill() က argument ထုတ်ပေးနိုင်
             ② call() က PNG **၂ ဖရိမ်း အနည်းဆုံး** ပြန်ပေး
             ③ ဖိုင်တိုင်း ရှိပြီး > 1 KB
-            ④ **နောက်ဆုံး ဖရိမ်း မှာ မှင် ရှိ** — alpha>16 pixel က
-               ဧရိယာ၏ **0.05% အထက်** (ဗလာ ဖရိမ်းကို ဖယ်ရန်)
+            ④ **ဖရိမ်း ၅ ခု (နမူနာ) + statics ထဲ အမြင့်ဆုံး မှင်** — alpha>16
+               pixel က ဧရိယာ၏ **0.05% အထက်** (ထွက်ခွာ animation ရဲ့ နောက်ဆုံး
+               ဖရိမ်း ဗလာ ဖြစ်တာ မှန်သည် · board_* စာကြောင်းက statics ထဲ)
             ⑤ 60s အတွင်း ပြီး
 ⚠️ တစ်ခုချင်း **သီးသန့် process** — အရင်က template တစ်ခု ကျလျှင်
    တစ်ခုလုံး ရပ်သွားခဲ့သည် (timeout · ctypes text trap)。
@@ -206,6 +207,31 @@ for _k in _cand:
     import numpy as _np0
     _a = _np0.array(_im)[:, :, 3]
     ink = max(ink, float((_a > 16).sum()) / float(_im.width*_im.height))
+# ⚠️ **statics (hold layer) ကိုလည်း ထည့်ရမည်** (2026-09-28)。 `board_*` က
+#    စာကြောင်းတွေကို `statics=[(png, x, y, delay)]` ထဲ ထားပြီး anim မှာ
+#    highlight သာ ရှိသည် ⇒ ink ရော bbox ရော **စာကြောင်း နေရာ မပါ**ခဲ့ ⇒
+#    စာတန်းဇုန် ထပ်မှုကို မတိုင်မိ。 statics က ဘောင်ပေါ် offset နဲ့ ချသည်。
+_st = el.get("statics") or []
+_stb = []
+if _st:
+    try:
+        import numpy as _np1
+        try:
+            import theme as _TH1
+            _t1 = _TH1.t(); _SW, _SH = int(_t1["W"]), int(_t1["H"])
+        except Exception:
+            _SW, _SH = _im.width, _im.height
+        _px = 0
+        for _s in _st:
+            _sp, _sx, _sy = _s[0], int(_s[1]), int(_s[2])
+            _sa = _np1.array(Image.open(rp(_sp)).convert("RGBA"))[:, :, 3] > 16
+            _px += int(_sa.sum())
+            if _sa.any():
+                _yy, _xx = _np1.nonzero(_sa)
+                _stb.append((_sy+int(_yy.min()), _sy+int(_yy.max()), _sx+int(_xx.min()), _sx+int(_xx.max())))
+        ink = max(ink, _px / float(max(1, _SW*_SH)))
+    except Exception:
+        pass
 im = _im
 # ⚠️ **bbox ကိုပါ မှတ်ရမည်** — planner ရဲ့ pool ကို လက်ရေး ၃၀ ကနေ ၂၇၁+ သို့
 #    ချဲ့လိုက်သဖြင့် 「ဂရပ်ဖစ်က စာတန်းကို ဖုံးသလား」ကို **တိုင်း**ရမည်。
@@ -240,6 +266,7 @@ try:
     except Exception:
         pass
     _bb = None
+    _b += _stb
     if _b and _W and _H:
         _bb = dict(top=round(min(x[0] for x in _b)/_H,4), bottom=round(max(x[1] for x in _b)/_H,4),
                    left=round(min(x[2] for x in _b)/_W,4), right=round(max(x[3] for x in _b)/_W,4))
