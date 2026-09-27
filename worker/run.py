@@ -3617,6 +3617,60 @@ def render(job, brand, src, out, stage, log=print, over=None):
             REPORT["sfx_respace"] = _drop2
             REPORT["sfx_respace_moments"] = _dropm
         cues = sorted(_keep2, key=lambda x: x[0])
+        # ══ `per_min` ကိုပါ ချိန်ရမည် ═══════════════════════════════════
+        # ⚠️ အပေါ်က ချိန်ချက်က **`gap` ကိုသာ** ကြည့်သည် — headtop မှာ
+        #    gap 2.0 ⇒ မိနစ်လျှင် ဖြစ်ရပ် ၃၀ အထိ ခွင့်ပြုသဖြင့် တကယ့်
+        #    ကန့်သတ်ချက် (`per_min` 6.0) က **မချိန်ခံရ**ပါ。
+        # ⚠️ ၂၀၂၆-၀၉-၂၈ arm V4/V5 — motionkit ကြေညာချက်က cue ကို ကတ်
+        #    အတွင်း **အချိန် ခွဲ** ထားသဖြင့် (0.0 · 0.48 · 1.008) ဖြစ်ရပ်
+        #    ၁၃ ခု ⇒ **8.68/min** vs ဂိတ် 6.0 ⇒ `QC မအောင်: sfx_density`
+        #    နဲ့ render **၂ ခါ ငြင်းခံရ**ခဲ့သည်。
+        # ⇒ ကြေညာချက်က 「**ဘယ်အချိန်**」 ဆုံးဖြတ်သည် · ပေါလစီက
+        #   「**ဘယ်နှစ်ခု**」 ဆုံးဖြတ်သည် ⇒ အစဉ် ဒီအတိုင်း ဖြစ်ရမည်。
+        # ⚠️ ကတ် **ပေါ်ချိန်** cue ကို **ကာ**ရမည် — ကတ် ပေါ်တာနဲ့ အသံ
+        #   တွဲရခြင်းက အခြေခံ ဖြစ်သည် ⇒ ကတ်အတွင်း နောက်ပိုင်း cue ကိုသာ
+        #   ဖယ်သည် (နောက်ကျသူ အရင်)。
+        try:
+            _pmx = float(_SP2.clamp(
+                dict(per_min=float(rc.get("sfx_per_min") or 1.0)),
+                style=rc.get("_id"))["per_min"])
+        except Exception:
+            _pmx = float(rc.get("sfx_per_min") or 1.5)
+        _dur5 = max(60.0, float(m["dur"]))
+        _cap5 = int(_pmx * _dur5 / 60.0)
+        # ဖြစ်ရပ် အဖြစ် ပြန်စုသည် (LAYER_W အတွင်း = တစ်ခု)
+        _mm2 = []
+        for _c in cues:
+            if _mm2 and (_c[0] - _mm2[-1][-1][0]) <= LAYER_W:
+                _mm2[-1].append(_c)
+            else:
+                _mm2.append([_c])
+        if len(_mm2) > _cap5 > 0:
+            # ကတ် ပေါ်ချိန် (span အစ) နဲ့ နီးသူ = **ကာထားရမည်**
+            _st5 = sorted(a for a, _b in (_spans_c if "_spans_c" in dir()
+                                          else []))
+            def _is_entry(_t):
+                return any(abs(_t - _a) <= 0.25 for _a in _st5)
+            _prot = [i for i, _m in enumerate(_mm2) if _is_entry(_m[0][0])]
+            _free = [i for i in range(len(_mm2)) if i not in set(_prot)]
+            # နောက်ကျသူ အရင် ဖယ်သည်
+            _rm5 = set()
+            for i in sorted(_free, reverse=True):
+                if len(_mm2) - len(_rm5) <= _cap5:
+                    break
+                _rm5.add(i)
+            # ကာထားသူထက် ပိုလျှင် ကာထားသူကိုပါ ဖယ်ရသည် (နောက်ကျသူ အရင်)
+            for i in sorted(_prot, reverse=True):
+                if len(_mm2) - len(_rm5) <= _cap5:
+                    break
+                _rm5.add(i)
+            _new5 = [c for i, _m in enumerate(_mm2) if i not in _rm5
+                     for c in _m]
+            log(f"  SFX · per_min {_pmx:.1f} ⇒ ဖြစ်ရပ် {len(_mm2)} → "
+                f"{len(_mm2)-len(_rm5)} (cap {_cap5} · {len(cues)} → "
+                f"{len(_new5)} cue · ကတ်ပေါ်ချိန် {len(_prot)} ကာ)")
+            REPORT["sfx_permin_dropped"] = len(_rm5)
+            cues = sorted(_new5, key=lambda x: x[0])
         # ⚠️ **အသံ တစ်မျိုးတည်း မထပ်ရ** — role ဆက်တိုက် တူလျှင် ပြရမည်
         try:
             _roles = [str(c[1]) for c in cues]
