@@ -213,6 +213,27 @@ for _k in _cand:
 #    စာတန်းဇုန် ထပ်မှုကို မတိုင်မိ。 statics က ဘောင်ပေါ် offset နဲ့ ချသည်。
 _st = el.get("statics") or []
 _stb = []
+# ⚠️ **`_multi` ကိုလည်း ထည့်ရမည်** (2026-09-28)。 renderer က `_multi=[(seq, y)]`
+#    ရှိလျှင် anim အစား **အတန်း sequence များ** ဆွဲသည် — kinetic.stack ·
+#    kinetic.line_rise · kinetic2.line_split · kinetic2.subtitle_2line ·
+#    typo.stack3 · typo.scale_ramp · typo.slab_block ⇒ anim က **ပထမ တန်း**
+#    သာ ဖြစ်၍ ကျန် တန်းတွေရဲ့ ink/bbox ကို မတိုင်မိခဲ့。 (x = 0 · y = offset)
+_mu = el.get("_multi") or []
+if _mu:
+    try:
+        import numpy as _np2
+        for _seq, _my in _mu:
+            if not _seq: continue
+            for _k in sorted(set([len(_seq)-1, len(_seq)//2, len(_seq)//3])):
+                _q = _seq[min(_k, len(_seq)-1)]
+                _q = _q[0] if isinstance(_q, (list, tuple)) else _q
+                _ma = _np2.array(Image.open(rp(_q)).convert("RGBA"))[:, :, 3] > 16
+                ink = max(ink, float(_ma.sum()) / float(_ma.size))
+                if _ma.any():
+                    _yy, _xx = _np2.nonzero(_ma)
+                    _stb.append((int(_my)+int(_yy.min()), int(_my)+int(_yy.max()), int(_xx.min()), int(_xx.max())))
+    except Exception:
+        pass
 if _st:
     try:
         import numpy as _np1
