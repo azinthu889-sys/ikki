@@ -384,7 +384,12 @@ R = {
     #   anchor => 0.78 gave ~0.74. 0.80 measured (pinned seed, cb080.mp4): y med
     #   0.760 · face overlap 2.4 % of face frames · ink bottom p95 1526 px -- all 3
     #   gates pass (y 0.76-0.80 · face <= 5 % · bottom <= 1550 px).
-    cap_pct=0.042, cap_base=0.80, cap_max=0.833, cap_wide=0.72, cap_lines=1,
+    # cap_base 0.80 -> 0.805 + stroke_w 0.10 -> 0.30 (2026-09-27, pinned seed, one
+    #   variable per step): step A 0.805 -> y 0.765; step B +stroke -> stroke÷text
+    #   0.49->0.87 (Zin 1/2.mp4 0.90) · 22.5-28.5 s edge contrast 2.54->19.46 · y 0.760
+    #   · face 1.6 % · ink bottom p95 1534 px. y sits ON the 0.76 bound: the band is
+    #   bottom-anchored, so thicker ink lifts the centre -- see the pending y item.
+    cap_pct=0.042, cap_base=0.805, cap_max=0.833, cap_wide=0.72, cap_lines=1,
     cap_kw=0.33,                            # keyword colour ~1 caption in 3
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
@@ -394,7 +399,7 @@ R = {
     # inaudible on a phone. Refs keep music forward: bed ~10 dB under voice,
     # light 2:1 duck.
     music_lufs=-30.0, music_duck=2.0,
-    stroke="brand", stroke_w=0.10, cap_gap=0.18, cap_fade=0.0,   # refs switch cards on a hard cut
+    stroke="brand", stroke_w=0.30, cap_gap=0.18, cap_fade=0.0,   # refs switch cards on a hard cut
     cap_cover=1.0, cap_hold=1.6, scrim=False,
     cap_typo=0.20,
     gfx=14, gfx_scale=1.0, gfx_in_speech=True, gfx_min_sil=0.22,
