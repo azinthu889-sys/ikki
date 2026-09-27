@@ -1901,6 +1901,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                      # MotionKit profile က raw template ID မဟုတ်ဘဲ
                      # manifest/safe-zone စစ်ပြီးသား visual language ဖြစ်သည်။
                      motionkit_profile=rc.get("motionkit_profile") or "premium",
+                     # ⚠️ **job တစ်ခုချင်း** flag — env (`IKKI_GFX_*`) က
+                     #    `TEST_ONLY_ENV` ထဲ ရှိသဖြင့် production မှာ သုံးလို့
+                     #    မရပါ ⇒ `over`/recipe ကနေ ဖွင့်ရန် လမ်း。
+                     #    `None` ⇒ planner က env ကို ကြည့်သည် (harness)。
+                     gfx_rotate=rc.get("gfx_rotate"),
+                     gfx_alias=rc.get("gfx_alias"),
                      # ⚠️ **format အလိုက် ခွဲထားသည်** — ZAE က ၀.၀ (reference
                      #    ၁၃ ခုမှာ အမှောင်စာကတ် ၀ ခု) · TH က ပုံသေ ၀.၁၅။
                      #    `None` နဲ့ `0.0` ကွာသည် ⇒ `.get()` ကို တိုက်ရိုက် ပေး。
@@ -3488,7 +3494,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ၂ ခုလုံး template ရဲ့ **ကိုယ်ပိုင် လှုပ်ရှားမှု အချိန်** မသိပါ。
             # ⇒ ကတ်တစ်ခုချင်းရဲ့ span ထဲက cue ကို ဖယ်ပြီး ကြေညာချက် ထည့်သည်。
             #    span ပြင်ပ cue (B-roll whip · စာတန်း tick) က **မထိ**ပါ。
-            if os.environ.get("IKKI_SFX_DECL", "0") == "1":
+            # ⚠️ job တစ်ခုချင်း (`rc["sfx_decl"]`) က ဦးစားပေး · မပါလျှင် env
+            _sd = rc.get("sfx_decl")
+            if (bool(int(_sd)) if _sd is not None
+                    else os.environ.get("IKKI_SFX_DECL", "0") == "1"):
                 try:
                     _dcl, _n_ok, _n_no = DR.decl_cues(
                         gfx, float(rc.get("_gfx_enter") or 0.0))

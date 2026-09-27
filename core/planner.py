@@ -243,7 +243,7 @@ def _rotate(cands, used, seed="", k=NOREPEAT):
 # ⚠️ flag-gated · default **ပိတ်** — `IKKI_GFX_ROTATE=1` နဲ့သာ ဖွင့်သည်
 #    (alias flag လိုပဲ · ဂိတ် မအောင်မချင်း production မထိရ)。
 def _rotate_tail():
-    return os.environ.get("IKKI_GFX_ROTATE") == "1"
+    return _flag("rotate", "IKKI_GFX_ROTATE")
 
 
 _ADMIT = None
@@ -698,7 +698,24 @@ ALIAS = {
 }
 
 
-GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "0") == "1"
+# ⚠️ flag ၂ မျိုး လမ်းကြောင်း — **job တစ်ခုချင်း** (recipe/over ကနေ) က
+#    ဦးစားပေး · မပါလျှင် env (harness သာ · `TEST_ONLY_ENV` ထဲ ရှိ)。
+#    ⇒ production မှာ env သုံးလို့ မရသဖြင့် (test-only) `over` လမ်း လိုသည်。
+# ⚠️ worker က process တစ်ခုထဲမှာ job **အများအပြား** ကိုင်သည် ⇒ `plan()`
+#    တိုင်း `_FLAGS` ကို **ပြန်သတ်မှတ်**ရမည်、မဟုတ်လျှင် job တစ်ခုရဲ့
+#    ပြင်ချက် နောက် job ဆီ ယိုစိမ့်မည်。
+_FLAGS = {"rotate": None, "alias": None}
+
+
+def _flag(name, env_name):
+    v = _FLAGS.get(name)
+    if v is not None:
+        return bool(v)
+    return os.environ.get(env_name, "0") == "1"
+
+
+def _alias_on():
+    return _flag("alias", "IKKI_GFX_ALIAS")
 
 
 _BUILDABLE = None
@@ -799,7 +816,7 @@ def fill(cid, label, text):
             if not q.get("required"):
                 continue
             _n = q.get("name")
-            _rq.add(ALIAS.get(_n, _n) if GFX_ALIAS else _n)
+            _rq.add(ALIAS.get(_n, _n) if _alias_on() else _n)
         if "rows" in _rq:
             _chart_rows = _num_rows(text)
             if len(_chart_rows) < 2:
@@ -837,7 +854,7 @@ def fill(cid, label, text):
     out = {}
     for k in req:
         _k = k
-        if _k not in m and GFX_ALIAS:
+        if _k not in m and _alias_on():
             # ⚠️ နာမည် ကွဲသော်လည် အဓိပ္ပာယ် တူသူကို ချိတ်သည် (`ALIAS`)。
             #    မသေချာသူ ၅၅ ခုက `ALIAS` ထဲ မပါ ⇒ အရင်အတိုင်း ကျော်သွားမည်。
             _k = ALIAS.get(k, k)
@@ -1694,15 +1711,22 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
 
     schema မအောင်လျှင် **fallback** ကို သုံးသည် — အလုပ် မရပ်ပါ。
     """
+    # ⚠️ **job တစ်ခုချင်း** flag — `over`/recipe ကနေ (`gfx_rotate`/`gfx_alias`)。
+    #    `None` ⇒ env ကို ကြည့်သည် (harness)。 job တိုင်း ပြန်သတ်မှတ်သဖြင့်
+    #    ယိုစိမ့်မှု မဖြစ်。
+    _o0 = dict(opts or {})
+    for _k0, _n0 in (("rotate", "gfx_rotate"), ("alias", "gfx_alias")):
+        _v0 = _o0.get(_n0)
+        _FLAGS[_k0] = None if _v0 is None else bool(int(_v0))
     # ⚠️ flag ၂ ခုက **တွဲလုပ်**သည် — rotate က pool ကို ပွင့်စေပြီး alias က
     #    အဲဒီ pool ထဲက နာမည် မကိုက်တာကို ဖြေသည်。 တစ်ခုတည်း ဖွင့်လျှင်
     #    ရောက်နိုင်ခြေ တစ်ဝက်သာ (တိုင်းချက် ၂၀၂၆-၀၉-၂၇ · jid 500 · label 14):
     #      ပိတ်/ပိတ် ၁၂၅ · rotate သာ ၂၅၀ · alias သာ ၁၈၂ · **၂ ခုလုံး ၃၆၂**
     #    ⇒ တစ်ဝက် ဖွင့်ထားမိတာကို ဖမ်းရန် သတိပေးသည်。
-    if _rotate_tail() and not GFX_ALIAS:
+    if _rotate_tail() and not _alias_on():
         log("  ⚠️ planner · rotate သာ ဖွင့်ထား (alias ပိတ်) ⇒ "
             "ရောက်နိုင်ခြေ တစ်ဝက်သာ (၂၅၀/၃၆၂) — IKKI_GFX_ALIAS=1 ပါ ထည့်ပါ")
-    elif GFX_ALIAS and not _rotate_tail():
+    elif _alias_on() and not _rotate_tail():
         log("  ⚠️ planner · alias သာ ဖွင့်ထား (rotate ပိတ်) ⇒ "
             "ပွင့်စရာ pool မရှိ (၁၈၂/၃၆၂) — IKKI_GFX_ROTATE=1 ပါ ထည့်ပါ")
     labels = annotate(segs, log=log)

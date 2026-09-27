@@ -263,7 +263,9 @@ def sfx(gfx, caps, rc):
     #    မတွဲပါ — `titles2.headline_bar` က ၃ ချက် (0.0 · 0.48 · 1.008)、
     #    `odo.count_up` က **တစ်ချက်** (2.064s — ကိန်း ရပ်ချိန်) ကြေညာထားသည်。
     # ⚠️ render နဲ့ အတည်ပြုမချင်း **ပုံသေ ပိတ်** — `IKKI_SFX_DECL=1` နဲ့ ဖွင့်
-    _use_decl = os.environ.get("IKKI_SFX_DECL", "0") == "1"
+    _sd0 = rc.get("sfx_decl")
+    _use_decl = (bool(int(_sd0)) if _sd0 is not None
+                 else os.environ.get("IKKI_SFX_DECL", "0") == "1")
     if _use_decl:
         _dc, _n_ok, _n_no = decl_cues(gfx, _ent)
         if _dc:

@@ -692,6 +692,13 @@ BOUNDS = dict(
  # ⚠️ clip တစ်ခုရဲ့ အများဆုံး အရှည် — ၃.၂s ကန့်သတ်က segment (~၆.၅s)
  #    ထက် တိုသဖြင့် ခွင့်ပြုချက် ကုန်အောင် မသုံးနိုင်ခဲ့。
  broll_max= ("float", 1.0, 8.0),
+ # ⚠️ flag ၃ မျိုး — `("choice", [0, 1])` နဲ့ ထည့်သည် ⇒ `clean()` ကို မထိရ
+ #    (bool အမျိုးအစား အသစ် မလို · key ၅၇ ခုရဲ့ စစ်ချက် လမ်းကြောင်း မထိ)。
+ #    recipe မှာ **မထည့်**ပါ ⇒ ပုံသေ ပိတ် · `over` ကနေသာ ဖွင့်ရသည်。
+ #    env (`IKKI_GFX_*` · `IKKI_SFX_DECL`) က harness သာ (`TEST_ONLY_ENV`)。
+ gfx_rotate=("choice", [0, 1]),
+ gfx_alias =("choice", [0, 1]),
+ sfx_decl  =("choice", [0, 1]),
  cap_pct  = ("float", 0.035, 0.110),   # frame အမြင့်၏ ၃.၅–၁၁%
  cap_base = ("float", 0.550, 0.870),   # ⚠️ ၀.၈၇ ကျော်လျှင် စာတန်း အောက်ထွက်မည်
  stroke_w = ("float", 0.0,   0.30),
