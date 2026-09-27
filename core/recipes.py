@@ -699,6 +699,8 @@ BOUNDS = dict(
  gfx_rotate=("choice", [0, 1]),
  gfx_alias =("choice", [0, 1]),
  sfx_decl  =("choice", [0, 1]),
+ # ⚠️ ကြေညာချက်ကို ဖြတ်မထားဘဲ နားထောင်ရန်သာ — QC `sfx_density` ကျမည်
+ sfx_per_min_off=("choice", [0, 1]),
  cap_pct  = ("float", 0.035, 0.110),   # frame အမြင့်၏ ၃.၅–၁၁%
  cap_base = ("float", 0.550, 0.870),   # ⚠️ ၀.၈၇ ကျော်လျှင် စာတန်း အောက်ထွက်မည်
  stroke_w = ("float", 0.0,   0.30),

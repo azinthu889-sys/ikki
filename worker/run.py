@@ -3650,7 +3650,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _mm2[-1].append(_c)
             else:
                 _mm2.append([_c])
-        if len(_mm2) > _cap5 > 0:
+        # ⚠️ `sfx_per_min_off` — ကြေညာချက်ကို **ဖြတ်မထားဘဲ** နားထောင်ရန်
+        #    (Zin ရဲ့ တောင်းဆိုချက် ၂၀၂၆-၀၉-၂၈)。 cap က band အောက် ချတာ
+        #    မှန်/မမှန် ကို **ကိန်းနဲ့ မဆုံးဖြတ်နိုင်**ပါ — reference ၁ ပုဒ်ပဲ
+        #    ရှိသဖြင့် နားထောင်ပြီးမှ ဆုံးဖြတ်ရမည်。
+        #    ⚠️ ဖွင့်လျှင် QC ရဲ့ `sfx_density` **ကျမည်** ⇒ စမ်းသပ်ချက်
+        #      အတွက်သာ · production မဟုတ်。
+        _pmoff = rc.get("sfx_per_min_off")
+        _pmoff = (bool(int(_pmoff)) if _pmoff is not None
+                  else os.environ.get("IKKI_SFX_PERMIN_OFF", "0") == "1")
+        if _pmoff:
+            log(f"  ⚠️ SFX · per_min ချိန်ချက် **ပိတ်ထား** (sfx_per_min_off) ⇒ "
+                f"ဖြစ်ရပ် {len(_mm2)} အတိုင်း · QC `sfx_density` ကျမည်")
+            REPORT["sfx_permin_off"] = 1
+        if (not _pmoff) and len(_mm2) > _cap5 > 0:
             # ကတ် ပေါ်ချိန် (span အစ) နဲ့ နီးသူ = **ကာထားရမည်**
             _st5 = sorted(a for a, _b in (_spans_c if "_spans_c" in dir()
                                           else []))
