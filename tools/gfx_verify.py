@@ -69,8 +69,18 @@ e = e[0]
 #    ဒေါင်းလုဒ် မလို · လိုင်စင် ကိစ္စ မရှိ)。
 DEMO_IMG = "/Users/zinthuaung/ikki/web/img/ikki-icon-512.png"
 if not os.path.exists(DEMO_IMG): DEMO_IMG = None
-DEMO_TEXTS = ["ဂျပန်မှာ အလုပ်", "ပညာသင် ဗီဇာ", "အခုပဲ စမယ်", "သင်တန်း ၃ လ"]
-args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62, img=DEMO_IMG,
+# ⚠️ **စာသား အရှည် — production အတိုင်း** (2026-09-28)。 စာသား တိုတို
+#    (၁၀–၁၄ လုံး) နဲ့ စစ်လျှင် စာ ပြတ်/ဘောင်ကျော်ကို ဘယ်တော့မှ မမြင်ရ —
+#    ASR စကားစု အရှည် (~၄၀ လုံး · စာရင်း ~၂၀ လုံး) နဲ့ စစ်သည်。
+#    `GFX_TEXT=short` ⇒ ယခင် စာသား (နှိုင်းယှဉ်ရန်)。
+if os.environ.get("GFX_TEXT") == "short":
+    MAIN_TEXT = "ဂျပန်မှာ အလုပ်"; TF_TEXT = "ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း"
+    DEMO_TEXTS = ["ဂျပန်မှာ အလုပ်", "ပညာသင် ဗီဇာ", "အခုပဲ စမယ်", "သင်တန်း ၃ လ"]
+else:
+    MAIN_TEXT = TF_TEXT = "ဂျပန်မှာ အလုပ်ရှာဖွေဖို့ ဘာတွေ ကြိုပြင်ဆင်ထားရမလဲ"
+    DEMO_TEXTS = ["ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း", "ပညာသင် ဗီဇာ လျှောက်ထားခြင်း",
+                  "အခုပဲ စာရင်းသွင်းလိုက်ပါ", "N5 သင်တန်း ၃ လ အပြည့်"]
+args = G.fill(e, MAIN_TEXT, "ZAE", 62, img=DEMO_IMG,
               items=DEMO_TEXTS, nums=[62, 41, 27])
 kw = None
 # ⚠️ `fill()` က **param မလိုသော** template အတွက် `()` ပြန်ပေးသည် (မှန်သည် —
@@ -79,8 +89,8 @@ kw = None
 #    `motionfx` ၁၄ · `thm.chat_dots` တို့ တစ်ခါမှ မအောင်ခဲ့ (၂၀၂၆-၀၉-၂၄)。
 if args is None:
     try:
-        kw = DR._tf_args(dict(kind=eid, text="ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း",
-                              items=["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
+        kw = DR._tf_args(dict(kind=eid, text=TF_TEXT,
+                              items=DEMO_TEXTS[:3],
                               num="62"),
                          accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
     except Exception as _e:
@@ -293,9 +303,13 @@ try:
                    left=round(min(x[2] for x in _b)/_W,4), right=round(max(x[3] for x in _b)/_W,4))
 except Exception:
     _bb = None
+# ⚠️ `edge` — ဘောင်အပြည့် မဟုတ်သော ကတ်ရဲ့ ink က ဘယ်/ညာ ဘောင်စွန်းကို ထိလျှင်
+#    စာ ဘောင်ကျော်/ပြတ် ဖြစ်နိုင်ကြောင်း **အချက်ပြ**သည် (ဂိတ် မဟုတ် · ok မပြောင်း)。
+_edge = bool(_bb and ink < 0.5 and (_bb["left"] <= 0.004 or _bb["right"] >= 0.996))
 print(json.dumps({"ok": 1 if ink >= %(MI)f else 0,
                   "why": "" if ink >= %(MI)f else "မှင် %%.4f%%%%" %% (ink*100),
-                  "ink": round(ink,5), "n": len(fr), "bbox": _bb}))
+                  "ink": round(ink,5), "n": len(fr), "bbox": _bb, "edge": _edge,
+                  "text": "short" if os.environ.get("GFX_TEXT") == "short" else "long"}))
 ''' % {"HERE": HERE, "MF": MIN_FRAMES, "MB": MIN_BYTES, "MI": MIN_INK}
 
 def main():
