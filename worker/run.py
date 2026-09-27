@@ -3636,7 +3636,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 style=rc.get("_id"))["per_min"])
         except Exception:
             _pmx = float(rc.get("sfx_per_min") or 1.5)
-        _dur5 = max(60.0, float(m["dur"]))
+        # ⚠️ **ထွက်ဖိုင် အရှည်** နဲ့ တွက်ရမည် — `m["dur"]` က **မူရင်း**
+        #    အရှည် (၁၇၉s) ဖြစ်ပြီး QC က **ဖြတ်ပြီး ထွက်ဖိုင်** (၉၀s) ပေါ်
+        #    တိုင်းသည် ⇒ မူရင်းနဲ့ တွက်လျှင် cap ၁၇ ဖြစ်ကာ ဖြစ်ရပ် ၁၃ က
+        #    ဂိတ် မကျော်ဟု ထင်မှတ်ပြီး **မဖြတ်ဘဲ** ကျော်သွားသည်
+        #    (၂၀၂၆-၀၉-၂၈ arm V6 — ချိန်ချက် ထည့်ပြီးလည် 8.67/min ကျန်)。
+        _dur5 = max(60.0, sum(b - a for a, b in spans) or float(m["dur"]))
         _cap5 = int(_pmx * _dur5 / 60.0)
         # ဖြစ်ရပ် အဖြစ် ပြန်စုသည် (LAYER_W အတွင်း = တစ်ခု)
         _mm2 = []
