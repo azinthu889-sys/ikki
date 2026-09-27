@@ -315,7 +315,9 @@ def _auto_candidates(label):
     """catalog ကနေ **စစ်ပြီးသား** template များကို semantic အညွှန်းအလိုက် ခွဲသည်。"""
     global _AUTO
     if _AUTO is not None:
-        return _AUTO.get(label, [])
+        _r = _AUTO.get(label, [])
+        # ⚠️ `fact` က catch-all ⇒ ဒေတာ လိုအပ်သော family ဖယ်သည် (`_fact_ok`)
+        return [c for c in _r if _fact_ok(c)] if label == "fact" else _r
     import re
     try:
         import gfxcat as GC, mkcat as MK
@@ -385,7 +387,11 @@ def _auto_candidates(label):
         v.sort(key=lambda t: (_FAM.get(t.split(".")[0], 2),
                               _RANK.get(_cat.get(t, ""), 8), t))
     _AUTO = out
-    return _AUTO.get(label, [])
+    # ⚠️ **ပထမ ခေါ်ချက် (cache မရှိ) လမ်းကိုပါ ဖြတ်ရမည်** — cache လမ်းကိုပဲ
+    #    ချိတ်ခဲ့သဖြင့် ဂိတ်က ပထမ ခေါ်ချက်မှာ **မပြေး**ခဲ့သည်
+    #    (toggle စမ်းချက်: FACT_ALL=1 ရော 0 ရော 310 တူနေလို့ ဖမ်းမိ)。
+    _r2 = _AUTO.get(label, [])
+    return [c for c in _r2 if _fact_ok(c)] if label == "fact" else _r2
 
 
 def _profile_candidates(label, profile, last_id=None):
@@ -720,6 +726,49 @@ def _alias_on():
 
 _BUILDABLE = None
 BUILDABLE_ERR = [None]
+
+
+# ══ `fact` (catch-all) ကနေ **ဒေတာ လိုအပ်သော** family ဖယ်ခြင်း ═══════
+# ⚠️ ၂၀၂၆-၀၉-၂၈ တိုင်းချက် — `fact` က semantic label မဟုတ်ဘဲ
+#    **「ကျန်တာ အားလုံး」 fallback** ဖြစ်သည် (616 ထဲ **310**)。 ⇒ ပထဝီ ·
+#    KPI · ကိန်းအတွဲ · engagement ဒေတာ **လိုအပ်သော** family တွေပါ
+#    ဝါကျ ရိုးရိုးအတွက် ရွေးခံရသည်。
+#    arm V7 ရဲ့ ကတ် frame: 「Mobile top up」 ဝါကျကို `prem6.like_burst`
+#    (နှလုံးသား + like ရေတွက်) နဲ့ ပြခဲ့သည်。
+# ⚠️ `category` ရော `group_mm` ရော နဲ့ **မတားနိုင်** — ၂ ခုလုံး
+#    「ဒီ template က `fact` အတွက် ခွင့်ပြု」 လို့ ပြောနေသည် ⇒ အဲဒီ
+#    ကြေညာချက် ကိုယ်တိုင် မှားသည် ⇒ family အလိုက် ဖယ်ရသည်。
+# ⚠️ **`fact` အတွက်သာ** ဖယ်သည် — `location` က maps လိုသည် · `number` က
+#    dash/charts လိုသည် ⇒ အဲဒီ label တွေမှာ ဆက်ရှိသည်。
+# ⚠️ စတိုင် family (glitch · retro · cine) ကို **မဖယ်ပါ** — အနှစ်သာရ
+#    မကိုက်မှု မဟုတ်ဘဲ အနှစ်သာရနဲ့ မဆိုင်သော စတိုင် ရွေးချယ်မှု ဖြစ်သည်。
+_FACT_DROP = (
+    "Social / engagement",      # နှလုံးသား · like burst · follower
+    "Dashboard",                # KPI · metric ကတ်
+    "မြေပုံ",                    # ပထဝီ ဒေတာ
+    "ဇယား",                     # ကိန်းအတွဲ
+)
+
+
+def _fact_ok(cid):
+    """`fact` (catch-all) အတွက် ဒီ template သင့်တော်လား。
+
+    `IKKI_FACT_ALL=1` ⇒ ဂိတ် ပိတ် (A/B အတွက်)。
+    """
+    if os.environ.get("IKKI_FACT_ALL") == "1":
+        return True
+    try:
+        try:
+            import gfxcat as _GF
+        except ImportError:
+            from core import gfxcat as _GF
+        for e in _GF.catalog():
+            if e["id"] == cid:
+                g = str(e.get("group_mm") or "")
+                return not any(g.startswith(x) for x in _FACT_DROP)
+    except Exception:
+        return True
+    return True
 
 
 def _buildable(cid):
