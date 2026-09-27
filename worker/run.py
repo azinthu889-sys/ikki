@@ -3007,6 +3007,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
           #    ကျမှ ဖွင့်သည် — တစ်ကြောင်းနှစ်ကြောင်းအတွက် တစ်ဗီဒီယိုလုံး
           #    အကွက် ခံလျှင် ပိုဆိုးသည်。
           _plate = _plate_decide(src, caps, cap_top, TH["H"], rc, log)
+          # short-916 speech timing: cards on/off at the cut engine's speech
+          # runs (MEAS), not at ASR word times (Zin 2026-09-27).
+          _cpre = None
+          if rc.get("cap_timing") == "speech":
+              try:
+                  _runs = CP.cut_runs(MEAS[0], spans)
+                  _dbc = CP.cut_energy(_M.analyse(wav)[0], spans)
+                  _cpre = CP.speech_cards(caps, _runs, _dbc, csize,
+                                          int(TH["W"] * float(rc.get("cap_wide") or 0.86)),
+                                          IG.MW, rc["mmf"])
+                  log(f"  စာတန်း · speech timing · run {len(_runs)} → card {len(_cpre)}")
+              except Exception as _se:
+                  log(f"  ⚠️ speech timing မရ ({type(_se).__name__}: {_se}) — word timing သုံး")
+                  _cpre = None
           # Keyword colour inside the line (short-916; refs recolour ~1 caption
           # in 3). Colour = recipe `cap_accent` or the brand accent (GOLD).
           _kwc = None
@@ -3035,6 +3049,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    # short-916: one short line per card (refs: 1-3 words)
                    max_lines=int(rc.get("cap_lines") or 2),
                    by_word=bool(rc.get("cap_by_word")),
+                   cards_pre=_cpre,
                    accent=_kwc,
                    kw_box=((rc.get("cap_kw_box") or TH.get("RED"))
                            if (_kwc and rc.get("cap_kw_style") == "box") else None),
@@ -5368,7 +5383,7 @@ def push_index(force=False):
 #       b) /api/health: another worker polled within 1.5 x POLL, twice,
 #          2 x POLL + 3 s apart (other hosts; a just-killed predecessor's
 #          last poll ages out between the two reads).
-TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS")
+TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS", "IKKI_GFX_ROTATE")
 LOCK = os.environ.get("IKKI_LOCK") or os.path.expanduser("~/.ikki/worker.lock")
 _LOCK_FD = None
 

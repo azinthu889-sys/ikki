@@ -206,12 +206,81 @@ def _rotate(cands, used, seed="", k=NOREPEAT):
         k2 = len(fresh)
         while k2 > 0 and fresh[k2 - 1] in _gen:
             k2 -= 1
-        if k2 < 2:                      # label က ယေဘုယျ pool ကိုပဲ သုံးသည်
-            k2 = min(len(fresh), 12)
-        k2 = max(1, min(k2, len(fresh)))
-        r = h % k2
-        fresh = fresh[r:k2] + fresh[:r] + fresh[k2:]
+        if _rotate_tail():
+            # ⚠️ ၂၀၂၆-၀၉-၂၇ တိုင်းချက် — ယေဘုယျ pool (၃၁၀ ခု) ကို
+            #    **ဘယ်တော့မှ မလှည့်**ခဲ့သဖြင့် label ၁၄ ခုထဲ ၈ ခုက
+            #    `k2 = min(len(fresh), 12)` fallback နဲ့ **ရှေ့ ၁၂ ခုအတွင်းသာ**
+            #    လှည့်ပြီး ဗီဒီယို ၅၀၀ ခုမှာ **၁၀ မျိုးသာ** ထွက်ခဲ့သည်。
+            #    ရောက်နိုင်ခြေ = ၁၂၅/၆၁၆ (၂၀.၃%) ⇒ ၄၉၁ ခု ဘယ်တော့မှ မထွက်。
+            # ⇒ head (semantic ဦးစားပေး) ကို **အတိအကျ ချန်**ပြီး tail ကိုသာ
+            #   သီးသန့် offset နဲ့ လှည့်သည် ⇒ ၂၀၂၆-၀၉-၂၅ regression
+            #   (`screen` ဝါကျ → `prem2.word_pop`) ပြန်မဖြစ်。
+            # ⚠️ tail ထဲ ဝင်ခွင့် = `gfx_ok.txt` **နဲ့** `has_demo` ၂ ခုလုံး
+            #    ပြည့်မှ — ပွင့်လာမယ့် template တွေက production မှာ
+            #    တစ်ခါမှ မသုံးခဲ့ဖူးသဖြင့် အတည်ပြုစစ်ထုတ်ချက် မဖြစ်မနေ လိုသည်。
+            head, tail = fresh[:k2], fresh[k2:]
+            if head:
+                r = h % len(head)
+                head = head[r:] + head[:r]
+            ad = _admitted()
+            adm = [c for c in tail if c in ad]
+            rest = [c for c in tail if c not in ad]
+            if adm:
+                # ⚠️ head နဲ့ **သီးသန့် offset** — တူညီသော h ကို ၂ ခုလုံးမှာ
+                #    သုံးလျှင် pool အရွယ် ကွာသဖြင့် ဆက်စပ်မှု ဖြစ်တတ်သည်。
+                r2 = (h >> 8) % len(adm)
+                adm = adm[r2:] + adm[:r2]
+            fresh = head + adm + rest
+        else:
+            if k2 < 2:                  # label က ယေဘုယျ pool ကိုပဲ သုံးသည်
+                k2 = min(len(fresh), 12)
+            k2 = max(1, min(k2, len(fresh)))
+            r = h % k2
+            fresh = fresh[r:k2] + fresh[:r] + fresh[k2:]
     return fresh + stale
+
+
+# ⚠️ flag-gated · default **ပိတ်** — `IKKI_GFX_ROTATE=1` နဲ့သာ ဖွင့်သည်
+#    (alias flag လိုပဲ · ဂိတ် မအောင်မချင်း production မထိရ)。
+def _rotate_tail():
+    return os.environ.get("IKKI_GFX_ROTATE") == "1"
+
+
+_ADMIT = None
+
+
+def _admitted():
+    """tail လှည့်ခွင့် ရသော id — `gfx_ok.txt` ∧ `has_demo` ၂ ခုလုံး ပြည့်သူ。
+
+    ⚠️ `gfx_ok.txt` က 「တစ်ခုချင်း တကယ် render ပြီး စစ်ပြီးသား」 စာရင်း
+       (tools/gfx_gate.py ထုတ်)。 `has_demo` မရှိလျှင် `demoargs` မရှိ ⇒
+       arg shape မသိရ ⇒ build ချိန်မှာ ကျနိုင်သည် (`thm` ၅၆ · `typo` ၃)。
+    """
+    global _ADMIT
+    if _ADMIT is not None:
+        return _ADMIT
+    ok = set()
+    try:
+        q = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "assets", "gfx_ok.txt")
+        with open(q, encoding="utf-8") as f:
+            for ln in f:
+                ln = ln.strip()
+                if ln and not ln.startswith("#"):
+                    ok.add(ln.split()[0])
+    except Exception:
+        ok = set()
+    demo = set()
+    try:
+        import gfxcat as _G
+        demo = {e["id"] for e in _G.catalog() if e.get("has_demo")}
+    except Exception:
+        demo = set()
+    # ⚠️ ၂ ခုထဲ တစ်ခု ဖတ်၍ မရလျှင် **ဗလာ ပြန်**ရမည် — ဗလာဆိုလျှင်
+    #    tail က လှည့်မခံဘဲ ယခင်အတိုင်း ဖြစ်သည် (ပွင့်လာတာ ၀) ⇒ စစ်ထုတ်ချက်
+    #    ပျက်ပြီး အတည်မပြုသေးတာတွေ ဝင်လာမည့် အခြေအနေ မဖြစ်ပါ。
+    _ADMIT = (ok & demo) if (ok and demo) else set()
+    return _ADMIT
 
 
 # ══ catalog အပြည့် သုံးခြင်း ═══════════════════════════════════
@@ -1574,6 +1643,17 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
 
     schema မအောင်လျှင် **fallback** ကို သုံးသည် — အလုပ် မရပ်ပါ。
     """
+    # ⚠️ flag ၂ ခုက **တွဲလုပ်**သည် — rotate က pool ကို ပွင့်စေပြီး alias က
+    #    အဲဒီ pool ထဲက နာမည် မကိုက်တာကို ဖြေသည်。 တစ်ခုတည်း ဖွင့်လျှင်
+    #    ရောက်နိုင်ခြေ တစ်ဝက်သာ (တိုင်းချက် ၂၀၂၆-၀၉-၂၇ · jid 500 · label 14):
+    #      ပိတ်/ပိတ် ၁၂၅ · rotate သာ ၂၅၀ · alias သာ ၁၈၂ · **၂ ခုလုံး ၃၆၂**
+    #    ⇒ တစ်ဝက် ဖွင့်ထားမိတာကို ဖမ်းရန် သတိပေးသည်。
+    if _rotate_tail() and not GFX_ALIAS:
+        log("  ⚠️ planner · rotate သာ ဖွင့်ထား (alias ပိတ်) ⇒ "
+            "ရောက်နိုင်ခြေ တစ်ဝက်သာ (၂၅၀/၃၆၂) — IKKI_GFX_ALIAS=1 ပါ ထည့်ပါ")
+    elif GFX_ALIAS and not _rotate_tail():
+        log("  ⚠️ planner · alias သာ ဖွင့်ထား (rotate ပိတ်) ⇒ "
+            "ပွင့်စရာ pool မရှိ (၁၈၂/၃၆၂) — IKKI_GFX_ROTATE=1 ပါ ထည့်ပါ")
     labels = annotate(segs, log=log)
     opts = dict(opts or {}); opts.setdefault("log", log)
     p = build(segs, labels, dur, opts, video_id)
