@@ -2995,8 +2995,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
     try:
         _ez1 = time.time(); _ezn = 0
         if pmov:
-            pmov = [(a_, _ease_clip(m_, d_, log=log), d_, x_, t_)
-                    for a_, m_, d_, x_, t_ in pmov]
+            # ⚠️ `_ease_clip` က **ဖိုင် အသစ်** ထုတ်သဖြင့် `DR.DECL_CUES` ရဲ့
+            #    key (မူရင်း လမ်းကြောင်း) မကိုက်တော့ပါ ⇒ cue ကို
+            #    **လက်ဆင့်ကမ်း**ရမည်、မဟုတ်လျှင် ကြေညာချက် ပျောက်မည်。
+            _pm2 = []
+            for a_, m_, d_, x_, t_ in pmov:
+                _m3 = _ease_clip(m_, d_, log=log)
+                try:
+                    _c3 = DR.DECL_CUES.get(m_)
+                    if _c3 and _m3 != m_:
+                        DR.DECL_CUES[_m3] = _c3
+                except Exception:
+                    pass
+                _pm2.append((a_, _m3, d_, x_, t_))
+            pmov = _pm2
             _ezn += len(pmov)
         if slides:
             _sl3 = []
@@ -3499,8 +3511,24 @@ def render(job, brand, src, out, stage, log=print, over=None):
             if (bool(int(_sd)) if _sd is not None
                     else os.environ.get("IKKI_SFX_DECL", "0") == "1"):
                 try:
-                    _dcl, _n_ok, _n_no = DR.decl_cues(
-                        gfx, float(rc.get("_gfx_enter") or 0.0))
+                    _ent2 = float(rc.get("_gfx_enter") or 0.0)
+                    _dcl, _n_ok, _n_no = DR.decl_cues(gfx, _ent2)
+                    # ⚠️ **ဖြတ်ပြောင်း လမ်းကြောင်း** — `gfx` က `[]` ဖြစ်သွားပြီး
+                    #    (`run.py:2747` ထပ်တင် မလုပ်တော့) ကတ်တွေက `pmov`
+                    #    (tuple) ထဲ ရှိသည် ⇒ `DR.DECL_CUES` ကို ထွက်ဖိုင်
+                    #    လမ်းကြောင်းနဲ့ ရှာသည်。 ၂၀၂၆-၀၉-၂၈ arm V မှာ ဒီလမ်း
+                    #    မဖြည့်ခဲ့သဖြင့် 「ကတ် တစ်ခုမှ sfx_decl မပါ」 ဖြစ်ခဲ့。
+                    for _a4, _m4, _d4, _x4, _t4 in (pmov or []):
+                        _c4 = DR.DECL_CUES.get(_m4)
+                        if not _c4:
+                            _n_no += 1
+                            continue
+                        _n_ok += 1
+                        for _o4, _r4, _b4 in _c4:
+                            _dcl.append((max(0.0, float(_a4) + _ent2
+                                             + float(_o4)),
+                                         str(_r4), float(_b4)))
+                    _dcl.sort(key=lambda x: x[0])
                     if _dcl:
                         _spans_c = [(float(g.get("at") or 0.0),
                                      float(g.get("at") or 0.0)

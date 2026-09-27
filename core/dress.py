@@ -509,6 +509,8 @@ def _yparam(fn):
 # ⚠️ card ကျော်သွားရခြင်း အကြောင်းရင်းကို **ရေတွက်ရမည်** — "ရွေး ၈ · တပ်ပြီး ၅"
 #    ဆိုပြီး ဘာလို့ ၃ ခု ပျောက်လဲ မပြနိုင်ခဲ့。 render report အတွက် ဒီမှာ စုသည်。
 LAST = {}
+# ⚠️ ထွက်ဖိုင် လမ်းကြောင်း → sfx ကြေညာချက် cue (ဖြတ်ပြောင်း လမ်းအတွက်)
+DECL_CUES = {}
 
 
 class _PackDone(Exception):
@@ -1204,6 +1206,21 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
             log(f"  ⚠️ slide template {mod_name}.{fn_name} မရ: {type(e).__name__}: {e}")
             return None
         if not isinstance(el, dict) or not el.get("anim"): return None
+        # ══ motionkit ရဲ့ **sfx ကြေညာချက်** — out လမ်းကြောင်းနဲ့ key လုပ်၍ ══
+        # ⚠️ ဖြတ်ပြောင်း (cutaway) လမ်းက `pmov` (tuple စာရင်း) သုံးသဖြင့်
+        #    ကတ် dict မရှိ ⇒ `track()` လိုမျိုး attach လုပ်လို့ မရပါ。
+        #    ⇒ ထွက်ဖိုင် လမ်းကြောင်းနဲ့ key လုပ်ပြီး ဒီမှာ မှတ်သည် ·
+        #      ခေါ်သူက `DECL_CUES.get(out)` နဲ့ ပြန်ယူသည်。
+        # ⚠️ ၂၀၂၆-၀၉-၂၈ arm V — `track()` မှာသာ စုထားသဖြင့် ဖြတ်ပြောင်း
+        #    ဖြစ်သွားတဲ့ render မှာ 「ကတ် တစ်ခုမှ sfx_decl မပါ」 ဖြစ်ခဲ့သည်
+        #    (`worker/run.py:2747` `gfx = []` — ထပ်တင် မလုပ်တော့)。
+        try:
+            import mkaudio as _MA2
+            DECL_CUES[out] = [(float(_o), str(_r), float(_d))
+                              for _o, _r, _d in (_MA2.cues_for(el) or [])]
+        except Exception as _dce2:
+            DECL_CUES.pop(out, None)
+            LAST["decl_cue_err"] = f"{type(_dce2).__name__}: {_dce2}"
         # ⚠️ **`src_fps` ကို builder ရဲ့ အမှန်နဲ့ ကိုက်ရမည်**。 `track()` က
         #    `hifps(60)` သုံး၍ ကိုက်နေပေမယ့် ဒီနေရာမှာ မသုံးသဖြင့် motionkit က
         #    `kit.FPS`=30 နဲ့ ဆောက်ကာ `clip_alpha` က ၆၀ ဟု ယူဆခဲ့သည်。
