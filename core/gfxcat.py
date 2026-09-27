@@ -14,7 +14,7 @@
    transition က ဖန်သားပြင်တစ်ခုလုံး ဖုံးသည် (A-roll ပျောက်မည်) ·
    mockup က ပြင်ပ ဓာတ်ပုံ လိုသည် · motion က နောက်ခံ element。
 """
-import os, sys, json
+import os, re, sys, json
 
 MK = os.environ.get("IKKI_MOTIONKIT",
       "/Applications/my file/My bussiness/ZAE NEW　OPERATION/N8N Work Flow/n8n All Workflow/motionkit")
@@ -27,8 +27,12 @@ MK = os.environ.get("IKKI_MOTIONKIT",
 #    browser/phone chrome · ပြင်ပ ပုံ **မလို**)。 ဒီစာရင်းထဲ မထည့်လျှင်
 #    `usable()` က ဖယ်ပစ်ကာ ၁၂ ခုလုံး IKKI ဆီ မရောက် — `explainer` နဲ့
 #    အတိအကျ တူသော အမှား ထပ်ဖြစ်မည်。
+# ⚠️ `cutaway` က overlay မဟုတ် — ဘောင်အပြည့် ဖုံးသည်。 pool ထဲ ထည့်ရမည်
+#    (မထည့်လျှင် ရောက်မလာ) ဒါပေမယ့် ခေါ်သူက `role` ကို ကြည့်ပြီး
+#    ဖြတ်ပြောင်း လမ်းကြောင်းသို့ ပို့ရမည် — overlay အဖြစ် သုံးလျှင်
+#    ပြောသူ လုံးဝ ပျောက်မည်。
 USE = ("title", "infographic", "callout", "typography", "text", "chart",
-       "explainer", "ui")
+       "explainer", "ui", "cutaway", "board")
 
 _CAT = None
 LAST_ERR = [None]      # catalog() ကျခဲ့လျှင် အကြောင်းရင်း — report အတွက်
@@ -119,8 +123,22 @@ def role_of(entry):
 # ⚠️ ပုံစံက template တစ်ခုချင်း မတူ ⇒ **မှန်းဆ၍ မရ**。 `tools/gfx_args.py` က
 #    တစ်ခုချင်း တကယ် render ပြီး အလုပ်ဖြစ်တဲ့ ပုံစံကို `assets/gfx_args.json`
 #    ထဲ မှတ်ထားသည် — ဤမှာ အဲဒါကို ဖတ်ရုံသာ。
+# ⚠️ ပုံ/ရုပ် လမ်းကြောင်း ယူသော param — `argshape` နဲ့ တစ်ထပ်တည်း ထားရမည်。
+IMG_NAMES = {"img", "imgs", "image", "images", "img1", "img2", "img_a", "img_b",
+             "img_path", "base", "logo", "logos", "photo", "photos", "pic",
+             "thumb", "avatar", "src", "frame", "shot"}
+
 SHAPES = {
     "pair":  [("ဂျပန်မှာ အလုပ်", 62), ("ပညာသင်", 41), ("ဗီဇာ", 27)],
+    # ⚠️ **`(စာသား, စာသား)` ပုံစံ ကျန်ခဲ့သည်**။ `pair` က (str, int) ဖြစ်၍
+    #    `titles3.schedule_row` လို (အချိန်, ခေါင်းစဉ်) ယူသော template မှာ
+    #    `fit(sub, …)` က int နဲ့ ကျသည် ⇒ learner က ကျော်ပြီး **`dict`** ကို
+    #    ရွေးမိသည်။ ဒါပေမယ့် 2-key dict ကို `(a, b)` အဖြစ် ဖြေလျှင်
+    #    **key နာမည်** ရသည် ⇒ template က 「label」「value」ဆိုသော စာလုံးကို
+    #    ထုတ်ပြနေခြင်း — အမှား မတက်သဖြင့် learner က အောင်ဟု မှတ်ခဲ့သည်။
+    #    ၂၀၂၆-၀၉-၂၅: `dict` ရွေးထားသူ ၉ ခုလုံး key-index **မလုပ်** ⇒ ၉ ခုလုံး မှား။
+    "pair2": [("၉:၀၀", "ဂျပန်မှာ အလုပ်"), ("၁၀:၃၀", "ပညာသင်"),
+              ("၁၃:၀၀", "ဗီဇာ")],
     "text":  ["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
     "num":   [62, 41, 27],
     "dict":  [{"label": "ဂျပန်မှာ အလုပ်", "value": 62},
@@ -147,7 +165,8 @@ NUMFILL = {"start": 3, "count": 6, "secs": 10, "sec": 10,
            "h": 0, "m": 1, "s": 30, "n": 3, "steps": 3, "total": 100}
 
 
-def fill(entry, text, sub="", pct=None, shape=None):
+def fill(entry, text, sub="", pct=None, shape=None, img=None,
+         items=None, nums=None):
     """template တစ်ခုအတွက် positional argument tuple。
 
     ⚠️ **စာသား param ကိုသာ ဖြည့်ရမည်**。 size · fill · y · x · maxtrack
@@ -181,12 +200,64 @@ def fill(entry, text, sub="", pct=None, shape=None):
         if nm == "dur" or p.get("auto"):
             break
         # ⚠️ **စာရင်း param** — ပုံစံကို `assets/gfx_args.json` မှ ယူသည်
+        # ⚠️⚠️ **`SHAPES` ကို အကြောင်းအရာ အဖြစ် သုံး၍ လုံးဝ မရ**。 အရင်က
+        #    `SHAPES[sh]` ကို တိုက်ရိုက် ထည့်ခဲ့သည် — ဆိုလိုတာက စာရင်း param
+        #    ယူသော template **၅၂ ခု**က အသုံးပြုသူရဲ့ script ဘာဖြစ်ဖြစ်
+        #    「ဂျပန်မှာ အလုပ် ၆၂ · ပညာသင် ၄၁ · ဗီဇာ ၂၇」ဆိုတဲ့ **နမူနာစာ
+        #    အတိအကျ**ကို ထုတ်ပြနေခြင်း ဖြစ်သည် ⇒ ဗီဒီယိုထဲ **မရှိသော
+        #    အချက်အလက်** တင်လိုက်တာ။ ဂိတ်③ က ဒါကို ဖမ်းမိသည် —
+        #    `thm.cmp_*` ၁၁ ခု diff = **0.000** (စာသား ပြောင်းလည်း ပုံ မပြောင်း ·
+        #    ၂၀၂၆-၀၉-၂၅)。 ဂိတ်က မှန်၊ `fill()` က မှား。
+        # ⇒ `SHAPES` က **ပုံစံ** (တည်ဆောက်ပုံ) သာ ဖြစ်ရမည်; အကြောင်းအရာက
+        #    ခေါ်သူ ပေးသော `items`/`texts`/`nums` ကနေသာ လာရမည်။ မပေးလျှင်
+        #    **`None` ပြန်** (ဖြည့်မရ) — `tmplfit`/`argshape` လမ်းကြောင်းက
+        #    အကြောင်းအရာ အစစ်နဲ့ ဖြည့်ပေးမည်။
         if ty == "list" or (ty == "text" and nm in LISTY):
-            sh = shape or shape_of(entry.get("id"))
-            if not sh:
-                if ty == "list": break          # ပုံစံ မသိ ⇒ မဖြည့်ရ
-                args.append([texts[0], sub or "—", "—"]); continue
-            args.append(list(SHAPES.get(sh) or SHAPES["text"])); continue
+            sh = shape or shape_of(entry.get("id")) or "text"
+            src = [str(x) for x in (items or []) if str(x).strip()]
+            if not src:
+                src = [t for t in texts if t]
+            if not src:
+                return None
+            _n = list(nums or [])
+            if pct is not None and not _n:
+                _n = [pct]
+
+            def _num(k):
+                if _n: return _n[k % len(_n)]
+                return None
+
+            if sh == "text":
+                val = src
+            elif sh == "num":
+                if not _n: return None          # ကိန်း မတီထွင်ရ
+                val = [_num(k) for k in range(len(src))]
+            elif sh == "pair":
+                if not _n: return None
+                val = [(s, _num(k)) for k, s in enumerate(src)]
+            elif sh == "pair2":
+                val = [(s, str(sub or texts[0])) for s in src] if len(src) < 2 else \
+                      [(src[k], src[(k + 1) % len(src)]) for k in range(len(src))]
+            elif sh == "trip":
+                if not _n: return None
+                val = [(s, str(sub or "—"), _num(k)) for k, s in enumerate(src)]
+            elif sh == "dict":
+                if not _n: return None
+                val = [{"label": s, "value": _num(k)} for k, s in enumerate(src)]
+            else:
+                val = src
+            args.append(list(val)); continue
+        # ⚠️ **ပုံ param** — `fill()` မှာ ဤအခွဲ မရှိခဲ့၍ `break` ဖြစ်ကာ args
+        #    ဗလာ ပြန်ခဲ့သည် (「fill ဗလာ」)。 `thm.media_*` ၁၃ ခု · `social`
+        #    ၁၀ ခု · `brows` · `maps.photo_inset` · `typo2.subject_rise` —
+        #    စုစုပေါင်း ၂၈ ခု IKKI ဆီ **လုံးဝ မရောက်**ခဲ့ (၂၀၂၆-၀၉-၂၅)。
+        # ⚠️ `img` မပါလျှင် ဆက်မဖြည့်ရ — အသုံးပြုသူ စာသားကို ပုံ လမ်းကြောင်း
+        #    အကွက်ထဲ ထည့်မိလျှင် `ffmpeg -i 'ဂျပန်မှာ အလုပ်'` နဲ့ ကျသည်。
+        if ty == "file" or nm in IMG_NAMES:
+            if not img: break
+            args.append([img, img, img] if nm in ("imgs", "images", "logos", "photos")
+                        else img)
+            continue
         if ty == "text":
             if nm in LISTY:
                 args.append([texts[0], sub or "—", "—"])
@@ -239,6 +310,131 @@ def fill(entry, text, sub="", pct=None, shape=None):
     return None
 
 
+# ── demoargs ရဲ့ ပုံစံ ပြန်ဆုတ်လမ်း ──────────────────────────
+# ⚠️ `fill()` ရော `tmplfit` ရော ဖြည့်မရသော template **၅၅ ခု** ကျန်ခဲ့သည်
+#    (၂၀၂၆-၀၉-၂၅)。 အကြောင်းရင်းက param ရဲ့ **တည်ဆောက်ပုံ** ကို နာမည်တစ်ခု
+#    တည်းနဲ့ မှန်း၍ မရခြင်း — `grid` က ကိန်း ၂ ဆင့် · `rows` က ၃ တွဲ ·
+#    `maps` ရဲ့ `a`/`b` က (lat,lon) ဖြစ်လျက် `prem7` ရဲ့ `a`/`b_` က
+#    (နာမည်,ကိန်း)。 ⇒ **motionkit ရဲ့ `demoargs.py` ကို ပုံစံပြ အဖြစ် ယူ**ပြီး
+#    စာသား အကွက်တွေကိုသာ အသုံးပြုသူ စာသားနဲ့ အစားထိုးသည် (`argshape.py`)。
+# ══ ကိန်း slot ထဲ ဝါကျ ဝင်တာကို တားခြင်း ═══════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၈ တိုင်းချက် — `prem6.like_burst(tag, count='12.4K')` ရဲ့
+#    `count` ကို manifest က `type: text` လို့ ကြေညာသဖြင့် (`_ptype()` က
+#    **ခန့်မှန်း**တာ · param နာမည် ၂၅၆ ခုမှာ type hint ၀ ခု) `argshape.fit`
+#    က မြန်မာ ဝါကျ ၆၄ လုံးကို like ရေတွက် နေရာ ထည့်ခဲ့သည်。
+#    ⇒ ကတ်မှာ နှလုံးသား သင်္ကေတ + ဖြတ်ခေါက်ထားသော ဝါကျ (arm V7 frame)。
+# ⚠️ catalog 616 စစ်၍ **36 ခု** ဒီအမျိုးအစား ဖြစ်သည် · အဲဒီထဲ **7 ခု** က
+#    flag ၂ ခု **ပိတ်ထားသည့် လက်ရှိ production** မှာ ရွေးခံရနိုင်သည် ⇒
+#    rotate/alias နဲ့ မဆိုင်ဘဲ **ယခုပဲ ဖြစ်နေသော** ချို့ယွင်းချက်。
+# ⚠️ category ဂိတ်နဲ့ မတားနိုင်ပါ — ချို့ယွင်းချက် category ၅ မျိုးလုံး
+#    (`title` 10 · `infographic` 4 · `mockup` 3 · `callout`/`text`/`typography`)
+#    က `fact` label ရဲ့ လက်ခံစာရင်း (၉ မျိုး) ထဲ ပါသည်。
+# ⚠️ **param တစ်ခုချင်း** စစ်ရမည် — `titles.chapter` က `num='၀၂'` (ကိန်း)
+#    နဲ့ `title` (စာသား အစစ်) ၂ ခုလုံး ရှိသည် ⇒ template တစ်ခုလုံး
+#    မငြင်းရ、ကိန်း slot ထဲ ဝါကျ ဝင်မှသာ ငြင်းရမည်。
+_NUMSLOT = re.compile(
+    r"^\s*[0-9၀-၉]"          # ဂဏန်း (Latin ရော မြန်မာ ရော) နဲ့ စ
+    r"[0-9၀-၉.,]*"            # ဂဏန်း · ဒဿမ · ကော်မာ
+    r"\s*(?:%|K|M|B|x|×|\+|−|-)?\s*$",  # ယူနစ်/သင်္ကေတ (ရွေးချယ်)
+    re.I)
+NUMSLOT_MAX = 8      # ကိန်း default ရဲ့ အများဆုံး အရှည်
+TEXT_MAX = 16        # ဒီထက် ရှည်လျှင် ဝါကျ ဟု သတ်မှတ်
+
+
+def _is_numslot(v):
+    """default တန်ဖိုး က **ကိန်း slot** ဟု ပြသလား。"""
+    if not isinstance(v, str):
+        return False
+    v = v.strip()
+    return bool(v) and len(v) <= NUMSLOT_MAX and bool(_NUMSLOT.match(v))
+
+
+def numslot_bad(entry, args):
+    """ကိန်း slot ထဲ ဝါကျ ဝင်သွားသော param စာရင်း — `[(param, default, n)]`。
+
+    ⚠️ default ကို **builder signature** ကနေ အရင် ယူသည် (အတိအကျဆုံး) ·
+       မရလျှင် `demoargs` ရဲ့ positional ကနေ。
+    """
+    out = []
+    if not isinstance(args, dict):
+        return out
+    defs = {}
+    try:
+        import importlib
+        import inspect
+        if MK not in sys.path:
+            sys.path.insert(0, MK)
+        m = importlib.import_module(entry["module"])
+        fn = ((getattr(m, "BUILDERS", {}) or {}).get(entry["fn"])
+              or getattr(m, entry["fn"], None))
+        _ps = list(inspect.signature(fn).parameters.values())[1:]
+        for p in _ps:
+            if p.default is not inspect.Parameter.empty:
+                defs[p.name] = p.default
+        # ⚠️ **`demoargs` ကိုပါ ကြည့်ရမည်** — required param မှာ signature
+        #    default မရှိသဖြင့် အဲဒီကနေ ကိန်း အရိပ်အမြွက် မရပါ。
+        #    `demoargs` က positional tuple ဖြစ်ပြီး `tag` အလွန် param
+        #    အစဉ်နဲ့ ကိုက်သည် ⇒ `_ps[i]` ↔ `demoargs[i]`。
+        #    (တိုင်းချက်: signature default တစ်ခုတည်းနဲ့ ၃၆ ထဲ **၅ ခုသာ**
+        #     ဖမ်းမိသည် — ကျန် ၃၁ ခုက demoargs ကနေသာ ပေါ်သည်။)
+        try:
+            import demoargs as _DA
+            _dd = (getattr(_DA, entry["module"].upper(), None)
+                   or (getattr(_DA, "ALL", {}) or {}).get(entry["module"]) or {})
+            _t = _dd.get(entry["fn"])
+            if isinstance(_t, (tuple, list)):
+                for i, p in enumerate(_ps):
+                    if i < len(_t) and p.name not in defs:
+                        defs[p.name] = _t[i]
+                    elif i < len(_t) and not _is_numslot(defs.get(p.name)):
+                        # signature default က ကိန်းပုံစံ မဟုတ်လျှင်
+                        # demoargs ကို ဦးစားပေးသည် (ပိုတိကျသည်)
+                        if _is_numslot(_t[i]):
+                            defs[p.name] = _t[i]
+        except Exception:
+            pass
+    except Exception:
+        return out
+    for k, v in args.items():
+        if k in ("tag", "dur"):
+            continue
+        if not isinstance(v, str) or len(v.strip()) <= TEXT_MAX:
+            continue
+        if _is_numslot(defs.get(k)):
+            out.append((k, str(defs.get(k)), len(v.strip())))
+    return out
+
+
+def fill_kw(entry, texts, img=None, pct=None, nums=None, strict=False):
+    """`{param: တန်ဖိုး}` သို့ `None` — `demoargs` ပုံစံ + အသုံးပြုသူ စာသား。
+
+    ⚠️ ကိန်း slot ထဲ ဝါကျ ဝင်သွားလျှင် **`None` ပြန်**သည် ·
+       `LAST_ERR` မှာ `numeric_slot_overflow` ဟု မှတ်သည် (တိတ်တဆိတ် မဖြစ်စေရန်)。
+       `IKKI_NUMSLOT_OFF=1` ⇒ ဂိတ် ပိတ် (A/B အတွက်)。
+    """
+    cwd = os.getcwd()
+    try:
+        if MK not in sys.path: sys.path.insert(0, MK)
+        os.chdir(MK)
+        import argshape as A
+        _r = A.fit(entry["module"], entry["fn"], entry.get("params") or [],
+                   texts, img=img, pct=pct, nums=nums, strict=strict)
+        if _r is not None and os.environ.get("IKKI_NUMSLOT_OFF") != "1":
+            _nb = numslot_bad(entry, _r)
+            if _nb:
+                LAST_ERR[0] = ("numeric_slot_overflow: "
+                               + " · ".join(f"{k}={d!r}←{n}လုံး"
+                                            for k, d, n in _nb))
+                return None
+        return _r
+    except Exception as e:
+        LAST_ERR[0] = f"{type(e).__name__}: {e}"
+        return None
+    finally:
+        try: os.chdir(cwd)
+        except Exception: pass
+
+
 def call(entry, args, dur):
     """template ကို တကယ် ခေါ်သည် — PNG စာရင်း ပြန်ပေးသည်"""
     cwd = os.getcwd()
@@ -247,10 +443,23 @@ def call(entry, args, dur):
         os.chdir(MK)
         import importlib
         m = importlib.import_module(entry["module"])
-        fn = getattr(m, entry["fn"])
+        # ⚠️ **`getattr` တစ်ခုတည်း မလုံလောက်** — `trans` ရဲ့ ၂၄ ခုက factory
+        #    ကနေ ဆောက်ထားသော closure ဖြစ်၍ `BUILDERS` dict ထဲမှာသာ ရှိပြီး
+        #    module attribute **မဟုတ်**ပါ。 `catalog.build()` ကိုယ်တိုင်က
+        #    `BUILDERS` ကနေ စာရင်းထုတ်သဖြင့် ခေါ်သူကလည်း အဲဒီကနေ ရှာရမည် —
+        #    မရှာလျှင် အသွင်ကူး ၂၄ ခုလုံး `AttributeError` (၂၀၂၆-၀၉-၂၄)。
+        fn = (getattr(m, "BUILDERS", {}) or {}).get(entry["fn"]) \
+            or getattr(m, entry["fn"])
         kw = {}
         if any(p.get("name") == "dur" for p in entry.get("params", [])):
             kw["dur"] = dur
+        # ⚠️ `args` က **dict** ဖြစ်လျှင် kwargs အဖြစ် ခေါ်သည် — `maps.route_arc`
+        #    လို template မှာ `label_a`/`label_b` က `dur` ရဲ့ **နောက်**မှာ
+        #    ရှိသဖြင့် positional tuple နဲ့ မရောက်နိုင် (`dur` မှာ ရပ်ရသည်)。
+        if isinstance(args, dict):
+            a0 = dict(args); a0.pop("dur", None)
+            tag = a0.pop("tag", None)
+            return fn(tag, **a0, **kw) if tag is not None else fn(**a0, **kw)
         return fn(*args, **kw)
     finally:
         try: os.chdir(cwd)
