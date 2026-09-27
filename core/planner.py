@@ -750,6 +750,65 @@ _FACT_DROP = (
 )
 
 
+_NUMP = None
+
+
+def _numslot_params(cid):
+    """template ရဲ့ **ကိန်း slot** param နာမည် အစု (cache)。
+
+    ⚠️ `gfxcat.fill_kw` ရဲ့ guard က **build လမ်း**ကိုသာ ပိတ်သည် —
+       `planner.fill()` က `fill_kw` ကို **မခေါ်**ဘဲ ကိုယ်ပိုင် နာမည်
+       စစ်ချက် သုံးသဖြင့် ချို့ယွင်းချက် template တွေ **ရွေးခံရ**ပြီး
+       build မှာ ကျ ⇒ ကတ် **ပျောက်**သည် (တိုင်းချက်: ရွေးချက် 51 ထဲ ၇ ခု
+       ဂိတ် ဖွင့်/ပိတ် ၂ မျိုးလုံး တူနေ · ၂၀၂၆-၀၉-၂၈)。
+    ⇒ ရွေးချယ်မှု အဆင့်မှာလည် ပိတ်ရသည် ⇒ ကတ် ပျောက်တာထက် တခြား
+      template ရွေးတာ ကောင်းသည်。
+    ⚠️ `argshape.fit` မခေါ်ပါ (chdir + နှေး) — `gfxcat` ရဲ့ ကိန်းပုံစံ
+       စစ်ချက်ကိုသာ default တန်ဖိုးပေါ် ပြေးသည် (candidate တိုင်း ခေါ်ရန်)。
+    """
+    global _NUMP
+    if _NUMP is None:
+        _NUMP = {}
+        try:
+            try:
+                import gfxcat as _GN
+            except ImportError:
+                from core import gfxcat as _GN
+            import importlib
+            import inspect
+            import sys as _sn
+            if _GN.MK not in _sn.path:
+                _sn.path.insert(0, _GN.MK)
+            import demoargs as _DN
+            for e in _GN.catalog():
+                got = set()
+                try:
+                    m = importlib.import_module(e["module"])
+                    fb = ((getattr(m, "BUILDERS", {}) or {}).get(e["fn"])
+                          or getattr(m, e["fn"], None))
+                    ps = list(inspect.signature(fb).parameters.values())[1:]
+                    dd = (getattr(_DN, e["module"].upper(), None)
+                          or (getattr(_DN, "ALL", {}) or {}).get(e["module"])
+                          or {})
+                    tpl = dd.get(e["fn"])
+                    for i, pp in enumerate(ps):
+                        v = None
+                        if pp.default is not inspect.Parameter.empty:
+                            v = pp.default
+                        if isinstance(tpl, (tuple, list)) and i < len(tpl):
+                            if _GN._is_numslot(tpl[i]):
+                                v = tpl[i]
+                        if _GN._is_numslot(v):
+                            got.add(pp.name)
+                except Exception:
+                    pass
+                if got:
+                    _NUMP[e["id"]] = got
+        except Exception:
+            _NUMP = {}
+    return _NUMP.get(cid) or set()
+
+
 def _fact_ok(cid):
     """`fact` (catch-all) အတွက် ဒီ template သင့်တော်လား。
 
@@ -838,6 +897,22 @@ def fill(cid, label, text):
     #    **အလိုအလျောက် ပွင့်**မည် — ကုဒ် ပြန်ပြင်စရာ မလို。
     if not _buildable(cid):
         return None
+    # ⚠️ ကိန်း slot ထဲ ဝါကျ ဝင်မယ့် template ကို **မရွေးရ** (ဂိတ် N1) —
+    #    `_numslot_params()` ရဲ့ မှတ်ချက် ကြည့်ပါ。
+    if (os.environ.get("IKKI_NUMSLOT_OFF") != "1"
+            and len(str(text or "").strip()) > 16):
+        _np = _numslot_params(cid)
+        if _np:
+            # ⚠️ `required` နဲ့ စစ်တာ **မလုံလောက်**ပါ — ကိန်း slot က
+            #    optional ဖြစ်ပြီး တခြား required param ရှိလျှင် လွတ်သွားသည်
+            #    (တိုင်းချက်: ချို့ယွင်းချက် 6 → **3** သာ ကျ · ၀ မဟုတ်)。
+            # ⇒ `argshape.fit` က **`type: text` ကြေညာထားသော param တိုင်း**
+            #   ကို အသုံးပြုသူ စာသားနဲ့ ဖြည့်သည် ⇒ ကိန်း slot က `text` ဟု
+            #   ကြေညာခံထားလျှင် ဝါကျ ဝင်မည် ⇒ ငြင်းရသည်。
+            _txtp = {p.get("name") for p in (e.get("params") or [])
+                     if p.get("type") == "text"}
+            if _np & _txtp:
+                return None
     # ⚠️ **chart က ကိန်းအတွဲ မရှိဘဲ မဆွဲရ** (၂၀၂၆-၀၉-၂၅)。 `rows` ကို
     #    စာလုံး စာရင်း ပေးမိသဖြင့် `charts.stacked_bar` က render ချိန်မှာ
     #    `ValueError: too many values to unpack (expected 2)` နဲ့ ကျပြီး
