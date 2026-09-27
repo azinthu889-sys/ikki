@@ -2684,7 +2684,17 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                     if _pv2:
                                         _drop(_pv); _pv = _pv2; _pr = _pr2
                                 except Exception as _re3:
-                                    log(f"  ⚠️ pop ပြန်ဆောက်မရ ({type(_re3).__name__})")
+                                    # ⚠️ အမျိုးအစားပဲ ပြလျှင် **ဘယ် template
+                                    #    ကြောင့်လဲ ဘယ်တော့မှ မသိရ** — ၂၀၂၆-၀၉-၂၈
+                                    #    `UnboundLocalError` ပေါ်လာပြီး id
+                                    #    မပါလို့ ရှာရ ခက်ခဲ့သည် (rotate+alias
+                                    #    က template အသစ် ရောက်လာသောအခါ
+                                    #    motionkit builder ရဲ့ ချို့ယွင်းချက်
+                                    #    ပေါ်လာနိုင်သည်)。
+                                    log(f"  ⚠️ pop ပြန်ဆောက်မရ "
+                                        f"[{_ev.get('motionKitTemplateId')}] "
+                                        f"{type(_re3).__name__}: "
+                                        f"{str(_re3)[:80]}")
                     except Exception as _he:
                         log(f"  ⚠️ pop အမြင့် မတိုင်းနိုင် ({type(_he).__name__})")
                     # ⚠️ **အကျယ်ကို မှန်းဆ၍ မရ** — plan က စာလုံးရေနဲ့ ခန့်မှန်းသည်
@@ -3491,14 +3501,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
                             return any(a - 0.05 <= _t <= b + 0.05
                                        for a, b in _spans_c)
                         _keep = [c for c in cues if not _in_card(c[0])]
-                        _drop = len(cues) - len(_keep)
+                        # ⚠️ **`_drop` လို့ မပေးရ** — `render()` ရဲ့ အစောပိုင်း
+                        #    (line ~2685) မှာ `_drop(_pv)` ဆိုတဲ့ **function**
+                        #    ရှိပြီးသား ဖြစ်သည်。 ဒီမှာ တန်ဖိုး သတ်မှတ်လျှင်
+                        #    Python က `_drop` ကို function တစ်ခုလုံးအတွက်
+                        #    **local** ဟု သတ်မှတ်ကာ အစောပိုင်း ခေါ်ချက်က
+                        #    `UnboundLocalError` ဖြစ်သည် (၂၀၂၆-၀၉-၂၈ arm V —
+                        #    「pop ပြန်ဆောက်မရ」 ရော 「SFX မရ」 ရော ဒီတစ်ခုကြောင့်)。
+                        _ndrop = len(cues) - len(_keep)
                         cues = sorted(_keep + _dcl, key=lambda x: x[0])
                         REPORT["sfx_decl_ok"] = _n_ok
                         REPORT["sfx_decl_none"] = _n_no
                         REPORT["sfx_decl_cues"] = len(_dcl)
-                        REPORT["sfx_decl_dropped"] = _drop
+                        REPORT["sfx_decl_dropped"] = _ndrop
                         log(f"  SFX ကြေညာချက် · ကတ် {_n_ok} ခုကနေ cue "
-                            f"**{len(_dcl)}** (ကတ် span ထဲက ယခင် {_drop} ဖယ်) "
+                            f"**{len(_dcl)}** (ကတ် span ထဲက ယခင် {_ndrop} ဖယ်) "
                             f"· ကြေညာချက်မရှိ ကတ် {_n_no} ⇒ စုစုပေါင်း {len(cues)}")
                     else:
                         REPORT["sfx_decl_ok"] = 0
