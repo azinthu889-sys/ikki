@@ -701,6 +701,29 @@ ALIAS = {
 GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "0") == "1"
 
 
+_BUILDABLE = None
+
+
+def _buildable(cid):
+    """`has_demo` ရှိမရှိ — catalog ကနေ (cache)。
+
+    `IKKI_GFX_NODEMO=1` ⇒ ဂိတ် ပိတ် (ယခင် အပြုအမူ · A/B အတွက်)。
+    ⚠️ catalog ဖတ်၍ မရလျှင် **True ပြန်**ရမည် — ဂိတ်က ဗလာ catalog နဲ့
+       template အားလုံး ပိတ်မိလျှင် ဂရပ်ဖစ် လုံးဝ မထွက်တော့မည်。
+    """
+    global _BUILDABLE
+    if os.environ.get("IKKI_GFX_NODEMO") == "1":
+        return True
+    if _BUILDABLE is None:
+        try:
+            _BUILDABLE = {e["id"] for e in GC.catalog() if e.get("has_demo")}
+        except Exception:
+            _BUILDABLE = set()
+    if not _BUILDABLE:
+        return True
+    return cid in _BUILDABLE
+
+
 def fill(cid, label, text):
     """template ရဲ့ **required param အတိုင်း** ဖြည့်သည် — မဖြည့်နိုင်လျှင် None
 
@@ -720,6 +743,19 @@ def fill(cid, label, text):
     #    ⚠️ ဂဏန်း ၂ ခု တကယ် မပါဘဲ နှိုင်းယှဉ်ချက် မဆွဲရ (Zin ရဲ့
     #       「Never add a chart without factual data」နဲ့ တူညီသော စည်းမျဉ်း)。
     if cid in STRUCTURED:
+        return None
+    # ══ ဆောက်လို့ မရသော template ကို **မရွေးရ** ═══════════════════════
+    # ⚠️ ၂၀၂၆-၀၉-၂၈ တိုင်းချက် — planner က `has_demo` ကို **မစစ်ခဲ့**သဖြင့်
+    #    demoargs မရှိတဲ့ template ကို ရွေးမိပြီး build ချိန်မှာ ကျသည်
+    #    (jid 50 · slot 9 တိုင်းချက်: ရွေး 450 ထဲ **build_fail 92**)。
+    #    `gfxcat.fill_kw()` က `argshape.fit` → demoargs ကို ပုံစံပြ အဖြစ်
+    #    လိုသဖြင့် demoargs မရှိလျှင် **None ပြန်**သည် — exception မရှိဘဲ
+    #    (တိတ်တဆိတ် ⇒ ဒီနေ့အထိ မတွေ့ခဲ့)。
+    # ⚠️ `has_demo` field က `fill_kw` ရဲ့ ရလဒ်ကို **616/616 အတိအကျ ဟော**သည်
+    #    (cross-tab: A≠C = 0/616) ⇒ ရွေးချယ်မှု အဆင့်မှာ စစ်လို့ ရသည်。
+    # ⚠️ demoargs ဖြည့်ပြီးလျှင် `has_demo` က True ဖြစ်လာမည် ⇒ ဤဂိတ်က
+    #    **အလိုအလျောက် ပွင့်**မည် — ကုဒ် ပြန်ပြင်စရာ မလို。
+    if not _buildable(cid):
         return None
     # ⚠️ **chart က ကိန်းအတွဲ မရှိဘဲ မဆွဲရ** (၂၀၂၆-၀၉-၂၅)。 `rows` ကို
     #    စာလုံး စာရင်း ပေးမိသဖြင့် `charts.stacked_bar` က render ချိန်မှာ
