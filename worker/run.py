@@ -3075,6 +3075,28 @@ def render(job, brand, src, out, stage, log=print, over=None):
           log(f"  စာတန်း {len(caps)} ကြောင်း · {csize}px")
       except Exception as e:
           log(f"  ⚠️ စာတန်း မရ: {e}"); capv=None
+    # ── kinetic keyword title (short-916 · reference r3): the keyword appears
+    #    as it is spoken, blur+fade 0.27 s, one line in the chest band.
+    ktv = None; kty = 0
+    if capv and rc.get("kin_title"):
+        try:
+            import kinetitle as KT
+            _kcaps = [dict(c) for c in caps]
+            for _c in _kcaps: _c["kw"] = None
+            for _i, _w in TP.keywords(caps, float(rc.get("kin_share") or 0.6), log=log).items():
+                _kcaps[_i]["kw"] = _w
+            _kav = [(at, at + d) for at, _m, d, _y0, _y1 in (gmov or [])] \
+                 + [(a, b) for _p, a, b, _l in (slides or [])]
+            _kg = KT.groups(_kcaps, _kav, float(sum(b - a for a, b in spans)))
+            if _kg:
+                _kr = KT.render(_kg, os.path.join(work, "kt.mov"), os.path.join(work, "kt"),
+                                TH["W"], TH["H"], int(TH["H"] * float(rc.get("kin_size") or 0.078)),
+                                rc["mmf"], f'{TH["LATIN"]},{TH["JP"]}', IG.ct, fps=rc["fps"],
+                                total=float(sum(b - a for a, b in spans)),
+                                y_top=int(TH["H"] * float(rc.get("kin_y") or 0.56)), log=log)
+                if _kr: ktv, kty = _kr
+        except Exception as _ke:
+            log(f"  ⚠️ kinetic title မရ ({type(_ke).__name__}: {_ke})"); ktv = None
 
     # ── ⑥ ဖြတ်ပြီး ပေါင်း ──────────────────────────────────
     # ── B-roll — စကားနဲ့ ကိုက်တဲ့ ရုပ် ──
@@ -3239,7 +3261,22 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ **အမြဲ မှတ်တမ်းတင်ရမည်** — ၂၀၂၆-၀၉-၂၀ မှာ zoom က တိတ်တဆိတ်
     #    မလုပ်ဘဲ ဖြစ်ကာ အောင်/ရှုံး log မရှိ၍ အကြောင်းရင်း မသိခဲ့ရ。
     log(f"  zoom_amt = {_za:.3f} ({'ဖွင့်' if _za > 0.001 else 'ပိတ်'})")
-    if _za > 0.001:
+    _cm_done = False
+    if rc.get("cam_moves"):
+        # designed moves (short-916 · reference r3): replaces the breathing zoom.
+        # B-roll and full-frame graphics cover the frame -> no move under them.
+        try:
+            import camove as CM
+            _avoid = [(float(a), float(a) + float(d)) for a, _p, d, _t in (bmov or [])]
+            _avoid += [(float(a), float(a) + float(d)) for a, _m, d, _y0, _y1 in (gmov or [])]
+            _cmv = CM.plan(float(probe(cutv)["dur"]), caps or [], _avoid)
+            _piv = CM.pivot_from_pose(locals().get("_pose_fr"))
+            _bz = os.path.join(work, "cutz.mp4")
+            CM.render(cutv, _bz, rc["fps"], _cmv, TH["W"], TH["H"], pivot=_piv, log=log)
+            os.replace(_bz, cutv); _cm_done = True
+        except Exception as _e:
+            log(f"  ⚠️ camera move မရ ({type(_e).__name__}: {_e}) — breathing zoom သို့")
+    if _za > 0.001 and not _cm_done:
         _bz = os.path.join(work, "cutz.mp4")
         try:
             _breathe(cutv, _bz, rc["fps"], _za, TH["W"], TH["H"], log=log)
@@ -3674,6 +3711,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    frame က အဆုံးထိ ငြိနေသည် (တကယ် ဖြစ်ခဲ့)。
         fc.append(f"[{last}][{n}:v]overlay=0:{cy}:shortest=0:repeatlast=0[v{n}]")
         last=f"v{n}"
+    if locals().get("ktv"):
+        ins += ["-i", ktv]; n += 1
+        fc.append(f"[{last}][{n}:v]overlay=0:{kty}:shortest=0:repeatlast=0[v{n}]")
+        last = f"v{n}"
     # ⚠️ ဂရပ်ဖစ် တစ်ခုချင်း alpha .mov ဖြစ်ပြီးသား — input အနည်းငယ်သာ
     # ⚠️ **ဂရပ်ဖစ် clip တွေမှာ fade လုံးဝ မတပ်ခဲ့** ⇒ QC `motion_exit`
     #    (၀.၁၀၀s · ဘောင် ၀.၁၃၃–၀.၂၆၇) နဲ့ `motion_ease` (၀.၁၅ · ဂိတ် ≥၀.၃၀)

@@ -171,6 +171,141 @@ def word_cards(c, size, maxw, MW, font, hold=1.6, pause=0.28):
             out.append(([txt], a, b, sz))
     return out or None
 
+def concat_items(timed, blank, fade, faded, total=None, FSTEP=3):
+    """[(a, b, png)] sorted -> [(png, dur)] for the ffmpeg concat list.
+    Invariant: the running sum of durations is the real clock, so every
+    shown card starts at max(a, previous end) -- never earlier. (Before
+    2026-09-27 a gap <= 40 ms, or a card dropped after its blank, was lost
+    from / double-counted in that sum and later cards burned up to 120 ms off.)"""
+    items = []; t = 0.0
+    for a, b, p in timed:
+        if a > t + 0.04:
+            items.append((blank, a - t)); t = a
+        elif a > t:
+            # too short for a blank: the previous card holds through it
+            if items: items[-1] = (items[-1][0], items[-1][1] + (a - t))
+            else: items.append((blank, a - t))
+            t = a
+        else:
+            a = t
+        if b - a < 0.12: continue
+        f = min(fade, (b - a) * 0.45)
+        st = f / FSTEP if FSTEP else 0
+        # fade 0 = hard switch (short-916): no partial-alpha steps at all,
+        # else each step still costs the 0.02 s concat minimum and drifts.
+        for i in (range(1, FSTEP + 1) if f > 0.005 else ()):
+            items.append((faded(p, i / float(FSTEP)), st))
+        items.append((p, (b - a) - f))
+        t = b
+    if total and total > t: items.append((blank, total - t))
+    return items
+
+def cut_runs(runs, spans):
+    """source speech runs -> cut timeline, split at every removed region
+    (a card may never straddle a cut). Returns [(a, b)] on the output clock."""
+    out = []; acc = 0.0
+    for sa, sb in spans:
+        for a, b in runs:
+            x0, x1 = max(a, sa), min(b, sb)
+            if x1 - x0 >= 0.02:
+                out.append((round(acc + x0 - sa, 3), round(acc + x1 - sa, 3)))
+        acc += sb - sa
+    return sorted(out)
+
+def cut_energy(db, spans, frame=0.02):
+    """20 ms energy track (source) -> cut timeline, same frame size"""
+    import numpy as np
+    parts = [db[int(round(a / frame)):int(round(b / frame))] for a, b in spans]
+    return np.concatenate(parts) if parts else np.array([])
+
+def speech_cards(caps, runs, db, size, maxw, MW, font, max_dur=4.0, short=0.6,
+                 merge_gap=0.35, dip_win=0.25, frame=0.02, min_piece=0.30):
+    """Cards timed by the cut engine's speech runs, not by ASR word times
+    (short-916 · Zin 2026-09-27: "on as the voice starts, off as it ends").
+
+    - on = run start, off = run end (cut timeline). No caption over silence.
+    - text = whole ASR words assigned to the run they overlap most (nearest run
+      if none) -- R1: words are only ever kept or dropped, never edited.
+    - a run < `short` s joins its closer neighbour when the gap < `merge_gap`.
+    - a run group longer than `max_dur` s or wider than `maxw` px is split only
+      between two words, at the lowest-energy 20 ms frame within `dip_win` of
+      that word boundary (never inside a word); every piece >= `min_piece` s.
+    Returns [dict(lines=[text], a, b, sz, kw)] sorted by time."""
+    import numpy as np
+    runs = [list(r) for r in runs if r[1] - r[0] > 0.02]
+    if not runs: return []
+    # words (cut timeline) with the caption they came from
+    W = []
+    for ci, c in enumerate(caps):
+        for w in (c.get("words") or []):
+            W.append((float(w[1]), float(w[2]), str(w[0]), ci))
+    W.sort()
+    # merge short runs into the nearer neighbour when the gap is small
+    changed = True
+    while changed and len(runs) > 1:
+        changed = False
+        for i, (a, b) in enumerate(runs):
+            if b - a >= short: continue
+            gl = a - runs[i - 1][1] if i > 0 else 9e9
+            gr = runs[i + 1][0] - b if i + 1 < len(runs) else 9e9
+            j = i - 1 if gl <= gr else i + 1
+            if min(gl, gr) < merge_gap:
+                lo, hi = min(i, j), max(i, j)
+                runs[lo] = [runs[lo][0], runs[hi][1]]; del runs[hi]
+                changed = True; break
+    # assign words
+    buckets = [[] for _ in runs]
+    for ws, we, t, ci in W:
+        ov = [max(0.0, min(we, b) - max(ws, a)) for a, b in runs]
+        k = int(np.argmax(ov)) if max(ov) > 0 else \
+            int(np.argmin([min(abs(ws - b), abs(we - a)) for a, b in runs]))
+        buckets[k].append((ws, we, t, ci))
+    def text_of(ws_):
+        # keep the transcript's own spacing inside one caption
+        out, cur, ci0 = [], [], None
+        for w in ws_:
+            if ci0 is not None and w[3] != ci0:
+                out.append(_word_text(caps[ci0]["text"], [(x[2], x[0], x[1]) for x in cur])); cur = []
+            cur.append(w); ci0 = w[3]
+        if cur: out.append(_word_text(caps[ci0]["text"], [(x[2], x[0], x[1]) for x in cur]))
+        return " ".join(x for x in out if x)
+    def dip(t0, t1, lo, hi):
+        """lowest-energy frame near the boundary [t0, t1], kept inside (lo, hi)"""
+        a = max(lo + frame, min(t0, t1) - dip_win); b = min(hi - frame, max(t0, t1) + dip_win)
+        if b <= a or len(db) == 0: return max(lo + frame, min(hi - frame, (t0 + t1) / 2))
+        i0, i1 = int(a / frame), max(int(a / frame) + 1, int(b / frame))
+        seg = db[i0:i1]
+        return (i0 + int(np.argmin(seg))) * frame + frame / 2 if len(seg) else (t0 + t1) / 2
+    cards = []
+    for (ra, rb), ws_ in zip(runs, buckets):
+        if not ws_: continue
+        ws_.sort()
+        pieces, cur = [], [ws_[0]]
+        for w in ws_[1:]:
+            t = text_of(cur + [w])
+            if MW(t, size, font) > maxw or (w[1] - cur[0][0]) > max_dur:
+                pieces.append(cur); cur = []
+            cur.append(w)
+        pieces.append(cur)
+        # cuts in order, each piece >= min_piece: ASR word times clump, so two
+        # independent dips could land 40 ms apart (a 0.00-0.04 s card, 2026-09-27).
+        # No room -> that piece's words join the previous card (none dropped).
+        edges, kept = [ra], [pieces[0]]
+        for nxt in pieces[1:]:
+            lo, hi = edges[-1] + min_piece, rb - min_piece
+            c = dip(kept[-1][-1][1], nxt[0][0], lo - frame, hi + frame) if hi > lo else None
+            if c is None or not (lo - 1e-6 <= c <= hi + 1e-6):
+                kept[-1] = kept[-1] + nxt; continue
+            edges.append(c); kept.append(nxt)
+        edges.append(rb); pieces = kept
+        for i, pc in enumerate(pieces):
+            txt = text_of(pc); sz = size
+            while MW(txt, sz, font) > maxw and sz > int(size * 0.6):
+                sz -= 3                       # one word wider than the line: shrink, never split
+            kw = sorted({k for x in pc for k in (caps[x[3]].get("kw") or [])})
+            cards.append(dict(lines=[txt], a=round(edges[i], 3), b=round(edges[i + 1], 3), sz=sz, kw=kw))
+    return cards
+
 def plan(segs, spans, max_lines=2):
     """ဖြတ်ပြီးနောက် အချိန်သို့ စာတန်းများကို ပြောင်းသည်。
 
@@ -206,7 +341,8 @@ def plan(segs, spans, max_lines=2):
 def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
-          plate=None, max_lines=2, accent=None, kw_box=None, by_word=False):
+          plate=None, max_lines=2, accent=None, kw_box=None, by_word=False,
+          cards_pre=None):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -366,9 +502,12 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     maxw = int(W*wide)
     line_h = int(size*2.2)
     timed=[]; k=0
-    for c in caps:
-        _wc = word_cards(c, size, maxw, MW, font, hold=hold) if by_word else None
-        for lines, a, b, sz in (_wc or cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold)):
+    # cards_pre (short-916 speech timing): one unit per card, already timed
+    _units = ([(dict(kw=x.get("kw")), [(x["lines"], x["a"], x["b"], x["sz"])]) for x in cards_pre]
+              if cards_pre is not None else [(c, None) for c in caps])
+    for c, _pre in _units:
+        _wc = None if _pre is not None else (word_cards(c, size, maxw, MW, font, hold=hold) if by_word else None)
+        for lines, a, b, sz in (_pre or _wc or cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold)):
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")
@@ -412,22 +551,7 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         timed = cut
     timed.sort(key=lambda x: x[0])
 
-    # ── timeline → concat ──
-    items=[]; t=0.0
-    FSTEP = 3
-    for a,b,p in timed:
-        if a > t + 0.04: items.append((blank, a-t))
-        elif a < t: a = t
-        if b - a < 0.12: continue
-        f = min(fade, (b-a)*0.45)
-        st = f/FSTEP if FSTEP else 0
-        # fade 0 = hard switch (short-916): no partial-alpha steps at all,
-        # else each step still costs the 0.02 s concat minimum and drifts.
-        for i in (range(1, FSTEP+1) if f > 0.005 else ()):
-            items.append((_faded(p, i/float(FSTEP)), st))
-        items.append((p, (b-a) - f))
-        t = b
-    if total and total > t: items.append((blank, total-t))
+    items = concat_items(timed, blank, fade, _faded, total)
     if not items: return None
     lst = os.path.join(work, "caps.txt")
     with open(lst, "w") as f:

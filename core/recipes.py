@@ -394,6 +394,10 @@ R = {
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
     cap_by_word=True,                       # cut cards between words, time from word onsets
+    cap_timing="speech",                    # Zin 2026-09-27: on at voice start, off at voice end
+    cam_moves=True,                         # r3: designed eased push-in/pull-out (replaces breathing zoom)
+    kin_title=True, kin_share=0.6,          # r3: keyword title as it is spoken, blur+fade 0.27 s
+    kin_size=0.078, kin_y=0.56,             # 150 px; chest band below the chin, above the caption
     # Zin 2026-09-26 "no background music": the upbeat bed measured -39.9 LUFS
     # against a -20.2 LUFS voice (-17 dB offset) and was then ducked 4:1 --
     # inaudible on a phone. Refs keep music forward: bed ~10 dB under voice,
@@ -725,6 +729,13 @@ BOUNDS = dict(
  cap_kw_box=("hex",),
  broll_whip=("bool",),
  cap_by_word=("bool",),
+ # "word" = ASR word times · "speech" = cut-engine speech runs (on/off at voice)
+ cap_timing=("choice", ["word", "speech"]),
+ cam_moves=("bool",),
+ kin_title=("bool",),
+ kin_share=("float", 0.1, 1.0),
+ kin_size=("float", 0.03, 0.12),
+ kin_y=("float", 0.40, 0.72),
  # music bed: target loudness of the bed itself, and duck ratio under speech
  music_lufs=("float", -40.0, -20.0),
  music_duck=("float", 1.0, 6.0),
