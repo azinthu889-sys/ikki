@@ -665,9 +665,11 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             _r = _r2()
             if _r is not None:
                 with _r.hifps(60):
-                    el = _call_template(fn, g["kind"], f"g{i}", a)
+                    el = _call_template(fn, g["kind"], f"g{i}",
+                                        _shape_fix(g["kind"], a, [g.get("text") or ""]))
             else:
-                el = _call_template(fn, g["kind"], f"g{i}", a)
+                el = _call_template(fn, g["kind"], f"g{i}",
+                                        _shape_fix(g["kind"], a, [g.get("text") or ""]))
         except _PackDone:
             pass
         except Exception as e:
@@ -1384,6 +1386,121 @@ def _wants_tag(name):
         want = True
     _TAGQ[name] = want
     return want
+
+
+def _shape_fix(kind, args, texts):
+    """`args` ရဲ့ list param ကို **demoargs ရဲ့ element shape** နဲ့ ပြုပြင်သည်。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၈ — `track()` ရဲ့ args chain က
+       `g["args"]` → `ARGS` → `_cargs` → `_tf_args` ဖြစ်ပြီး
+       **`gfxcat.fill_kw` မပါ**ပါ。 `_cargs` က `items` ကို **စာသား စာရင်း**
+       အဖြစ် ထုတ်သဖြင့် element shape လိုအပ်သော template တွေ build ချိန်မှာ
+       ကျသည်:
+         `callouts.numbered_pin` → `TypeError: bad operand type for abs(): 'str'`
+             (items က (x, y, label) ၃ တွဲ လိုသည်)
+         `infogfx.radial` → `ValueError: too many values to unpack (expected 2)`
+             (items က (label, value) ၂ တွဲ လိုသည်)
+       ⇒ arm A/B/G/V အားလုံးမှာ ကတ် **ပျောက်**ခဲ့သည်。
+    ⚠️ `fill_kw` က shape **မှန်မှန်** ထုတ်ပြီးသား (demoargs ကနေ) ⇒ shape
+       မကိုက်တဲ့ param ကိုသာ အဲဒီကနေ **အစားထိုး**သည် · ကျန်တာ မထိပါ。
+    ⚠️ `fill_kw` က text အကွက် အားလုံးကို **တူညီသော** စာသားနဲ့ ဖြည့်သည် ⇒
+       element ၃ ခု တူတူ ဖြစ်မည် ⇒ ရနိုင်သော စာသား အရေအတွက်အထိသာ
+       **ဖြတ်**သည် (မတီထွင်ပါ · ရှိတာကိုသာ သုံး)。
+    """
+    if not isinstance(args, dict) or "." not in str(kind or ""):
+        return args
+    need = {}
+    try:
+        import gfxcat as _GS
+        import sys as _s2
+        if _GS.MK not in _s2.path:
+            _s2.path.insert(0, _GS.MK)
+        import demoargs as _DS
+        mod, fnm = str(kind).split(".", 1)
+        dd = (getattr(_DS, mod.upper(), None)
+              or (getattr(_DS, "ALL", {}) or {}).get(mod) or {})
+        tpl = dd.get(fnm)
+        if not isinstance(tpl, (tuple, list)):
+            return args
+        ent = None
+        for e in _GS.catalog():
+            if e["id"] == kind:
+                ent = e
+                break
+        if ent is None:
+            return args
+        import inspect
+        import importlib
+        m = importlib.import_module(mod)
+        fb = ((getattr(m, "BUILDERS", {}) or {}).get(fnm)
+              or getattr(m, fnm, None))
+        ps = list(inspect.signature(fb).parameters.values())[1:]
+        for i, p in enumerate(ps):
+            if i >= len(tpl):
+                break
+            want = tpl[i]
+            got = args.get(p.name)
+            if not isinstance(want, (list, tuple)) or not want:
+                continue
+            if not isinstance(got, (list, tuple)) or not got:
+                continue
+            w0, g0 = want[0], got[0]
+            # shape ကိုက်လျှင် မထိပါ
+            if isinstance(w0, (list, tuple)) == isinstance(g0, (list, tuple)):
+                if (not isinstance(w0, (list, tuple))
+                        or len(w0) == len(g0)):
+                    continue
+            need[p.name] = len(got)
+        if not need:
+            return args
+        fixed = _GS.fill_kw(ent, list(texts) or ["—"], strict=False)
+        if not isinstance(fixed, dict):
+            return args
+        out = dict(args)
+        for k, n in need.items():
+            v = fixed.get(k)
+            if not isinstance(v, (list, tuple)) or not v:
+                continue
+            # ⚠️ **မူရင်း စာသားတွေကို သုံးရမည်** — `fill_kw` က အကွက်
+            #    အားလုံးကို **တူညီသော** စာသားနဲ့ ဖြည့်သဖြင့် element ၃ ခု
+            #    တူတူ ဖြစ်မည်。 `_cargs` ရဲ့ list မှာ စာသား **တကယ် ကွဲပြား**
+            #    ရှိသဖြင့် (ဝါကျ/keyword အလိုက်) အဲဒါတွေကို demoargs ရဲ့
+            #    ကိန်း အကွက်တွေထဲ **ထည့်သွင်း**သည် ⇒ မတီထွင်ပါ。
+            src = list(args.get(k) or [])
+            shape = list(v)
+            # ⚠️ **ကိန်းအစစ် မရှိဘဲ ဒေတာ မထည့်ရ** (Zin: 「Never add a chart
+            #    without factual data」)。 demoargs ရဲ့ tuple ထဲ ကိန်း အကွက်
+            #    ရှိလျှင် ၂ မျိုး ခွဲရသည်:
+            #      · **0..1 အတွင်း** ⇒ **နေရာ** (numbered_pin ရဲ့ x,y)
+            #        ⇒ layout သာ ⇒ ပြုပြင်လို့ ရသည်
+            #      · **0..1 ပြင်ပ** ⇒ **ဒေတာ တန်ဖိုး** (radial ရဲ့ 80/65/50)
+            #        ⇒ demoargs ရဲ့ ကိန်းက **တီထွင်ချက်** ⇒ ပြုပြင်မလုပ်ဘဲ
+            #          ဒီ param ကို ချန်ထားသည် ⇒ build ကျပြီး planner က
+            #          တခြား template ရွေးမည် (ကိန်း မှန်းဆွဲတာ ပိုဆိုးသည်)。
+            _nums = [c for row in shape if isinstance(row, (list, tuple))
+                     for c in row if isinstance(c, (int, float))
+                     and not isinstance(c, bool)]
+            if _nums and any(not (0.0 <= float(c) <= 1.0) for c in _nums):
+                continue
+            res = []
+            for i2 in range(min(len(shape), max(1, len(src)))):
+                tmpl = shape[i2]
+                raw = src[i2] if i2 < len(src) else None
+                txt = raw if isinstance(raw, str) else None
+                if isinstance(tmpl, (list, tuple)) and txt is not None:
+                    row = list(tmpl)
+                    # tuple ထဲက **စာသား အကွက်** ကိုသာ အစားထိုးသည်
+                    for j2, cell in enumerate(row):
+                        if isinstance(cell, str):
+                            row[j2] = txt
+                            break
+                    res.append(tuple(row))
+                else:
+                    res.append(tmpl)
+            out[k] = res or shape[:1]
+        return out
+    except Exception:
+        return args
 
 
 def _call_template(fn, kind, tag, args):
