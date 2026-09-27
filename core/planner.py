@@ -702,6 +702,7 @@ GFX_ALIAS = os.environ.get("IKKI_GFX_ALIAS", "0") == "1"
 
 
 _BUILDABLE = None
+BUILDABLE_ERR = [None]
 
 
 def _buildable(cid):
@@ -715,11 +716,25 @@ def _buildable(cid):
     if os.environ.get("IKKI_GFX_NODEMO") == "1":
         return True
     if _BUILDABLE is None:
+        # ⚠️ `gfxcat` က **module အဆင့်မှာ import မထား** — ဖိုင်တစ်ခုလုံးမှာ
+        #    function ထဲကနေသာ import လုပ်သည် (`planner.py:321`)。 ဒီမှာ
+        #    `GC.catalog()` လို့ ရေးမိပြီး `NameError` ဖြစ်ကာ `except` က
+        #    ဖမ်း၍ **ဗလာ set** ဖြစ်ခဲ့သည် ⇒ ဂိတ်က တိတ်တဆိတ် ကျော်ပစ်ခဲ့
+        #    (၂၀၂၆-၀၉-၂၈ · ဖွင့်/ပိတ် ကိန်း တူနေလို့ ဖမ်းမိ)。
         try:
-            _BUILDABLE = {e["id"] for e in GC.catalog() if e.get("has_demo")}
-        except Exception:
+            try:
+                import gfxcat as _GCB
+            except ImportError:
+                from core import gfxcat as _GCB
+            _BUILDABLE = {e["id"] for e in _GCB.catalog() if e.get("has_demo")}
+        except Exception as _be:
+            # ⚠️ **တိတ်တဆိတ် မကျော်ရ** — ဖတ်၍ မရကြောင်း မှတ်ထားရမည်、
+            #    မဟုတ်လျှင် ဂိတ် ရှိပါလျက် အလုပ် မလုပ်တာ ဘယ်တော့မှ မသိရ。
             _BUILDABLE = set()
+            BUILDABLE_ERR[0] = f"{type(_be).__name__}: {_be}"
     if not _BUILDABLE:
+        # catalog ဖတ်၍ မရ ⇒ template အားလုံး ပိတ်မိလျှင် ဂရပ်ဖစ် လုံးဝ
+        # မထွက်တော့မည် ⇒ ခွင့်ပြုသည် (ဒါပေမယ့် `BUILDABLE_ERR` မှာ မှတ်ထား)。
         return True
     return cid in _BUILDABLE
 
