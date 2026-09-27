@@ -96,6 +96,31 @@ kept = K.hide_caps([dict(start=9, end=11, text="a"), dict(start=16, end=18, text
 ck("hide caps under panel", [c["text"] for c in kept] == ["b"], kept)
 
 
+# ④ R-B1 — generic style ↔ brand pack
+g = K.pack(None); z = K.pack("zjl")
+ck("generic pack: jp off", g["jp"] is False and not g["spec"], g)
+ck("zjl pack: jp on + spec", z["jp"] is True and z["spec"].get("share") == 0.34, z.get("spec"))
+ck("unknown brand = generic", K.pack("someone") == g)
+lk = K.look(dict(NAVY="#0A0A0A", WHITE="#FFFFFF", GOLD="#12AB34", MMF="X"), {"mmf": "Padauk"}, g)
+ck("look: accent from theme", lk["accent"] == (0x12, 0xAB, 0x34), lk["accent"])
+ck("look: font from rc/brand", lk["mmf"] == "Padauk", lk["mmf"])
+ck("look: ink contrast ≥ 4.5", K.contrast(lk["bg"], lk["ink"]) >= K.MIN_CONTRAST)
+bad = K.look(dict(NAVY="#EEEEEE", WHITE="#FFFFFF"), {}, g)            # အလင်း theme
+ck("look: low-contrast theme → black ink", bad["ink"] == (0, 0, 0) and
+   K.contrast(bad["bg"], bad["ink"]) >= K.MIN_CONTRAST, bad)
+zl = K.look({}, {}, z)
+ck("zjl look = measured paper", zl["bg"] == (0xEE, 0xEA, 0xDC) and zl["texture"] == "paper")
+src = open(os.path.join(R, "core", "knowledge.py"), encoding="utf-8").read()
+import re as _re
+_hex = [h for h in _re.findall(r'"#[0-9A-Fa-f]{6}"', src)]
+ck("engine: no brand hex literals", not _hex, _hex)
+ck("engine: no brand font literals",
+   not any(f in src for f in ('"Figtree-Black"', '"MyanmarYinmar"', '"MasterpieceUniRound"')))
+import recipes as _RC
+kr = _RC.R["knowledge"]
+ck("recipe: theme generic", kr.get("theme") == "ikki", kr.get("theme"))
+ck("recipe: no accent hex", not kr.get("accent"), kr.get("accent"))
+
 # ③ bake (ffmpeg · cttext)
 def ff(*a):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *a], check=True)
@@ -160,7 +185,7 @@ if os.path.exists(K.SL.CTBIN):
     f = frame_at(out, 16.0, W, H)
     pw = int(W * K.PAPER_W)
     paper = f[20:H - 20, 10:pw - 10].reshape(-1, 3)
-    ck("panel paper colour", abs(paper.mean(0) - K.PAPER_RGB).max() < 22, paper.mean(0))
+    ck("panel colour = look(bg)", abs(paper.mean(0) - K.look({}, {}, {})["bg"]).max() < 22, paper.mean(0))
     ck("panel has ink", (paper.mean(1) < 90).mean() > 0.004, (paper.mean(1) < 90).mean())
     blue = f[:, pw:][..., 2] - f[:, pw:][..., 0]
     xs = (blue > 80).any(0).nonzero()[0]
@@ -172,6 +197,23 @@ if os.path.exists(K.SL.CTBIN):
     ck("number overlay drawn", (f[..., 0] - f[..., 2] > 80).mean() > 0.01)
     f = frame_at(out, 36.5, W, H)
     ck("short clip padded (yellow)", f[H // 2, W // 2, 0] > 180 and f[H // 2, W // 2, 1] > 180, f[H // 2, W // 2])
+
+    # R-F1 — recipe fps (30) ≠ cutv fps (24): frame ရေ/အသံ မလွဲရ · 24fps ထွက်ရမည်
+    cut24 = os.path.join(d, "cut24.mp4")
+    ff("-f", "lavfi", "-i", f"color=c=0x606060:s={W}x{H}:r=24:d=20",
+       "-f", "lavfi", "-i", "sine=f=330:d=20", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+       "-c:a", "aac", "-shortest", cut24)
+    P24 = dict(dur=20.0, stats={}, events=[
+        dict(kind="panel", at=5.0, dur=4.0, text="စမ်းသပ်ချက်"),
+        dict(kind="broll", at=12.0, dur=4.0, clips=[(cps[0], 4.0)])])
+    o24 = K.bake(P24, cut24, os.path.join(d, "w24"), dict(W=1920, H=1080),
+                 dict(fps=30, mmf="Pyidaungsu-Bold"), log=lambda *_: None)
+    ck("24fps cutv: frame count", nframes(o24) == nframes(cut24), (nframes(o24), nframes(cut24)))
+    ck("24fps cutv: audio untouched", amd5(o24) == amd5(cut24))
+    _r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                         "stream=r_frame_rate", "-of", "csv=p=0", o24], capture_output=True,
+                        text=True).stdout.strip()
+    ck("24fps cutv: stays 24fps", _r == "24/1", _r)
 else:
     print("  (cttext မရှိ — bake test ကျော်)")
 

@@ -1,0 +1,28 @@
+{
+ "_note": "DEBT (2026-09-27) — temporary home for brand values of the Knowledge engine (R-B1). Owner of the fix: Cinematic session (Brand schema). When the Brand record exists, move each pack there and delete this file. Style supplies rules; brand supplies values; style guards values that fail its rules (e.g. panel ink contrast >= 4.5).",
+ "zjl": {
+  "_src": "ZIN JAPAN LIFE refs, newest 4 (wYuKaoQSZzc VD71ZDffqzk Ih7GRtpK8rc aW32UAtX46A) + panels from hrmsoZkB1nY qUCE9fLdr6s — /Volumes/a/ikki_refs/knowledge/measure/KNOWLEDGE_STYLE_zjl.md",
+  "spec": {
+   "share": 0.34,
+   "gap_max": 60.0,
+   "cold": [
+    8.0,
+    30.0
+   ],
+   "cold_frac": 0.06,
+   "panel_per_min": 0.8,
+   "panel_gap": 20.0,
+   "broll_len": [
+    4.0,
+    9.0
+   ]
+  },
+  "jp": true,
+  "panel_rgb": "#EEEADC",
+  "panel_ink": "#181614",
+  "panel_texture": "paper",
+  "panel_font": "Pyidaungsu-Bold",
+  "number_rgb": "#F5C543",
+  "ribbon_rgb": "#C41E24"
+ }
+}

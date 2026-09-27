@@ -219,11 +219,15 @@ R = {
  #    ⇒ timeline ကို `core/knowledge.py` က ဆောက်သည် (`engine`)。 worker ရဲ့
  #      slide · gfx · B-roll လမ်းကြောင်း အဟောင်းကို **ပိတ်**ထားသည်。
  "knowledge": dict(
-    label="Knowledge Sharing", theme="zjl", fps=30, engine="knowledge",
+    # ⚠️ R-B1 — style recipe ထဲ brand ကိန်း မထားရ: theme ကို generic `ikki`、
+    #    `accent` hex မထား (theme GOLD)。 ZJL ကိန်းတွေ → `knowledge_packs.json`。
+    #    `mmf` ကိုတော့ worker က `rc["mmf"]` လိုအပ်၍ ကျန်ထားသည် (theme ikki ရဲ့ MMF
+    #    နှင့် တူ) — recipe font ဖယ်ရေးက Brand schema ရောက်မှ (style အားလုံး)。
+    label="Knowledge Sharing", theme="ikki", fps=30, engine="knowledge",
     keep_pause=0.26, min_sil=0.45,
     captions="accent", cap_cover=0.15, cap_typo=0.0,
     cap_pct=0.030, cap_base=0.860, cap_max=0.900,   # wYuK: y 0.85–0.92 · ပါးလွှာ
-    mmf="MasterpieceUniRound", latin="Figtree-Black", accent="#E5BC32",
+    mmf="MasterpieceUniRound", latin="Figtree-Black",
     gfx=0, gfx_share=None, slides=False, insert_per_min=None, slide_amt=None,
     broll=0, broll_strict=True,
     music="calm", lufs=-14.0, sfx_per_min=0.6,

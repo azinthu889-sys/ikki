@@ -3004,7 +3004,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             import knowledge as KN
             KN_PLAN = KN.plan(CP.plan(segs, spans), sum(y - x for x, y in spans),
-                              rc, log=log)
+                              rc, log=log, brand=bid)
             _nc = len(caps)
             caps = KN.hide_caps(caps, KN_PLAN)
             if len(caps) != _nc:
