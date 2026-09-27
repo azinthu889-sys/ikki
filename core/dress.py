@@ -230,15 +230,60 @@ def sfx_for(kind):
     """template တစ်ခုအတွက် (ရှေ့သံ, ထပ်သံ)"""
     return SFX_BY_MOD.get(_mod_of(kind) or "", SFX_DEF)
 
+def decl_cues(gfx, ent=0.0):
+    """ကတ်များရဲ့ **ကြေညာချက်** cue — `[(အချိန်, role, dB)]`。
+
+    `track()` က `g["sfx_decl"]` ကို motionkit ရဲ့ `mkaudio.cues_for(el)`
+    ကနေ စုထားသည် (template ရဲ့ ကိုယ်ပိုင် timeline · စက္ကန့် အတိအကျ)。
+    ⇒ ကတ် ပေါ်ချိန် (`at` + enter) နဲ့ ပေါင်းပြီး timeline သို့ ရွှေ့သည်。
+
+    ⚠️ `sfx_decl` **မရှိသော** ကတ်ကို ဤမှာ **မထည့်ပါ** — ခေါ်သူက
+       ပြန်ဆုတ်လမ်း (`sfx_for`) နဲ့ ဖြည့်ရမည် ⇒ တိတ်တဆိတ် ဆုံးရှုံးမှု မဖြစ်。
+    """
+    out, n_ok, n_no = [], 0, 0
+    for g in gfx:
+        d = g.get("sfx_decl")
+        if not d:
+            n_no += 1
+            continue
+        n_ok += 1
+        _st = float(g.get("at") or 0.0) + ent
+        for off, role, db in d:
+            out.append((max(0.0, _st + float(off)), str(role), float(db)))
+    out.sort(key=lambda x: x[0])
+    return out, n_ok, n_no
+
+
 def sfx(gfx, caps, rc):
     """[(offset, role, dB)] — sfxlib ရဲ့ role နာမည်များ"""
     out=[]
     _ent = float(rc.get("_gfx_enter") or ENTER_DEF)
-    for g in gfx:
-        a, b = sfx_for(g.get("kind") or "")
-        _st = g["at"] + _ent                    # ကတ် အပြည့် ပေါ်ချိန်
-        out.append((max(0.0, _st - SETTLE), a, -13))
-        out.append((_st, b, -16))
+    # ══ ကြေညာချက် လမ်းကြောင်း (ပုံသေ **ဖွင့်**) ══════════════════════
+    # ⚠️ ကတ်တိုင်းကို cue ၂ ခု ပုံသေ ထုတ်တာက template ရဲ့ လှုပ်ရှားမှုနဲ့
+    #    မတွဲပါ — `titles2.headline_bar` က ၃ ချက် (0.0 · 0.48 · 1.008)、
+    #    `odo.count_up` က **တစ်ချက်** (2.064s — ကိန်း ရပ်ချိန်) ကြေညာထားသည်。
+    # ⚠️ render နဲ့ အတည်ပြုမချင်း **ပုံသေ ပိတ်** — `IKKI_SFX_DECL=1` နဲ့ ဖွင့်
+    _use_decl = os.environ.get("IKKI_SFX_DECL", "0") == "1"
+    if _use_decl:
+        _dc, _n_ok, _n_no = decl_cues(gfx, _ent)
+        if _dc:
+            out.extend(_dc)
+        # ⚠️ ကြေညာချက် မရှိသော ကတ်ကိုသာ ပြန်ဆုတ်လမ်းနဲ့ ဖြည့်သည်
+        for g in gfx:
+            if g.get("sfx_decl"):
+                continue
+            a, b = sfx_for(g.get("kind") or "")
+            _st = g["at"] + _ent
+            out.append((max(0.0, _st - SETTLE), a, -13))
+            out.append((_st, b, -16))
+        LAST["sfx_decl_ok"] = _n_ok
+        LAST["sfx_decl_none"] = _n_no
+    else:
+        for g in gfx:
+            a, b = sfx_for(g.get("kind") or "")
+            _st = g["at"] + _ent                # ကတ် အပြည့် ပေါ်ချိန်
+            out.append((max(0.0, _st - SETTLE), a, -13))
+            out.append((_st, b, -16))
     # extra timed cues from the worker -- short-916 whooshes each B-roll whip
     out.extend(rc.get("_sfx_extra") or [])
     # ⚠️ စာတန်းတိုင်းမှာ အသံ မထည့်ရ — Zin ရဲ့ spec: "no per-word SFX"
@@ -831,6 +876,26 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                     log(f"  ⊘ ဘောင်ကျော်: {g['kind']} @ {g.get('at',0):.1f}s "
                         f"(y {_y0+dy}–{_y1+dy} · dy={dy} · ဘောင် {W}×{H})")
                     continue
+        # ══ motionkit ရဲ့ **sfx ကြေညာချက်** ကို ဤမှာ စုသည် ═══════════
+        # ⚠️ ၂၀၂၆-၀၉-၂၈ တိုင်းချက် — motionkit ရဲ့ template ၄၇၅ ခုက
+        #    `sfx=[(offset, role, db)]` ကို **စက္ကန့် အတိအကျ**နဲ့ ကြေညာထားပြီး
+        #    ကြေညာချက် မရှိသူကိုပါ `mkaudio.cues_for(el)` က `kind` ကနေ
+        #    ဖြေပေးသည် ⇒ **template အားလုံး** cue ရနိုင်သည်。
+        #    IKKI က အဲဒါကို **တစ်ခုမှ မဖတ်ခဲ့**ဘဲ `SFX_BY_MOD` (module
+        #    တစ်ခုလုံးကို role ၂ ခု) နဲ့ ကတ်တိုင်းကို cue ၂ ခု ပုံသေ
+        #    ထုတ်ခဲ့သည် ⇒ အသံ အချိန်က template ရဲ့ လှုပ်ရှားမှုနဲ့ မတွဲခဲ့。
+        # ⚠️ `el` က ဤအဆင့်မှာ **အပြီးသတ်** ဖြစ်ပြီး ကတ်က တကယ် တပ်ရမည်
+        #    ဟု အတည်ဖြစ်ပြီး (ဘောင်ကျော် · ဆောက်မရ စစ်ချက်များ ပြီးသွားပြီ)。
+        try:
+            import mkaudio as _MA
+            _dc = _MA.cues_for(el) or []
+            g["sfx_decl"] = [(float(_o), str(_r), float(_d))
+                             for _o, _r, _d in _dc]
+        except Exception as _dce:
+            # ⚠️ **တိတ်တဆိတ် မကျော်ရ** — ကြေညာချက် မရလျှင် အကြောင်းရင်း
+            #    မှတ်ရမည်、မဟုတ်လျှင် ဘယ်တော့မှ မသိရ (font silent
+            #    substitution နဲ့ တူညီသော အမျိုးအစား)。
+            g["sfx_decl_err"] = f"{type(_dce).__name__}: {_dce}"
         seq = os.path.join(work, f"g{i}_%04d.png")
         # ⚠️ os.link က filesystem ကွဲလျှင် ပျက်သည် — copy ဖြင့် ပြန်ဆုတ်ရမည်
         import shutil as _sh

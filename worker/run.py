@@ -3016,8 +3016,17 @@ def render(job, brand, src, out, stage, log=print, over=None):
                   _dbc = CP.cut_energy(_M.analyse(wav)[0], spans)
                   _cpre = CP.speech_cards(caps, _runs, _dbc, csize,
                                           int(TH["W"] * float(rc.get("cap_wide") or 0.86)),
-                                          IG.MW, rc["mmf"])
-                  log(f"  စာတန်း · speech timing · run {len(_runs)} → card {len(_cpre)}")
+                                          IG.MW, rc["mmf"],
+                                          trail=float(rc.get("cap_trail") or 0.0),
+                                          min_dur=float(rc.get("cap_min") or 0.0),
+                                          # never push a split past a word boundary to
+                                          # meet min: text then lags the voice (G13)
+                                          min_piece=0.30,
+                                          max_lines=int(rc.get("cap_lines") or 1),
+                                          bridge=float(rc.get("cap_bridge") or 0.0))
+                  log(f"  စာတန်း · speech timing · run {len(_runs)} → card {len(_cpre)} · "
+                      f"trail {rc.get('cap_trail') or 0} · min {rc.get('cap_min') or 0} · "
+                      f"bridge {rc.get('cap_bridge') or 0}")
               except Exception as _se:
                   log(f"  ⚠️ speech timing မရ ({type(_se).__name__}: {_se}) — word timing သုံး")
                   _cpre = None
@@ -3460,6 +3469,43 @@ def render(job, brand, src, out, stage, log=print, over=None):
             if _plan_cues:
                 log(f"  SFX plan · {len(_plan_cues)} ခု (ထပ်၍ ဖယ် "
                     f"{REPORT['sfx_dedup']}) ⇒ စုစုပေါင်း {len(cues)}")
+            # ══ motionkit ရဲ့ **ကြေညာချက်** နဲ့ ကတ် cue ကို အစားထိုးသည် ══
+            # ⚠️ ၂၀၂၆-၀၉-၂၈ — motionkit template ၄၇၅ ခုက `sfx=[(off,role,db)]`
+            #    ကို ကြေညာထားပြီး ကြေညာချက် မရှိသူကိုပါ `mkaudio.cues_for`
+            #    က `kind` ကနေ ဖြေပေးသည် ⇒ **အားလုံး** cue ရနိုင်သည်。
+            #    IKKI က ဒါကို **တစ်ခုမှ မဖတ်ခဲ့** — plan လမ်းက semantic role
+            #    (label ကနေ) · legacy လမ်းက `SFX_BY_MOD` (module ကနေ) ⇒
+            #    ၂ ခုလုံး template ရဲ့ **ကိုယ်ပိုင် လှုပ်ရှားမှု အချိန်** မသိပါ。
+            # ⇒ ကတ်တစ်ခုချင်းရဲ့ span ထဲက cue ကို ဖယ်ပြီး ကြေညာချက် ထည့်သည်。
+            #    span ပြင်ပ cue (B-roll whip · စာတန်း tick) က **မထိ**ပါ。
+            if os.environ.get("IKKI_SFX_DECL", "0") == "1":
+                try:
+                    _dcl, _n_ok, _n_no = DR.decl_cues(
+                        gfx, float(rc.get("_gfx_enter") or 0.0))
+                    if _dcl:
+                        _spans_c = [(float(g.get("at") or 0.0),
+                                     float(g.get("at") or 0.0)
+                                     + float(g.get("dur") or 2.0))
+                                    for g in gfx if g.get("sfx_decl")]
+                        def _in_card(_t):
+                            return any(a - 0.05 <= _t <= b + 0.05
+                                       for a, b in _spans_c)
+                        _keep = [c for c in cues if not _in_card(c[0])]
+                        _drop = len(cues) - len(_keep)
+                        cues = sorted(_keep + _dcl, key=lambda x: x[0])
+                        REPORT["sfx_decl_ok"] = _n_ok
+                        REPORT["sfx_decl_none"] = _n_no
+                        REPORT["sfx_decl_cues"] = len(_dcl)
+                        REPORT["sfx_decl_dropped"] = _drop
+                        log(f"  SFX ကြေညာချက် · ကတ် {_n_ok} ခုကနေ cue "
+                            f"**{len(_dcl)}** (ကတ် span ထဲက ယခင် {_drop} ဖယ်) "
+                            f"· ကြေညာချက်မရှိ ကတ် {_n_no} ⇒ စုစုပေါင်း {len(cues)}")
+                    else:
+                        REPORT["sfx_decl_ok"] = 0
+                        log("  ⚠️ SFX ကြေညာချက် **မရ** — ကတ် တစ်ခုမှ "
+                            "`sfx_decl` မပါ (track() မှာ စုမရခဲ့)")
+                except Exception as _dse:
+                    log(f"  ⚠️ SFX ကြေညာချက် မရ ({type(_dse).__name__}: {_dse})")
         except Exception as _se:
             log(f"  ⚠️ plan SFX မရ ({type(_se).__name__}: {_se}) — legacy သာ")
     # ── ⚠️ **ဖြတ်ပြီး အချိန်မှာ အကွာ ပြန်ခြား** ──────────────────────
