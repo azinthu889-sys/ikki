@@ -1966,7 +1966,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ plan မရလျှင် **အလုပ် မရပ်ရ** — ယခင်နည်းနဲ့ ဆက်သွားသည်
             log(f"  ⚠️ plan မရ ({type(_e).__name__}: {_e}) — ယခင်နည်းနဲ့ ဆက်သွားသည်")
             _PLAN = None
-    if segs and not _PLAN:
+    # ⚠️ knowledge engine — legacy ခေါင်းစဉ်ကတ် လမ်းကြောင်း **မပြေးရ**。 recipe
+    #    `gfx=0` ဖြစ်လည်း `TP.ask` က ကတ် ၄ ခု (stat_title "100%" · minimal_third
+    #    "Zenye Pass Education" ASR မှား) ထုတ်ပြီး panel ပေါ် ထပ်ခဲ့ (raw test 2026-09-27)。
+    _KN_ENGINE = rc.get("engine") == "knowledge"
+    if segs and not _PLAN and not _KN_ENGINE:
         try:
             # ⚠️ **ပိုတောင်းရမည်** — မျက်နှာရှောင်ရာမှာ တချို့ ကျော်ရသည်။
             #    အတိအကျ တောင်းလျှင် နောက်ဆုံး အရေအတွက် မပြည့်。
@@ -2069,7 +2073,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    `DR.pick()` ကို ပြေးစေသည်。 `pick()` က **အကြောင်းအရာ စာသား
     #    မပါသော** ဂရပ်ဖစ် ထုတ်သဖြင့် ဗလာ ကွက်များ ဖြစ်ခဲ့သည်
     #    (၂၀၂၆-၀၉-၂၁ — ရွှေရောင် အနားသတ်ကို ဗီဒီယိုတစ်ခုလုံးမှာ မတွေ့ရ)。
-    if not gfx and not _PLAN:
+    if not gfx and not _PLAN and not _KN_ENGINE:
         # ⚠️ `_sil_of()` ဖယ်ပြီး **မျှသုံး မြေပုံ**ကနေ ဆင်းသက်စေသည်
         gfx = DR.pick(rc, m["dur"], _M.as_gaps(MEAS[1], 0.20), segs, log)   # ပြန်ဆုတ်လမ်း
         if gfx: log("  ⚠️ အကြောင်းအရာ မရ — တိတ်ဆိတ်မှုပေါ် ချထားသည်")

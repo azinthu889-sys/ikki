@@ -121,6 +121,19 @@ kr = _RC.R["knowledge"]
 ck("recipe: theme generic", kr.get("theme") == "ikki", kr.get("theme"))
 ck("recipe: no accent hex", not kr.get("accent"), kr.get("accent"))
 
+# ⑤ talking-head stock ကို B-roll မလုပ်ရ (raw test: ၉ ခုထဲ ၆ ခု)
+ck("talker by tag", K.is_talker(dict(path="/a/TALK-009_1080p_35s.mp4", my=["talking_head_motion"])))
+ck("talker by name", K.is_talker(dict(path="/a/TALK-1.mp4", my=[])))
+ck("not talker", not K.is_talker(dict(path="/a/study_desk.mp4", my=["ကျောင်းသား", "လက်ပ်တော့"])))
+ck("job-interview B-roll kept", not K.is_talker(dict(path="/a/15455945.mp4",
+   en=["job interview", "hiring", "cv resume", "desk", "people"])))
+ck("podcast studio talkers dropped", K.is_talker(dict(path="/a/POD-003.mp4",
+   en=["podcast", "studio", "two", "people", "talking"])))
+_W = open(os.path.join(R, "worker", "run.py"), encoding="utf-8").read()
+ck("worker skips legacy gfx for knowledge",
+   "if segs and not _PLAN and not _KN_ENGINE:" in _W and
+   "if not gfx and not _PLAN and not _KN_ENGINE:" in _W)
+
 # ③ bake (ffmpeg · cttext)
 def ff(*a):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *a], check=True)

@@ -281,10 +281,27 @@ def ask_notes(lines, dur, log=print, spec=None, jp=False):
     return notes
 
 
+def is_talker(clip):
+    """ကင်မရာကို ပြောနေသော လူ (talking-head stock) ဟုတ်လား — tag နဲ့ ဖိုင်နာမည်ကနေ。"""
+    tags = " ".join(str(t) for t in (clip.get("my") or []) + (clip.get("en") or [])).lower()
+    base = os.path.basename(str(clip.get("path") or "")).upper()
+    # ⚠️ `interview` ကို မသုံးရ — index အစစ်မှာ job-interview B-roll (15455945) ကို
+    #    မှားဖယ်ခဲ့ (73 → 72)。 `talking` tag = TALK-* ၄၈ + POD-* ၂၄ (studio စကားပြော)。
+    words = set(tags.replace("_", " ").split())
+    return "talking" in words or base.startswith("TALK-")
+
+
 def ask_broll(lines, log=print, chunk=70):
     """line → [(clip, score)]。 ⚠️ `BR.match` က ပထမ ၈၀ ကြောင်းကိုသာ ကြည့်သည် —
     ၈ မိနစ်ဗီဒီယိုရဲ့ ~၁၅၀ ကြောင်းထဲ နောက်တစ်ဝက် B-roll မရမည် ⇒ window ခွဲမေး。"""
     hits, used = {}, set()
+    # ⚠️ style rule: B-roll မှာ **တခြားလူ ကင်မရာကို ပြောနေတာ** မပါရ — ပြောသူ
+    #    ပြောင်းသွားသလို ဖြစ်သည်。 raw test (2026-09-27) မှာ B-roll ၉ ခုထဲ ၆ ခုက
+    #    `TALK-*` (tag `talking_head_motion` · kind `object` ဟု မှား) ဖြစ်ခဲ့。
+    try:
+        used |= {c["path"] for c in (BR.load().get("clips") or []) if is_talker(c)}
+    except Exception as e:
+        log(f"  ⚠️ knowledge · talker စစ်မရ: {e}")
     for a in range(0, len(lines), chunk):
         part = lines[a:a + chunk]
         try:
