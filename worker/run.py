@@ -3530,10 +3530,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                          str(_r4), float(_b4)))
                     _dcl.sort(key=lambda x: x[0])
                     if _dcl:
+                        # ⚠️ **ဖြတ်ပြောင်း ကတ် (`pmov`) ကိုပါ ထည့်ရမည်** —
+                        #    မထည့်လျှင် အဲဒီ span ထဲက plan cue မဖယ်ရဘဲ
+                        #    ကြေညာချက်နဲ့ **ပေါင်းထည့်**မိသည် ⇒ cue 15 → 24 ·
+                        #    moments 13 ⇒ 8.67/min vs ဂိတ် 6.0 ⇒
+                        #    `QC မအောင်: sfx_density` နဲ့ render **ငြင်းခံရ**
+                        #    (၂၀၂၆-၀၉-၂၈ arm V4 · worker/run.py:4159 က raise)。
                         _spans_c = [(float(g.get("at") or 0.0),
                                      float(g.get("at") or 0.0)
                                      + float(g.get("dur") or 2.0))
                                     for g in gfx if g.get("sfx_decl")]
+                        for _a5, _m5, _d5, _x5, _t5 in (pmov or []):
+                            if DR.DECL_CUES.get(_m5):
+                                _a5 = float(_a5)
+                                _spans_c.append((_a5, _a5 + float(_d5 or 2.0)))
                         def _in_card(_t):
                             return any(a - 0.05 <= _t <= b + 0.05
                                        for a, b in _spans_c)
