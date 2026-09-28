@@ -5717,7 +5717,11 @@ def push_index(force=False):
 #          2 x POLL + 3 s apart (other hosts; a just-killed predecessor's
 #          last poll ages out between the two reads).
 TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS", "IKKI_GFX_ROTATE",
-                 "IKKI_SFX_PERMIN", "IKKI_SFX_PERMIN_OFF")
+                 "IKKI_SFX_PERMIN", "IKKI_SFX_PERMIN_OFF",
+                 # audio-checked script spelling: off in production until a model
+                 # passes reports/zae_short_asr_spelling_2026-09-28.md (flash-lite
+                 # contradicted itself 7/13 with A/B swapped) -- remove it here then
+                 "IKKI_SCRIPTFIX_AUTO")
 LOCK = os.environ.get("IKKI_LOCK") or os.path.expanduser("~/.ikki/worker.lock")
 _LOCK_FD = None
 
