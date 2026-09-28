@@ -3038,7 +3038,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
           # short-916 speech timing: cards on/off at the cut engine's speech
           # runs (MEAS), not at ASR word times (Zin 2026-09-27).
           _cpre = None
-          if rc.get("cap_timing") == "speech":
+          if rc.get("cap_timing") == "word_pop":
+              # one card per word, on at the word (run start / snapped onset),
+              # pop-in like reference r1 (Zin 2026-09-28: "exactly on the voice")
+              try:
+                  _runs = CP.cut_runs(MEAS[0], spans)
+                  _dbc = CP.cut_energy(_M.analyse(wav)[0], spans)
+                  _cpre = CP.word_pop_cards(caps, _runs, _dbc, csize,
+                                            int(TH["W"] * float(rc.get("cap_wide") or 0.86)),
+                                            IG.MW, rc["mmf"])
+                  log(f"  စာတန်း · word pop · run {len(_runs)} → card {len(_cpre)}")
+              except Exception as _se:
+                  log(f"  ⚠️ word pop မရ ({type(_se).__name__}: {_se}) — speech timing သုံး")
+                  _cpre = None
+          if _cpre is None and rc.get("cap_timing") in ("speech", "word_pop"):
               try:
                   _runs = CP.cut_runs(MEAS[0], spans)
                   _dbc = CP.cut_energy(_M.analyse(wav)[0], spans)
@@ -3090,7 +3103,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    accent=_kwc,
                    kw_box=((rc.get("cap_kw_box") or TH.get("RED"))
                            if (_kwc and rc.get("cap_kw_style") == "box") else None),
-                   fade=float(0.14 if rc.get("cap_fade") is None else rc["cap_fade"]),
+                   fade=(float(rc.get("cap_pop_dur") or 0.12) if float(rc.get("cap_pop") or 0) > 1.0
+                         else float(0.14 if rc.get("cap_fade") is None else rc["cap_fade"])),
+                   pop=float(rc.get("cap_pop") or 0.0),
                    # ⚠️ ဂရပ်ဖစ် ပေါ်နေချိန် စာတန်း ဖျောက်ရသည် (Zin: "Infography
                    #    ဝင်လာရင် subtitle ဖျောက်ထားပေး") — ဒါပေမယ့် **စာတန်းဇုန်နဲ့
                    #    တကယ် ထပ်တဲ့ ဂရပ်ဖစ်မှာသာ**。 N5 reference မှာ ထောင့်က

@@ -396,6 +396,58 @@ def split_two(txt, MW, size, font, maxw):
     # the most balanced split; the caller shrinks if a line still overflows
     return best[1] if best and best[0] < MW(txt, size, font) else None
 
+def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, min_card=0.15):
+    """One card per ASR word, like the references (r1/r3: one word per card,
+    2.3 cards/s, the card is always the word being said now). Zin 2026-09-28:
+    "the subtitle must be exactly on the voice".
+
+    - first word of a speech run: on = run start (acoustic, exact)
+    - later words: Gemini start snapped to the quietest 20 ms frame within
+      +-`snap` s (the syllable boundary), kept monotonic
+    - off = next word's on inside the run; the last word ends at the run end
+    - words are never split, joined across runs, changed or reordered (R1)"""
+    import numpy as np
+    runs = [tuple(r) for r in runs if r[1] - r[0] > 0.02]
+    W = []
+    for ci, c in enumerate(caps):
+        for w in (c.get("words") or []):
+            W.append((float(w[1]), float(w[2]), str(w[0]), ci))
+    W.sort()
+    buckets = [[] for _ in runs]
+    for ws, we, t, ci in W:
+        ov = [max(0.0, min(we, b) - max(ws, a)) for a, b in runs]
+        if not ov: continue
+        k = int(np.argmax(ov)) if max(ov) > 0 else \
+            int(np.argmin([min(abs(ws - b), abs(we - a)) for a, b in runs]))
+        buckets[k].append((ws, we, t, ci))
+    def snap_to(t, lo, hi):
+        a = max(lo, t - snap); b = min(hi, t + snap)
+        if b <= a or len(db) == 0: return min(hi, max(lo, t))
+        i0, i1 = int(a / frame), max(int(a / frame) + 1, int(b / frame))
+        seg = db[i0:i1]
+        return (i0 + int(np.argmin(seg))) * frame if len(seg) else t
+    cards = []
+    for (ra, rb), ws_ in zip(runs, buckets):
+        if not ws_: continue
+        ws_.sort()
+        ons = [ra]
+        for w in ws_[1:]:
+            lo = ons[-1] + min_card; hi = rb - min_card
+            if hi <= lo: ons.append(None); continue
+            ons.append(snap_to(min(hi, max(lo, w[0])), lo, hi))
+        # words that found no room join the previous card (text kept whole)
+        groups = []
+        for w, on in zip(ws_, ons):
+            if on is None and groups: groups[-1][0].append(w)
+            else: groups.append([[w], on])
+        for gi, (gw, on) in enumerate(groups):
+            off = groups[gi + 1][1] if gi + 1 < len(groups) else rb
+            txt = " ".join(x[2] for x in gw); sz = size
+            while MW(txt, sz, font) > maxw and sz > int(size * 0.6): sz -= 3
+            kw = sorted({k for x in gw for k in (caps[x[3]].get("kw") or [])})
+            cards.append(dict(lines=[txt], a=round(on, 3), b=round(off, 3), sz=sz, kw=kw))
+    return cards
+
 def plan(segs, spans, max_lines=2):
     """ဖြတ်ပြီးနောက် အချိန်သို့ စာတန်းများကို ပြောင်းသည်。
 
@@ -432,7 +484,7 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
           ct, MW, fps=30, total=None, stroke=None, stroke_w=0.0, hold=4.0,
           gap_pct=0.18, fade=0.14, hide=None, log=None, wide=0.86,
           plate=None, max_lines=2, accent=None, kw_box=None, by_word=False,
-          cards_pre=None):
+          cards_pre=None, pop=0.0):
     """စာတန်းများကို alpha overlay ဗီဒီယို တစ်ခု အဖြစ် ဆောက်သည်。
 
     ⚠️ ကြောင်းနှစ်ကြောင်း အကွာအဝေးကို **ink ဖြတ်ပြီးမှ** သတ်မှတ်ရသည်。
@@ -570,8 +622,31 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
         lay.save(q)
 
     _fcache = {}
+    def _popped(p, k):
+        """pop-in step (r1 word pop): the card at scale 1 + (pop-1)(1-k)^2,
+        scaled about its ink centre, full opacity."""
+        if Image is None: return p
+        q = _fcache.get(("pop", p, k))
+        if q: return q
+        q = p[:-4] + f"_p{int(k*100):03d}.png"
+        if not os.path.exists(q):
+            im = Image.open(p).convert("RGBA"); a = _np.asarray(im)[:, :, 3]
+            ys, xs = _np.nonzero(a > 8)
+            sc = 1.0 + (float(pop) - 1.0) * (1.0 - k) ** 2
+            if len(xs) == 0 or sc <= 1.001:
+                im.save(q)
+            else:
+                cx, cy = (xs.min() + xs.max()) / 2.0, (ys.min() + ys.max()) / 2.0
+                inv = 1.0 / sc
+                out = im.transform(im.size, Image.AFFINE,
+                                   (inv, 0, cx - cx * inv, 0, inv, cy - cy * inv), Image.BICUBIC)
+                out.save(q)
+        _fcache[("pop", p, k)] = q
+        return q
+
     def _faded(p, k):
         """alpha ကို k ဆ လျှော့ထားသော မိတ္တူ (fade-in ထစ်)。"""
+        if pop and pop > 1.0: return _popped(p, k)
         if Image is None: return p
         q = _fcache.get((p, k))
         if q: return q
@@ -634,8 +709,12 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
                     if x < ha: nx.append((x,ha))
                     if hb < y: nx.append((hb,y))
                 segs=nx
+            # the 0.20 s floor is for slivers a graphic left behind -- a card no
+            # graphic touches keeps its own length (word-pop cards are 0.14-0.2 s;
+            # the old rule dropped them with no graphic in sight, 2026-09-28)
+            touched = len(segs) != 1 or segs[0] != (a, b)
             for x,y in segs:
-                if y-x > 0.20: cut.append([x,y,p])
+                if y-x > 0.20 or (not touched and y-x > 0.0): cut.append([x,y,p])
         n_hid = len(timed)-len(cut)
         if log and n_hid: log(f"  စာတန်း · ဂရပ်ဖစ်ပေါ်လို့ ဖျောက် {n_hid} ကတ်")
         timed = cut

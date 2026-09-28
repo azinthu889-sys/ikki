@@ -739,7 +739,9 @@ BOUNDS = dict(
  broll_whip=("bool",),
  cap_by_word=("bool",),
  # "word" = ASR word times · "speech" = cut-engine speech runs (on/off at voice)
- cap_timing=("choice", ["word", "speech"]),
+ cap_timing=("choice", ["word", "speech", "word_pop"]),
+ cap_pop=("float", 0.0, 1.6),
+ cap_pop_dur=("float", 0.04, 0.4),
  # speech-timed off: trail after the voice · shortest card · hold gaps shorter than bridge
  cap_trail=("float", 0.0, 1.0),
  cap_min=("float", 0.0, 2.0),
