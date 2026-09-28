@@ -809,6 +809,27 @@ def _numslot_params(cid):
     return _NUMP.get(cid) or set()
 
 
+def _numslot_block(cid, text):
+    """ကိန်း slot ထဲ ဝါကျ ဝင်မလား — `fill()` ရော pack လမ်း ရော သုံးသည်。
+
+    ⚠️ ၂၀၂၆-၀၉-၂၈ — `fill()` မှာသာ ထည့်ခဲ့သဖြင့် `_pack_props()`
+       **fallback လမ်း** (`fill()` က ဘာမှ မရလျှင် သုံးသည်) က ဂိတ်ကို
+       ကျော်ပြီး `infogfx.big_number` · `titles3.stat_ribbon` ကို
+       ဆက်ရွေးခဲ့သည် (တိုင်းချက်: ချို့ယွင်းချက် ၂ ခု ကျန်)。
+    """
+    if os.environ.get("IKKI_NUMSLOT_OFF") == "1":
+        return False
+    if len(str(text or "").strip()) <= 16:
+        return False
+    np_ = _numslot_params(cid)
+    if not np_:
+        return False
+    e = MF.entry(cid) or {}
+    txtp = {p.get("name") for p in (e.get("params") or [])
+            if p.get("type") == "text"}
+    return bool(np_ & txtp)
+
+
 def _fact_ok(cid):
     """`fact` (catch-all) အတွက် ဒီ template သင့်တော်လား。
 
@@ -899,20 +920,8 @@ def fill(cid, label, text):
         return None
     # ⚠️ ကိန်း slot ထဲ ဝါကျ ဝင်မယ့် template ကို **မရွေးရ** (ဂိတ် N1) —
     #    `_numslot_params()` ရဲ့ မှတ်ချက် ကြည့်ပါ。
-    if (os.environ.get("IKKI_NUMSLOT_OFF") != "1"
-            and len(str(text or "").strip()) > 16):
-        _np = _numslot_params(cid)
-        if _np:
-            # ⚠️ `required` နဲ့ စစ်တာ **မလုံလောက်**ပါ — ကိန်း slot က
-            #    optional ဖြစ်ပြီး တခြား required param ရှိလျှင် လွတ်သွားသည်
-            #    (တိုင်းချက်: ချို့ယွင်းချက် 6 → **3** သာ ကျ · ၀ မဟုတ်)。
-            # ⇒ `argshape.fit` က **`type: text` ကြေညာထားသော param တိုင်း**
-            #   ကို အသုံးပြုသူ စာသားနဲ့ ဖြည့်သည် ⇒ ကိန်း slot က `text` ဟု
-            #   ကြေညာခံထားလျှင် ဝါကျ ဝင်မည် ⇒ ငြင်းရသည်。
-            _txtp = {p.get("name") for p in (e.get("params") or [])
-                     if p.get("type") == "text"}
-            if _np & _txtp:
-                return None
+    if _numslot_block(cid, text):
+        return None
     # ⚠️ **chart က ကိန်းအတွဲ မရှိဘဲ မဆွဲရ** (၂၀၂၆-၀၉-၂၅)。 `rows` ကို
     #    စာလုံး စာရင်း ပေးမိသဖြင့် `charts.stacked_bar` က render ချိန်မှာ
     #    `ValueError: too many values to unpack (expected 2)` နဲ့ ကျပြီး
@@ -1565,6 +1574,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         for _pid in _pack_c:
             if _pid in _recent:
                 _stale.append(_pid); continue      # ကြာသေး ⇒ catalog ကို အခွင့်ပေး
+            if _numslot_block(_pid, txt):
+                continue
             _pp = _pack_props(_pid, lab, txt)
             if _pp is not None:
                 cid, pr = _pid, _pp
@@ -1583,6 +1594,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         if not cid:
             # ⚠️ **ဂရပ်ဖစ် မပျောက်စေရ** — ကွဲပြားမှုထက် ရှိတာက ကောင်းသည်
             for _pid in _ff_order(_stale):
+                if _numslot_block(_pid, txt):
+                    continue
                 _pp = _pack_props(_pid, lab, txt)
                 if _pp is not None:
                     cid, pr = _pid, _pp
