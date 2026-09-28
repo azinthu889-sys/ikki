@@ -42,7 +42,21 @@ def main():
     check("အပြင် — အပေါ်ပိုင်း ချသည်", o["lv_omax"] < 1.0, o["lv_omax"])
     check("ပြတ်နေလျှင် ပိုချသည်", o["lv_omax"] <= 0.90, o["lv_omax"])
     check("အပြင် — အနက် မဖိပါ", o["lv_omin"] <= 0.0 + 1e-6, o["lv_omin"])
-    check("အတွင်း — colorbalance ဖွင့်သည်", i["cbal"] is True)
+    # ⚠️⚠️ ယခင်က 「အတွင်း — colorbalance **ဖွင့်**သည်」 ဟု စစ်ခဲ့သည် —
+    #    **အဲဒါ ကိုယ်တိုင် ချို့ယွင်းချက်** ဖြစ်ကြောင်း ၂၀၂၆-၀၉-၂၈ တိုင်း၍
+    #    တွေ့သည်。 `grade.CBAL` က gm +0.035 · gh +0.03 နဲ့ **အစိမ်း ထည့်**ပြီး
+    #    bm −0.03 · bh −0.045 နဲ့ **အပြာ ဆွဲထုတ်**သည် ⇒ 「အဝါ လျှော့」 မဟုတ်、
+    #    **အစိမ်း ဆိုး**ခြင်း。 G−B bias: မူရင်း −3.30 · neutral −0.53 ·
+    #    **indoor +7.81** ⇒ Zin:「အစိမ်းတွေများနေတယ်」。
+    check("အတွင်း — colorbalance **မဖွင့်ရ**", "cbal" not in i, i.get("cbal"))
+    # ⚠️ recipe က `cbal=False` ဆိုလျှင် ကုသမှုက **နောက်ကွယ်က ဖျက်၍ မရ**
+    _rc = dict(cbal=False, sat=1.0, vign=0.0)
+    for _k in (SL.OUTDOOR, SL.INDOOR, SL.NEUTRAL):
+        _m = SL.merge(_rc, _k, dict(lum=200, p95=250, warm=1.0, sky=0))
+        check(f"merge({_k}) — cbal False ကို ကိုင်ထား", _m["cbal"] is False, _m["cbal"])
+        check(f"merge({_k}) — sat recipe ထက် မကျော်", _m["sat"] <= 1.0 + 1e-9, _m["sat"])
+        check(f"merge({_k}) — vignette recipe ထက် မကျော်",
+              _m["vign"] <= 0.0 + 1e-9, _m["vign"])
     for k, t in (("outdoor", o), ("indoor", i)):
         check(f"{k} — sat ၁.၀၆ မကျော်", t["sat"] <= 1.06, t["sat"])
         check(f"{k} — vignette မသုံး", t["vign"] == 0.0, t["vign"])

@@ -3489,15 +3489,42 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    (studio အဖြူနံရံ ↔ အပြင် backlit shot)。 skin mask = YCbCr。
     try:
         _sy = _skin_y(cutv, log=log)
-        if _sy and _sy < 158:          # ⚠️ ပစ်မှတ်နဲ့ တူညီစွာ — grade ရဲ့ levels က
-        #    ထပ် ~၁၀ Y ချသေးသည် (v5: pre-grade ၁၅၃ ⇒ ထွက် ~၁၄၃)。
-            import math as _mth
-            _tgt = 158.0
-            _g = _mth.log(max(0.04, _sy) / 255.0) / _mth.log(_tgt / 255.0)
-            rc["gamma"] = max(1.0, min(1.25, _g))
-            if (rc.get("lv_imin") or 0) > 0.05: rc["lv_imin"] = 0.04
-            log(f"  အသားအရောင် · skin Y {_sy:.0f} < ပစ်မှတ် {_tgt:.0f} ⇒ "
-                f"gamma {rc['gamma']:.3f} · levels imin {rc.get('lv_imin')}")
+        # ⚠️⚠️ **gamma နဲ့ မတင်ရ** (၂၀၂၆-၀၉-၂၈ တိုင်း၍ ပြောင်းသည်)。
+        #    ယခင်က `eq=gamma` နဲ့ တင်ခဲ့သည် — ပြဿနာ ၃ ခု:
+        #      ① gamma က **အနက်ကိုပါ ဆွဲတင်**သည် ⇒ ပစ်မှတ် မီအောင်
+        #         (gamma 2.2) တင်လျှင် p05 ၅၁ → **၁၁၂** ⇒ နို့ရည်ရောင်
+        #         (「မညိမ်ဘူး」)。 ⇒ ၁.၂၅ မှာ ဖြတ်ထားရ ⇒ skin Y ၈၀ က
+        #         **၁၀၀ သာ** ရောက်ပြီး ပစ်မှတ် ၁၅၈ ကို ဘယ်တော့မှ မမီ。
+        #      ② `eq` filter ရဲ့ YUV အသွားအပြန်က G−B ကို တင်သည်
+        #         (ဤဖိုင်ရဲ့ `grade.py` မှတ်ချက်မှာ ရေးထားပြီးသား)。
+        #      ③ gamma က frame တစ်ခုလုံးကို တူညီစွာ တင်သည် — အသားရေကို
+        #         ပစ်မှတ် ထားချင်တာ ဖြစ်၍ **အသားရေ အမှတ်ကို ချိတ်**ရမည်。
+        #    ⇒ **curve** နဲ့ လုပ်သည် — 0/0 ကို ကိုင်ထား(အနက် မရွှေ့) ·
+        #      အသားရေ အမှတ်ကို ပစ်မှတ်သို့ ရွှေ့ · အပေါ်ပိုင်း ပြေပြေ。
+        #    တိုင်းချက် (ဖရိန် ၃ ချပ် · s_40 · s_80 · s_160):
+        #      ယခင် (gamma 1.25) skin **100** · p05 51 · G-bias **+4.8**
+        #      curve@158           skin  126 · p05 46 · ပြတ် 0.00%
+        #      **curve@175**       skin **136** · p05 **50** · p95 225 · ပြတ် 0.01%
+        #      curve@190           skin  146 · p05 53 · p95 **236** (ပြတ်ဖို့ နီး)
+        #    ⇒ ၁၇၅ ကို ရွေးသည် — အနက် မပျက် · ပြတ် မရှိ · အသားရေ +၃၆。
+        _SKIN_ANCHOR = 175.0
+        if _sy and _sy < _SKIN_ANCHOR:
+            _sk = max(0.05, min(0.75, float(_sy) / 255.0))
+            _ys = min(0.94, _SKIN_ANCHOR / 255.0)
+            if _ys > _sk + 0.02:
+                _mx = min(0.99, (_sk + 1.0) / 2.0)
+                _my = min(0.995, (_ys + 1.0) / 2.0 + 0.04)
+                if _mx > _sk + 0.02 and _my > _ys + 0.02:
+                    rc["curve"] = (f"0/0 0.05/0.045 {_sk:.3f}/{_ys:.3f} "
+                                   f"{_mx:.3f}/{_my:.3f} 1/1")
+                    # ⚠️ `gamma` ကို **မထားရ** — ထားလျှင် `eq` ဝင်လာပြီး
+                    #    curve နဲ့ ထပ်တင်ကာ အလွန်အကျွံ ဖြစ်မည်。
+                    rc.pop("gamma", None)
+                    if (rc.get("lv_imin") or 0) > 0.05:
+                        rc["lv_imin"] = 0.04
+                    log(f"  အသားအရောင် · skin Y {_sy:.0f} < ပစ်မှတ် "
+                        f"{_SKIN_ANCHOR:.0f} ⇒ curve ({_sk:.3f}→{_ys:.3f}) · "
+                        f"gamma မသုံး · levels imin {rc.get('lv_imin')}")
         elif _sy:
             log(f"  အသားအရောင် · skin Y {_sy:.0f} — ချိန်ညှိချက် မလို")
     except Exception as e:
@@ -3524,12 +3551,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 #    ဝင်းဒိုး မလိုဘဲ `rc` ထဲ ပေါင်းရုံ。
                 if len(_segs) == 1:
                     _a1, _b1, _k1, _s1 = _segs[0]
-                    rc = dict(rc); rc.update(SH.treatment(_k1, _s1))
+                    rc = SH.merge(rc, _k1, _s1)
                     log(f"  grade · အပိုင်း တစ်ခုတည်း ({_k1}) — ကုသမှု တိုက်ရိုက်")
                 elif len(_segs) > 1:
                     _parts = []
                     for _a, _b, _k, _st in _segs:
-                        _rc2 = dict(rc); _rc2.update(SH.treatment(_k, _st))
+                        _rc2 = SH.merge(rc, _k, _st)
                         _fc = GR.chain(_rc2)
                         if _fc:
                             _parts.append(SH.windowed(_fc, _a, _b))

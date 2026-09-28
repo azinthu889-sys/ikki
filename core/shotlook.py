@@ -71,9 +71,42 @@ def treatment(kind, s=None):
         return t
     if kind == INDOOR:
         # အဝါဓာတ် လျှော့ — ပူနွေးမှု အနည်းငယ် ကျန်စေသည်
+        # ⚠️⚠️ **`cbal` ကို ဤမှာ မဖွင့်ရ** (၂၀၂၆-၀၉-၂၈ တိုင်း၍ ဖယ်သည်)。
+        #    `grade.CBAL` က gm **+0.035** · gh **+0.03** နဲ့ **အစိမ်း ထည့်**ပြီး
+        #    bm −0.03 · bh −0.045 နဲ့ **အပြာ ဆွဲထုတ်**သည် ⇒ 「အဝါ လျှော့」
+        #    မဟုတ်ဘဲ **အစိမ်း ဆိုး**ခြင်း ဖြစ်သည်。 အဝါ လျှော့ချင်လျှင်
+        #    **အပြာ တင်ရ**မည်、အစိမ်း တင်၍ မရ。
+        #    တိုင်းချက် (မူရင်း ဖရိန် တစ်ချပ် · G−B bias):
+        #        မူရင်း −3.30 · neutral ကုသမှု −0.53 · **indoor +7.81**
+        #    ⇒ indoor က G−B ကို **+၁၁.၁ ရွှေ့**သည်。 Zin ရဲ့ ဗီဒီယိုမှာ
+        #      အပိုင်း ၇ ခုထဲ **၄ ခု** indoor ⇒ ထွက်ဖိုင် ဘောင်အလိုက်
+        #      G−B **+၄.၈** (မူရင်း −၃.၃) ⇒ 「အစိမ်းတွေများနေတယ်」。
+        #    ⚠️ `headtop` recipe က `cbal=False` ကို **တမင် သတ်မှတ်ထား**သည်
+        #      (grade.py: colorbalance က အဖြူနံရံကို အရောင်ဆိုးသည်)。
+        #      ဤမှာ True ပြန်ပေးလျှင် recipe ရဲ့ ဆုံးဖြတ်ချက်ကို
+        #      **နောက်ကွယ်က ဖျက်**ရာ ရောက်သည်。
         return dict(lv_imin=0.02, lv_imax=0.98, lv_omin=0.01, lv_omax=1.00,
                     curve="0/0 0.25/0.26 0.50/0.52 0.75/0.77 1/1",
-                    sat=1.04, cbal=True, vign=0.0)
+                    sat=1.04, vign=0.0)
+
+
+def merge(rc, kind, stats=None):
+    """recipe + shot ကုသမှု — **recipe ရဲ့ တားမြစ်ချက်ကို မကျော်ရ**
+
+    ⚠️ ကုသမှုက `cbal` · `vign` · `sat` ကို **တင်လို့ မရ**、ချလို့သာ ရသည်。
+       recipe က 「အရောင် မလှည့်ရ」 ဟု ဆုံးဖြတ်ထားလျှင် shot အလိုက်
+       ကုသမှုက အဲဒါကို နောက်ကွယ်က ဖျက်၍ မရ (၂၀၂၆-၀၉-၂၈ ဖြစ်ခဲ့သည်)。
+    """
+    out = dict(rc)
+    t = treatment(kind, stats) or {}
+    out.update(t)
+    if rc.get("cbal") is False:
+        out["cbal"] = False
+    if rc.get("vign") is not None:
+        out["vign"] = min(float(t.get("vign", rc["vign"])), float(rc["vign"]))
+    if rc.get("sat") is not None:
+        out["sat"] = min(float(t.get("sat", rc["sat"])), float(rc["sat"]))
+    return out
     return dict(sat=1.02, cbal=False, vign=0.0)
 
 
