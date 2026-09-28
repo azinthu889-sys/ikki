@@ -108,34 +108,62 @@ def main():
     except ImportError as _e:
         print(f"  ⊘ manifest မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
 
-    print("\n── ၂-ဂ · ခေါင်းစဉ် ကျော်သော စာသားကို **ဖြတ်**ရမည် ──")
-    # ⚠️ အနိမ့်ဆုံး အရွယ် (၅၈px) မှာလည် မဆံ့လျှင် မင်က panel ရဲ့ ညာစွန်း
-    #    အောက် ဆက်ပြေးပြီး **စာလုံးအလယ်မှာ ပြတ်**သည်
-    #    (၂၀၂၆-၀၉-၂၉ final6:「… ကျောင်းဖြ|」)。
+    print("\n── ၂-ဂ · ခေါင်းစဉ် ကျော်လျှင် **ဖြတ်**ရမည် (၉:၁၆ ရော ၁၆:၉ ရော) ──")
+    # ⚠️⚠️ **ဖွဲ့စည်းထားသော ဖရိန်ကနေ တိုင်းလို့ မရ**。 နောက်ဆုံး ဆွဲသည့်
+    #    canvas က `tw` အကျယ်သာ ဖြစ်ပြီး cttext က အဲဒီမှာ **ဖြတ်**သဖြင့်
+    #    မင်က `tw` ကို ဘယ်တော့မှ မကျော်နိုင် ⇒ 「ဆံ့သည်」 ဟု **အမြဲ** ✓
+    #    ပြမည် (၂၀၂၆-၀၉-၂၉ — ငါ့ ပထမ စမ်းသပ်ချက် အဲဒီလို လိမ်ခဲ့သည်)。
+    #    ⇒ **ကျယ်သော canvas** ထဲ ဆွဲပြီး တိုင်းမှသာ အမှန် ရသည်。
     try:
-        import numpy as _np
         import theme as _th
-        from PIL import Image as _Im
         import lower3 as _L3
         import importlib as _il
-        _th.use("ikki", "16:9")
+        from prem import txt as _txt
+        from kit import W as _W, H as _H
+        from PIL import Image as _Im
+        _n = [0]
+        for _asp in ("9:16", "16:9"):
+            _th.use("ikki", _asp)
+            _il.reload(_L3)
+            _w, _h = _W(), _H()
+            _side = _w * _L3.R_SIDE
+            _bs = _h * _L3.R_BS
+            _px0 = _side + _bs - _w * (40 / 1080)
+            _tx = _px0 + _w * (72 / 1080)
+            _tw = (_w - _side) - _tx - _w * (36 / 1080)
+            _pw = int(_tw * 3)
+
+            def _wide(_t, _sz):
+                # ⚠️ tag ကို **တိုင်းတိုင်း အသစ်** — တူလျှင် ရှေ့က ဖိုင် ပြန်ရပြီး
+                #    အကျယ် မပြောင်း (token loop က တစ်လုံးအထိ ဖြတ်မိသည်)
+                _n[0] += 1
+                _p = _txt(f"tw{_n[0]}", _t, _sz, "#FFFFFF", None, _pw)
+                _b = _Im.open(_p).split()[3].getbbox()
+                return _b[2] - _b[0]
+
+            for _t in ("COE စိတ်ချရတဲ့ Class 1 ကျောင်းဖြစ်ဖို့ အရေးကြီးပါတယ်",
+                       "ကိုယ့်ဘက်က အထက်တန်းအောင်မြင်ထားဖို့ လိုပါတယ်",
+                       "အေဂျင်စီကောင်း"):
+                _hs = int(_h * _L3.R_HEAD_MAX)
+                _hmin = int(_h * _L3.R_HEAD_MIN)
+                while _hs > _hmin and _wide(_t, _hs) > _tw:
+                    _hs -= 2
+                _tk = _t.split()
+                _d = 0
+                while len(_tk) - _d > 1 and \
+                        _wide(" ".join(_tk[:len(_tk) - _d]), _hs) > _tw:
+                    _d += 1
+                _fin = " ".join(_tk[:len(_tk) - _d])
+                _wd = _wide(_fin, _hs)
+                check(f"{_asp} ဖြတ်ပြီး ဆံ့  「{_t[:14]}…」",
+                      _wd <= _tw, (int(_wd), int(_tw)))
+                # ⚠️ **အကုန် မဖြတ်ပစ်ရ** — tag ထပ်မိလျှင် တစ်လုံးအထိ ဖြတ်သည်
+                check(f"{_asp} token အကုန် မဖြတ်  「{_t[:14]}…」",
+                      _wd > _tw * 0.25, (int(_wd), int(_tw)))
+        _th.use("ikki", "9:16")
         _il.reload(_L3)
-        _W = 1920
-        _lim = _W - int(_W * 54 / 1080) - int(_W * 36 / 1080)
-        for _i, _t in enumerate((
-                "COE စိတ်ချရတဲ့ Class 1 ကျောင်းဖြစ်ဖို့ အရေးကြီးပါတယ်",
-                "ကိုယ့်ဘက်က အထက်တန်းအောင်မြင်ထားဖို့ လိုပါတယ်",
-                "အေဂျင်စီကောင်း")):
-            _e = _L3.lt_number(f"tclip{_i}", "01", _t, dur=3.0)
-            _a = _np.array(_Im.open(_e["anim"][60][0]).convert("RGBA"))
-            _w = ((_a[..., 0] > 190) & (_a[..., 1] > 190)
-                  & (_a[..., 2] > 190) & (_a[..., 3] > 180))
-            _w[:, :330] = False
-            _xs = _np.where(_w)[1]
-            _mx = int(_xs.max()) if len(_xs) else 0
-            check(f"စာသား panel ထဲ ဆံ့  「{_t[:18]}…」", _mx <= _lim, (_mx, _lim))
     except ImportError as _e:
-        print(f"  ⊘ motionkit/numpy မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
+        print(f"  ⊘ motionkit မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
 
     print("\n── ၃ · template ဂျီဩမေတြီ (motionkit ရှိမှ) ──")
     try:
