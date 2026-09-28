@@ -75,8 +75,11 @@ PIN = {"zae": ("mk:corporate/CORP-022_78s.m4a",)}
 #    Loop", EPIC-010 "Triumphant". All four have a measured loop seam.
 # WARN the `found.json` query "inspiring loop" is **not** a label: it returned
 #    doom-metal drums and drones too, so only titles were trusted.
-CURATED = {"inspiration": ("mk:corporate/CORP-022_78s.m4a", "mk:corporate/CORP-046_72s.m4a",
-                           "mk:corporate/CORP-049_59s.m4a", "mk:epic/EPIC-010_121s.m4a")}
+# WARN Zin rejected CORP-046 on hearing it in short-916 (2026-09-28: "BG music
+#    စောက်တလွဲ မမိုက်ဘူး"). CORP-049 is the same "Inspirational Loop" family and
+#    EPIC-010 is unheard, so the pool is the one bed he chose himself (for ZAE).
+#    Add tracks back only after he has auditioned them.
+CURATED = {"inspiration": ("mk:corporate/CORP-022_78s.m4a",)}
 # WARN **the first swap was picked on the wrong criterion and Zin rejected it**
 #    ("BG music ကလုံး၀အဆင်မပြေပါဘူး"). I had ranked candidates by *low
 #    transient density*, which only says "leaves room for the cues" -- it says

@@ -406,7 +406,8 @@ R = {
     # light 2:1 duck.
     # 2026-09-28: -30 measured 17 dB under the voice in the finished mix (music
     #   stem -31.1 vs voice -14.4 LUFS); reference r3 sits 8 dB under ->  -22.
-    music_lufs=-22.0, music_duck=2.0,
+    # 2026-09-28 Zin: music "ကျယ်လွန်းတယ်" -> -22 to -26; SFX "နည်းနည်းတင်" -> +3 dB
+    music_lufs=-26.0, music_duck=2.0, sfx_trim=3.0,
     stroke="brand", stroke_w=0.30, cap_gap=0.18, cap_fade=0.0,   # refs switch cards on a hard cut
     cap_cover=1.0, cap_hold=1.6, scrim=False,
     cap_typo=0.20,
@@ -765,6 +766,7 @@ BOUNDS = dict(
  # music bed: target loudness of the bed itself, and duck ratio under speech
  music_lufs=("float", -40.0, -20.0),
  music_duck=("float", 1.0, 6.0),
+ sfx_trim=("float", -6.0, 6.0),
  cap_fade = ("float", 0.0, 0.60),
  # ⚠️ ဘောင် 0.6–1.2/min — REF-A 1.1 · REF-B 0.6 (တိုင်းထားသည်)。
  #    1.5 ကျော်လျှင် skill ရဲ့ P3 က ထုတ်ခွင့် ပိတ်သည်。

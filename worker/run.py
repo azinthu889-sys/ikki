@@ -3881,6 +3881,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    or rc.get("_seed") or job.get("id") or "ikki")
             # ⚠️ **SFX stem** — `nsfx` က ဖိုင် ရှိမရှိ ရေတွက်ချက်သာ。
             #    ဖိုင် ရှိပြီး အသံ မရှိတာ · အချိန် လွဲတာ ဘယ်တော့မှ မဖမ်းမိပါ。
+            # per-style SFX trim (Zin 2026-09-28 short-916: "sound effect ကို နည်းနည်းတင်")
+            # -- 0 for every other style, so nothing else changes
+            _trim = float(rc.get("sfx_trim") or 0.0)
+            if _trim:
+                cues = [(a, r, float(d) + _trim) for a, r, d in cues]
+                log(f"  SFX trim {_trim:+.1f} dB (style)")
             _stem = os.path.join(work, "sfx_stem.wav")
             _, nsfx = DR.mix(cutv, cues, sv,
                              lambda r, i=None: _cue(SL, r, rc["theme"], i, _sd, log),
