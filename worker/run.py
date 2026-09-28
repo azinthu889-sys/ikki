@@ -2051,6 +2051,44 @@ def render(job, brand, src, out, stage, log=print, over=None):
             bname = ((brand or {}).get("name") or "").strip()
             used = set()
             for i, t in enumerate(tops):
+                # ── နံပါတ်တပ် item ⇒ **lower third တစ်မျိုးတည်း** ────────
+                # ⚠️⚠️ ဤလမ်းကြောင်းမှာလည် လိုသည်。 `planner` ထဲ ထည့်ရုံနဲ့
+                #    မလုံလောက် — `short-916` ကဲ့သို့ recipe တွေက ဂရပ်ဖစ်ကို
+                #    **topics လမ်း** (`TP.ask` + role pool) ကနေ ယူပြီး
+                #    planner ရဲ့ Visual Plan ကို လုံးဝ မသုံးပါ ⇒ route က
+                #    ဘယ်တော့မှ မပြေးဘဲ 「နံပါတ် ၁/၂/၃」 က ပုံစံ ၃ မျိုးနဲ့
+                #    ထွက်နေဆဲ ဖြစ်သည် (၂၀၂၆-၀၉-၂၉ final3 — lower3 **၀ ကြိမ်**)。
+                # ⚠️ ခေါင်းစဉ် စာသားမှာ နံပါတ် **ဖယ်ပြီးသား** ဖြစ်နိုင်သည်
+                #    (final3: 「N5 အောင်လက်မှတ်」) ⇒ ခေါင်းစဉ် နဲ့ **အဲဒီ
+                #    အချိန်ရဲ့ မူရင်း ဝါကျ** ၂ ခုလုံးနဲ့ စစ်ရမည်。
+                _ni = None
+                _num_lt = None
+                try:
+                    # ⚠️ `PLN` က အခြား အကိုင်းထဲ import လုပ်ထားသဖြင့် ဒီမှာ
+                    #    **သေချာအောင် ကိုယ်တိုင် import** လုပ်သည်
+                    try:
+                        import planner as _PLN3
+                    except ImportError:
+                        from core import planner as _PLN3
+                    _num_lt = _PLN3.NUM_LT
+                    _tt = str(t.get("text") or "")
+                    _ni = _PLN3.numbered_item(_tt)
+                    if _ni is None:
+                        _at = float(t.get("at") or 0)
+                        _sg = min((x for x in (segs or [])
+                                   if float(x.get("start") or 0) <= _at + 0.6),
+                                  key=lambda x: abs(float(x.get("start") or 0) - _at),
+                                  default=None)
+                        if _sg:
+                            _ni = _PLN3.numbered_item(str(_sg.get("text") or ""))
+                except Exception as _nie:
+                    log(f"  ⚠️ နံပါတ်တပ် မစစ်နိုင်: {type(_nie).__name__}: {_nie}")
+                if _ni and _num_lt and DR.resolves(_num_lt):
+                    gfx.append(dict(at=t["at"], kind=_num_lt,
+                                    text=_ni[1], args=(_ni[0], _ni[1])))
+                    log(f"  ⑆ နံပါတ်တပ် @ {t['at']:.1f}s ⇒ {_num_lt} "
+                        f"({_ni[0]} · {_ni[1][:20]})")
+                    continue
                 # ⚠️ **ပထမ ဂရပ်ဖစ်က ခေါင်းစဉ်ကတ် ဖြစ်ရမည်** — N5 reference က
                 #    ~၆s မှာ "ONLINE CLASS" ကြီးကြီး + kicker + ရွှေမျဉ်း ဖြင့်
                 #    ဖွင့်သည်。 ကျပန်း ရွေးလျှင် ထောင့်က bar လေး ထွက်ပြီး
