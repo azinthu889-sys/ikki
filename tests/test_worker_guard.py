@@ -75,5 +75,43 @@ class RemoteGuard(unittest.TestCase):
         W._guard_remote(health=boom, sleep=lambda s: None, poll=6)
 
 
+class SfxMixSurvivesLogging(unittest.TestCase):
+    """မှတ်တမ်း ရိုက်၍ မရတာက **mix ပြီးသားကို မဖျက်ရ** (၂၀၂၆-၀၉-၂၉)
+
+    ⚠️ `{_d:+d}` က float ဝင်လာလျှင် `ValueError: Unknown format code 'd'`
+       တက်သည်。 အဲဒီ မှတ်တမ်းက `cutv = sv` ရဲ့ **ရှေ့**မှာ ရှိပြီး try
+       တစ်ခုတည်းထဲ ဖြစ်၍ — mix အောင်ပြီးသား ဖိုင်ကို **လွှင့်ပစ်**ကာ
+       「SFX မရ」 ဟု ပြခဲ့သည် ⇒ short-916 snd1 မှာ SFX **လုံးဝ မပါ**。
+    ⚠️ ပိုဆိုးတာ — QC က **အစီအစဉ်** ကို ရေတွက်၍ `sfx_moments=7` နဲ့
+       **အောင်**ခဲ့သည်。 အစီအစဉ်က အသံ ထွက်ကြောင်း သက်သေ မဟုတ်ပါ。
+    """
+
+    def setUp(self):
+        import inspect
+        self.src = inspect.getsource(W.render)
+
+    def test_mix_accepted_before_cue_log(self):
+        i_accept = self.src.find("cutv = sv; _drop(_pre2)")
+        i_log = self.src.find('log(f"    SFX {float(_t)')
+        self.assertGreater(i_accept, 0, "mix လက်ခံသော လိုင်း မတွေ့")
+        self.assertGreater(i_log, 0, "cue မှတ်တမ်း လိုင်း မတွေ့")
+        self.assertLess(i_accept, i_log,
+                        "mix ကို မှတ်တမ်း **မတိုင်မီ** လက်ခံရမည်")
+
+    def test_cue_log_format_tolerates_float(self):
+        self.assertNotIn("{_d:+d}dB", self.src, "int-only format ကျန်နေသည်")
+        self.assertIn("{float(_d):+.0f}dB", self.src)
+
+    def test_audible_gate_runs_for_every_recipe(self):
+        # ⚠️ `headtop_sfx_audible` က headtop မှာသာ ⇒ ယေဘုယျ စစ်ချက် လိုသည်
+        self.assertIn('key="sfx_audible"', self.src)
+        i_gate = self.src.find('key="sfx_audible"')
+        i_if = self.src.find('== "headtop"')
+        self.assertGreater(i_gate, i_if,
+                           "ယေဘုယျ စစ်ချက်က headtop အကွက်ထဲ ရှိနေသည်")
+        # 「မတိုင်းရ」 ကို 「အောင်」 လို့ မယူရ
+        self.assertIn("_au is not None and int(_au) > 0", self.src)
+
+
 if __name__ == "__main__":
     unittest.main()

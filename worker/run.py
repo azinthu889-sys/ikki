@@ -3912,7 +3912,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # -- 0 for every other style, so nothing else changes
             _trim = float(rc.get("sfx_trim") or 0.0)
             if _trim:
-                cues = [(a, r, float(d) + _trim) for a, r, d in cues]
+                # WARN keep ints ints: the cue log formats dB with ":d", and a float
+                #    there raised inside the SFX mix -> a render with NO SFX that
+                #    still passed QC (snd1, 2026-09-29)
+                cues = [(a, r, (int(round(d + _trim)) if isinstance(d, int) else float(d) + _trim))
+                        for a, r, d in cues]
                 log(f"  SFX trim {_trim:+.1f} dB (style)")
             _stem = os.path.join(work, "sfx_stem.wav")
             _, nsfx = DR.mix(cutv, cues, sv,
@@ -3934,13 +3938,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ **ဖြေရှင်းချက်ကို မှတ်တမ်းတင်ရမည်** (spec §6 — 「record the exact
             #    resolved asset in a render manifest for reproducibility」)。
             #    မပြလျှင် variant ကွဲမကွဲ ပြန်စစ်လို့ မရပါ。
-            for _t, _r, _d in cues[:12]:
-                log(f"    SFX {_t:6.2f}s {_r:11} {_d:+d}dB")
-            if _CUE_USED:
-                log("    asset · " + " · ".join(_CUE_USED[:8]))
+            # ⚠️⚠️ **mix ရပြီးသားကို အရင် လက်ခံရမည်**。 ယခင်က မှတ်တမ်း
+            #    ရိုက်ခြင်းက `cutv = sv` ရဲ့ **ရှေ့**မှာ ရှိပြီး ၂ ခုလုံး
+            #    try တစ်ခုတည်းထဲ ဖြစ်၍ — `{_d:+d}` က float ဝင်လာလျှင်
+            #    `ValueError: Unknown format code 'd'` တက်ကာ **mix ပြီးသား
+            #    ဖိုင်ကို လွှင့်ပစ်**ပြီး 「SFX မရ」 ဟု ပြခဲ့သည်
+            #    (၂၀၂၆-၀၉-၂၉ · short-916 snd1 — SFX လုံးဝ မပါဘဲ ထွက်သွား)。
+            #    ⇒ **အလုပ်ကို အရင် လက်ခံ · မှတ်တမ်းက သီးသန့် try**。
             cutv = sv; _drop(_pre2); log(f"  SFX {nsfx} cue")
+            try:
+                # ⚠️ format ကို **သည်းခံအောင်** — dB က int ဖြစ်ချင် ဖြစ်မည်
+                for _t, _r, _d in cues[:12]:
+                    log(f"    SFX {float(_t):6.2f}s {str(_r):11} "
+                        f"{float(_d):+.0f}dB")
+                if _CUE_USED:
+                    log("    asset · " + " · ".join(_CUE_USED[:8]))
+            except Exception as _le:
+                log(f"  ⚠️ SFX စာရင်း မပြနိုင် ({type(_le).__name__}: {_le}) "
+                    f"— mix ကတော့ ရပြီး")
         except Exception as e:
-            log(f"  ⚠️ SFX မရ: {e}")
+            log(f"  ⚠️ SFX မရ: {type(e).__name__}: {e}")
 
     # ── ⑦ ဂရပ်ဖစ် ထပ် + အသံ ညှိ + ထုတ် ─────────────────────
     stage(7, "render")
@@ -4383,6 +4400,27 @@ def render(job, brand, src, out, stage, log=print, over=None):
         REPORT["sfx_moments_actual"] = _schecks[0]["value"]
         checks.extend(_mchecks)
         ok = all(c.get("ok") for c in checks)
+    # ⚠️⚠️ **အသံ တကယ် ထွက်မထွက်ကို recipe တိုင်းမှာ စစ်ရမည်**。
+    #    `headtop_sfx_audible` က `recipe == "headtop"` မှာသာ ပြေးသည် ⇒
+    #    short-916 က cue ၇ ခု စီစဉ်ပြီး **တစ်ခုမှ မထွက်ဘဲ** QC အောင်ခဲ့သည်
+    #    (၂၀၂၆-၀၉-၂၉ snd1)。 QC က **အစီအစဉ်** ကို ရေတွက်နေ၍ ဖြစ်သည် —
+    #    အစီအစဉ်က အသံ ထွက်ကြောင်း သက်သေ မဟုတ်ပါ。
+    #    ⇒ cue စီစဉ်ထားပြီး `sfx_audible` **မမှတ်ရ**လျှင် ကျရမည် —
+    #      「မတိုင်းရ」 ကို 「အောင်」 လို့ မယူရ。
+    try:
+        _sn = int(REPORT.get("sfx_n") or 0)
+        if _sn > 0:
+            _au = REPORT.get("sfx_audible")
+            _si = int(REPORT.get("sfx_silent") or 0)
+            _c = dict(key="sfx_audible",
+                      ok=(_au is not None and int(_au) > 0 and _si == 0),
+                      value=("မတိုင်းရ" if _au is None
+                             else f"{int(_au)}/{_sn} · တိတ် {_si}"),
+                      want=f"stem ထဲ အသံ ရှိ · တိတ် ၀ (cue {_sn})")
+            checks.append(_c)
+            ok = ok and _c["ok"]
+    except Exception as _ae:
+        log(f"  ⚠️ sfx_audible စစ်၍ မရ: {type(_ae).__name__}")
     log("  QC · " + QC.summary(checks))
     # ⚠️ skill `ikki-presentation` §10 — **REFERENCE အတန်းက မဖြစ်မနေ**。
     #    ဘာကူးလိုက်ပြီး ဘာကို တမင် မကူးဘဲ ချန်ထားလဲ ပြရသည်。
