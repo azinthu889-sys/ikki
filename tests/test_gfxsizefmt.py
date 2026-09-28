@@ -34,12 +34,28 @@ class GfxSizeFmt(unittest.TestCase):
         self.assertAlmostEqual(b[k]["h"] / float(a[k]["h"]), 2.0, delta=0.05)
 
     def test_cache_per_format(self):
-        """⚠️ format အလိုက် ခွဲ cache ရမည် — မဟုတ်လျှင် ပထမဟာက လွှမ်းမည်"""
+        """⚠️ format အလိုက် ခွဲ cache ရမည် — မဟုတ်လျှင် ပထမဟာက လွှမ်းမည်
+
+        ⚠️ ၂၀၂၆-၀၉-၂၈ — ယခင်က `9:16` ဖိုင် **မရှိ**သဖြင့် 「ဗလာ ဖြစ်ရမည်」
+           ဆိုတာကို probe အဖြစ် သုံးခဲ့သည်。 ယခု ဖိုင် ရှိပြီ (616 · h ပါ 514)
+           ⇒ ဗလာ မဟုတ်တော့ ⇒ **cache ခွဲ/မခွဲ ကို လုံးဝ မစစ်တော့ခဲ့**。
+           ယခု ဘောင်အမြင့် `H` နဲ့ တိုက်ရိုက် စစ်သည် — 16:9 ⇒ 1080 ·
+           9:16 ⇒ 1920 ⇒ လွှမ်းလျှင် ချက်ချင်း ပေါ်သည်。
+        """
         a = DR.sizes("16:9")
-        c = DR.sizes("9:16")          # ဖိုင် မရှိ ⇒ ဗလာ
-        self.assertGreater(len(a), 100)
-        self.assertEqual(len(c), 0)
-        self.assertGreater(len(DR.sizes("16:9")), 100, "16:9 က ပျက်သွားသည်")
+        b = DR.sizes("9:16")
+        self.assertGreater(len(a), 100, f"16:9 entry {len(a)} ခုသာ")
+
+        # ① တခြား format ဖတ်ပြီးနောက် 16:9 မပျက်ရ
+        a2 = DR.sizes("16:9")
+        self.assertGreater(len(a2), 100, "16:9 က ပျက်သွားသည်")
+        self.assertIs(a, a2, "format အလိုက် cache မခွဲထားပါ — object ကွဲနေသည်")
+
+        # ② 9:16 ထဲမှာ 16:9 ရဲ့ ဒေတာ မကျန်ရ (ဘောင်အမြင့်နဲ့ စစ်)
+        if b:
+            k = next(iter(set(a) & set(b)))
+            self.assertEqual(a[k]["H"], 1080, f"16:9 ရဲ့ H မှား: {a[k]['H']}")
+            self.assertEqual(b[k]["H"], 1920, f"9:16 မှာ 16:9 လွှမ်းထားသည်: {b[k]['H']}")
 
     def test_missing_format_is_empty(self):
         """အချိုး မတူတာ မရှိလျှင် ဗလာ — `fits()` က ကြိုမပယ်ရ"""
