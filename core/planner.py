@@ -1549,8 +1549,15 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         #    item ၃ ခု **အတူတူ** ဖြစ်ရန်က ကွဲပြားမှုထက် အရေးကြီးသည်。
         # ⚠️ template မရှိသေးလျှင် (motionkit မတင်ရသေး) **ကျော်**ပြီး
         #    ပုံမှန် လမ်းကြောင်းသို့ ပြန်သွားသည် — ကျမသွားရ。
+        # ⚠️⚠️ **`MF.ids()` နဲ့ မစစ်ရ** — `ids()` က motionkit ရဲ့ ဖိုင်တွေကို
+        #    တိုက်ရိုက် ဖတ်ပြီး `entry()` က **catalog** ကနေ ယူသည် ⇒ module
+        #    ဖိုင် ရှိပြီး `catalog.MODULES` မှာ မမှတ်ရသေးလျှင် ၂ ခု **ကွဲ**သည်
+        #    (ids 617 · entry None)。 ids() နဲ့ စစ်ခဲ့ရာ —
+        #      `manifest.check()` က「template မရှိ」⇒ **plan တစ်ခုလုံး ပယ်** ⇒
+        #      fallback ⇒ **ဂရပ်ဖစ် သုည** (၂၀၂၆-၀၉-၂၈ jid j_diag မှာ တွေ့)。
+        #    ⇒ ဂိတ်ကို **စစ်သူနဲ့ တူညီသော ရင်းမြစ်** (`entry()`) ကနေ ယူရမည်。
         _ni = numbered_item(txt)
-        if _ni is not None and NUM_LT in MF.ids():
+        if _ni is not None and MF.entry(NUM_LT):
             cid, pr = NUM_LT, {"value": _ni[0], "title": _ni[1]}
         _pack_c = _ff_order(_pack_c) if not cid else []
         _stale = []

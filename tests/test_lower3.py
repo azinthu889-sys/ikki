@@ -44,6 +44,53 @@ def main():
     check("၂၀ ကျော် ⇒ item မဟုတ်", P.numbered_item("45. တစ်ခုခု ဖြစ်တယ်") is None,
           P.numbered_item("45. တစ်ခုခု ဖြစ်တယ်"))
 
+    print("\n── ၂-ခ · planner ထုတ်သော cid တိုင်း manifest ထဲ ရှိရမည် ──")
+    # ⚠️⚠️ ဤစစ်ချက်က ၂၀၂၆-၀၉-၂၈ ရဲ့ ချို့ယွင်းချက်ကို ဖမ်းဖို့ —
+    #    route ရဲ့ ဂိတ်ကို `MF.ids()` နဲ့ စစ်ခဲ့ရာ `ids()` (motionkit ဖိုင်
+    #    ကနေ · 617) နဲ့ `entry()` (catalog ကနေ · None) **ကွဲ**နေသဖြင့်
+    #    `manifest.check()` က「template မရှိ」⇒ **plan တစ်ခုလုံး ပယ်** ⇒
+    #    fallback ⇒ **ဂရပ်ဖစ် သုည**。 ဝါကျ တစ်ကြောင်းက ဗီဒီယိုတစ်ခုလုံးရဲ့
+    #    ဂရပ်ဖစ်ကို ဖျက်သည် — တိတ်တဆိတ်。
+    # ⇒ 「route က မပွင့်သေး」 လို့ စစ်တာ မလုံလောက်。 planner ထုတ်သော
+    #   **cid တိုင်း** manifest ထဲ ရှိကြောင်း စစ်ရမည် (ရင်းမြစ် တစ်ခုတည်း)。
+    try:
+        import manifest as MF
+        segs = [dict(text=t, start=i * 3.0, end=i * 3.0 + 2.6, o0=i * 3.0,
+                     o1=i * 3.0 + 2.6)
+                for i, t in enumerate(
+                    ["ဒီနေ့ ပြောမှာက အရေးကြီးတဲ့ အချက် ၃ ချက် ပါ",
+                     "နံပါတ် ၁ - ဘာသာစကား အရင် လေ့လာပါ",
+                     "ဂျပန်မှာ အလုပ်လုပ်ဖို့ N4 လောက် လိုပါတယ်",
+                     "နံပါတ် ၂ - အေဂျင်စီကောင်း ရွေးပါ",
+                     "စာရွက်စာတမ်း အကုန် ကြိုပြင်ထားရပါမယ်",
+                     "နံပါတ် ၃ - N5 အောင်လက်မှတ် ယူထားပါ"])]
+        pl, _ = P.plan(segs, 60.0,
+                       {"motionkit_profile": "premium", "aspect": "16:9",
+                        "fps": 30}, "j_lt_test", log=lambda m: None)
+        evs = [e for e in (pl.get("templateEvents") or [])
+               if e.get("motionKitTemplateId")]
+        ev = [e["motionKitTemplateId"] for e in evs]
+        # ⚠️ `entry()` နဲ့ မစစ်ရ — `headtop.*` က **pack** template ဖြစ်ပြီး
+        #    catalog ထဲ မရှိပါ (ကိုယ်ပိုင် manifest ရှိသည်) ⇒ `entry()` က
+        #    None ပြန်ကာ မှားပြမည်。 `check()` က တကယ့် စစ်သူ ⇒ **အဲဒါနဲ့ပဲ**
+        #    စစ်ရမည် (ဒါက ချို့ယွင်းချက်ရဲ့ သင်ခန်းစာ အတိအကျ — ဂိတ်ကို
+        #    စစ်သူနဲ့ တူညီသော ရင်းမြစ် ကနေ ယူရမည်)。
+        miss = [(e["motionKitTemplateId"], MF.props_ok(
+            e["motionKitTemplateId"], e.get("props") or {})[1])
+            for e in evs
+            if not MF.props_ok(e["motionKitTemplateId"], e.get("props") or {})[0]]
+        check("cid တိုင်း manifest.props_ok() အောင်", not miss, miss)
+        # ⚠️ ဂရပ်ဖစ် **သုည မဖြစ်ရ** — ချို့ယွင်းချက်ရဲ့ လက္ခဏာက ဒါ
+        check("ဂရပ်ဖစ် သုည မဖြစ်", len(ev) > 0, len(ev))
+        # ⚠️ route က ပွင့်ပြီးလျှင် နံပါတ်တပ် ၃ ကြောင်းက **တစ်မျိုးတည်း**
+        if MF.entry(P.NUM_LT):
+            n_lt = sum(1 for c in ev if c == P.NUM_LT)
+            check("နံပါတ်တပ် ၃ ကြောင်း ⇒ lower3 ၃ ခု", n_lt == 3, n_lt)
+        else:
+            print("  ⊘ lower3 catalog မှာ မမှတ်ရသေး — route စစ်ချက် ကျော်")
+    except ImportError as _e:
+        print(f"  ⊘ manifest မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
+
     print("\n── ၃ · template ဂျီဩမေတြီ (motionkit ရှိမှ) ──")
     try:
         import theme                                        # noqa: F401
