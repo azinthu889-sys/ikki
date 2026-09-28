@@ -63,4 +63,8 @@ Model = `gemini-3.1-flash-lite` (pipeline အတိုင်း) · အသံ `t
   2. worker — `fix` ရှိလျှင် `scriptfix.retext()` နဲ့ `words` ရဲ့ စာသားကို fix အတိုင်း (အချိန် မပြောင်း)
   3. worker — word pop / speech timing ကတ် ၀ ⇒ ဝါကျ အချိန် စာတန်းသို့ ပြန်ကျ (စာတန်း မပျောက်စေ)
 - စစ်ချက် (render မပါ · worker လမ်း simulate): fix ပါ ⇒ ကတ် 115 · 「Takadanobaba」 ကတ်ပေါ် ✓ · words မပါ ⇒ ကတ် 0 (ယခင်) → fallback
-- ⚠️ render အပြည့်နဲ့ မစစ်ရသေး (TH ရဲ့ A/B render တွေ ပြေးနေလို့) · deploy မလုပ်ရသေး
+- ✅ **render အပြည့်နဲ့ စစ်ပြီး** (`fix1` · approve လမ်း = `job.segs` + fix ၄ ခု · Zin 「renderလုပ်ပေးပါ」):
+  word pop ကတ် 112 (0 မဟုတ်) · 「Tokutei အတွက်」18.4s · 「လက်မလွှတ်」69.7s · 「ဒီ Program နဲ့」71.0s frame ပေါ် ✓ ·
+  「Takadanobaba」ကတ် (65.9s) က location graphic ဖုံး ⇒ ဖျောက် (graphic ကိုယ်တိုင် Takadanobaba ပြ) ·
+  G1–G9 ✓ · QC ✓ (−14.1 LUFS · TP −1.8) · deploy မလုပ်ရသေး
+  ⚠️ ကတ် <0.25s 14% (insp2 8%) — ASR run မတူ (base_1 words) ⇒ run ကွဲပြားမှု · ပြင်ချက်ကြောင့် မဟုတ်
