@@ -116,8 +116,23 @@ def main(argv):
             r = subprocess.run([sys.executable, "-c", CHILD, eid, fmt],
                                capture_output=True, text=True, timeout=TIMEOUT)
             d = json.loads((r.stdout or "{}").strip().splitlines()[-1])
+            # ⚠️ **`"?"` က အကြောင်းရင်း မဟုတ်ပါ** — child က stdout ဘာမှ
+            #    မထုတ်ဘဲ ကျလျှင် (traceback က stderr ဆီ) `d = {}` ဖြစ်ပြီး
+            #    `d.get("why", "?")` က `"?"` ပေးသည် ⇒ ဘာကြောင့် ကျလဲ
+            #    **ဘယ်တော့မှ မသိရ**ခဲ့ (၂၀၂၆-၀၉-၂၈ · 16:9 ရော 9:16 ရော
+            #    အတိအကျ ၂၀ ခုစီ · maps 7 · charts 3 · titles2 3 …)。
+            #    ⇒ stderr ရဲ့ **နောက်ဆုံး လိုင်း** ကို အကြောင်းရင်း အဖြစ် ယူသည်。
+            if not d.get("ok") and not d.get("why"):
+                _er = [x for x in (r.stderr or "").strip().splitlines() if x.strip()]
+                d["why"] = (_er[-1][:120] if _er
+                            else f"stdout ဗလာ · rc={r.returncode}")
         except (subprocess.TimeoutExpired, ValueError, IndexError) as e:
-            d = {"ok": 0, "why": type(e).__name__}
+            _se = getattr(e, "stderr", None) or ""
+            if isinstance(_se, bytes):
+                _se = _se.decode("utf-8", "replace")
+            _el = [x for x in str(_se).strip().splitlines() if x.strip()]
+            d = {"ok": 0, "why": (f"{type(e).__name__}: {_el[-1][:100]}"
+                                  if _el else type(e).__name__)}
         # ⚠️⚠️ **key ကို `module.fn` အပြည့် (id) နဲ့ လုပ်ရမည်**。 `out[fn]` နဲ့
         #    bare fn သုံးခဲ့သဖြင့် နာမည် ထပ်သူများ **အပြန်အလှန် လွှမ်း**ခဲ့သည် —
         #    ၂၀၂၆-၀၉-၂၆ တိုင်းချက်: ထပ်သူ fn ၂၁ ခု → template ၄၄ ခု ဖုံး ·
