@@ -2166,6 +2166,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    တစ်ခုတည်းသာ ကန့်သတ်ခဲ့သဖြင့် planner ကနေ စာသား ပါလာသော
         #    ဂရပ်ဖစ်တွေက **ဝါကျ အပြည့်** ပြပြီး အောက်က စာတန်းနဲ့ စာကြောင်းတူ
         #    ဖြစ်ကာ ၂ ကြောင်း ကျိုးခဲ့သည် (v7 ၄၈.၈s)。
+        # ⚠️⚠️ **job/recipe ရဲ့ နာမည်ကို ဂရပ်ဖစ် စာသား အဖြစ် မသုံးရ**。
+        #    ခေါင်းစဉ် (topics) ကျသောအခါ fill လမ်းက **slot တိုင်းထဲ
+        #    label ကို ထည့်**ခဲ့သည် ⇒ ကတ်တိုင်းမှာ 「Short Video」 ·
+        #    donut က `int('Short VideoShort Video…')` နဲ့ ကျ · counter က
+        #    「0.0 / 1.0」 ⇒ ဒါပေမဲ့ **QC အောင်**ခဲ့သည်
+        #    (၂၀၂၆-၀၉-၂၉ short-916 final1)。
+        #    ⇒ အဓိပ္ပာယ် မရှိသော စာသားနဲ့ ကတ် ထုတ်တာထက် **မထုတ်တာ က
+        #      ပိုကောင်း**သည်。
+        _junk = {str(x).strip().lower() for x in (
+            job.get("title"), rc.get("label"), rc.get("_id"),
+            job.get("recipe"), job.get("brand_id")) if x}
+        _junk.discard("")
+        _drop_junk = [g for g in gfx
+                      if " ".join(str(g.get("text") or "").split()).strip().lower()
+                      in _junk]
+        if _drop_junk:
+            gfx = [g for g in gfx if g not in _drop_junk]
+            REPORT["gfx_label_text"] = len(_drop_junk)
+            log(f"  ⛔ ဂရပ်ဖစ် {len(_drop_junk)} ခု — စာသားက job/recipe ရဲ့ "
+                f"**နာမည်** ဖြစ်နေ၍ ဖယ်လိုက်သည် (အကြောင်းအရာ မရသောကြောင့်)")
         _cut_n = 0
         for _g in gfx:
             _t0 = " ".join(str(_g.get("text") or "").split())
