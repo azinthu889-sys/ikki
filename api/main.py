@@ -736,6 +736,11 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
         if t.replace(" ","") not in o["text"].replace(" ",""):
             raise HTTPException(400, f"စာလုံး အသစ် ပါနေသည်: {t[:30]}")
         e = dict(text=t, start=o["start"], end=o["end"])
+        # ⚠️ carry the ASR word timings through (2026-09-28: approve dropped them ⇒
+        #    short-916 word-pop built 0 cards ⇒ a video with no captions). Only when
+        #    the line is unchanged -- a trimmed line's words would no longer match.
+        if o.get("words") and t.replace(" ", "") == (o.get("text") or "").strip().replace(" ", ""):
+            e["words"] = o["words"]
         # Source provenance is not editable, but preserving it keeps Script
         # Editor labels correct after approval and the second worker pass.
         for _k in ("source", "take"):
@@ -1239,6 +1244,11 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
         if t.replace(" ", "") not in o["text"].replace(" ", ""):
             raise HTTPException(400, f"စာလုံး အသစ် ပါနေသည်: {t[:30]}")
         e = dict(text=t, start=o["start"], end=o["end"])
+        # ⚠️ carry the ASR word timings through (2026-09-28: approve dropped them ⇒
+        #    short-916 word-pop built 0 cards ⇒ a video with no captions). Only when
+        #    the line is unchanged -- a trimmed line's words would no longer match.
+        if o.get("words") and t.replace(" ", "") == (o.get("text") or "").strip().replace(" ", ""):
+            e["words"] = o["words"]
         fx = (k.get("fix") or "").strip()
         if fx and fx != t:
             if len(fx) > len(t) * 3 + 40:

@@ -283,3 +283,50 @@ def suggest(segs, script_text):
         out.append(dict(i=si, base=m.group(0), new=new,
                         text=text[:m.start()] + new + text[m.end():]))
     return out
+
+
+def retext(words, new_text):
+    """Give timed words the text of a user fix, keeping every time.
+
+    WARN the worker used to swap only `text` for `fix`; word-pop captions read
+    `words`, so an accepted spelling ("Takadanobaba") never reached the screen.
+    Syllables of the fix are aligned to the words' syllables: matching and
+    replaced syllables go to the word they align with, inserted ones to the word
+    before; a word left with no text gives its time to its neighbour. The
+    concatenation of the result is exactly `new_text` (spaces between words)."""
+    ws = [list(_w(w)) for w in (words or [])]
+    if not ws or not str(new_text or "").strip():
+        return words
+    A, own = [], []
+    for wi, (t, _a, _b) in enumerate(ws):
+        for x in _syl(SC.norm(t)):
+            A.append(x); own.append(wi)
+    SS = _script_syl(str(new_text))
+    if not A or not SS:
+        return words
+    from difflib import SequenceMatcher
+    B = [x for x, _a, _b in SS]
+    got = [[] for _ in ws]                       # per word: indices into SS
+    for op, i1, i2, j1, j2 in SequenceMatcher(None, [_key(x) for x in A], [_key(x) for x in B],
+                                               autojunk=False).get_opcodes():
+        if op == "equal":
+            for k in range(j2 - j1): got[own[i1 + k]].append(j1 + k)
+        elif op == "replace":
+            n_a = i2 - i1
+            for k in range(j2 - j1):             # spread over the replaced words in order
+                got[own[i1 + min(n_a - 1, k * n_a // max(1, j2 - j1))]].append(j1 + k)
+        elif op == "insert":
+            got[own[i1 - 1] if i1 else 0].extend(range(j1, j2))
+    raw = str(new_text)
+    out = []
+    for wi, idx in enumerate(got):
+        if not idx:
+            if out: out[-1][2] = ws[wi][2]       # the previous word absorbs the time
+            else: ws[wi + 1][1] = ws[wi][1] if wi + 1 < len(ws) else ws[wi][1]
+            continue
+        a, b = SS[min(idx)][1], SS[max(idx)][2]
+        out.append([raw[a:b].strip(), ws[wi][1], ws[wi][2]])
+    if not out:
+        return words
+    as_dict = isinstance((words or [None])[0], dict)
+    return [dict(w=t, s=a, e=b) for t, a, b in out] if as_dict else out

@@ -1172,6 +1172,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
         _nfix = sum(1 for x in segs if isinstance(x, dict) and x.get("fix"))
         for x in segs:
             if isinstance(x, dict) and x.get("fix"):
+                # word-pop captions read `words` -- give them the fix's text too,
+                # or an accepted spelling never reaches the screen (2026-09-28)
+                if x.get("words"):
+                    try:
+                        import scriptfix as _SFX
+                        x["words"] = _SFX.retext(x["words"], x["fix"])
+                    except Exception as _rte:
+                        log(f"  ⚠️ fix → words မရ ({type(_rte).__name__}) — စကားလုံးအချိန် ဖယ်")
+                        x.pop("words", None)
                 x["text"] = x["fix"]
         # Text ကို user ပြင်ထားသော်လည်း timestamp က ASR ၏ အကြမ်းအချိန်
         # ဖြစ်နိုင်သည်။ ယခင်လမ်းကြောင်းက `pre_segs` ရှိတာနဲ့ alignment ကိုပါ
@@ -3063,6 +3072,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                             int(TH["W"] * float(rc.get("cap_wide") or 0.86)),
                                             IG.MW, rc["mmf"])
                   log(f"  စာတန်း · word pop · run {len(_runs)} → card {len(_cpre)}")
+                  # ⚠️ no word timings (e.g. segments from an older approve) ⇒ 0 cards,
+                  #    and cards_pre=[] means a video with NO captions -- fall back
+                  if not _cpre and caps:
+                      log("  ⚠️ word pop ကတ် ၀ (စကားလုံးအချိန် မရှိ) — speech timing သုံး")
+                      _cpre = None
               except Exception as _se:
                   log(f"  ⚠️ word pop မရ ({type(_se).__name__}: {_se}) — speech timing သုံး")
                   _cpre = None
@@ -3083,6 +3097,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                   log(f"  စာတန်း · speech timing · run {len(_runs)} → card {len(_cpre)} · "
                       f"trail {rc.get('cap_trail') or 0} · min {rc.get('cap_min') or 0} · "
                       f"bridge {rc.get('cap_bridge') or 0}")
+                  if not _cpre and caps:           # same no-words hole as word pop
+                      log("  ⚠️ speech timing ကတ် ၀ — ဝါကျ အချိန်နဲ့ စာတန်း သုံး")
+                      _cpre = None
               except Exception as _se:
                   log(f"  ⚠️ speech timing မရ ({type(_se).__name__}: {_se}) — word timing သုံး")
                   _cpre = None

@@ -51,3 +51,16 @@ Model = `gemini-3.1-flash-lite` (pipeline အတိုင်း) · အသံ `t
 4. **model ပိုကောင်း** — 3.8-flash quota (paid key) ရမှ · coordinator ခွင့်ပြုချက်
 
 ဖိုင်: `scratchpad/s916/asr_script_ab.py` · `ab_*.json`
+
+## ၅. ⚠️ approve က `words` ဖယ် ⇒ short-916 စာတန်း ၀ (တွေ့ပြီး ပြင်ပြီး)
+
+- `approve` / `reedit` က ကျန်တဲ့ဝါကျကို `dict(text, start, end)` ပဲ ဆောက် ⇒ **`words` ပျောက်** (dev DB: 19/19)
+- `align_provided` က `words` ပြန်မဆောက် (0/19) ⇒ worker ရဲ့ word pop က **ကတ် ၀** · `cards_pre=[]` ⇒ track က
+  「`is not None`」 စစ်သဖြင့် **စာတန်း လုံးဝ မပါသော ဗီဒီယို** — review → approve လမ်းကြောင်း short-916 job တိုင်း
+- `fix` က `text` ကိုပဲ ပြောင်း · `words` မပြောင်း ⇒ word pop မှာ user ✓ ပြင်ချက် **မပေါ်**
+- ပြင်ချက်:
+  1. API (approve · reedit) — စာကြောင်း မပြောင်းလျှင် မူရင်း `words` ဆက်ထည့်
+  2. worker — `fix` ရှိလျှင် `scriptfix.retext()` နဲ့ `words` ရဲ့ စာသားကို fix အတိုင်း (အချိန် မပြောင်း)
+  3. worker — word pop / speech timing ကတ် ၀ ⇒ ဝါကျ အချိန် စာတန်းသို့ ပြန်ကျ (စာတန်း မပျောက်စေ)
+- စစ်ချက် (render မပါ · worker လမ်း simulate): fix ပါ ⇒ ကတ် 115 · 「Takadanobaba」 ကတ်ပေါ် ✓ · words မပါ ⇒ ကတ် 0 (ယခင်) → fallback
+- ⚠️ render အပြည့်နဲ့ မစစ်ရသေး (TH ရဲ့ A/B render တွေ ပြေးနေလို့) · deploy မလုပ်ရသေး

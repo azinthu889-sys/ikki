@@ -69,3 +69,24 @@ class AutoFix(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Retext(unittest.TestCase):
+    """a user fix must reach the timed words (word-pop reads words, not text)"""
+
+    def test_fix_text_lands_in_words_with_times_kept(self):
+        ws = [dict(w="ကျောင်းက", s=1.0, e=1.4), dict(w="သက္ခာလာနိုဘာဘာ", s=1.4, e=2.2),
+              dict(w="အနီးနားမှာ", s=2.2, e=2.8)]
+        out = SF.retext(ws, "ကျောင်းက Takadanobaba အနီးနားမှာ")
+        self.assertEqual([w["w"] for w in out], ["ကျောင်းက", "Takadanobaba", "အနီးနားမှာ"])
+        self.assertEqual([(w["s"], w["e"]) for w in out], [(1.0, 1.4), (1.4, 2.2), (2.2, 2.8)])
+
+    def test_list_shaped_words_stay_lists(self):
+        out = SF.retext([["က", 0.0, 0.3], ["ခ", 0.3, 0.6]], "က ဂ")
+        self.assertEqual(out, [["က", 0.0, 0.3], ["ဂ", 0.3, 0.6]])
+
+    def test_a_word_emptied_by_the_fix_gives_its_time_away(self):
+        ws = [dict(w="Tokutei", s=0.0, e=0.5), dict(w="program", s=0.5, e=1.0), dict(w="တွေနဲ့", s=1.0, e=1.4)]
+        out = SF.retext(ws, "Tokutei programနဲ့")
+        self.assertEqual(out[-1]["e"], 1.4)                  # no time lost at the end
+        self.assertEqual("".join(w["w"] for w in out).replace(" ", ""), "Tokuteiprogramနဲ့")
