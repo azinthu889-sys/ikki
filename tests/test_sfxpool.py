@@ -192,6 +192,77 @@ def main():
     check("ကျော်သည့်ဟာတိုင်း တိုင်းချက် မှတ်ထားသည်",
           all(PL.MEASURED.get(k, {}).get("src") for k, _a, _b in meas), meas)
 
+    print("\n── ၁၁-ခ · MEASURED က BY_STYLE ကို **လွှမ်း**သည် ──")
+    # ⚠️ Zin ၂၀၂၆-၀၉-၂၈: 「`BY_STYLE["headtop"] = 1.5` က သေနေတဲ့ config
+    #    လား — MEASURED က လွှမ်းကြောင်း စမ်းသပ်ချက် ရှိလား?」 ⇒ **မရှိခဲ့**。
+    #    ၁၁ ရဲ့ စစ်ချက်က `over` စာရင်း **ဗလာ ဖြစ်လျှင်လည်း အောင်**သဖြင့်
+    #    လွှမ်းမလွှမ်း ကို မသက်သေပြပါ (ကိန်း မတိုင်းရဘဲ ✓ ပြသော ပုံစံ)。
+    ms, bs = PL.MEASURED.get("headtop") or {}, PL.BY_STYLE.get("headtop") or {}
+    check("headtop က ၂ ဖိုင်လုံးမှာ ရှိ", bool(ms) and bool(bs), (ms, bs))
+    # ⚠️ ၂ ခု **တူညီသွားလျှင် ဤစမ်းသပ်ချက် အလကား** ဖြစ်မည် ⇒ အရင် စစ်သည်
+    check("၂ ခုရဲ့ per_min **မတူ** (မတူမှ လွှမ်းမှု တိုင်းနိုင်)",
+          float(ms.get("per_min", 0)) != float(bs.get("per_min", 0)),
+          (ms.get("per_min"), bs.get("per_min")))
+    pol = PL.policy("zae", "headtop")
+    check("policy() က MEASURED per_min ပြန်သည်",
+          abs(pol["per_min"] - float(ms["per_min"])) < 1e-9, pol["per_min"])
+    check("policy() က BY_STYLE per_min **မပြန်**",
+          abs(pol["per_min"] - float(bs["per_min"])) > 1e-9, pol["per_min"])
+    check("policy() က MEASURED gap ပြန်သည်",
+          abs(pol["gap"] - float(ms["gap"])) < 1e-9, pol["gap"])
+    check("measured အလံ True", pol.get("measured") is True, pol.get("measured"))
+    check("src က MEASURED ရဲ့ src", pol["src"] == ms["src"], pol["src"][:40])
+    # ⚠️ လွှမ်းမှုက **key အလိုက်** ဖြစ်ရမည် — `layer` က BY_STYLE ကနေ ဆဲ
+    #    (MEASURED ထဲ `layer` မရှိ) ⇒ dict လုံးလုံး အစားထိုးလျှင် ဒါ ကျမည်
+    check("layer က BY_STYLE ကနေ ဆဲ",
+          abs(pol["layer"] - float(bs.get("layer") or 0)) < 1e-9, pol["layer"])
+    # ⚠️ MEASURED စာရင်းက ထွက်လျှင် BY_STYLE က **အောက်ခံ** ဖြစ်ရမည် ⇒
+    #    ၁.၅ ကို ဖျက်ထားလို့ မရ (comment မှာ ရေးထားသည်)
+    _keep = PL.MEASURED.pop("headtop")
+    try:
+        fb = PL.policy("zae", "headtop")
+    finally:
+        PL.MEASURED["headtop"] = _keep
+    check("MEASURED မရှိလျှင် BY_STYLE ၁.၅ ပြန်ဆင်း",
+          abs(fb["per_min"] - float(bs["per_min"])) < 1e-9
+          and fb.get("measured") is False, (fb["per_min"], fb.get("measured")))
+    check("policy() ပြန်ကောင်း (restore)",
+          abs(PL.policy("zae", "headtop")["per_min"]
+              - float(ms["per_min"])) < 1e-9, None)
+    # ⚠️ **တူညီသော ယန္တရား** — recipe ရဲ့ `sfx_per_min` ကိုလည် လွှမ်းသည် ⇒
+    #    MEASURED style မှာ recipe ကနေ per_min ပို့လို့ **မရ**。
+    #    (ဒါကို မသိဘဲ 「7.4 ထည့်ပြီး ပြေး」 လုပ်လျှင် ၆.၀ ထွက်မည်)
+    r1 = PL.for_recipe(dict(_id="headtop", theme="zae", sfx_per_min=7.4))
+    check("MEASURED style က recipe sfx_per_min ကို လျစ်လျူ",
+          abs(r1["per_min"] - float(ms["per_min"])) < 1e-9, r1["per_min"])
+    r2 = PL.for_recipe(dict(_id="short-biz", theme="zae", sfx_per_min=0.7))
+    check("မတိုင်းရသေးသော style က recipe sfx_per_min ကို နာခံ",
+          abs(r2["per_min"] - 0.7) < 1e-9, r2["per_min"])
+    # ⚠️ စမ်းသပ်ချက် env — band အတွင်း တန်ဖိုးကိုသာ လက်ခံရမည်
+    import os as _os
+    _old = _os.environ.get("IKKI_SFX_PERMIN")
+    try:
+        _os.environ["IKKI_SFX_PERMIN"] = "7.4"
+        e1 = PL.policy("zae", "headtop")
+        _os.environ["IKKI_SFX_PERMIN"] = "99"
+        e2 = PL.policy("zae", "headtop")
+        _os.environ["IKKI_SFX_PERMIN"] = "abc"
+        e3 = PL.policy("zae", "headtop")
+    finally:
+        if _old is None:
+            _os.environ.pop("IKKI_SFX_PERMIN", None)
+        else:
+            _os.environ["IKKI_SFX_PERMIN"] = _old
+    check("env 7.4 ဝင်သည်", abs(e1["per_min"] - 7.4) < 1e-9, e1["per_min"])
+    check("env က src မှာ မှတ်ထားသည်", "IKKI_SFX_PERMIN" in e1["src"], e1["src"][:40])
+    check("env 99 ကို ပယ်သည်",
+          abs(e2["per_min"] - float(ms["per_min"])) < 1e-9, e2["per_min"])
+    check("env အမှား (abc) ကို ပယ်သည်",
+          abs(e3["per_min"] - float(ms["per_min"])) < 1e-9, e3["per_min"])
+    check("env မရှိလျှင် ၆.၀ ပြန်",
+          abs(PL.policy("zae", "headtop")["per_min"]
+              - float(ms["per_min"])) < 1e-9, None)
+
     print("\n── ၁၂ · အောက်ခြေ ၆၀s (တိုသော ဗီဒီယိုမှာ အသံ ရရမည်) ──")
     # ⚠️ အရင်က ၄၀s အောက် ဗီဒီယိုတိုင်းမှာ **သုည သာ** ဂိတ် ဖြတ်နိုင်ခဲ့သည်
     p = PL.policy("zae", "headtop")

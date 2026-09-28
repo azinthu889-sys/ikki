@@ -5701,7 +5701,8 @@ def push_index(force=False):
 #       b) /api/health: another worker polled within 1.5 x POLL, twice,
 #          2 x POLL + 3 s apart (other hosts; a just-killed predecessor's
 #          last poll ages out between the two reads).
-TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS", "IKKI_GFX_ROTATE")
+TEST_ONLY_ENV = ("IKKI_SEED", "IKKI_GFX_ALIAS", "IKKI_GFX_ROTATE",
+                 "IKKI_SFX_PERMIN", "IKKI_SFX_PERMIN_OFF")
 LOCK = os.environ.get("IKKI_LOCK") or os.path.expanduser("~/.ikki/worker.lock")
 _LOCK_FD = None
 

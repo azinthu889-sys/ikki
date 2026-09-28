@@ -27,8 +27,16 @@ BY_STYLE = {
     #    ဂိတ်က ၁.၅ ⇒ `clamp()` က ၁.၅ ဖြစ်စေမည်。 **ဂိတ်ကို မလျှော့ရ** ⇒
     #    ပိုထည့်ချင်လျှင် ဂိတ်ကို မဟုတ်ဘဲ **ဖြစ်ရပ် တစ်ခုတည်း၏ အထပ်** အဖြစ်
     #    ဆောက်ရမည် (layer — QC က အထပ်ကို တစ်ခုလို့ ရေတွက်သည်)。
+    # ⚠️ **ဤ ၁.၅ က မသုံးတော့ပါ** — `clamp()` က `MEASURED["headtop"]`
+    #    (၆.၀/min · အကွာ ၂.၀s) နဲ့ **အစားထိုး**သည် ⇒ `policy("zae","headtop")`
+    #    က ၆.၀ ပြန်သည်。 ဤအထဲက `layer` ၀.၆၀ သာ အသက်ဝင်သည်。
+    #    ⚠️ **ဖျက်မထားရ** — `POLICY["zae"]` က theme အဆင့် ၁.၅ ကို
+    #      သတ်မှတ်ဆဲ ဖြစ်၍ headtop က MEASURED စာရင်းက ထွက်လျှင်
+    #      ဤတန်ဖိုးက အောက်ခံ ဖြစ်ရမည် (တိုင်းချက် ပျောက်လျှင် ဂိတ် ပြန်တင်း)。
+    #    စမ်းသပ်ချက် — `tests/test_sfxpool.py` ၁၁-ခ。
     "headtop":   dict(per_min=1.5, gap=8.0, layer=0.60,
-                      src="ဂိတ် ၁.၅ — reference ၄–၈/min ကို layer နဲ့ ဖြေရမည်"),
+                      src="ဂိတ် ၁.၅ (အောက်ခံသာ · MEASURED ၆.၀ က လွှမ်းသည်) "
+                          "— reference ၄–၈/min ကို layer နဲ့ ဖြေရမည်"),
 }
 DEF = dict(per_min=1.5, gap=8.0, layer=0.60, bright_floor=0,
            src="ပုံသေ — qc ဂိတ်နဲ့ တူ")
@@ -127,6 +135,28 @@ def clamp(p, style=None):
         q["gap"] = float(m["gap"])
         q["src"] = m["src"]
         q["measured"] = True
+        # ⚠️ **စမ်းသပ်ချက် အတွက်သာ** — Zin ၂၀၂၆-၀၉-၂၈: 「band ရဲ့ အလယ်
+        #    ~၇.၄/min ဗားရှင်း တစ်ခု ထုတ်ပြီး နားနဲ့ ဆုံးဖြတ်မယ်」。
+        #    ⚠️ `for_recipe()` ကနေ `sfx_per_min=7.4` ပို့လျှင် **မရပါ** —
+        #      အပေါ် ၃ လိုင်းက MEASURED နဲ့ အစားထိုးပြီးသား ဖြစ်သည် ⇒
+        #      env ကနေသာ ဝင်ရသည်。
+        #    ⚠️ ဤ env က **ဂိတ် လျှော့တာ မဟုတ်** — generator ရော `qc` ရော
+        #      တူညီသော `clamp()` ကနေ ယူသဖြင့် ၂ ခုလုံး တစ်ပြိုင်နက် တက်သည်
+        #      (ရင်းမြစ် တစ်ခုတည်း ဆိုသည့် ဤဖိုင်၏ ရည်ရွယ်ချက်)。
+        #    ⚠️ `worker.TEST_ONLY_ENV` ထဲ ရှိသဖြင့် production မှာ ငြင်းသည်。
+        import os as _os
+        _ev = (_os.environ.get("IKKI_SFX_PERMIN") or "").strip()
+        if _ev:
+            try:
+                _pv = float(_ev)
+            except ValueError:
+                _pv = 0.0
+            if 0.0 < _pv <= 12.0:
+                q["per_min"] = _pv
+                q["src"] = (f"⚠️ စမ်းသပ်ချက် env IKKI_SFX_PERMIN={_pv:g} "
+                            f"(တိုင်းချက် {m['per_min']:g} ကို ဖယ်ထား) · "
+                            + str(m["src"]))
+                q["permin_env"] = _pv
     else:
         # ⚠️ မတိုင်းရသေးသော profile — **ပုံသေ ဂိတ်ကို မကျော်ရ**
         q["per_min"] = min(float(q["per_min"]), c["per_min"])
