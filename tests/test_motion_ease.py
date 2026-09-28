@@ -15,7 +15,7 @@
    ease ကျသည် (case ②) ⇒ din ရှည်ရမည် · clamp က `dur*0.55`。
 ⚠️ ffmpeg/PIL/numpy မရှိလျှင် ကျော်သည်။
 """
-import os, shutil, subprocess, sys, tempfile
+import os, shutil, subprocess, sys, tempfile, time
 
 _R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_R, "core"))
@@ -89,6 +89,40 @@ ck("QC က clip .mov ကို တိုင်းကြောင်း", "[x[1] 
 
 print("\n── ③ တကယ် render ပြီး ဂိတ်နဲ့ တိုင်း ──")
 print(f"     ဂိတ် — ဝင် {MM.ENTER_BAND} · ထွက် {MM.EXIT_BAND} · ease ≥{MM.EASE_MIN}")
+# ⚠️ ရလဒ်ကို **ဖိုင်ထဲ ဆက်မှတ်**သည် — run တစ်ခုတည်းရဲ့ ✓/✗ က အနား
+#    ကျုံ့လာတာကို မပြပါ。 ffmpeg ဗားရှင်းပါ မှတ်ရမည် (Linux VM မှာ ကျပြီး
+#    Mac မှာ အောင်ခဲ့ခြင်းက ဗားရှင်း ကွာ၍ ဖြစ်သည် — ၂၀၂၆-၀၉-၂၈)。
+_LOG = []
+_LOGF = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                     "..", "reports", "motion_ease_log.jsonl")
+
+
+def _ffver():
+    try:
+        r = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+        return (r.stdout or "").splitlines()[0][:80]
+    except Exception as e:
+        return f"{type(e).__name__}"
+
+
+def _write_log():
+    if not _LOG:
+        return
+    import json
+    import platform
+    rec = dict(ts=time.strftime("%Y-%m-%dT%H:%M:%S"), host=platform.system(),
+               ffmpeg=_ffver(), gate=MM.EASE_MIN, cases=_LOG,
+               min_margin_pct=min(c["margin_pct"] for c in _LOG))
+    try:
+        os.makedirs(os.path.dirname(_LOGF), exist_ok=True)
+        with open(_LOGF, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        print(f"\n  📈 အနား အနည်းဆုံး {rec['min_margin_pct']:+.1f}% "
+              f"⇒ {os.path.relpath(_LOGF)}")
+    except OSError as e:
+        print(f"  ⚠️ log မရေးရ: {e}")
+
+
 _d = tempfile.mkdtemp(prefix="ikki_ease_")
 try:
     CASES = [("ramp3", 3.2, 3, "ramp တို (၃ ဖရိမ်း)"),
@@ -109,7 +143,16 @@ try:
         ein = MM.ENTER_BAND[0] <= (m["in_s"] or 0) <= MM.ENTER_BAND[1]
         eo = MM.EXIT_BAND[0] <= (m["out_s"] or 0) <= MM.EXIT_BAND[1]
         ez = (m["ease"] or 0) >= MM.EASE_MIN
-        print(f"     {label}: ဝင် {m['in_s']} · ထွက် {m['out_s']} · ease {m['ease']}")
+        # ⚠️ **အနား ကို ကိန်းနဲ့ မှတ်ရမည်** (Zin ၂၀၂၆-၀၉-၂၈)。 clip ၁.၆s က
+        #    ease ၀.၃၀၆ ⇒ ဂိတ် ၀.၃၀ ထက် **၂% သာ** ကျန်သည် ⇒ ffmpeg ဗားရှင်း
+        #    ပြောင်းရင် · clip အရှည် နည်းနည်း ကွာရင် လွဲမည်。 ကျမှ သိတာထက်
+        #    အနား ကျုံ့လာတာကို **ကြိုမြင်ရ**မည် ⇒ run တိုင်း log ထဲ ထည့်သည်。
+        _mg = ((m["ease"] or 0) - MM.EASE_MIN) / MM.EASE_MIN * 100.0
+        _LOG.append(dict(case=nm, dur=dur, ramp=ramp, ease=m["ease"],
+                         gate=MM.EASE_MIN, margin_pct=round(_mg, 1),
+                         in_s=m["in_s"], out_s=m["out_s"], ok=bool(ez)))
+        print(f"     {label}: ဝင် {m['in_s']} · ထွက် {m['out_s']} · "
+              f"ease {m['ease']} (ဂိတ် {MM.EASE_MIN} · အနား {_mg:+.1f}%)")
         ck(f"{label} — ဝင်ချိန် ဘောင်ထဲ", ein, m["in_s"])
         ck(f"{label} — ထွက်ချိန် ဘောင်ထဲ", eo, m["out_s"])
         ck(f"{label} — ease ≥ {MM.EASE_MIN}", ez, m["ease"])
@@ -122,6 +165,7 @@ try:
     ck("မူရင်း ease မလုံလောက်",
        (m0["ease"] or 0) < MM.EASE_MIN, m0["ease"])
 finally:
+    _write_log()
     shutil.rmtree(_d, ignore_errors=True)
 
 print(f"\n  ⇒ အောင် {OK} · ကျ {FAIL}")
