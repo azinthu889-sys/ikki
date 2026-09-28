@@ -389,14 +389,16 @@ R = {
     #   0.49->0.87 (Zin 1/2.mp4 0.90) · 22.5-28.5 s edge contrast 2.54->19.46 · y 0.760
     #   · face 1.6 % · ink bottom p95 1534 px. y sits ON the 0.76 bound: the band is
     #   bottom-anchored, so thicker ink lifts the centre -- see the pending y item.
-    cap_pct=0.042, cap_base=0.805, cap_max=0.833, cap_wide=0.72, cap_lines=1,
+    # cap_base 0.805 -> 0.807 (2026-09-28, word pop): y measured 0.759 -- 0.001 under the
+    #   0.76 gate; +4 px = +0.0021 H -> ~0.761 · ink bottom p95 1534 -> ~1538 (<= 1550).
+    cap_pct=0.042, cap_base=0.807, cap_max=0.833, cap_wide=0.72, cap_lines=1,
     cap_kw=0.33,                            # keyword colour ~1 caption in 3
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
     cap_by_word=True,                       # cut cards between words, time from word onsets
     cap_timing="word_pop", cap_pop=1.25,    # Zin 2026-09-28 "better": one word per card, on at the word, pop-in (r1)
     cam_moves=True,                         # r3: designed eased push-in/pull-out (replaces breathing zoom)
-    kin_title=True, kin_share=0.6,          # r3: keyword title as it is spoken, blur+fade 0.27 s
+    kin_title=True, kin_share=0.8, kin_gap=4.5,  # r3 ~7 titles/min; 0.6/6 s gave 3.9/min (2026-09-28)
     kin_size=0.078, kin_y=0.56,             # 150 px; chest band below the chin, above the caption
     # Zin 2026-09-26 "no background music": the upbeat bed measured -39.9 LUFS
     # against a -20.2 LUFS voice (-17 dB offset) and was then ducked 4:1 --
@@ -751,6 +753,7 @@ BOUNDS = dict(
  cam_moves=("bool",),
  kin_title=("bool",),
  kin_share=("float", 0.1, 1.0),
+ kin_gap=("float", 2.0, 20.0),
  kin_size=("float", 0.03, 0.12),
  kin_y=("float", 0.40, 0.72),
  # music bed: target loudness of the bed itself, and duck ratio under speech

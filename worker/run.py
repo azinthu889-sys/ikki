@@ -3139,7 +3139,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _kcaps[_i]["kw"] = _w
             _kav = [(at, at + d) for at, _m, d, _y0, _y1 in (gmov or [])] \
                  + [(a, b) for _p, a, b, _l in (slides or [])]
-            _kg = KT.groups(_kcaps, _kav, float(sum(b - a for a, b in spans)))
+            _kg = KT.groups(_kcaps, _kav, float(sum(b - a for a, b in spans)),
+                            gap=float(rc.get("kin_gap") or 6.0))
             if _kg:
                 _kr = KT.render(_kg, os.path.join(work, "kt.mov"), os.path.join(work, "kt"),
                                 TH["W"], TH["H"], int(TH["H"] * float(rc.get("kin_size") or 0.078)),
