@@ -20,7 +20,7 @@ class WordPop(unittest.TestCase):
         self.db = np.zeros(300); self.db[int(1.56 / 0.02)] = -40      # a syllable dip near 1.56 s
 
     def cards(self):
-        return CP.word_pop_cards([cap(self.ws)], self.runs, self.db, 40, 2000, MW, None)
+        return CP.word_pop_cards([cap(self.ws)], self.runs, self.db, 40, 2000, MW, None, min_read=0.0)
 
     def test_one_word_per_card_text_whole(self):
         c = self.cards()
@@ -60,6 +60,29 @@ class ChunkWord(unittest.TestCase):
 
     def test_short_word_is_one_chunk(self):
         self.assertEqual(len(CP.chunk_word("ဂျပန်", 80, 778, MW, None)), 1)
+
+
+class Readable(unittest.TestCase):
+    """cards shorter than min_read join the next word (Zin: "a little too fast")"""
+
+    def test_short_cards_join_next_word_on_time_kept(self):
+        ws = [("က", 1.00, 1.18), ("ခ", 1.20, 1.38), ("ဂ", 1.40, 2.20)]
+        c = CP.word_pop_cards([cap(ws)], [(1.0, 2.2)], np.zeros(200), 40, 2000, MW, None)
+        self.assertTrue(all(x["b"] - x["a"] >= 0.40 - 1e-6 for x in c))
+        self.assertEqual(c[0]["a"], 1.0)                         # still on at the first word
+        self.assertEqual(" ".join(x["lines"][0] for x in c), "က ခ ဂ")
+
+    def test_never_joins_across_a_silence(self):
+        ws = [("က", 1.00, 1.20), ("ခ", 2.00, 2.60)]
+        c = CP.word_pop_cards([cap(ws)], [(1.0, 1.25), (2.0, 2.6)], np.zeros(200), 40, 2000, MW, None)
+        self.assertEqual([x["lines"][0] for x in c], ["က", "ခ"])
+
+    def test_join_may_shrink_to_the_floor_but_not_below(self):
+        ws = [("ကက", 1.00, 1.18), ("ခခ", 1.20, 2.20)]            # joined: 5 chars -> 100 px at 40
+        c = CP.word_pop_cards([cap(ws)], [(1.0, 2.2)], np.zeros(200), 40, 95, MW, None)
+        self.assertEqual([(x["lines"][0], x["sz"]) for x in c], [("ကက ခခ", 38)])
+        c = CP.word_pop_cards([cap(ws)], [(1.0, 2.2)], np.zeros(200), 40, 75, MW, None)
+        self.assertEqual([x["lines"][0] for x in c], ["ကက", "ခခ"])   # would need 30 px < 36
 
 
 if __name__ == "__main__":

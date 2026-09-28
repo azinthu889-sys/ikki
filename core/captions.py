@@ -438,7 +438,8 @@ def chunk_word(txt, size, maxw, MW, font):
         else: chunks.append(u)
     return [(c, max(1, len(syllables(c)))) for c in chunks]
 
-def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, min_card=0.15):
+def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, min_card=0.15,
+                   min_read=0.40, read_floor=0.90):
     """One card per ASR word, like the references (r1/r3: one word per card,
     2.3 cards/s, the card is always the word being said now). Zin 2026-09-28:
     "the subtitle must be exactly on the voice".
@@ -503,7 +504,39 @@ def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, 
                 en = pieces[pi + 1][1] if pi + 1 < len(pieces) else off
                 sz = size
                 while MW(ct, sz, font) > maxw and sz > int(size * 0.6): sz -= 3
-                cards.append(dict(lines=[ct], a=round(st, 3), b=round(en, 3), sz=sz, kw=kw))
+                cards.append(dict(lines=[ct], a=round(st, 3), b=round(en, 3), sz=sz, kw=kw, _run=ra))
+    # readability (Zin 2026-09-28 "a little too fast"): 37 % of cards were up
+    # < 0.35 s. A card shorter than `min_read` joins the NEXT word of the same
+    # run (on-time stays the first word's -> still on the voice) while the line
+    # fits; else the previous card. Never across a silence.
+    i = 0
+    while i < len(cards):
+        c = cards[i]
+        if c["b"] - c["a"] >= min_read - 1e-6: i += 1; continue
+        nx = cards[i + 1] if i + 1 < len(cards) and cards[i + 1]["_run"] == c["_run"] else None
+        pv = cards[i - 1] if i > 0 and cards[i - 1]["_run"] == c["_run"] else None
+        # MyanmarBlack 80 px is wide: two words overflow 778 px in 21 of the 24
+        # blocked joins (insp render). A joined card may shrink to `read_floor`
+        # of the base size (80 -> 72: resolves 8 of them); below that the size
+        # jump between cards shows, so the short card stays.
+        def fits(t, sz):
+            lo = int(size * read_floor)
+            while sz >= lo:
+                if MW(t, sz, font) <= maxw: return sz
+                sz -= 2
+            return None
+        s2 = nx is not None and fits(c["lines"][0] + " " + nx["lines"][0], min(c["sz"], nx["sz"]))
+        if s2:
+            cards[i] = dict(lines=[c["lines"][0] + " " + nx["lines"][0]], a=c["a"], b=nx["b"],
+                            sz=s2, kw=sorted(set(c["kw"]) | set(nx["kw"])), _run=c["_run"])
+            del cards[i + 1]; continue                       # re-check the joined card
+        s2 = pv is not None and fits(pv["lines"][0] + " " + c["lines"][0], min(c["sz"], pv["sz"]))
+        if s2:
+            cards[i - 1] = dict(lines=[pv["lines"][0] + " " + c["lines"][0]], a=pv["a"], b=c["b"],
+                                sz=s2, kw=sorted(set(c["kw"]) | set(pv["kw"])), _run=c["_run"])
+            del cards[i]; i = max(0, i - 1); continue
+        i += 1
+    for c in cards: c.pop("_run", None)
     return cards
 
 def plan(segs, spans, max_lines=2):

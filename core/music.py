@@ -66,6 +66,17 @@ EXCLUDE = {"zae": ("ZAE_house_bed",)}
 #    Four tracks, rotated by seed: the same job always gets the same bed, and
 #    different videos differ. Remove the entry to open the full 124-track pool.
 PIN = {"zae": ("mk:corporate/CORP-022_78s.m4a",)}
+# WARN "inspiration" is a **curated** genre, not a bank folder (Zin 2026-09-28,
+#    short-916: "Background Music ကို Insperation အမျိုးအစားကိုသုံးပေးပါ").
+#    The bank has no mood tags; the four below are the tracks whose freesound
+#    titles say so (motionkit `found.json`, file index = list index + 1,
+#    confirmed by duration): CORP-022 "Overlook (uplifting ambient loop)" --
+#    the bed Zin already chose for ZAE -- CORP-046 / CORP-049 "Inspirational
+#    Loop", EPIC-010 "Triumphant". All four have a measured loop seam.
+# WARN the `found.json` query "inspiring loop" is **not** a label: it returned
+#    doom-metal drums and drones too, so only titles were trusted.
+CURATED = {"inspiration": ("mk:corporate/CORP-022_78s.m4a", "mk:corporate/CORP-046_72s.m4a",
+                           "mk:corporate/CORP-049_59s.m4a", "mk:epic/EPIC-010_121s.m4a")}
 # WARN **the first swap was picked on the wrong criterion and Zin rejected it**
 #    ("BG music ကလုံး၀အဆင်မပြေပါဘူး"). I had ranked candidates by *low
 #    transient density*, which only says "leaves room for the cues" -- it says
@@ -254,7 +265,10 @@ def pool(genre):
         # ⚠️ bank item တွေမှာ `genres` ရှိသည် — **အမည် အပိုင်းအစ နဲ့ မတိုက်ရ**
         #    (ဖိုင်အမည်တွေက `FOLK-013_32s.m4a` ပုံစံ ဖြစ်၍ `Blippy` စသည်နဲ့
         #    ဘယ်တော့မှ မကိုက်ပါ ⇒ ၅၁၁ ပုဒ်လုံး ကျန်ခဲ့မည်)。
-        if x.get("genres"):
+        if genre in CURATED:
+            if tid not in CURATED[genre]:
+                continue
+        elif x.get("genres"):
             if genre not in x["genres"]:
                 continue
         elif want and not any(w in tid.lower() for w in want):

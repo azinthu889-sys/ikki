@@ -418,7 +418,7 @@ R = {
     #   strict = LLM-matched clips only (headtop / ref-talk already do this).
     broll_strict=True,
     zoom_amt=0.08,
-    music="upbeat", lufs=-14.0, sfx=True, sfx_per_min=1.5,
+    music="inspiration", lufs=-14.0, sfx=True, sfx_per_min=1.5,   # Zin 2026-09-28
     natural=True),
  "promotional": dict(label="Promotional", theme="zae", fps=30,
     keep_pause=0.22, min_sil=0.40, captions="big", gfx=8, music="corporate",
