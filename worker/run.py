@@ -3157,10 +3157,24 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ⚠️ ဖြတ်ပြီးနောက် အချိန် ရွှေ့သွားသဖြင့် caps (remap ပြီးသား) ကို
     #    အခြေခံရမည် — မူရင်း segs ကို မသုံးရ。
     bmov = []
+    _brec = []          # B-roll တွဲမှု မှတ်တမ်း (match လမ်း ရော fill လမ်း ရော)
     nb = int(rc.get("broll") or 0)
     if nb and caps:
         try:
             hits = BR.match(caps, nb, log=log, strict=bool(rc.get("broll_strict")))
+            # ══ B-roll တွဲမှုကို **တိုင်းရမည်** ═══════════════════════════
+            # ⚠️ ၂၀၂၆-၀၉-၂၈ — report မှာ `broll_n` · `broll_want` · `broll_ok` ·
+            #    `broll_share` · `broll_pct` သာ ရှိပြီး **clip တစ်ခုချင်းရဲ့
+            #    match score / tag / ဘယ် စာကြောင်းနဲ့ တွဲလဲ မမှတ်ထား**ပါ。
+            #    ⇒ 「ရုပ်က ဇာတ်လမ်းနဲ့ မဆိုင်」 ဆိုတာ **တိုင်းလို့ မရ** ⇒ ဂိတ်
+            #      မထားနိုင် ⇒ ပြင်လည် ပြေမပြေ မသိရ。
+            #    (short-916 ရဲ့ frame review: headset လူ · ကင်မရာသမား ·
+            #     hijab အမျိုးသမီး · 「A = b×h/2」 ကျောင်း — Tokutei ဗီဇာ
+            #     ဇာတ်လမ်းအတွက် မဆိုင်ပါ)。
+            # ⚠️ ဒီည ရှာတွေ့ချက် ပုံစံ အတိုင်း — **တိုင်းချက် အရင်** ·
+            #    ဂိတ် နောက်မှ (`sfx_silent` field ရှိလို့ 「တိတ်တာ မရှိ」 ကို
+            #    ချက်ချင်း သိခဲ့သလို)。
+            _brec = []
             for si, clip, sc in hits:
                 c = caps[si]
                 # ⚠️ အရှည်ကို recipe က ကန့်သတ် — ၃.၂s ပုံသေက ZAE အတွက်
@@ -3172,6 +3186,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 BR.prep(clip, TH["W"], TH["H"], d, bp, fps=rc["fps"], whip=bool(rc.get("broll_whip")))
                 bmov.append((round(c["start"],2), bp, round(d,2),
                              " · ".join(clip.get("my") or [])[:28]))
+                _brec.append(dict(
+                    at=round(c["start"], 2), dur=round(d, 2),
+                    score=(round(float(sc), 3) if isinstance(sc, (int, float))
+                           else sc),
+                    clip=str(clip.get("id") or clip.get("file")
+                             or clip.get("path") or "")[-60:],
+                    tags=(clip.get("my") or clip.get("tags") or [])[:6],
+                    en=(clip.get("en") or [])[:4],
+                    text=str(c.get("text") or "")[:70], source="match",
+                    strict=bool(rc.get("broll_strict")), kept=None))
             bmov.sort(key=lambda x: x[0])
             # ⚠️ ထပ်နေတာ မရှိစေရ — နောက်ဟာက ရှေ့ဟာ ပြီးမှ စရမည်
             # ⚠️ **ပွင့်ချင်း ၀.၈s ကို B-roll မဖုံးရ** — ပထမ စမ်းမှာ ၀.၀၀s မှ
@@ -3261,6 +3285,25 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         pi += 1; continue
                     bmov.append((round(t, 2), bp, round(d, 2),
                                  " · ".join(pool[pi].get("my") or [])[:28]))
+                    # ⚠️ **ဒီလမ်းက match score မရှိပါ** — `BR.load()` ရဲ့ clip
+                    #    အားလုံးကနေ **ကျပန်း shuffle** ပြီး budget ပြည့်အောင်
+                    #    ဖြည့်တာ ဖြစ်သည် ⇒ ဇာတ်လမ်းနဲ့ တွဲစရာ မလိုပါ。
+                    #    ⇒ off-topic B-roll ရဲ့ **ဖြစ်နိုင်ခြေ အမြင့်ဆုံး
+                    #      အရင်းအမြစ်** ⇒ `source` နဲ့ ခွဲ မှတ်ရမည်、မဟုတ်လျှင်
+                    #      「match ကောင်းလား」 ဆိုတဲ့ ကိန်းက လိမ်မည်。
+                    try:
+                        _brec.append(dict(
+                            at=round(t, 2), dur=round(d, 2), score=None,
+                            source="budget_fill",
+                            clip=str(pool[pi].get("id") or pool[pi].get("file")
+                                     or pool[pi].get("path") or "")[-60:],
+                            tags=(pool[pi].get("my")
+                                  or pool[pi].get("tags") or [])[:6],
+                            en=(pool[pi].get("en") or [])[:4],
+                            text="", strict=bool(rc.get("broll_strict")),
+                            kept=True))
+                    except Exception:
+                        pass
                     occ = sorted(occ + [(t, t + d)])
                     spent += d; t += d + GAP; pi += 1; added += 1
                 bmov.sort(key=lambda x: x[0])
@@ -3270,6 +3313,42 @@ def render(job, brand, src, out, stage, log=print, over=None):
             if bmov: log(f"  B-roll စုစုပေါင်း {spent:.1f}s / ခွင့်ပြု {BUD:.1f}s")
             for at,_,d,tag in bmov: log(f"  B-roll {at:6.2f}s · {d:.1f}s · {tag}")
             log(f"  B-roll {len(bmov)} ခု တပ်ပြီး")
+            # ══ တွဲမှု မှတ်တမ်းကို **နောက်ဆုံးမှာ** ရေးသည် ═══════════════
+            # ⚠️ ယခင် `bmov = keep` နောက်မှာ ရေးခဲ့သဖြင့် **budget_fill လမ်းရဲ့
+            #    clip တွေ မပါ**ခဲ့ ⇒ 「match ကောင်းလား」 ကိန်းက လိမ်မည်
+            #    (off-topic ဖြစ်နိုင်ခြေ အမြင့်ဆုံး အရင်းအမြစ်က အဲဒီလမ်း)。
+            try:
+                _kept_at = {round(float(a), 2) for a, _b, _d, _t in bmov}
+                for _r in _brec:
+                    if _r.get("kept") is None:
+                        _r["kept"] = _r["at"] in _kept_at
+                REPORT["broll_clips"] = _brec
+                _m = [r for r in _brec if r.get("source") == "match"]
+                _f = [r for r in _brec if r.get("source") == "budget_fill"]
+                _sc = sorted(r["score"] for r in _m
+                             if isinstance(r.get("score"), (int, float)))
+                REPORT["broll_match_n"] = len(_m)
+                REPORT["broll_fill_n"] = len(_f)
+                REPORT["broll_strict"] = bool(rc.get("broll_strict"))
+                if _sc:
+                    REPORT["broll_score_min"] = _sc[0]
+                    REPORT["broll_score_med"] = _sc[len(_sc) // 2]
+                    REPORT["broll_score_max"] = _sc[-1]
+                log(f"  B-roll တွဲမှု · **match {len(_m)}** · "
+                    f"**ကျပန်း ဖြည့် {len(_f)}** · ကျန် "
+                    f"{sum(1 for r in _brec if r.get('kept'))}"
+                    + (f" · score min {_sc[0]:.2f} · med "
+                       f"{_sc[len(_sc)//2]:.2f} · max {_sc[-1]:.2f}"
+                       if _sc else " · score **မတိုင်းရ**")
+                    + (" · strict" if rc.get("broll_strict") else ""))
+                for _r in _brec[:8]:
+                    log(f"     {_r['at']:>6.1f}s {str(_r.get('score')):>6} "
+                        f"{'✓' if _r.get('kept') else '✗'} "
+                        f"[{_r.get('source','?')[:5]}] "
+                        f"{','.join(map(str, _r.get('tags') or []))[:30]}"
+                        f"  ← {str(_r.get('text') or '')[:30]}")
+            except Exception as _bre:
+                log(f"  ⚠️ B-roll တိုင်းချက် မရ: {type(_bre).__name__}: {_bre}")
         except Exception as e:
             log(f"  ⚠️ B-roll မရ: {e}"); bmov=[]
 
