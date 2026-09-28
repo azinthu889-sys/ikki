@@ -1634,7 +1634,51 @@ function scrMatch(){
   if(st) st.textContent = cur==='my'
     ? ('ကိုက်ညီ '+kept+' ကြောင်း · ဖျက်မှတ် '+cutn+' ကြောင်း။ စစ်ပြီးမှ အောက်က ခလုပ် နှိပ်ပါ။')
     : (kept+' matched · '+cutn+' marked for cutting. Check them, then use the button below.');
+  scrSpell(box.value);
 }
+
+// ══ Script စာလုံးပေါင်း အကြံပြု ═══════════════════════════════
+// ⚠️ **အကြံပြုရုံ · user ✓ နှိပ်မှ ပြောင်း** (Zin 2026-09-28)。 ASR က နာမည်/Latin
+//    စကားလုံး မှားကြားတတ်ပြီး script က စာလုံးပေါင်း မှန်တတ်သည် — ဒါပေမယ့် ပြောသူက
+//    script အတိုင်း တစ်လုံးချင်း မဖတ်ပါ (「Zin Apex」 ရေး · 「J-Path」 ပြော)。 ⇒ စက်က
+//    မဆုံးဖြတ် · ✓ နှိပ်ရင် စာကြောင်းထဲ အစားထိုးပြီး ပုံမှန် 「စာလုံး ပြင်」(fix) ဖြစ်သည်
+//    — အသံနဲ့ ဖြတ်မှတ် မထိ。
+function scrSpell(text){
+  [].forEach.call(document.querySelectorAll('#tx .sug'),function(x){ x.remove(); });
+  if(!state.jobid) return;
+  api('/script/'+state.jobid+'/spell',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text})}).then(function(d){
+    var L=d.suggest||[], st=$('scrst');
+    L.forEach(function(g,k){
+      var row=document.querySelector('#tx .row[data-i="'+g.i+'"]'); if(!row) return;
+      var el=document.createElement('div');
+      el.className='sug'; el.style.cssText='flex-basis:100%;font-size:12.5px;color:var(--tx2);margin:4px 0 2px 52px';
+      el.innerHTML=(cur==='my'?'Script: ':'Script: ')+'<s>'+esc(g.base)+'</s> → <b class="my">'+esc(g.new)+'</b> '
+        +'<button class="more" data-sugok="'+k+'" style="margin-left:6px">✓</button>'
+        +'<button class="more" data-sugno="'+k+'">✗</button>';
+      el._g=g; row.appendChild(el);
+    });
+    if(st && L.length) st.textContent += (cur==='my'
+      ? ' · စာလုံးပေါင်း အကြံပြု '+L.length+' ခု — အသံ နားထောင်ပြီး ✓ / ✗ ရွေးပါ (script အတိုင်း မပြောတဲ့ နေရာ ရှိနိုင်)'
+      : ' · '+L.length+' spelling suggestions — listen, then ✓ / ✗ (the speaker may not have read the script word for word)');
+  }).catch(function(){});
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target; if(!t || !t.getAttribute) return;
+  var ok=t.getAttribute('data-sugok'), no=t.getAttribute('data-sugno');
+  if(ok===null && no===null) return;
+  var box=t.closest('.sug'); if(!box) return;
+  if(ok!==null){
+    var g=box._g, row=box.closest('.row'), ed=row && row.querySelector('[data-ed]');
+    if(ed){
+      var cur_=ed.textContent||'';
+      if(cur_.indexOf(g.base)>-1) ed.textContent=cur_.replace(g.base,g.new);
+      else if(cur_.trim()===String(((state.segs||[])[g.i]||{}).text||'').trim()) ed.textContent=g.text;
+    }
+    if(typeof txstat==='function') txstat();
+  }
+  box.remove();
+});
 
 // ══ ပြန်စ (retake) review ═══════════════════════════════════
 // ⚠️ **စက်က မဖြတ်** — တစ်ခုချင်း လူ ဆုံးဖြတ်ပြီး server က မှတ်တမ်းတင်သည်。

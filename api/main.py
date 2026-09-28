@@ -3090,6 +3090,35 @@ async def script_source(jid: str, req: Request, authorization: str = Header(None
     return {"ok": True, "chars": len(t)}
 
 
+@app.post("/api/script/{jid}/spell")
+async def script_spell(jid: str, req: Request, authorization: str = Header(None)):
+    """Script-assisted spelling suggestions for the transcript editor (Zin 2026-09-28:
+    「Script ထည့်ပေးရင် Script နဲ့ပါ မှန်အောင် တိုက်နိုင်အောင်」)。 `{"text": "…"}`
+
+    ⚠️ **အကြံပြုရုံ** — user က တစ်ခုချင်း ✓ နှိပ်မှ စာကြောင်း ပြောင်းသည်。 ASR model
+       (flash-lite) က script ရဲ့ 「Zin Apex」 နဲ့ ပြောတဲ့ 「J-Path」 ကို နားနဲ့ မခွဲနိုင်
+       (တိုင်းပြီး) ⇒ အလိုအလျောက် မပြောင်းရ。 Gemini မခေါ် · စာသား ချိန်ညှိရုံ。
+    ⚠️ index `i` = `jobs.segs` (transcript editor ရဲ့ `state.segs` နဲ့ တူ)。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    b = await req.json()
+    t = (b.get("text") or "").strip()
+    if len(t) > 400000: raise HTTPException(400, "script ရှည်လွန်းသည်")
+    try: segs = json.loads(j.get("segs") or "[]")
+    except Exception: segs = []
+    # the worker's audio-checked mode reads the script from `over._script`
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    if t: over["_script"] = t
+    else: over.pop("_script", None)
+    db.run("UPDATE jobs SET over=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    if not t or not segs: return {"ok": True, "suggest": []}
+    import scriptfix as _SF
+    return {"ok": True, "suggest": _SF.suggest(segs, t)}
+
+
 # ⚠️ **Script Editor route များကို `app.mount("/")` ရှေ့မှာ ထားရမည်** —
 #    Starlette က route ကို **အစီအစဉ်အလိုက်** တိုက်သဖြင့် mount("/") နောက်မှာ
 #    ရှိသော route အားလုံး **မရောက်တော့ဘဲ 404** ဖြစ်သည် (၂၀၂၆-၀၉-၁၉ တကယ် ဖြစ်ခဲ့:

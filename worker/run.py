@@ -1229,6 +1229,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
                    f"ကိန်း {ASR.STAT.get('bias_s')}s ကို သုံးသည်")
                 + f" · snap {ASR.STAT.get('snapped','—')}/{ASR.STAT.get('reach','—')} ရနိုင်")
 
+    # ── script-assisted spelling, audio-checked (Zin 2026-09-28) ─────────────
+    # OFF by default: flash-lite could not tell the script's "Zin Apex" from the
+    # spoken "J-Path" (asked twice with A/B swapped it contradicted itself 7/13),
+    # so users get suggestions to accept in the transcript editor instead
+    # (`/api/script/{jid}/spell`). Turn this on only with a model that passes
+    # `reports/zae_short_asr_spelling_2026-09-28.md`: IKKI_SCRIPTFIX_AUTO=1 and
+    # IKKI_SCRIPTFIX_MODEL=<model>. Segments the user edited (`fix`) are skipped.
+    if over.get("_script") and os.environ.get("IKKI_SCRIPTFIX_AUTO") == "1":
+        try:
+            import scriptfix as SF
+            segs, REPORT["scriptfix"] = SF.fix(segs, over["_script"], wav, log=log,
+                                               model=os.environ.get("IKKI_SCRIPTFIX_MODEL") or None)
+        except Exception as _sfe:
+            log(f"  ⚠️ script စာလုံးပေါင်း မရ ({type(_sfe).__name__}: {_sfe}) — ASR စာသားအတိုင်း")
+
     # Source labels are metadata only.  The engine never assumes which Raw 1 /
     # Raw 2 attempt is better; the user sees it in the transcript and decides.
     if take_map:
