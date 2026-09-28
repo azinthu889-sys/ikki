@@ -621,7 +621,36 @@ def numbered_item(text):
     t = (text or "").strip()
     m = _NUM_MARK.match(t)
     if not m:
-        return None
+        # ⚠️⚠️ ASR က ဂဏန်းကို **စာလုံးနဲ့** ရေးတတ်သည် —「နံပါတ်တစ်」·
+        #    「နံပါတ်နှစ်」·「နံပါတ်သုံး」(၂၀၂၆-၀၉-၂၉ short-916 final4 —
+        #    ဤအတွက် lower3 ၀ ကြိမ် ဖြစ်ခဲ့သည်)。 `rail.py` မှာ `_MMW`
+        #    ရှိပြီးသား ⇒ **အဲဒါကိုပဲ သုံး**သည်、ဒုတိယ မိတ္တူ မဆောက်ရ。
+        # ⚠️ 「နှစ်」 က 「year」 လည် ဖြစ်နိုင်သည် — ဒါပေမဲ့ **「နံပါတ်」 ရဲ့
+        #    တိုက်ရိုက် နောက်** မှာ ဆိုလျှင် မဖြစ်နိုင် ⇒ ရှေ့ဆက် **မဖြစ်မနေ**
+        #    လိုသည် (ရှေ့ဆက် မပါဘဲ စာလုံး ဂဏန်းကို လက်မခံရ)。
+        try:
+            import rail as _RL
+        except ImportError:
+            try:
+                from core import rail as _RL
+            except ImportError:
+                _RL = None
+        if _RL is None or not getattr(_RL, "_MMW", None):
+            return None
+        m2 = re.match(r"^\s*(?:\u1014\u1036\u1015\u102B\u1010\u103A|"
+                      r"\u1021\u1019\u103E\u1010\u103A)\s*", t)
+        if not m2:
+            return None
+        rest2 = t[m2.end():]
+        w = next((k for k in sorted(_RL._MMW, key=len, reverse=True)
+                  if rest2.startswith(k)), None)
+        if not w:
+            return None
+        n2 = int(_RL._MMW[w])
+        body = rest2[len(w):].strip(" -\u2013:\u104B\u002E")
+        if not body or _ncl(body) < 2 or not (1 <= n2 <= 20):
+            return None
+        return ("%02d" % n2, _short(body, 30))
     rest = t[m.end():].strip(" -\u2013:\u104B")
     if not rest or _ncl(rest) < 2:
         return None
