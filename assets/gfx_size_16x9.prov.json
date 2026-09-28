@@ -1,0 +1,15 @@
+{
+ "writer": "/Users/zinthuaung/ikki/tools/gfxsize.py",
+ "argv": [
+  "--fmt=16:9",
+  "maps.connect_web",
+  "charts.gantt",
+  "callouts.numbered_pin"
+ ],
+ "ts": 1790576256.437418,
+ "when": "2026-09-28 15:17:36",
+ "n": 616,
+ "n_prev": 616,
+ "subset": true,
+ "pid": 70397
+}

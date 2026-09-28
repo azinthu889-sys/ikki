@@ -1,4103 +1,6250 @@
 [
  {
-  "id": "callouts.arc_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26747,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.arrow_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.27832,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.box_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24983,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.bracket_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.634,
-  "aa": 0.0,
-  "ink": 0.16327,
-  "why": ""
- },
- {
-  "id": "callouts.bubble_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23064,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.crosshair",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26121,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.curve_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26747,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.dash_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26988,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.line_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.27832,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.magnify_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26897,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.numbered_pin",
-  "category": "callout",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 3)"
- },
- {
-  "id": "callouts.pin_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23979,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.pulse_dot",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.27212,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.ribbon_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.22887,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.scan_box",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.6276,
-  "aa": 0.0,
-  "ink": 0.12999,
-  "why": ""
- },
- {
-  "id": "callouts.side_note",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26456,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.spot_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.94735,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.stack_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.276,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.tag_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.1802,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "callouts.underline_call",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.64,
-  "aa": 0.0,
-  "ink": 0.13245,
-  "why": ""
- },
- {
-  "id": "capt.box_hl",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.25358,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.fade_pair",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.08369,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.hl_phrase",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.17932,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.line_by_line",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07305,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.multi_line",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07194,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.one_word",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.08788,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.soft_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.13726,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.two_col",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.14776,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.underline_hl",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.16834,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "capt.word_swap",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.1864,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "charts.area_chart",
-  "category": "chart",
-  "ok": 0,
-  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
- },
- {
-  "id": "charts.battery",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6301,
-  "aa": 0.0,
-  "ink": 0.37408,
-  "why": ""
- },
- {
-  "id": "charts.bubble_chart",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6718,
-  "aa": 0.0,
-  "ink": 0.43184,
-  "why": ""
- },
- {
-  "id": "charts.column_chart",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6773,
-  "aa": 0.0,
-  "ink": 0.53273,
-  "why": ""
- },
- {
-  "id": "charts.gantt",
-  "category": "chart",
-  "ok": 0,
-  "why": "ValueError: not enough values to unpack (expected 3, got 2)"
- },
- {
-  "id": "charts.heat_grid",
-  "category": "chart",
-  "ok": 0,
-  "why": "TypeError: '<' not supported between instances of 'str' and 'float'"
- },
- {
-  "id": "charts.kpi_tiles",
-  "category": "chart",
-  "ok": 0,
-  "why": "ထွက်ချက် ဗလာ"
- },
- {
-  "id": "charts.line_chart",
-  "category": "chart",
-  "ok": 0,
-  "why": "TypeError: can't multiply sequence by non-int of type 'float'"
- },
- {
-  "id": "charts.matrix4",
-  "category": "chart",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.51102,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "charts.org_chart",
-  "category": "chart",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.43176,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "charts.pct_grid",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6301,
-  "aa": 0.0,
-  "ink": 0.5931,
-  "why": ""
- },
- {
-  "id": "charts.pie",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.5779,
-  "aa": 0.0,
-  "ink": 0.95868,
-  "why": ""
- },
- {
-  "id": "charts.ranking",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.5779,
-  "aa": 0.0,
-  "ink": 0.20199,
-  "why": ""
- },
- {
-  "id": "charts.scatter",
-  "category": "chart",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "charts.sparkline",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6301,
-  "aa": 0.0,
-  "ink": 0.42296,
-  "why": ""
- },
- {
-  "id": "charts.speedo",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6301,
-  "aa": 0.0,
-  "ink": 0.189,
-  "why": ""
- },
- {
-  "id": "charts.stacked_bar",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.5851,
-  "aa": 0.0,
-  "ink": 0.96811,
-  "why": ""
- },
- {
-  "id": "charts.thermometer",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6301,
-  "aa": 0.0,
-  "ink": 0.14693,
-  "why": ""
- },
- {
-  "id": "charts.venn2",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.676,
-  "aa": 0.0,
-  "ink": 0.63087,
-  "why": ""
- },
- {
-  "id": "charts.waterfall",
-  "category": "chart",
-  "ok": 1,
-  "diff": 0.6761,
-  "aa": 0.0,
-  "ink": 0.26471,
-  "why": ""
- },
- {
-  "id": "cine.font_card",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.14905,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "cine.font_reel",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23302,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "cine.letterbox",
-  "category": "typography",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "cine.title_stack",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07943,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "dash.avatar_row",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.1136,
-  "aa": 0.0,
-  "ink": 0.07649,
-  "why": ""
- },
- {
-  "id": "dash.bar_chart",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: unsupported operand type(s) for /: 'str' and 'str'"
- },
- {
-  "id": "dash.card_grid",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "dash.compare_bar",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: unsupported operand type(s) for /: 'str' and 'str'"
- },
- {
-  "id": "dash.donut",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.14899,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "dash.funnel",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "dash.kpi_card",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.2123,
-  "aa": 0.0,
-  "ink": 0.07753,
-  "why": ""
- },
- {
-  "id": "dash.line_chart",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: unsupported operand type(s) for -: 'str' and 'str'"
- },
- {
-  "id": "dash.progress_row",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.0345,
-  "aa": 0.0,
-  "ink": 0.26943,
-  "why": ""
- },
- {
-  "id": "dash.tile_pop",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "glitch.block_reveal",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.78347,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.echo_ghost",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26952,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.flicker_word",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23442,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.jitter_caps",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.22031,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.noise_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.25874,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.rgb_split",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.25627,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.scan_wipe",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.43871,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.slice_jump",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.21835,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.strike_red",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.2435,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "glitch.two_line_hit",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.17269,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "infogfx.arrow",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.82352,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "infogfx.bars",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.58,
-  "aa": 0.0,
-  "ink": 0.55896,
-  "why": ""
- },
- {
-  "id": "infogfx.big_number",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6577,
-  "aa": 0.0,
-  "ink": 0.87269,
-  "why": ""
- },
- {
-  "id": "infogfx.callout",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6312,
-  "aa": 0.0,
-  "ink": 0.99882,
-  "why": ""
- },
- {
-  "id": "infogfx.checklist",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.5726,
-  "aa": 0.0,
-  "ink": 0.06272,
-  "why": ""
- },
- {
-  "id": "infogfx.compare_bar",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: not enough values to unpack (expected 3, got 2)"
- },
- {
-  "id": "infogfx.counter",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.525,
-  "aa": 0.0,
-  "ink": 0.19684,
-  "why": ""
- },
- {
-  "id": "infogfx.donut",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: not enough values to unpack (expected 2, got 1)"
- },
- {
-  "id": "infogfx.funnel",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.5763,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "infogfx.gauge",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.5239,
-  "aa": 0.0,
-  "ink": 0.14224,
-  "why": ""
- },
- {
-  "id": "infogfx.grid",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "infogfx.pyramid",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6815,
-  "aa": 0.0,
-  "ink": 0.60809,
-  "why": ""
- },
- {
-  "id": "infogfx.quote",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6326,
-  "aa": 0.0,
-  "ink": 0.91577,
-  "why": ""
- },
- {
-  "id": "infogfx.radial",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "infogfx.ring",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6126,
-  "aa": 0.0,
-  "ink": 0.1878,
-  "why": ""
- },
- {
-  "id": "infogfx.stat_row",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "infogfx.steps",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.5818,
-  "aa": 0.0,
-  "ink": 0.11202,
-  "why": ""
- },
- {
-  "id": "infogfx.tag_cloud",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.46826,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "infogfx.timeline",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "infogfx.versus",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.9569,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "insert.insert_flow",
-  "category": "explainer",
-  "ok": 1,
-  "diff": 0.0253,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "insert.insert_label",
-  "category": "explainer",
-  "ok": 1,
-  "diff": 0.027,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "kin4.alt_side",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07402,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.corner_tag",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.16175,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.drop_words",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07396,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.huge_caps",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.2279,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.push_up",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.06908,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.rot_enter",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.08476,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.stack_mix",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07975,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.two_tone",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.1166,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.wide_track",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23758,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kin4.zoom_word",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.27639,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic.blur_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.7135,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.cascade",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5974,
-  "aa": 0.0,
-  "ink": 0.11394,
-  "why": ""
- },
- {
-  "id": "kinetic.count_up",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.2263,
-  "aa": 0.0,
-  "ink": 0.0466,
-  "why": ""
- },
- {
-  "id": "kinetic.drop_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6174,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.flicker",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5868,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.focus",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6299,
-  "aa": 0.0,
-  "ink": 0.1975,
-  "why": ""
- },
- {
-  "id": "kinetic.line_rise",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6319,
-  "aa": 0.0,
-  "ink": 0.0373,
-  "why": ""
- },
- {
-  "id": "kinetic.punch",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6696,
-  "aa": 0.0,
-  "ink": 0.45694,
-  "why": ""
- },
- {
-  "id": "kinetic.slide_alt",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5852,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.spotlight",
-  "category": "text",
-  "ok": 0,
-  "why": "TypeError: unsupported operand type(s) for -: 'float' and 'str'"
- },
- {
-  "id": "kinetic.stack",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6319,
-  "aa": 0.0,
-  "ink": 0.0373,
-  "why": ""
- },
- {
-  "id": "kinetic.swap",
-  "category": "text",
-  "ok": 0,
-  "why": "TypeError: swap() missing 1 required positional argument: 'words'"
- },
- {
-  "id": "kinetic.sweep",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.695,
-  "aa": 0.0,
-  "ink": 0.23673,
-  "why": ""
- },
- {
-  "id": "kinetic.tighten",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5809,
-  "aa": 0.0,
-  "ink": 0.10319,
-  "why": ""
- },
- {
-  "id": "kinetic.typewriter",
-  "category": "text",
-  "ok": 0,
-  "why": "TypeError: unsupported operand type(s) for -: 'list' and 'int'"
- },
- {
-  "id": "kinetic.underline",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.7495,
-  "aa": 0.0,
-  "ink": 0.15261,
-  "why": ""
- },
- {
-  "id": "kinetic.wave",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5915,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.wipe",
-  "category": "text",
-  "ok": 0,
-  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'work/kt/s1_full.png', "
- },
- {
-  "id": "kinetic.word_pop",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5851,
-  "aa": 0.0,
-  "ink": 0.10316,
-  "why": ""
- },
- {
-  "id": "kinetic.zoom_out",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.6045,
-  "aa": 0.0,
-  "ink": 0.06447,
-  "why": ""
- },
- {
-  "id": "kinetic2.blur_out",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.16819,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.box_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.13516,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.count_roll",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.37022,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.emphasis",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.1289,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.gravity",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.16072,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.highlight_bar",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.34811,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.karaoke",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.15213,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.letter_pop",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.17522,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.line_split",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.10118,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.mask_rise",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.34477,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.neon_flicker",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.21738,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.pop_out",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.29018,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.quote_marks",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09724,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.shadow_split",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.17338,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.stagger_out",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.02816,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.strike_in",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.10914,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.subtitle_2line",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.8103,
-  "aa": 0.0,
-  "ink": 0.0461,
-  "why": ""
- },
- {
-  "id": "kinetic2.type_cursor",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.10419,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic2.vert_roll",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.7719,
-  "aa": 0.0,
-  "ink": 0.12526,
-  "why": ""
- },
- {
-  "id": "kinetic2.wipe_out",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.04268,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.accent_word",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24424,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.burst_scale",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.33803,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.color_block",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.12193,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.flip_line",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24034,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.kicker_big_tail",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.19577,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.rot_slam",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.08478,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.rule_pair",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.12619,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.size_riot",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07889,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.slam_squash",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24034,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "kinetic3.spin_stack",
-  "category": "text",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.05303,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "maps.connect_web",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "maps.country_fill",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: '<=' not supported between instances of 'str' and 'float'"
- },
- {
-  "id": "maps.multi_pins",
-  "category": "infographic",
-  "ok": 0,
-  "why": "IndexError: string index out of range"
- },
- {
-  "id": "maps.photo_inset",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "maps.pin_label",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: can only concatenate str (not \"float\") to str"
- },
- {
-  "id": "maps.plane_path",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: can only concatenate str (not \"float\") to str"
- },
- {
-  "id": "maps.region_zoom",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: can only concatenate str (not \"float\") to str"
- },
- {
-  "id": "maps.route_arc",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: can only concatenate str (not \"float\") to str"
- },
- {
-  "id": "maps.stat_map",
-  "category": "infographic",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "maps.world_dots",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "odo.big_stat",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6665,
-  "aa": 0.0,
-  "ink": 0.03654,
-  "why": ""
- },
- {
-  "id": "odo.count_pill",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.1658,
-  "aa": 0.0,
-  "ink": 0.07179,
-  "why": ""
- },
- {
-  "id": "odo.count_up",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.5576,
-  "aa": 0.0,
-  "ink": 0.02288,
-  "why": ""
- },
- {
-  "id": "odo.label_num",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6293,
-  "aa": 0.0,
-  "ink": 0.04646,
-  "why": ""
- },
- {
-  "id": "odo.money",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.1747,
-  "aa": 0.0,
-  "ink": 0.02604,
-  "why": ""
- },
- {
-  "id": "odo.odometer",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.5672,
-  "aa": 0.0,
-  "ink": 0.02718,
-  "why": ""
- },
- {
-  "id": "odo.percent_ring",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.0881,
-  "aa": 0.0,
-  "ink": 0.069,
-  "why": ""
- },
- {
-  "id": "odo.split_flap",
-  "category": "infographic",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "odo.tick_row",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.1091,
-  "aa": 0.9753,
-  "ink": 0.16542,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.975 (A/B 0.109)"
- },
- {
-  "id": "odo.timer",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.06594,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.chapter",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.cta_outro",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.glass_stat",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.1055,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem.hero_line",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.list_reveal",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0351,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem.logo_reveal",
-  "category": "title",
-  "ok": 0,
-  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂျပန်မှာ အလုပ်', '-vf'"
- },
- {
-  "id": "prem.lower_third",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.metric_trio",
-  "category": "title",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "prem.quote_card",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem.split_hero",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0316,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem2.bento_grid",
-  "category": "title",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "prem2.big_number",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0968,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem2.chip_row",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem2.split_compare",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0362,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem2.stat_ring",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem2.tilt_card",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0183,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.018)"
- },
- {
-  "id": "prem2.timeline_flow",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0315,
-  "aa": 0.0299,
-  "ink": 1.0,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.030 (A/B 0.031)"
- },
- {
-  "id": "prem2.word_pop",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0224,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem3.countdown",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem3.end_card",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem3.feature_grid",
-  "category": "title",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "prem3.logo_wall",
-  "category": "title",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "prem3.marquee_band",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0366,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem3.photo_card",
-  "category": "title",
-  "ok": 0,
-  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂျပန်မှာ အလုပ်', '-vf'"
- },
- {
-  "id": "prem3.price_card",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem3.serif_quote",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0435,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem3.step_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0313,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem3.testimonial",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.012,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.012)"
- },
- {
-  "id": "prem4.arrow_point",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0418,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem4.big_question",
-  "category": "text",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "prem4.mistake_hook",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem4.pov_label",
-  "category": "text",
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0106,
+  "dpx": 8738,
+  "id": "brows.autocomplete",
+  "ink": 0.5307,
   "ok": 1,
-  "diff": 0.0395,
-  "aa": 0.0,
-  "ink": 1.0,
   "why": ""
  },
  {
-  "id": "prem4.shock_stat",
-  "category": "text",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "prem4.stop_scroll",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0473,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem4.tap_reveal",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem4.this_or_that",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem4.three_reasons",
-  "category": "text",
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0272,
+  "dpx": 20543,
+  "id": "brows.compare_two",
+  "ink": 0.48593,
   "ok": 1,
-  "diff": 0.0453,
-  "aa": 0.0,
-  "ink": 1.0,
   "why": ""
  },
  {
-  "id": "prem4.wait_for_it",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0441,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem5.bounce_cap",
-  "category": "text",
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0272,
+  "dpx": 22476,
+  "id": "brows.hl_result",
+  "ink": 0.5307,
   "ok": 1,
-  "diff": 0.0313,
-  "aa": 0.0,
-  "ink": 1.0,
   "why": ""
  },
  {
-  "id": "prem5.box_cap",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0362,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem5.chip_cap",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem5.cinema_cap",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0141,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.014)"
- },
- {
-  "id": "prem5.hl_word_cap",
-  "category": "text",
-  "ok": 1,
+  "aapx": 0,
+  "category": "mockup",
   "diff": 0.0238,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem5.karaoke_cap",
-  "category": "text",
+  "dpx": 19662,
+  "id": "brows.logo_row",
+  "ink": 0.5307,
   "ok": 1,
-  "diff": 0.0248,
+  "why": ""
+ },
+ {
   "aa": 0.0,
-  "ink": 1.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0395,
+  "dpx": 32602,
+  "id": "brows.result_list",
+  "ink": 0.5307,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "prem5.line_by_line",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0342,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem5.number_cap",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem5.speaker_cap",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem5.word_pop_cap",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0292,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem6.comment_pop",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem6.follow_cta",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem6.like_burst",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem6.poll_sticker",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.0866,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem6.progress_ring_cta",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem6.rating_stars",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem6.save_reminder",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.0313,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem6.share_row",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.015,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.015)"
- },
- {
-  "id": "prem6.social_proof",
-  "category": "callout",
-  "ok": 1,
-  "diff": 0.0477,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem6.swipe_hint",
-  "category": "callout",
-  "ok": 0,
-  "diff": 0.0084,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.008)"
- },
- {
-  "id": "prem7.audio_wave",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0069,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.007)"
- },
- {
-  "id": "prem7.checklist_tick",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0158,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.016)"
- },
- {
-  "id": "prem7.compare_bar",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "prem7.end_grid",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.0392,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "prem7.location_tag",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem7.note_card",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0105,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.010)"
- },
- {
-  "id": "prem7.price_badge",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "prem7.spec_list",
-  "category": "infographic",
-  "ok": 0,
-  "why": "TypeError: 'float' object is not iterable"
- },
- {
-  "id": "prem7.step_badge",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.019,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.019)"
- },
- {
-  "id": "prem7.timer_badge",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0021,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.002)"
- },
- {
-  "id": "qcard.bar_quote",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.6707,
-  "aa": 0.3408,
-  "ink": 0.02451,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.341 (A/B 0.671)"
- },
- {
-  "id": "qcard.corner_note",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4435,
-  "aa": 0.0,
-  "ink": 0.07325,
-  "why": ""
- },
- {
-  "id": "qcard.hl_word",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5528,
-  "aa": 0.0,
-  "ink": 0.11892,
-  "why": ""
- },
- {
-  "id": "qcard.lower_quote",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4653,
-  "aa": 0.0,
-  "ink": 0.11154,
-  "why": ""
- },
- {
-  "id": "qcard.num_point",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0099,
-  "ink": 0.16033,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.010)"
- },
- {
-  "id": "qcard.quote_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4116,
-  "aa": 0.0,
-  "ink": 0.22753,
-  "why": ""
- },
- {
-  "id": "qcard.side_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.374,
-  "aa": 0.0,
-  "ink": 0.06603,
-  "why": ""
- },
- {
-  "id": "qcard.split_quote",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.713,
-  "aa": 0.0,
-  "ink": 0.02458,
-  "why": ""
- },
- {
-  "id": "qcard.stack_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4111,
-  "aa": 0.0,
-  "ink": 0.22753,
-  "why": ""
- },
- {
-  "id": "qcard.tag_pill",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6895,
-  "aa": 0.0,
-  "ink": 0.02437,
-  "why": ""
- },
- {
-  "id": "retro.count_tape",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.05,
-  "aa": 0.0,
-  "ink": 0.04338,
-  "why": ""
- },
- {
-  "id": "retro.dual_tone",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5239,
-  "aa": 0.0,
-  "ink": 0.0668,
-  "why": ""
- },
- {
-  "id": "retro.frame_box",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5523,
-  "aa": 0.0,
-  "ink": 0.05647,
-  "why": ""
- },
- {
-  "id": "retro.label_strip",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.1677,
-  "aa": 0.0906,
-  "ink": 0.08489,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.091 (A/B 0.168)"
- },
- {
-  "id": "retro.noise_card",
-  "category": "text",
-  "ok": 0,
-  "why": "FileNotFoundError: [Errno 2] No such file or directory: 'work/ig/s1_F035_bl.png.t.png' ->"
- },
- {
-  "id": "retro.rec_dot",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.089,
-  "aa": 0.0,
-  "ink": 0.04672,
-  "why": ""
- },
- {
-  "id": "retro.scan_title",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.6616,
-  "aa": 0.6452,
-  "ink": 0.52737,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.645 (A/B 0.662)"
- },
- {
-  "id": "retro.tape_wipe",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0544,
-  "aa": 0.0037,
-  "ink": 0.43858,
-  "why": ""
- },
- {
-  "id": "retro.vhs_title",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.4965,
-  "aa": 0.0346,
-  "ink": 0.11793,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.035 (A/B 0.496)"
- },
- {
-  "id": "retro.warp_word",
-  "category": "text",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "thm.chat_badge",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.7376,
-  "aa": 0.7376,
-  "ink": 0.10318,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.738 (A/B 0.738)"
- },
- {
-  "id": "thm.chat_dots",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.01386,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "thm.chat_one",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.6587,
-  "aa": 0.6587,
-  "ink": 0.09839,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.659 (A/B 0.659)"
- },
- {
-  "id": "thm.chat_pair",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.6136,
-  "aa": 0.51,
-  "ink": 0.03124,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.510 (A/B 0.614)"
- },
- {
-  "id": "thm.chat_quote",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.6413,
-  "aa": 0.6413,
-  "ink": 0.0263,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.641 (A/B 0.641)"
- },
- {
-  "id": "thm.chat_react",
-  "category": "infographic",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "thm.chat_stack",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.5207,
-  "aa": 0.5707,
-  "ink": 0.0471,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.571 (A/B 0.521)"
- },
- {
-  "id": "thm.chat_tail",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.5151,
-  "aa": 0.5705,
-  "ink": 0.04883,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.571 (A/B 0.515)"
- },
- {
-  "id": "thm.chat_thread",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.5191,
-  "aa": 0.5727,
-  "ink": 0.0471,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.573 (A/B 0.519)"
- },
- {
-  "id": "thm.chat_type",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6272,
-  "aa": 0.0,
-  "ink": 0.0248,
-  "why": ""
- },
- {
-  "id": "thm.cmp_bad_good",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.6312,
-  "aa": 0.5216,
-  "ink": 0.03843,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.522 (A/B 0.631)"
- },
- {
-  "id": "thm.cmp_before",
-  "category": "infographic",
-  "ok": 0,
-  "why": "420s ကျော်"
- },
- {
-  "id": "thm.cmp_frame",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.cmp_glass",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.cmp_meter",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.cmp_price",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.cmp_rows",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.5992,
-  "aa": 0.5992,
-  "ink": 0.00662,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.599 (A/B 0.599)"
- },
- {
-  "id": "thm.cmp_split",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.4326,
-  "aa": 0.0,
-  "ink": 0.01861,
-  "why": ""
- },
- {
-  "id": "thm.cmp_stack",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.6426,
-  "aa": 0.6426,
-  "ink": 0.03018,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.643 (A/B 0.643)"
- },
- {
-  "id": "thm.cmp_vs",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.2987,
-  "aa": 0.0,
-  "ink": 0.02373,
-  "why": ""
- },
- {
-  "id": "thm.cmp_win_a",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.cmp_win_b",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.hook_count",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.6724,
-  "aa": 0.6724,
-  "ink": 0.0008,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.672 (A/B 0.672)"
- },
- {
-  "id": "thm.hook_frame",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3422,
-  "aa": 0.0,
-  "ink": 0.00384,
-  "why": ""
- },
- {
-  "id": "thm.hook_glass",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.0778,
-  "aa": 0.0,
-  "ink": 0.02517,
-  "why": ""
- },
- {
-  "id": "thm.hook_num",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.2703,
-  "aa": 0.7766,
-  "ink": 0.00694,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.777 (A/B 0.270)"
- },
- {
-  "id": "thm.hook_punch",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.4221,
-  "aa": 0.0,
-  "ink": 0.00262,
-  "why": ""
- },
- {
-  "id": "thm.hook_q",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.2321,
-  "aa": 0.4803,
-  "ink": 0.00694,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.480 (A/B 0.232)"
- },
- {
-  "id": "thm.hook_red",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.4221,
-  "aa": 0.0,
-  "ink": 0.00262,
-  "why": ""
- },
- {
-  "id": "thm.hook_side",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.4503,
-  "aa": 0.0,
-  "ink": 0.00229,
-  "why": ""
- },
- {
-  "id": "thm.hook_strike",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.4475,
-  "aa": 0.0,
-  "ink": 0.01373,
-  "why": ""
- },
- {
-  "id": "thm.hook_tag",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.5073,
-  "aa": 0.0,
-  "ink": 0.00749,
-  "why": ""
- },
- {
-  "id": "thm.hook_two",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.4706,
-  "aa": 0.0,
-  "ink": 0.01552,
-  "why": ""
- },
- {
-  "id": "thm.hook_wipe",
-  "category": "text",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.00439,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "thm.key_boxed",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3756,
-  "aa": 0.0,
-  "ink": 0.12447,
-  "why": ""
- },
- {
-  "id": "thm.key_bracket",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3768,
-  "aa": 0.0,
-  "ink": 0.11797,
-  "why": ""
- },
- {
-  "id": "thm.key_count",
-  "category": "text",
-  "ok": 0,
+  "aapx": 0,
+  "category": "mockup",
   "diff": 0.0112,
-  "ink": 0.09901,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.011)"
- },
- {
-  "id": "thm.key_drop",
-  "category": "text",
+  "dpx": 9248,
+  "id": "brows.search_type",
+  "ink": 0.5307,
   "ok": 1,
-  "diff": 0.3752,
-  "aa": 0.0,
-  "ink": 0.11291,
   "why": ""
  },
  {
-  "id": "thm.key_hl",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3202,
   "aa": 0.0,
-  "ink": 0.20078,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0066,
+  "dpx": 5506,
+  "id": "brows.tab_switch",
+  "ink": 0.53606,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "thm.key_note",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3962,
   "aa": 0.0,
-  "ink": 0.11448,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0527,
+  "dpx": 5691,
+  "id": "brows.url_bar",
+  "ink": 0.06679,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "thm.key_ok",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3703,
   "aa": 0.0,
-  "ink": 0.12056,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0239,
+  "dpx": 19707,
+  "id": "brows.window_open",
+  "ink": 0.5307,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "thm.key_pieces",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.7017,
   "aa": 0.0,
-  "ink": 0.00898,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6493,
+  "dpx": 47035,
+  "id": "brows.zoom_word",
+  "ink": 0.04483,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "thm.key_pop",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3833,
   "aa": 0.0,
-  "ink": 0.11527,
-  "why": ""
- },
- {
-  "id": "thm.key_red",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3202,
-  "aa": 0.0,
-  "ink": 0.20078,
-  "why": ""
- },
- {
-  "id": "thm.key_shake",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3833,
-  "aa": 0.0,
-  "ink": 0.11527,
-  "why": ""
- },
- {
-  "id": "thm.key_slide",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3752,
-  "aa": 0.0,
-  "ink": 0.11291,
-  "why": ""
- },
- {
-  "id": "thm.key_strike",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3762,
-  "aa": 0.0,
-  "ink": 0.11331,
-  "why": ""
- },
- {
-  "id": "thm.key_swap",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3721,
-  "aa": 0.0,
-  "ink": 0.09908,
-  "why": ""
- },
- {
-  "id": "thm.key_under",
-  "category": "text",
-  "ok": 1,
-  "diff": 0.3703,
-  "aa": 0.0,
-  "ink": 0.12056,
-  "why": ""
- },
- {
-  "id": "thm.list_arrow",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6271,
-  "aa": 0.0,
-  "ink": 0.02553,
-  "why": ""
- },
- {
-  "id": "thm.list_big",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.7172,
-  "aa": 0.7172,
-  "ink": 0.00097,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.717 (A/B 0.717)"
- },
- {
-  "id": "thm.list_dot",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6234,
-  "aa": 0.0,
-  "ink": 0.02524,
-  "why": ""
- },
- {
-  "id": "thm.list_flow",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.4663,
-  "aa": 0.0,
-  "ink": 0.00845,
-  "why": ""
- },
- {
-  "id": "thm.list_num",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.65,
-  "aa": 0.0328,
-  "ink": 0.02836,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.033 (A/B 0.650)"
- },
- {
-  "id": "thm.list_tick",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.6502,
-  "aa": 0.0,
-  "ink": 0.02892,
-  "why": ""
- },
- {
-  "id": "thm.list_two",
-  "category": "infographic",
-  "ok": 0,
-  "why": "fill ဗလာ"
- },
- {
-  "id": "thm.media_window",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.0223,
-  "aa": 0.0,
-  "ink": 0.21964,
-  "why": ""
- },
- {
-  "id": "thm.stat_bar",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.1865,
-  "aa": 0.7046,
-  "ink": 0.01551,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
- },
- {
-  "id": "thm.stat_bars",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.3967,
-  "aa": 0.3967,
-  "ink": 0.03969,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.397 (A/B 0.397)"
- },
- {
-  "id": "thm.stat_big",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.1466,
-  "aa": 0.0,
-  "ink": 0.00773,
-  "why": ""
- },
- {
-  "id": "thm.stat_delta",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0119,
-  "ink": 0.0523,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.012)"
- },
- {
-  "id": "thm.stat_frame",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.1614,
-  "aa": 0.7653,
-  "ink": 0.01809,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.765 (A/B 0.161)"
- },
- {
-  "id": "thm.stat_glass",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0092,
-  "ink": 0.06395,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.009)"
- },
- {
-  "id": "thm.stat_note",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0093,
-  "ink": 0.06395,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.009)"
- },
- {
-  "id": "thm.stat_ok",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.1865,
-  "aa": 0.7046,
-  "ink": 0.01551,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
- },
- {
-  "id": "thm.stat_pct",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0109,
-  "ink": 0.10213,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.011)"
- },
- {
-  "id": "thm.stat_red",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.1865,
-  "aa": 0.7046,
-  "ink": 0.01551,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.705 (A/B 0.186)"
- },
- {
-  "id": "thm.stat_roll",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.24755,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "thm.stat_solid",
-  "category": "infographic",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.06343,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "thm.stat_tag",
-  "category": "infographic",
-  "ok": 1,
-  "diff": 0.0215,
-  "aa": 0.0,
-  "ink": 0.0472,
-  "why": ""
- },
- {
-  "id": "thm.stat_trio",
-  "category": "infographic",
-  "ok": 0,
-  "why": "ValueError: too many values to unpack (expected 2)"
- },
- {
-  "id": "thm.tag_arrow",
   "category": "callout",
-  "ok": 0,
-  "diff": 0.6326,
-  "aa": 0.6326,
-  "ink": 0.02629,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.633 (A/B 0.633)"
+  "diff": 1.0,
+  "id": "callouts.arc_call",
+  "ink": 0.26747,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.tag_circle",
+  "aa": 0.0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.5244,
-  "aa": 0.5244,
-  "ink": 0.03009,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.524 (A/B 0.524)"
+  "diff": 1.0,
+  "id": "callouts.arrow_call",
+  "ink": 0.27832,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.tag_corner",
+  "aa": 0.0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.7811,
-  "aa": 0.7811,
-  "ink": 0.07191,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.781 (A/B 0.781)"
+  "diff": 1.0,
+  "id": "callouts.box_call",
+  "ink": 0.24983,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.tag_note",
+  "aa": 0.0,
+  "aapx": 0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.4357,
-  "aa": 0.4357,
-  "ink": 0.08753,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.436 (A/B 0.436)"
+  "diff": 0.634,
+  "dpx": 4316,
+  "id": "callouts.bracket_call",
+  "ink": 0.16327,
+  "ok": 1,
+  "why": ""
  },
  {
-  "id": "thm.tag_pill",
+  "aa": 0.0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.7827,
-  "aa": 0.7827,
-  "ink": 0.07778,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.783 (A/B 0.783)"
+  "diff": 1.0,
+  "id": "callouts.bubble_call",
+  "ink": 0.23064,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.tag_time",
+  "aa": 0.0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.6329,
-  "aa": 0.6329,
-  "ink": 0.02943,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.633 (A/B 0.633)"
+  "diff": 1.0,
+  "id": "callouts.crosshair",
+  "ink": 0.26121,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.tag_under",
+  "aa": 0.0,
   "category": "callout",
-  "ok": 0,
-  "diff": 0.726,
-  "aa": 0.726,
-  "ink": 0.03214,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.726 (A/B 0.726)"
+  "diff": 1.0,
+  "id": "callouts.curve_call",
+  "ink": 0.26747,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_alt",
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.dash_call",
+  "ink": 0.26988,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.line_call",
+  "ink": 0.27832,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.magnify_call",
+  "ink": 0.26897,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.numbered_pin",
+  "ink": 0.27475,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.pin_call",
+  "ink": 0.23979,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.pulse_dot",
+  "ink": 0.27212,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.ribbon_call",
+  "ink": 0.22887,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.6276,
+  "dpx": 4103,
+  "id": "callouts.scan_box",
+  "ink": 0.12999,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.side_note",
+  "ink": 0.26456,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.spot_call",
+  "ink": 0.94735,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.stack_call",
+  "ink": 0.276,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "callout",
+  "diff": 1.0,
+  "id": "callouts.tag_call",
+  "ink": 0.1802,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.64,
+  "dpx": 4362,
+  "id": "callouts.underline_call",
+  "ink": 0.13245,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.06694,
+  "id": "capt.box_hl",
+  "ink": 0.19798,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_blur",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.10324,
+  "id": "capt.fade_pair",
+  "ink": 0.08369,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_box",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "capt.hl_phrase",
+  "ink": 0.14776,
   "ok": 1,
-  "diff": 0.7665,
-  "aa": 0.0,
-  "ink": 0.02019,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_char",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09632,
+  "id": "capt.line_by_line",
+  "ink": 0.07305,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_drop",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09419,
+  "id": "capt.multi_line",
+  "ink": 0.07194,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_focus",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09632,
+  "id": "capt.one_word",
+  "ink": 0.08788,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_gather",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.06532,
+  "id": "capt.soft_in",
+  "ink": 0.13726,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_hot",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "capt.two_col",
+  "ink": 0.14776,
   "ok": 1,
-  "diff": 0.6718,
-  "aa": 0.0,
-  "ink": 0.0219,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_rule",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "capt.underline_hl",
+  "ink": 0.13809,
   "ok": 1,
-  "diff": 0.6627,
-  "aa": 0.0,
-  "ink": 0.02511,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_scatter",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.0816,
+  "id": "capt.word_swap",
+  "ink": 0.1864,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_stack",
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.area_chart",
+  "ink": 0.60387,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 19846,
+  "id": "charts.battery",
+  "ink": 0.37408,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6822,
+  "dpx": 24973,
+  "id": "charts.bubble_chart",
+  "ink": 0.47019,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6774,
+  "dpx": 35252,
+  "id": "charts.column_chart",
+  "ink": 0.58024,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.gantt",
+  "ink": 0.12344,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.heat_grid",
+  "ink": 0.80091,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "chart",
+  "diff": 1.0,
+  "id": "charts.kpi_tiles",
+  "ink": 0.90205,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.line_chart",
+  "ink": 0.06288,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "chart",
+  "diff": 1.0,
+  "id": "charts.matrix4",
+  "ink": 0.51102,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "chart",
+  "diff": 1.0,
+  "id": "charts.org_chart",
+  "ink": 0.43162,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 23400,
+  "id": "charts.pct_grid",
+  "ink": 0.5931,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.pie",
+  "ink": 0.95868,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "chart",
+  "diff": 1.0,
+  "id": "charts.ranking",
+  "ink": 0.21048,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.scatter",
+  "ink": 0.06288,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.sparkline",
+  "ink": 0.42296,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.speedo",
+  "ink": 0.189,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 24537,
+  "id": "charts.stacked_bar",
+  "ink": 0.96811,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "charts.thermometer",
+  "ink": 0.14693,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.676,
+  "dpx": 3136,
+  "id": "charts.venn2",
+  "ink": 0.63087,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "chart",
+  "diff": 0.6806,
+  "dpx": 39129,
+  "id": "charts.waterfall",
+  "ink": 0.26538,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "cine.font_card",
+  "ink": 0.14905,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "cine.font_reel",
+  "ink": 0.23302,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "typography",
+  "diff": null,
+  "id": "cine.letterbox",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "cine.title_stack",
+  "ink": 0.07943,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1136,
+  "dpx": 13988,
+  "id": "dash.avatar_row",
+  "ink": 0.07649,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0805,
+  "dpx": 25959,
+  "id": "dash.bar_chart",
+  "ink": 0.20739,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1527,
+  "dpx": 41612,
+  "id": "dash.card_grid",
+  "ink": 0.17525,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.031,
+  "dpx": 7504,
+  "id": "dash.compare_bar",
+  "ink": 0.15557,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0771,
+  "dpx": 17869,
+  "id": "dash.donut",
+  "ink": 0.14899,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1699,
+  "dpx": 55309,
+  "id": "dash.funnel",
+  "ink": 0.20933,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.2136,
+  "dpx": 25759,
+  "id": "dash.kpi_card",
+  "ink": 0.07753,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0542,
+  "dpx": 16606,
+  "id": "dash.line_chart",
+  "ink": 0.19693,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0666,
+  "dpx": 27897,
+  "id": "dash.progress_row",
+  "ink": 0.26943,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1766,
+  "dpx": 26118,
+  "id": "dash.tile_pop",
+  "ink": 0.0951,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "glitch.block_reveal",
+  "ink": 0.88379,
   "ok": 1,
-  "diff": 0.6738,
-  "aa": 0.0,
-  "ink": 0.02611,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_swap",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "glitch.echo_ghost",
+  "ink": 0.26952,
   "ok": 1,
-  "diff": 0.3185,
-  "aa": 0.0,
-  "ink": 0.03172,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_track",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.06184,
+  "id": "glitch.flicker_word",
+  "ink": 0.23442,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_wave",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09814,
+  "id": "glitch.jitter_caps",
+  "ink": 0.22031,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_word",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09798,
+  "id": "glitch.noise_in",
+  "ink": 0.25227,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.type_write",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.06193,
+  "id": "glitch.rgb_split",
+  "ink": 0.25627,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "thm.ui_app",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0807,
-  "aa": 0.0807,
-  "ink": 0.21133,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.081 (A/B 0.081)"
- },
- {
-  "id": "thm.ui_badge",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0895,
-  "aa": 0.0895,
-  "ink": 0.21319,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.089 (A/B 0.089)"
- },
- {
-  "id": "thm.ui_browser",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0807,
-  "aa": 0.0807,
-  "ink": 0.21133,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.081 (A/B 0.081)"
- },
- {
-  "id": "thm.ui_cursor",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0841,
-  "aa": 0.0841,
-  "ink": 0.21133,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.084 (A/B 0.084)"
- },
- {
-  "id": "thm.ui_notif",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.3812,
-  "aa": 0.3812,
-  "ink": 0.102,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.381 (A/B 0.381)"
- },
- {
-  "id": "thm.ui_phone",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.1148,
-  "aa": 0.1148,
-  "ink": 0.12828,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.115 (A/B 0.115)"
- },
- {
-  "id": "thm.ui_progress",
-  "category": "ui",
-  "ok": 1,
-  "diff": 0.063,
   "aa": 0.0,
-  "ink": 0.1004,
-  "why": ""
- },
- {
-  "id": "thm.ui_search",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.26523,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "thm.ui_steps",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0082,
-  "ink": 0.22656,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.008)"
- },
- {
-  "id": "thm.ui_tabs",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.6042,
-  "aa": 0.7361,
-  "ink": 0.02359,
-  "why": "မတည်ငြိမ် — စာသား တူလျက် ကွာ 0.736 (A/B 0.604)"
- },
- {
-  "id": "thm.ui_toggle",
-  "category": "ui",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.08145,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "titles.badge",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6991,
-  "aa": 0.0,
-  "ink": 0.99784,
-  "why": ""
- },
- {
-  "id": "titles.bumper",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6305,
-  "aa": 0.0,
-  "ink": 0.2427,
-  "why": ""
- },
- {
-  "id": "titles.chapter",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5275,
-  "aa": 0.0,
-  "ink": 0.71195,
-  "why": ""
- },
- {
-  "id": "titles.corner_card",
-  "category": "title",
-  "ok": 1,
+  "category": "text",
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.9992,
+  "id": "glitch.scan_wipe",
+  "ink": 0.43116,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "titles.countdown",
-  "category": "title",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 0.19398,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "titles.end_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6127,
   "aa": 0.0,
-  "ink": 0.78669,
-  "why": ""
- },
- {
-  "id": "titles.kicker_title",
-  "category": "title",
-  "ok": 1,
+  "category": "text",
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.86329,
+  "id": "glitch.slice_jump",
+  "ink": 0.22031,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "titles.label_pill",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.93624,
+  "category": "text",
+  "diff": 1.0,
+  "id": "glitch.strike_red",
+  "ink": 0.2435,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "titles.list_title",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5884,
   "aa": 0.0,
-  "ink": 0.11696,
-  "why": ""
- },
- {
-  "id": "titles.logo_sting",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6072,
-  "aa": 0.0,
-  "ink": 0.25115,
-  "why": ""
- },
- {
-  "id": "titles.lower_third",
-  "category": "title",
-  "ok": 1,
+  "category": "text",
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.98312,
+  "id": "glitch.two_line_hit",
+  "ink": 0.17269,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "titles.name_plate",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.627,
   "aa": 0.0,
-  "ink": 0.63386,
-  "why": ""
- },
- {
-  "id": "titles.quote_title",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6344,
-  "aa": 0.0,
-  "ink": 0.77778,
-  "why": ""
- },
- {
-  "id": "titles.section",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5788,
-  "aa": 0.0,
-  "ink": 0.71429,
-  "why": ""
- },
- {
-  "id": "titles.side_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6518,
-  "aa": 0.0,
-  "ink": 0.96422,
-  "why": ""
- },
- {
-  "id": "titles.split_title",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6168,
-  "aa": 0.0,
-  "ink": 0.79912,
-  "why": ""
- },
- {
-  "id": "titles.stat_title",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6939,
-  "aa": 0.0,
-  "ink": 0.79857,
-  "why": ""
- },
- {
-  "id": "titles.ticker",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6343,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "titles.title_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5772,
-  "aa": 0.0,
-  "ink": 0.80364,
-  "why": ""
- },
- {
-  "id": "titles.topic_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6725,
-  "aa": 0.0,
-  "ink": 0.96868,
-  "why": ""
- },
- {
-  "id": "titles2.agenda",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.589,
-  "aa": 0.0,
-  "ink": 0.72751,
-  "why": ""
- },
- {
-  "id": "titles2.alert_strip",
-  "category": "title",
-  "ok": 1,
+  "category": "infographic",
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.99825,
+  "id": "infogfx.arrow",
+  "ink": 0.82313,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "titles2.big_number",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5824,
   "aa": 0.0,
-  "ink": 0.21955,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5726,
+  "dpx": 23132,
+  "id": "infogfx.bars",
+  "ink": 0.55896,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "titles2.breaking",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6293,
   "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
- },
- {
-  "id": "titles2.callout",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.5884,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.chips",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.31036,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.clock_strip",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.compare_bars",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24726,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.credits",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6678,
-  "aa": 0.0,
-  "ink": 0.03164,
-  "why": ""
- },
- {
-  "id": "titles2.cta_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6739,
-  "aa": 0.0,
-  "ink": 0.9993,
-  "why": ""
- },
- {
-  "id": "titles2.data_strip",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.806,
-  "aa": 0.0,
-  "ink": 0.99879,
-  "why": ""
- },
- {
-  "id": "titles2.donut_stat",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5131,
-  "aa": 0.0,
-  "ink": 0.06676,
-  "why": ""
- },
- {
-  "id": "titles2.fact_box",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6655,
-  "aa": 0.0,
-  "ink": 0.99987,
-  "why": ""
- },
- {
-  "id": "titles2.glass_third",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23363,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.headline_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.headline_stack",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5562,
-  "aa": 0.0,
-  "ink": 0.11203,
-  "why": ""
- },
- {
-  "id": "titles2.id_strip",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.28461,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.locator",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.51845,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.next_up",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6368,
-  "aa": 0.0,
-  "ink": 0.99905,
-  "why": ""
- },
- {
-  "id": "titles2.price_tag",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.657,
-  "aa": 0.0,
-  "ink": 0.95217,
-  "why": ""
- },
- {
-  "id": "titles2.progress_bar",
-  "category": "title",
-  "ok": 0,
-  "why": "TypeError: '<' not supported between instances of 'int' and 'str'"
- },
- {
-  "id": "titles2.pull_quote",
-  "category": "title",
-  "ok": 1,
+  "aapx": 0,
+  "category": "infographic",
   "diff": 0.6577,
-  "aa": 0.0,
-  "ink": 0.0733,
+  "dpx": 111221,
+  "id": "infogfx.big_number",
+  "ink": 0.87269,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "titles2.rating",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6259,
   "aa": 0.0,
-  "ink": 0.13668,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6312,
+  "dpx": 12955,
+  "id": "infogfx.callout",
+  "ink": 0.91593,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "titles2.score_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4702,
   "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5726,
+  "dpx": 6681,
+  "id": "infogfx.checklist",
+  "ink": 0.06272,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "infographic",
+  "diff": 1.0,
+  "id": "infogfx.compare_bar",
+  "ink": 0.26432,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5257,
+  "dpx": 60996,
+  "id": "infogfx.counter",
+  "ink": 0.19684,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.63,
+  "dpx": 7972,
+  "id": "infogfx.donut",
+  "ink": 0.97257,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.7087,
+  "dpx": 4264,
+  "id": "infogfx.funnel",
+  "ink": 0.5763,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5239,
+  "dpx": 9855,
+  "id": "infogfx.gauge",
+  "ink": 0.13999,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6774,
+  "dpx": 11612,
+  "id": "infogfx.grid",
+  "ink": 0.65536,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.7065,
+  "dpx": 3697,
+  "id": "infogfx.pyramid",
+  "ink": 0.60809,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6326,
+  "dpx": 14530,
+  "id": "infogfx.quote",
+  "ink": 0.91577,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6258,
+  "dpx": 7011,
+  "id": "infogfx.radial",
+  "ink": 0.29645,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6126,
+  "dpx": 23690,
+  "id": "infogfx.ring",
+  "ink": 0.18777,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6448,
+  "dpx": 8761,
+  "id": "infogfx.stat_row",
+  "ink": 0.87862,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5818,
+  "dpx": 7306,
+  "id": "infogfx.steps",
+  "ink": 0.11202,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "infographic",
+  "diff": 1.0,
+  "id": "infogfx.tag_cloud",
+  "ink": 0.46826,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.68,
+  "dpx": 7182,
+  "id": "infogfx.timeline",
+  "ink": 0.14337,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "infographic",
+  "diff": 1.0,
+  "id": "infogfx.versus",
+  "ink": 0.9569,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "explainer",
+  "diff": 0.0349,
+  "dpx": 54263,
+  "id": "insert.insert_flow",
   "ink": 1.0,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "titles2.social_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.5998,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.sponsor_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4737,
-  "aa": 0.0,
-  "ink": 0.04767,
-  "why": ""
- },
- {
-  "id": "titles2.step_flow",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.7281,
-  "aa": 0.0,
-  "ink": 0.09181,
-  "why": ""
- },
- {
-  "id": "titles2.timeline",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.08744,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles2.vs_split",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6597,
-  "aa": 0.0,
-  "ink": 0.94863,
-  "why": ""
- },
- {
-  "id": "titles2.wipe_word",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6144,
-  "aa": 0.0,
+  "aapx": 0,
+  "category": "explainer",
+  "diff": 0.0547,
+  "dpx": 85084,
+  "id": "insert.insert_label",
   "ink": 1.0,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "titles3.address_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6081,
   "aa": 0.0,
-  "ink": 0.965,
-  "why": ""
- },
- {
-  "id": "titles3.chapter_split",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.4422,
-  "aa": 0.0,
-  "ink": 0.25892,
-  "why": ""
- },
- {
-  "id": "titles3.episode_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6248,
-  "aa": 0.0,
-  "ink": 0.94656,
-  "why": ""
- },
- {
-  "id": "titles3.intro_stinger",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.lower_bar_ticker",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.0225,
-  "aa": 0.0,
-  "ink": 0.99973,
-  "why": ""
- },
- {
-  "id": "titles3.map_locator",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.93001,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.minimal_third",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.25471,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.name_tag_jp",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.opening_bars",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.85459,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.outro_cta",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.96763,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.phone_cta",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.97436,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.photo_third",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.5208,
-  "aa": 0.0,
-  "ink": 0.99576,
-  "why": ""
- },
- {
-  "id": "titles3.poll_bar",
-  "category": "title",
-  "ok": 1,
-  "diff": 0.6657,
-  "aa": 0.0,
-  "ink": 0.8358,
-  "why": ""
- },
- {
-  "id": "titles3.price_compare",
-  "category": "title",
-  "ok": 0,
-  "why": "ထွက်ချက် ဗလာ"
- },
- {
-  "id": "titles3.qa_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.89098,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.schedule_row",
-  "category": "title",
-  "ok": 0,
-  "why": "ထွက်ချက် ဗလာ"
- },
- {
-  "id": "titles3.stat_ribbon",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.subscribe_bug",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.97845,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.topic_dots",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.97702,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "titles3.warning_card",
-  "category": "title",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.97016,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typew.code_block",
   "category": "text",
+  "diff": 1.0,
+  "id": "kin4.alt_side",
+  "ink": 0.07402,
   "ok": 1,
-  "diff": 0.0706,
-  "aa": 0.0,
-  "ink": 0.19577,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.cursor_blink",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23086,
+  "id": "kin4.corner_tag",
+  "ink": 0.16175,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.grad_card",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "kin4.drop_words",
+  "ink": 0.07396,
   "ok": 1,
-  "diff": 0.053,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.hl_bar",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.23447,
+  "id": "kin4.huge_caps",
+  "ink": 0.2279,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.prompt_line",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.2003,
+  "id": "kin4.push_up",
+  "ink": 0.06908,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.split_grad",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "kin4.rot_enter",
+  "ink": 0.08476,
   "ok": 1,
-  "diff": 0.1583,
-  "aa": 0.0,
-  "ink": 1.0,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.type_delete",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.22219,
+  "id": "kin4.stack_mix",
+  "ink": 0.07975,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.type_line",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.21717,
+  "id": "kin4.two_tone",
+  "ink": 0.1166,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.type_stack",
+  "aa": 0.0,
   "category": "text",
+  "diff": 1.0,
+  "id": "kin4.wide_track",
+  "ink": 0.23758,
   "ok": 1,
-  "diff": 0.6736,
-  "aa": 0.0,
-  "ink": 0.07385,
-  "why": ""
+  "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typew.word_fill",
+  "aa": 0.0,
   "category": "text",
-  "ok": 1,
   "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.25254,
+  "id": "kin4.zoom_word",
+  "ink": 0.27639,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  },
  {
-  "id": "typo.badge_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.35647,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.bracket_word",
-  "category": "typography",
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.763,
+  "dpx": 49771,
+  "id": "kinetic.blur_in",
+  "ink": 0.10316,
   "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09478,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.circle_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.07656,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.depth_hero",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.5937,
-  "aa": 0.0,
-  "ink": 0.05948,
   "why": ""
  },
  {
-  "id": "typo.echo_repeat",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.21343,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.flat_beat",
-  "category": "typography",
-  "ok": 0,
-  "diff": 0.0,
-  "ink": 1.0,
-  "why": "စာသား ပြောင်းလည်း ပုံရိပ် မပြောင်း (0.000)"
- },
- {
-  "id": "typo.glitch_type",
-  "category": "typography",
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6591,
+  "dpx": 48620,
+  "id": "kinetic.cascade",
+  "ink": 0.11394,
   "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.14892,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.gradient_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.10656,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.hero_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.26473,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.image_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.11654,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.kern_wide",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.8647,
-  "aa": 0.0,
-  "ink": 0.06476,
   "why": ""
  },
  {
-  "id": "typo.kicker_stack",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.15951,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.long_shadow",
-  "category": "typography",
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3113,
+  "dpx": 5127,
+  "id": "kinetic.count_up",
+  "ink": 0.04679,
   "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.24955,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.mask_bar_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.40122,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.neon_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.32979,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.number_hero",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.6569,
-  "aa": 0.0,
-  "ink": 0.29843,
   "why": ""
  },
  {
-  "id": "typo.outline_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.07697,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.quote_block",
-  "category": "typography",
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6048,
+  "dpx": 40646,
+  "id": "kinetic.drop_in",
+  "ink": 0.10316,
   "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.09239,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.scale_ramp",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.5658,
-  "aa": 0.0,
-  "ink": 0.03194,
   "why": ""
  },
  {
-  "id": "typo.slab_block",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.6574,
   "aa": 0.0,
-  "ink": 0.12117,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.5868,
+  "dpx": 39045,
+  "id": "kinetic.flicker",
+  "ink": 0.10316,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "typo.split_color",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
   "aa": 0.0,
-  "ink": 0.10656,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.stack3",
-  "category": "typography",
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7222,
+  "dpx": 83192,
+  "id": "kinetic.focus",
+  "ink": 0.1975,
   "ok": 1,
-  "diff": 0.6297,
-  "aa": 0.0,
-  "ink": 0.04519,
   "why": ""
  },
  {
-  "id": "typo.ticker_type",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.5986,
   "aa": 0.0,
-  "ink": 0.16156,
-  "why": ""
- },
- {
-  "id": "typo.two_tone_line",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.11343,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.underline_word",
-  "category": "typography",
-  "ok": 1,
-  "diff": 1.0,
-  "aa": 0.0,
-  "ink": 0.11211,
-  "why": "အရွယ် ကွာ"
- },
- {
-  "id": "typo.vertical_jp",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.6203,
-  "aa": 0.0,
-  "ink": 0.01451,
-  "why": ""
- },
- {
-  "id": "typo.word_cascade",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.6237,
-  "aa": 0.0,
-  "ink": 0.02128,
-  "why": ""
- },
- {
-  "id": "typo2.arc_labels",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.6761,
-  "aa": 0.0,
-  "ink": 0.00294,
-  "why": ""
- },
- {
-  "id": "typo2.ghost_word",
-  "category": "typography",
-  "ok": 1,
+  "aapx": 0,
+  "category": "text",
   "diff": 0.6319,
-  "aa": 0.0,
-  "ink": 0.11055,
+  "dpx": 12928,
+  "id": "kinetic.line_rise",
+  "ink": 0.0373,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "typo2.logo_flip",
-  "category": "typography",
-  "ok": 0,
-  "why": "CalledProcessError: Command '['ffmpeg', '-v', 'error', '-y', '-i', 'ဂ', '-vf', 'scale=267:"
- },
- {
-  "id": "typo2.orbit_dots",
-  "category": "typography",
-  "ok": 1,
-  "diff": 0.3493,
   "aa": 0.0,
-  "ink": 0.01974,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6696,
+  "dpx": 132078,
+  "id": "kinetic.punch",
+  "ink": 0.45694,
+  "ok": 1,
   "why": ""
  },
  {
-  "id": "typo2.subject_rise",
-  "category": "typography",
-  "ok": 0,
-  "why": "fill ဗလာ"
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6421,
+  "dpx": 41106,
+  "id": "kinetic.slide_alt",
+  "ink": 0.10316,
+  "ok": 1,
+  "why": ""
  },
  {
-  "id": "typo2.title_lift",
-  "category": "typography",
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6873,
+  "dpx": 38828,
+  "id": "kinetic.spotlight",
+  "ink": 0.10316,
   "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6319,
+  "dpx": 12928,
+  "id": "kinetic.stack",
+  "ink": 0.0373,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.5698,
+  "dpx": 41877,
+  "id": "kinetic.swap",
+  "ink": 0.21804,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.695,
+  "dpx": 84645,
+  "id": "kinetic.sweep",
+  "ink": 0.23673,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.5926,
+  "dpx": 39503,
+  "id": "kinetic.tighten",
+  "ink": 0.10319,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.788,
+  "dpx": 68575,
+  "id": "kinetic.typewriter",
+  "ink": 0.15075,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7623,
+  "dpx": 68636,
+  "id": "kinetic.underline",
+  "ink": 0.15257,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6974,
+  "dpx": 40792,
+  "id": "kinetic.wave",
+  "ink": 0.10316,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7872,
+  "dpx": 77618,
+  "id": "kinetic.wipe",
+  "ink": 0.1614,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7121,
+  "dpx": 40246,
+  "id": "kinetic.word_pop",
+  "ink": 0.10316,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6045,
+  "dpx": 54235,
+  "id": "kinetic.zoom_out",
+  "ink": 0.06447,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
   "diff": 1.0,
+  "id": "kinetic2.blur_out",
+  "ink": 0.16819,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
   "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.box_in",
+  "ink": 0.13516,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6301,
+  "dpx": 18668,
+  "id": "kinetic2.count_roll",
+  "ink": 0.07344,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.emphasis",
+  "ink": 0.1289,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.gravity",
+  "ink": 0.16072,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.highlight_bar",
+  "ink": 0.34811,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.karaoke",
+  "ink": 0.15213,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.letter_pop",
+  "ink": 0.17522,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.line_split",
+  "ink": 0.10118,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.mask_rise",
+  "ink": 0.34477,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.neon_flicker",
+  "ink": 0.21738,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.pop_out",
+  "ink": 0.29018,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.quote_marks",
+  "ink": 0.09724,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.shadow_split",
+  "ink": 0.17338,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.stagger_out",
+  "ink": 0.02816,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.strike_in",
+  "ink": 0.10914,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.8103,
+  "dpx": 17492,
+  "id": "kinetic2.subtitle_2line",
+  "ink": 0.0461,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.type_cursor",
+  "ink": 0.10419,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.8215,
+  "dpx": 67769,
+  "id": "kinetic2.vert_roll",
+  "ink": 0.12526,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic2.wipe_out",
+  "ink": 0.04268,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.accent_word",
+  "ink": 0.24533,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.burst_scale",
+  "ink": 0.33803,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.color_block",
+  "ink": 0.12193,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.flip_line",
+  "ink": 0.24034,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.kicker_big_tail",
+  "ink": 0.13096,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.rot_slam",
+  "ink": 0.08478,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.rule_pair",
+  "ink": 0.12619,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.size_riot",
+  "ink": 0.07889,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.slam_squash",
+  "ink": 0.24034,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "kinetic3.spin_stack",
+  "ink": 0.10011,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.198,
+  "dpx": 35710,
+  "id": "lower3.lt_number",
+  "ink": 0.11598,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0174,
+  "dpx": 2842,
+  "id": "maps.connect_web",
+  "ink": 0.10492,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0359,
+  "dpx": 5950,
+  "id": "maps.country_fill",
+  "ink": 0.10642,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1186,
+  "dpx": 20429,
+  "id": "maps.multi_pins",
+  "ink": 0.10854,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0145,
+  "dpx": 3162,
+  "id": "maps.photo_inset",
+  "ink": 0.13993,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0589,
+  "dpx": 9804,
+  "id": "maps.pin_label",
+  "ink": 0.10622,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0096,
+  "dpx": 1564,
+  "id": "maps.plane_path",
+  "ink": 0.10497,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0126,
+  "dpx": 10155,
+  "id": "maps.region_zoom",
+  "ink": 0.52116,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0996,
+  "dpx": 17132,
+  "id": "maps.route_arc",
+  "ink": 0.10719,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0823,
+  "dpx": 19830,
+  "id": "maps.stat_map",
+  "ink": 0.15464,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "infographic",
+  "diff": null,
+  "id": "maps.world_dots",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6603,
+  "dpx": 5090,
+  "id": "mockups.app_icons",
+  "ink": 0.4504,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0566,
+  "dpx": 371,
+  "id": "mockups.browser_window",
+  "ink": 0.97882,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups.certificate",
+  "ink": 0.98693,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.1852,
+  "dpx": 9816,
+  "id": "mockups.chat_thread",
+  "ink": 0.12755,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.4723,
+  "dpx": 4881,
+  "id": "mockups.chat_typing",
+  "ink": 0.9695,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6104,
+  "dpx": 7812,
+  "id": "mockups.comment_card",
+  "ink": 0.93921,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups.form_card",
+  "ink": 0.98215,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups.id_card",
+  "ink": 0.98456,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "mockups.laptop_frame",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0612,
+  "dpx": 353,
+  "id": "mockups.notification",
+  "ink": 0.9965,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6799,
+  "dpx": 9962,
+  "id": "mockups.phone_frame",
+  "ink": 0.94764,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "mockups.phone_pair",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6639,
+  "dpx": 13982,
+  "id": "mockups.profile_card",
+  "ink": 0.97652,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups.qr_card",
+  "ink": 0.98632,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups.receipt_card",
+  "ink": 0.98524,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6582,
+  "dpx": 7713,
+  "id": "mockups.search_bar",
+  "ink": 0.98976,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6473,
+  "dpx": 7435,
+  "id": "mockups.social_post",
+  "ink": 0.98202,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6346,
+  "dpx": 6527,
+  "id": "mockups.story_ui",
+  "ink": 0.07702,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "mockups.tablet_frame",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6481,
+  "dpx": 13765,
+  "id": "mockups.video_player",
+  "ink": 0.98375,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.billboard",
+  "ink": 0.73515,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.book_cover",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.box_product",
+  "ink": 0.96998,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.brochure_tri",
+  "ink": 0.93159,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.bus_stop",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.business_card",
+  "ink": 0.85463,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.cap",
+  "ink": 0.26912,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "mockups2.desk_scene",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.flyer_a4",
+  "ink": 0.97875,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6194,
+  "dpx": 1865,
+  "id": "mockups2.logo_reveal",
+  "ink": 0.01836,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.mug",
+  "ink": 0.69761,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.poster_wall",
+  "ink": 0.97873,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.rollup_banner",
+  "ink": 0.99949,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.signboard",
+  "ink": 0.9331,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "mockups2.sticker_set",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.tote_bag",
+  "ink": 0.58135,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.tshirt",
+  "ink": 0.5724,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "mockup",
+  "diff": 1.0,
+  "id": "mockups2.tv_screen",
+  "ink": 0.87108,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_bokeh",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_dots",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_gradient",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_grid",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_rays",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.bg_waves",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.burst",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.confetti",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.count_ring",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.eq_bars",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.glow_pulse",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.hud_corners",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.hud_ring",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.progress_dots",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.radar",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.scanlines",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.shape_wipe",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.speed_lines",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.sweep_light",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "motion",
+  "diff": null,
+  "id": "motionfx.waveform",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6692,
+  "dpx": 65836,
+  "id": "odo.big_stat",
+  "ink": 0.03654,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1666,
+  "dpx": 18597,
+  "id": "odo.count_pill",
+  "ink": 0.07179,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3517,
+  "dpx": 12797,
+  "id": "odo.count_up",
+  "ink": 0.02383,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6326,
+  "dpx": 60232,
+  "id": "odo.label_num",
+  "ink": 0.04646,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.29,
+  "dpx": 11781,
+  "id": "odo.money",
+  "ink": 0.02558,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.583,
+  "dpx": 31121,
+  "id": "odo.odometer",
+  "ink": 0.02718,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3257,
+  "dpx": 30519,
+  "id": "odo.percent_ring",
+  "ink": 0.05647,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6587,
+  "dpx": 87839,
+  "id": "odo.split_flap",
+  "ink": 0.0838,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5416,
+  "dpx": 37129,
+  "id": "odo.tick_row",
+  "ink": 0.02678,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "infographic",
+  "diff": null,
+  "id": "odo.timer",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0629,
+  "dpx": 97897,
+  "id": "prem.chapter",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0294,
+  "dpx": 45674,
+  "id": "prem.cta_outro",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.1151,
+  "dpx": 179066,
+  "id": "prem.glass_stat",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0047,
+  "dpx": 7264,
+  "id": "prem.hero_line",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0344,
+  "dpx": 53457,
+  "id": "prem.list_reveal",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0361,
+  "dpx": 56098,
+  "id": "prem.logo_reveal",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0385,
+  "dpx": 59952,
+  "id": "prem.lower_third",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0453,
+  "dpx": 70510,
+  "id": "prem.metric_trio",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0333,
+  "dpx": 51793,
+  "id": "prem.quote_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0377,
+  "dpx": 58573,
+  "id": "prem.split_hero",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.106,
+  "dpx": 164816,
+  "id": "prem2.bento_grid",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.1142,
+  "dpx": 177566,
+  "id": "prem2.big_number",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0261,
+  "dpx": 40659,
+  "id": "prem2.chip_row",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0206,
+  "dpx": 32094,
+  "id": "prem2.split_compare",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0171,
+  "dpx": 26631,
+  "id": "prem2.stat_ring",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0482,
+  "dpx": 75019,
+  "id": "prem2.tilt_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0523,
+  "dpx": 81336,
+  "id": "prem2.timeline_flow",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0469,
+  "dpx": 72933,
+  "id": "prem2.word_pop",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0054,
+  "dpx": 8449,
+  "id": "prem3.countdown",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.107,
+  "dpx": 166353,
+  "id": "prem3.end_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0415,
+  "dpx": 64525,
+  "id": "prem3.feature_grid",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0339,
+  "dpx": 52671,
+  "id": "prem3.logo_wall",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0619,
+  "dpx": 96320,
+  "id": "prem3.marquee_band",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0295,
+  "dpx": 45801,
+  "id": "prem3.photo_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0046,
+  "dpx": 7095,
+  "id": "prem3.price_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0452,
+  "dpx": 70292,
+  "id": "prem3.serif_quote",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0342,
+  "dpx": 53219,
+  "id": "prem3.step_bar",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0382,
+  "dpx": 59425,
+  "id": "prem3.testimonial",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0495,
+  "dpx": 76950,
+  "id": "prem4.arrow_point",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0801,
+  "dpx": 124626,
+  "id": "prem4.big_question",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.035,
+  "dpx": 54388,
+  "id": "prem4.mistake_hook",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0437,
+  "dpx": 67962,
+  "id": "prem4.pov_label",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1481,
+  "dpx": 230322,
+  "id": "prem4.shock_stat",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0473,
+  "dpx": 73539,
+  "id": "prem4.stop_scroll",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0293,
+  "dpx": 45621,
+  "id": "prem4.tap_reveal",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0041,
+  "dpx": 6324,
+  "id": "prem4.this_or_that",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0551,
+  "dpx": 85768,
+  "id": "prem4.three_reasons",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0729,
+  "dpx": 113405,
+  "id": "prem4.wait_for_it",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0348,
+  "dpx": 54061,
+  "id": "prem5.bounce_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0364,
+  "dpx": 56620,
+  "id": "prem5.box_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0203,
+  "dpx": 31580,
+  "id": "prem5.chip_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0141,
+  "dpx": 21995,
+  "id": "prem5.cinema_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0313,
+  "dpx": 48701,
+  "id": "prem5.hl_word_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0248,
+  "dpx": 38623,
+  "id": "prem5.karaoke_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0368,
+  "dpx": 57309,
+  "id": "prem5.line_by_line",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0284,
+  "dpx": 44092,
+  "id": "prem5.number_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0039,
+  "dpx": 5990,
+  "id": "prem5.speaker_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0294,
+  "dpx": 45793,
+  "id": "prem5.word_pop_cap",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0081,
+  "dpx": 12582,
+  "id": "prem6.comment_pop",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0205,
+  "dpx": 31888,
+  "id": "prem6.follow_cta",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0147,
+  "dpx": 22875,
+  "id": "prem6.like_burst",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0809,
+  "dpx": 125847,
+  "id": "prem6.poll_sticker",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0155,
+  "dpx": 24097,
+  "id": "prem6.progress_ring_cta",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0178,
+  "dpx": 27692,
+  "id": "prem6.rating_stars",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0251,
+  "dpx": 39083,
+  "id": "prem6.save_reminder",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0169,
+  "dpx": 26325,
+  "id": "prem6.share_row",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0555,
+  "dpx": 86245,
+  "id": "prem6.social_proof",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.0089,
+  "dpx": 13839,
+  "id": "prem6.swipe_hint",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.007,
+  "dpx": 10871,
+  "id": "prem7.audio_wave",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0193,
+  "dpx": 29998,
+  "id": "prem7.checklist_tick",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0455,
+  "dpx": 70742,
+  "id": "prem7.compare_bar",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0919,
+  "dpx": 142951,
+  "id": "prem7.end_grid",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0176,
+  "dpx": 27400,
+  "id": "prem7.location_tag",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0156,
+  "dpx": 24260,
+  "id": "prem7.note_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.066,
+  "dpx": 102702,
+  "id": "prem7.price_badge",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0312,
+  "dpx": 48480,
+  "id": "prem7.spec_list",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0163,
+  "dpx": 25296,
+  "id": "prem7.step_badge",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0043,
+  "dpx": 6637,
+  "id": "prem7.timer_badge",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6776,
+  "dpx": 42933,
+  "id": "qcard.bar_quote",
+  "ink": 0.02451,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4747,
+  "dpx": 54075,
+  "id": "qcard.corner_note",
+  "ink": 0.07325,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6155,
+  "dpx": 136742,
+  "id": "qcard.hl_word",
+  "ink": 0.11925,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4618,
+  "dpx": 82388,
+  "id": "qcard.lower_quote",
+  "ink": 0.11154,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.2023,
+  "dpx": 31868,
+  "id": "qcard.num_point",
+  "ink": 0.1007,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4122,
+  "dpx": 145871,
+  "id": "qcard.quote_card",
+  "ink": 0.22753,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.3746,
+  "dpx": 38461,
+  "id": "qcard.side_card",
+  "ink": 0.06603,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.7197,
+  "dpx": 48432,
+  "id": "qcard.split_quote",
+  "ink": 0.02458,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4118,
+  "dpx": 145732,
+  "id": "qcard.stack_card",
+  "ink": 0.22753,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.8102,
+  "dpx": 39997,
+  "id": "qcard.tag_pill",
+  "ink": 0.02444,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0932,
+  "dpx": 6063,
+  "id": "retro.count_tape",
+  "ink": 0.0418,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0198,
+  "aapx": 1945,
+  "category": "text",
+  "diff": 0.6278,
+  "dpx": 62459,
+  "id": "retro.dual_tone",
+  "ink": 0.0709,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.606,
+  "dpx": 53279,
+  "id": "retro.frame_box",
+  "ink": 0.05788,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.184,
+  "dpx": 23560,
+  "id": "retro.label_strip",
+  "ink": 0.08341,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1021,
+  "dpx": 26945,
+  "id": "retro.noise_card",
+  "ink": 0.1656,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1042,
+  "dpx": 6653,
+  "id": "retro.rec_dot",
+  "ink": 0.04438,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0625,
+  "dpx": 51229,
+  "id": "retro.scan_title",
+  "ink": 0.52801,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0063,
+  "aapx": 2374,
+  "category": "text",
+  "diff": 0.4339,
+  "dpx": 52430,
+  "id": "retro.tape_wipe",
+  "ink": 0.43026,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0916,
+  "aapx": 17344,
+  "category": "text",
+  "diff": 0.6029,
+  "dpx": 139389,
+  "id": "retro.vhs_title",
+  "ink": 0.11738,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.5419,
+  "dpx": 52579,
+  "id": "retro.warp_word",
+  "ink": 0.06471,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0097,
+  "dpx": 8423,
+  "id": "social.before_after",
+  "ink": 0.55752,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0235,
+  "dpx": 17805,
+  "id": "social.cap_hl",
+  "ink": 0.47969,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0301,
+  "dpx": 22456,
+  "id": "social.caption_bar",
+  "ink": 0.47969,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0048,
+  "dpx": 3553,
+  "id": "social.like_pop",
+  "ink": 0.48031,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "social.phone_frame",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0137,
+  "dpx": 10252,
+  "id": "social.post_card",
+  "ink": 0.47969,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "social.post_grid",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "social.post_row",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0062,
+  "dpx": 4640,
+  "id": "social.story_ring",
+  "ink": 0.47969,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "social.swipe_stack",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "category": "board",
+  "diff": 1.0,
+  "id": "thm.board_agenda",
+  "ink": 0.26156,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "board",
+  "diff": 1.0,
+  "id": "thm.board_list",
+  "ink": 0.28453,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "board",
+  "diff": 1.0,
+  "id": "thm.board_points",
+  "ink": 0.27279,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "board",
+  "diff": 1.0,
+  "id": "thm.board_steps",
+  "ink": 0.32022,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "board",
+  "diff": 1.0,
+  "id": "thm.board_terms",
+  "ink": 0.25464,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6212,
+  "dpx": 61579,
+  "id": "thm.chat_badge",
+  "ink": 0.03029,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "infographic",
+  "diff": null,
+  "id": "thm.chat_dots",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6588,
+  "dpx": 60442,
+  "id": "thm.chat_one",
+  "ink": 0.0255,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6136,
+  "dpx": 58407,
+  "id": "thm.chat_pair",
+  "ink": 0.03124,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5956,
+  "dpx": 21650,
+  "id": "thm.chat_quote",
+  "ink": 0.01726,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6515,
+  "dpx": 57924,
+  "id": "thm.chat_react",
+  "ink": 0.0254,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4131,
+  "dpx": 59578,
+  "id": "thm.chat_stack",
+  "ink": 0.06465,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5158,
+  "dpx": 52577,
+  "id": "thm.chat_tail",
+  "ink": 0.03732,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5269,
+  "dpx": 52223,
+  "id": "thm.chat_thread",
+  "ink": 0.03559,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6612,
+  "dpx": 59453,
+  "id": "thm.chat_type",
+  "ink": 0.0248,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5494,
+  "dpx": 83327,
+  "id": "thm.cmp_bad_good",
+  "ink": 0.05543,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6019,
+  "dpx": 74420,
+  "id": "thm.cmp_before",
+  "ink": 0.05926,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3737,
+  "dpx": 25108,
+  "id": "thm.cmp_frame",
+  "ink": 0.03396,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0917,
+  "dpx": 23075,
+  "id": "thm.cmp_glass",
+  "ink": 0.16175,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.2489,
+  "dpx": 20897,
+  "id": "thm.cmp_meter",
+  "ink": 0.05226,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0046,
+  "dpx": 1893,
+  "id": "thm.cmp_price",
+  "ink": 0.26737,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3989,
+  "dpx": 6769,
+  "id": "thm.cmp_rows",
+  "ink": 0.00648,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5904,
+  "dpx": 57626,
+  "id": "thm.cmp_split",
+  "ink": 0.04172,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5449,
+  "dpx": 13421,
+  "id": "thm.cmp_stack",
+  "ink": 0.00557,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4936,
+  "dpx": 48854,
+  "id": "thm.cmp_vs",
+  "ink": 0.05563,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0805,
+  "dpx": 20260,
+  "id": "thm.cmp_win_a",
+  "ink": 0.16175,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.0756,
+  "dpx": 19006,
+  "id": "thm.cmp_win_b",
+  "ink": 0.16175,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0385,
+  "dpx": 59825,
+  "id": "thm.cut_before_after",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.05,
+  "dpx": 77695,
+  "id": "thm.cut_cta",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0378,
+  "dpx": 58761,
+  "id": "thm.cut_grid",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0533,
+  "dpx": 82963,
+  "id": "thm.cut_list",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0513,
+  "dpx": 79764,
+  "id": "thm.cut_pct",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0386,
+  "dpx": 59954,
+  "id": "thm.cut_point",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0497,
+  "dpx": 77289,
+  "id": "thm.cut_question",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0273,
+  "dpx": 42490,
+  "id": "thm.cut_quote",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.1089,
+  "dpx": 169373,
+  "id": "thm.cut_stat",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.06,
+  "dpx": 93258,
+  "id": "thm.cut_steps",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0366,
+  "dpx": 56918,
+  "id": "thm.cut_timeline",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0387,
+  "dpx": 60184,
+  "id": "thm.cut_title",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0435,
+  "dpx": 67579,
+  "id": "thm.cut_vs",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0362,
+  "dpx": 56223,
+  "id": "thm.cut_warn",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "cutaway",
+  "diff": 0.0757,
+  "dpx": 117787,
+  "id": "thm.cut_wrong_right",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7144,
+  "dpx": 35693,
+  "id": "thm.hook_count",
+  "ink": 0.02252,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7064,
+  "dpx": 81981,
+  "id": "thm.hook_frame",
+  "ink": 0.05466,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1465,
+  "dpx": 47775,
+  "id": "thm.hook_glass",
+  "ink": 0.18706,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6156,
+  "dpx": 75883,
+  "id": "thm.hook_num",
+  "ink": 0.06096,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6819,
+  "dpx": 73670,
+  "id": "thm.hook_punch",
+  "ink": 0.0517,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7067,
+  "dpx": 87450,
+  "id": "thm.hook_q",
+  "ink": 0.05776,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6819,
+  "dpx": 73670,
+  "id": "thm.hook_red",
+  "ink": 0.0517,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6371,
+  "dpx": 58793,
+  "id": "thm.hook_side",
+  "ink": 0.04733,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.641,
+  "dpx": 87728,
+  "id": "thm.hook_strike",
+  "ink": 0.04144,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6662,
+  "dpx": 64715,
+  "id": "thm.hook_tag",
+  "ink": 0.04385,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6688,
+  "dpx": 92226,
+  "id": "thm.hook_two",
+  "ink": 0.04949,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6592,
+  "dpx": 103013,
+  "id": "thm.hook_wipe",
+  "ink": 0.09357,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.384,
+  "dpx": 98138,
+  "id": "thm.key_boxed",
+  "ink": 0.12447,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3766,
+  "dpx": 93798,
+  "id": "thm.key_bracket",
+  "ink": 0.1183,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.4552,
+  "dpx": 81143,
+  "id": "thm.key_count",
+  "ink": 0.09993,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3752,
+  "dpx": 89536,
+  "id": "thm.key_drop",
+  "ink": 0.11291,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3202,
+  "dpx": 103003,
+  "id": "thm.key_hl",
+  "ink": 0.20078,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3824,
+  "dpx": 94224,
+  "id": "thm.key_note",
+  "ink": 0.11631,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3805,
+  "dpx": 93733,
+  "id": "thm.key_ok",
+  "ink": 0.12056,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7113,
+  "dpx": 4247,
+  "id": "thm.key_pieces",
+  "ink": 0.00386,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3816,
+  "dpx": 94032,
+  "id": "thm.key_pop",
+  "ink": 0.11627,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3202,
+  "dpx": 103003,
+  "id": "thm.key_red",
+  "ink": 0.20078,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3816,
+  "dpx": 94032,
+  "id": "thm.key_shake",
+  "ink": 0.11627,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3752,
+  "dpx": 89536,
+  "id": "thm.key_slide",
+  "ink": 0.11291,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3689,
+  "dpx": 76519,
+  "id": "thm.key_strike",
+  "ink": 0.09942,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.4731,
+  "dpx": 117107,
+  "id": "thm.key_swap",
+  "ink": 0.09908,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.3805,
+  "dpx": 93733,
+  "id": "thm.key_under",
+  "ink": 0.12056,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.63,
+  "dpx": 43451,
+  "id": "thm.list_arrow",
+  "ink": 0.02553,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.5948,
+  "dpx": 98683,
+  "id": "thm.list_big",
+  "ink": 0.04097,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6302,
+  "dpx": 42697,
+  "id": "thm.list_dot",
+  "ink": 0.02524,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4552,
+  "dpx": 11886,
+  "id": "thm.list_flow",
+  "ink": 0.00827,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6512,
+  "dpx": 49888,
+  "id": "thm.list_num",
+  "ink": 0.02832,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.6545,
+  "dpx": 50741,
+  "id": "thm.list_tick",
+  "ink": 0.02892,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4342,
+  "dpx": 13339,
+  "id": "thm.list_two",
+  "ink": 0.00874,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.1089,
+  "dpx": 21995,
+  "id": "thm.media_badge",
+  "ink": 0.11824,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.06,
+  "dpx": 10361,
+  "id": "thm.media_card",
+  "ink": 0.10163,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0542,
+  "dpx": 10361,
+  "id": "thm.media_frame",
+  "ink": 0.11356,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0411,
+  "dpx": 26339,
+  "id": "thm.media_quote",
+  "ink": 0.4119,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.6468,
+  "dpx": 189301,
+  "id": "thm.media_reveal",
+  "ink": 0.12527,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0168,
+  "dpx": 10361,
+  "id": "thm.media_shadow",
+  "ink": 0.38642,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.2238,
+  "dpx": 15240,
+  "id": "thm.media_split",
+  "ink": 0.03974,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.1275,
+  "dpx": 47039,
+  "id": "thm.media_stat",
+  "ink": 0.23714,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "mockup",
+  "diff": null,
+  "id": "thm.media_strip",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0289,
+  "dpx": 3408,
+  "id": "thm.media_two",
+  "ink": 0.07293,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.06,
+  "dpx": 10361,
+  "id": "thm.media_wide",
+  "ink": 0.10163,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1067,
+  "dpx": 38767,
+  "id": "thm.media_window",
+  "ink": 0.23419,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4712,
+  "dpx": 66231,
+  "id": "thm.stat_bar",
+  "ink": 0.07314,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3467,
+  "dpx": 25111,
+  "id": "thm.stat_bars",
+  "ink": 0.03969,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3889,
+  "dpx": 104994,
+  "id": "thm.stat_big",
+  "ink": 0.13513,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1141,
+  "dpx": 34321,
+  "id": "thm.stat_delta",
+  "ink": 0.1935,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4612,
+  "dpx": 69572,
+  "id": "thm.stat_frame",
+  "ink": 0.07931,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1674,
+  "dpx": 60232,
+  "id": "thm.stat_glass",
+  "ink": 0.23132,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1674,
+  "dpx": 60232,
+  "id": "thm.stat_note",
+  "ink": 0.23132,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4626,
+  "dpx": 66231,
+  "id": "thm.stat_ok",
+  "ink": 0.07314,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.3416,
+  "dpx": 14891,
+  "id": "thm.stat_pct",
+  "ink": 0.02195,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.4626,
+  "dpx": 66231,
+  "id": "thm.stat_red",
+  "ink": 0.07314,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.2418,
+  "dpx": 68445,
+  "id": "thm.stat_roll",
+  "ink": 0.12303,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.2427,
+  "dpx": 86833,
+  "id": "thm.stat_solid",
+  "ink": 0.23006,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.2034,
+  "dpx": 58228,
+  "id": "thm.stat_tag",
+  "ink": 0.18391,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "infographic",
+  "diff": 0.1493,
+  "dpx": 38241,
+  "id": "thm.stat_trio",
+  "ink": 0.16464,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.5391,
+  "dpx": 6507,
+  "id": "thm.tag_arrow",
+  "ink": 0.00395,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.3021,
+  "dpx": 5929,
+  "id": "thm.tag_circle",
+  "ink": 0.00798,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.6567,
+  "dpx": 20214,
+  "id": "thm.tag_corner",
+  "ink": 0.00975,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.1705,
+  "dpx": 16800,
+  "id": "thm.tag_note",
+  "ink": 0.06334,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.7142,
+  "dpx": 42639,
+  "id": "thm.tag_pill",
+  "ink": 0.01286,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.592,
+  "dpx": 7263,
+  "id": "thm.tag_time",
+  "ink": 0.00252,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "callout",
+  "diff": 0.7048,
+  "dpx": 55671,
+  "id": "thm.tag_under",
+  "ink": 0.03555,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_alt",
+  "ink": 0.06694,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_blur",
+  "ink": 0.10324,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.7668,
+  "dpx": 96479,
+  "id": "thm.type_box",
+  "ink": 0.02034,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_char",
+  "ink": 0.09632,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_drop",
+  "ink": 0.09419,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_focus",
+  "ink": 0.09632,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_gather",
+  "ink": 0.06532,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6848,
+  "dpx": 84056,
+  "id": "thm.type_hot",
+  "ink": 0.02211,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6627,
+  "dpx": 85242,
+  "id": "thm.type_rule",
+  "ink": 0.02511,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_scatter",
+  "ink": 0.07189,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.64,
+  "dpx": 65661,
+  "id": "thm.type_stack",
+  "ink": 0.02569,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.8375,
+  "dpx": 38662,
+  "id": "thm.type_swap",
+  "ink": 0.03152,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_track",
+  "ink": 0.06184,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_wave",
+  "ink": 0.09814,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_word",
+  "ink": 0.09798,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "thm.type_write",
+  "ink": 0.06193,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0764,
+  "dpx": 24136,
+  "id": "thm.ui_app",
+  "ink": 0.20408,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0757,
+  "dpx": 24136,
+  "id": "thm.ui_badge",
+  "ink": 0.20512,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0764,
+  "dpx": 24136,
+  "id": "thm.ui_browser",
+  "ink": 0.20408,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0764,
+  "dpx": 24136,
+  "id": "thm.ui_cursor",
+  "ink": 0.20326,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0829,
+  "dpx": 9998,
+  "id": "thm.ui_notif",
+  "ink": 0.07757,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0433,
+  "dpx": 7873,
+  "id": "thm.ui_phone",
+  "ink": 0.11704,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.1394,
+  "dpx": 23644,
+  "id": "thm.ui_progress",
+  "ink": 0.10906,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0447,
+  "dpx": 18423,
+  "id": "thm.ui_search",
+  "ink": 0.26523,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "mockup",
+  "diff": 0.0146,
+  "dpx": 5299,
+  "id": "thm.ui_shot",
+  "ink": 0.23572,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0303,
+  "dpx": 10171,
+  "id": "thm.ui_steps",
+  "ink": 0.21606,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.6042,
+  "dpx": 41671,
+  "id": "thm.ui_tabs",
+  "ink": 0.02359,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "ui",
+  "diff": 0.0591,
+  "dpx": 7486,
+  "id": "thm.ui_toggle",
+  "ink": 0.08145,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6991,
+  "dpx": 2972,
+  "id": "titles.badge",
+  "ink": 0.99784,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6076,
+  "dpx": 52183,
+  "id": "titles.bumper",
+  "ink": 0.2427,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.642,
+  "dpx": 18465,
+  "id": "titles.chapter",
+  "ink": 0.71195,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles.corner_card",
+  "ink": 0.9992,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "title",
+  "diff": null,
+  "id": "titles.countdown",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6127,
+  "dpx": 37543,
+  "id": "titles.end_card",
+  "ink": 0.78669,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles.kicker_title",
+  "ink": 0.86329,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles.label_pill",
+  "ink": 0.93624,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5884,
+  "dpx": 17112,
+  "id": "titles.list_title",
+  "ink": 0.11696,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6072,
+  "dpx": 40918,
+  "id": "titles.logo_sting",
+  "ink": 0.25115,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles.lower_third",
+  "ink": 0.98312,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.627,
+  "dpx": 17638,
+  "id": "titles.name_plate",
+  "ink": 0.63386,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6344,
+  "dpx": 17040,
+  "id": "titles.quote_title",
+  "ink": 0.77778,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5788,
+  "dpx": 27872,
+  "id": "titles.section",
+  "ink": 0.71429,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6518,
+  "dpx": 15517,
+  "id": "titles.side_bar",
+  "ink": 0.96422,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6168,
+  "dpx": 32707,
+  "id": "titles.split_title",
+  "ink": 0.79912,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6939,
+  "dpx": 71130,
+  "id": "titles.stat_title",
+  "ink": 0.79857,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6343,
+  "dpx": 7717,
+  "id": "titles.ticker",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5772,
+  "dpx": 35908,
+  "id": "titles.title_card",
+  "ink": 0.80364,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6725,
+  "dpx": 6137,
+  "id": "titles.topic_bar",
+  "ink": 0.96868,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.589,
+  "dpx": 14938,
+  "id": "titles2.agenda",
+  "ink": 0.72751,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.alert_strip",
+  "ink": 0.99825,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5835,
+  "dpx": 10642,
+  "id": "titles2.big_number",
+  "ink": 0.10276,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6293,
+  "dpx": 19219,
+  "id": "titles2.breaking",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.callout",
+  "ink": 0.5884,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.chips",
+  "ink": 0.31036,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.clock_strip",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.compare_bars",
+  "ink": 0.23926,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5327,
+  "dpx": 1447,
+  "id": "titles2.credits",
+  "ink": 0.03164,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6739,
+  "dpx": 13719,
+  "id": "titles2.cta_card",
+  "ink": 0.9993,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.7829,
+  "dpx": 5604,
+  "id": "titles2.data_strip",
+  "ink": 0.99879,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5131,
+  "dpx": 5853,
+  "id": "titles2.donut_stat",
+  "ink": 0.06676,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6655,
+  "dpx": 13191,
+  "id": "titles2.fact_box",
+  "ink": 0.99987,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.glass_third",
+  "ink": 0.23363,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.headline_bar",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5562,
+  "dpx": 33620,
+  "id": "titles2.headline_stack",
+  "ink": 0.11203,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.id_strip",
+  "ink": 0.28461,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.locator",
+  "ink": 0.51845,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6368,
+  "dpx": 5472,
+  "id": "titles2.next_up",
+  "ink": 0.99905,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.657,
+  "dpx": 3234,
+  "id": "titles2.price_tag",
+  "ink": 0.95217,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.progress_bar",
+  "ink": 0.23462,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6577,
+  "dpx": 15003,
+  "id": "titles2.pull_quote",
+  "ink": 0.0733,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6829,
+  "dpx": 9133,
+  "id": "titles2.rating",
+  "ink": 0.07047,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4702,
+  "dpx": 1544,
+  "id": "titles2.score_bar",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.social_bar",
+  "ink": 0.52797,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.4737,
+  "dpx": 3241,
+  "id": "titles2.sponsor_card",
+  "ink": 0.04767,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.7281,
+  "dpx": 2875,
+  "id": "titles2.step_flow",
+  "ink": 0.09181,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles2.timeline",
+  "ink": 0.08744,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6597,
+  "dpx": 6944,
+  "id": "titles2.vs_split",
+  "ink": 0.94863,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6144,
+  "dpx": 45254,
+  "id": "titles2.wipe_word",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6081,
+  "dpx": 15559,
+  "id": "titles3.address_card",
+  "ink": 0.965,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.chapter_split",
+  "ink": 0.2496,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6248,
+  "dpx": 16366,
+  "id": "titles3.episode_card",
+  "ink": 0.94656,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.intro_stinger",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.0414,
+  "dpx": 3059,
+  "id": "titles3.lower_bar_ticker",
+  "ink": 0.99973,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.map_locator",
+  "ink": 0.93001,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.minimal_third",
+  "ink": 0.25471,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.name_tag_jp",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.opening_bars",
+  "ink": 0.85459,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.outro_cta",
+  "ink": 0.96763,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.phone_cta",
+  "ink": 0.97436,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.5208,
+  "dpx": 1491,
+  "id": "titles3.photo_third",
+  "ink": 0.99576,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6657,
+  "dpx": 37580,
+  "id": "titles3.poll_bar",
+  "ink": 0.8358,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "category": "title",
+  "id": "titles3.price_compare",
+  "ok": 0,
+  "why": "ထွက်ချက် ဗလာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.qa_card",
+  "ink": 0.89098,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "title",
+  "diff": 0.6402,
+  "dpx": 3679,
+  "id": "titles3.schedule_row",
+  "ink": 0.88112,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.stat_ribbon",
+  "ink": 1.0,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.subscribe_bug",
+  "ink": 0.97845,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.topic_dots",
+  "ink": 0.97702,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "title",
+  "diff": 1.0,
+  "id": "titles3.warning_card",
+  "ink": 0.97016,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.arrow_wipe",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.bars_h",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.bars_v",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.blinds",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.blur_dissolve",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.brush_ink",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.checker",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.circle_in",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.circle_out",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.clock",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.corner_wipe",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.diagonal",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.flash",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.grid_tiles",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.iris_box",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.liquid",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.ring_expand",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.split_h",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.split_v",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.stripes_diag",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.triangle",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.whip_pan",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.zigzag",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "transition",
+  "diff": null,
+  "id": "trans.zoom_punch",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1353,
+  "dpx": 41203,
+  "id": "typew.code_block",
+  "ink": 0.19577,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.cursor_blink",
+  "ink": 0.23086,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.0675,
+  "dpx": 104962,
+  "id": "typew.grad_card",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.hl_bar",
+  "ink": 0.23447,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.prompt_line",
+  "ink": 0.2003,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.1593,
+  "dpx": 247673,
+  "id": "typew.split_grad",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.type_delete",
+  "ink": 0.17099,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.type_line",
+  "ink": 0.21717,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "text",
+  "diff": 0.6881,
+  "dpx": 90784,
+  "id": "typew.type_stack",
+  "ink": 0.06694,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "text",
+  "diff": 1.0,
+  "id": "typew.word_fill",
+  "ink": 0.25254,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.badge_word",
+  "ink": 0.35647,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.bracket_word",
+  "ink": 0.09478,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.circle_word",
+  "ink": 0.07656,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.5978,
+  "dpx": 63793,
+  "id": "typo.depth_hero",
+  "ink": 0.05948,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.echo_repeat",
+  "ink": 0.21539,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.1414,
+  "dpx": 219944,
+  "id": "typo.flat_beat",
+  "ink": 1.0,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.glitch_type",
+  "ink": 0.14894,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.gradient_word",
+  "ink": 0.10656,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.hero_word",
+  "ink": 0.26473,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.image_word",
+  "ink": 0.11654,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.8669,
+  "dpx": 30255,
+  "id": "typo.kern_wide",
+  "ink": 0.06476,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.kicker_stack",
+  "ink": 0.15951,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.long_shadow",
+  "ink": 0.25203,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.mask_bar_word",
+  "ink": 0.40122,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.neon_word",
+  "ink": 0.32979,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6176,
+  "dpx": 24993,
+  "id": "typo.number_hero",
+  "ink": 0.15185,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.outline_word",
+  "ink": 0.07697,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.quote_block",
+  "ink": 0.09239,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.5658,
+  "dpx": 8402,
+  "id": "typo.scale_ramp",
+  "ink": 0.03194,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6572,
+  "dpx": 33146,
+  "id": "typo.slab_block",
+  "ink": 0.12117,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.split_color",
+  "ink": 0.10656,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6297,
+  "dpx": 18974,
+  "id": "typo.stack3",
+  "ink": 0.04519,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6412,
+  "dpx": 39352,
+  "id": "typo.ticker_type",
+  "ink": 0.17353,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.two_tone_line",
+  "ink": 0.11343,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo.underline_word",
+  "ink": 0.11211,
+  "ok": 1,
+  "why": "အရွယ် ကွာ"
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6252,
+  "dpx": 15609,
+  "id": "typo.vertical_jp",
+  "ink": 0.01444,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6234,
+  "dpx": 34050,
+  "id": "typo.word_cascade",
+  "ink": 0.02128,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6317,
+  "dpx": 7782,
+  "id": "typo2.arc_labels",
+  "ink": 0.00294,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": 0.0,
+  "aapx": 0,
+  "category": "typography",
+  "diff": 0.6377,
+  "dpx": 21918,
+  "id": "typo2.ghost_word",
+  "ink": 0.11055,
+  "ok": 1,
+  "why": ""
+ },
+ {
+  "aa": null,
+  "category": "typography",
+  "diff": null,
+  "id": "typo2.logo_flip",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "typography",
+  "diff": null,
+  "id": "typo2.orbit_dots",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": null,
+  "category": "typography",
+  "diff": null,
+  "id": "typo2.subject_rise",
+  "ok": 1,
+  "why": "စာသား param မရှိ — ဂိတ်③ မသက်ဆိုင်"
+ },
+ {
+  "aa": 0.0,
+  "category": "typography",
+  "diff": 1.0,
+  "id": "typo2.title_lift",
   "ink": 0.06969,
+  "ok": 1,
   "why": "အရွယ် ကွာ"
  }
 ]
