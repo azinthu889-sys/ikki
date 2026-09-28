@@ -588,6 +588,50 @@ def _first_number(text):
     return m.group(0) if m else None
 
 
+# ══ နံပါတ်တပ် item — **lower third တစ်မျိုးတည်း**သို့ ══════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၈ short-916 (seed `t_s916_pin`) ကို ဖရိန်လိုက် ကြည့်ရာ
+#    「နံပါတ် ၁/၂/၃」 ၃ ခုက **ပုံစံ ၃ မျိုး** နဲ့ ထွက်ခဲ့သည် —
+#      ~၃၂s  အဝါရောင်「1」ဘေးက အဖြူစာ · ကောင်းကင် အလင်းပေါ် **မမြင်ရ**
+#      ~၄၁s  အနက်ရောင် လေးထောင့် + ရွှေမျဉ်းပါး (「နည်းနည်းသေးတယ်」)
+#      ~၄၉s  စက္ကူဖြူပေါ် **စာသား ချည်း** (နောက်ခံ မရှိ)
+#    ⇒ item တွေက အတူတူ ဖြစ်ရမည် ⇒ တစ်မျိုးတည်းသို့ ပို့သည်。
+# ⚠️ ဂဏန်းကို **Latin** ပြောင်းရသည် — badge အရွယ်မှာ မြန်မာ「၂」က
+#    Latin「J」လို ဖတ်ရသည် (prototype မှာ တွေ့)。
+# ⚠️ Zin ၂၀၂၆-၀၉-၂၈「နံပါတ် ၂ ကိုဖြုတ်ပေးပါ」⇒ kicker **မပို့ရ**。
+NUM_LT = "lower3.lt_number"
+_MMD = "\u1040\u1041\u1042\u1043\u1044\u1045\u1046\u1047\u1048\u1049"
+_D = r"[0-9" + _MMD + r"]{1,2}"
+# ⚠️ ပုံစံ ၂ မျိုး — ရှေ့ဆက် ရှိလျှင် နောက်က ခွဲမှတ် **မလို**
+#    (「#1 ချောမွေ့တဲ့ လမ်းကြောင်း」က item ဖြစ်သည်)、မရှိလျှင် **လို**
+#    (「၂၀၂၆ မှာ」က item မဟုတ်)。
+_NUM_MARK = re.compile(
+    r"^\s*(?:(?:\u1014\u1036\u1015\u102B\u1010\u103A|\u1021\u1019\u103E\u1010\u103A|No\.?|#)"
+    r"\s*[\(\uFF08]?\s*(" + _D + r")\s*[\)\uFF09\.\u104B\-\u2013:]?"
+    r"|[\(\uFF08]?\s*(" + _D + r")\s*[\)\uFF09\.\u104B\-\u2013:])\s*")
+
+
+def numbered_item(text):
+    """「နံပါတ် ၂ - အေဂျင်စီကောင်း」→ `("02", "အေဂျင်စီကောင်း")` · မဟုတ်လျှင် None
+
+    ⚠️ ဂဏန်း **သီးသန့်** မဟုတ်ရ — 「၂၀၂၆ မှာ」က item မဟုတ်。 ⇒ ဂဏန်း
+       နောက်မှာ ခွဲခြားမှတ်အသား (`-` `.` `။` `)` `:`) သို့မဟုတ်
+       「နံပါတ်/အမှတ်/No.」 ရှေ့ဆက် **လိုသည်**。
+    ⚠️ ခေါင်းစဉ် ဗလာ ဖြစ်လျှင် ကတ် မထုတ်ရ (「နံပါတ် ၂ ပါ」 ချည်း)。
+    """
+    t = (text or "").strip()
+    m = _NUM_MARK.match(t)
+    if not m:
+        return None
+    rest = t[m.end():].strip(" -\u2013:\u104B")
+    if not rest or _ncl(rest) < 2:
+        return None
+    d = "".join(str(ord(c) - 0x1040) if "\u1040" <= c <= "\u1049" else c
+                for c in (m.group(1) or m.group(2)))
+    if not d.isdigit() or not (1 <= int(d) <= 20):
+        return None
+    return ("%02d" % int(d), _short(rest, 30))
+
+
 _CL = re.compile(r"[\u1000-\u102A\u103F\u104C-\u104F\u0020-\u007E]"
                  r"[\u102B-\u103E\u1039\u1040-\u104B\uFE00-\uFE0F]*")
 
@@ -1500,7 +1544,15 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             _o = [x for x in ids if not _full_frame(x)]
             return (_f + _o) if _want_ff else _o
 
-        _pack_c = _ff_order(_pack_c)
+        # ── နံပါတ်တပ် item ⇒ **lower third တစ်မျိုးတည်း** ────────
+        # ⚠️ ရွေးချယ်မှု အားလုံးထက် ရှေ့ — rotate/alias/pack က ဝင်မရသည်。
+        #    item ၃ ခု **အတူတူ** ဖြစ်ရန်က ကွဲပြားမှုထက် အရေးကြီးသည်。
+        # ⚠️ template မရှိသေးလျှင် (motionkit မတင်ရသေး) **ကျော်**ပြီး
+        #    ပုံမှန် လမ်းကြောင်းသို့ ပြန်သွားသည် — ကျမသွားရ。
+        _ni = numbered_item(txt)
+        if _ni is not None and NUM_LT in MF.ids():
+            cid, pr = NUM_LT, {"value": _ni[0], "title": _ni[1]}
+        _pack_c = _ff_order(_pack_c) if not cid else []
         _stale = []
         for _pid in _pack_c:
             if _pid in _recent:
