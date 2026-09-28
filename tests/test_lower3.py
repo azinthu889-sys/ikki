@@ -108,6 +108,35 @@ def main():
     except ImportError as _e:
         print(f"  ⊘ manifest မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
 
+    print("\n── ၂-ဂ · ခေါင်းစဉ် ကျော်သော စာသားကို **ဖြတ်**ရမည် ──")
+    # ⚠️ အနိမ့်ဆုံး အရွယ် (၅၈px) မှာလည် မဆံ့လျှင် မင်က panel ရဲ့ ညာစွန်း
+    #    အောက် ဆက်ပြေးပြီး **စာလုံးအလယ်မှာ ပြတ်**သည်
+    #    (၂၀၂၆-၀၉-၂၉ final6:「… ကျောင်းဖြ|」)。
+    try:
+        import numpy as _np
+        import theme as _th
+        from PIL import Image as _Im
+        import lower3 as _L3
+        import importlib as _il
+        _th.use("ikki", "16:9")
+        _il.reload(_L3)
+        _W = 1920
+        _lim = _W - int(_W * 54 / 1080) - int(_W * 36 / 1080)
+        for _i, _t in enumerate((
+                "COE စိတ်ချရတဲ့ Class 1 ကျောင်းဖြစ်ဖို့ အရေးကြီးပါတယ်",
+                "ကိုယ့်ဘက်က အထက်တန်းအောင်မြင်ထားဖို့ လိုပါတယ်",
+                "အေဂျင်စီကောင်း")):
+            _e = _L3.lt_number(f"tclip{_i}", "01", _t, dur=3.0)
+            _a = _np.array(_Im.open(_e["anim"][60][0]).convert("RGBA"))
+            _w = ((_a[..., 0] > 190) & (_a[..., 1] > 190)
+                  & (_a[..., 2] > 190) & (_a[..., 3] > 180))
+            _w[:, :330] = False
+            _xs = _np.where(_w)[1]
+            _mx = int(_xs.max()) if len(_xs) else 0
+            check(f"စာသား panel ထဲ ဆံ့  「{_t[:18]}…」", _mx <= _lim, (_mx, _lim))
+    except ImportError as _e:
+        print(f"  ⊘ motionkit/numpy မရ ({_e}) — ဤအပိုင်း ကျော်သည်")
+
     print("\n── ၃ · template ဂျီဩမေတြီ (motionkit ရှိမှ) ──")
     try:
         import theme                                        # noqa: F401

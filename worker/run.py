@@ -2129,6 +2129,50 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     continue
                 gfx.append(dict(at=t["at"], kind=nm, text=t.get("text") or "",
                                 args=_ga))
+            # ── နံပါတ်တပ် ဝါကျ **အားလုံး** ကတ် ရရမည် ─────────────
+            # ⚠️ အပေါ်က route က ခေါင်းစဉ် ကျသော အချိန်ကိုသာ **အဆင့်မြှင့်**
+            #    သည် ⇒ Gemini က နံပါတ်တပ် ဝါကျပေါ် ခေါင်းစဉ် မချလျှင်
+            #    အဲဒီ item မှာ ကတ် **လုံးဝ မရ**ပါ (၂၀၂၆-၀၉-၂၉ final6 —
+            #    「နံပါတ်နှစ်」 ပျောက်)。 Zin လိုချင်တာက **၃ ခုလုံး တူညီ** ⇒
+            #    ကျန်တာကို **ကိုယ်တိုင် ထည့်**ရမည်。
+            try:
+                try:
+                    import planner as _PLN4
+                except ImportError:
+                    from core import planner as _PLN4
+                if DR.resolves(_PLN4.NUM_LT):
+                    _have = [g["at"] for g in gfx if g.get("kind") == _PLN4.NUM_LT]
+                    _add_lt = 0
+                    for _sg in (segs or []):
+                        _n2 = _PLN4.numbered_item(str(_sg.get("text") or ""))
+                        if not _n2:
+                            continue
+                        _a2 = float(_sg.get("start") or 0)
+                        if any(abs(_a2 - _h) < 2.5 for _h in _have):
+                            continue
+                        gfx.append(dict(at=round(_a2, 2), kind=_PLN4.NUM_LT,
+                                        text=_n2[1], args=(_n2[0], _n2[1])))
+                        _have.append(_a2); _add_lt += 1
+                        log(f"  ⑆ နံပါတ်တပ် @ {_a2:.1f}s ⇒ {_PLN4.NUM_LT} "
+                            f"({_n2[0]} · {_n2[1][:20]}) — ခေါင်းစဉ် မရှိ၍ ထည့်")
+                    # ⚠️ **နံပါတ်တပ် အချိန်မှာ တခြား ကတ် မရှိရ** — ခေါင်းစဉ်
+                    #    တစ်ခုက route ကို မိပြီး နောက်တစ်ခုက ရေကန်ကနေ
+                    #    ဟောင်းသော pill ယူသွားရာ **item ၁ က ၂ ခါ** ပေါ်ခဲ့သည်
+                    #    (final6: 31.2s အဝါ pill · 35.0s lower3)。
+                    if _have:
+                        _before = len(gfx)
+                        gfx = [g for g in gfx
+                               if g.get("kind") == _PLN4.NUM_LT
+                               or not any(abs(float(g.get("at") or 0) - _h) < 4.0
+                                          for _h in _have)]
+                        if len(gfx) < _before:
+                            log(f"  ⑆ နံပါတ်တပ် အချိန်နဲ့ ထပ်နေသော ကတ် "
+                                f"{_before - len(gfx)} ခု ဖယ်လိုက်သည်")
+                    if _add_lt:
+                        gfx.sort(key=lambda g: g["at"])
+                        REPORT["gfx_num_added"] = _add_lt
+            except Exception as _lte:
+                log(f"  ⚠️ နံပါတ်တပ် ဖြည့်၍ မရ: {type(_lte).__name__}: {_lte}")
             # ⚠️ **explainer insert ကို ဒီမှာပါ ထည့်ရမည်** — `DR.pick()` က
             #    ပြန်ဆုတ်လမ်းသာ ဖြစ်၍ ဒီအဓိကလမ်းမှာ မထည့်လျှင် insert
             #    တစ်ခုမှ မဝင်ပါ (၂၀၂၆-၀၉-၂၀ ref-talk render မှာ တကယ် ဖြစ်)。
