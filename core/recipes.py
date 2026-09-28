@@ -394,7 +394,7 @@ R = {
     cap_kw_style="box",                     # r4: white word on a red box
     broll_whip=True,                        # refs: B-roll lands with a zoom-whip
     cap_by_word=True,                       # cut cards between words, time from word onsets
-    cap_timing="speech",                    # Zin 2026-09-27: on at voice start, off at voice end
+    cap_timing="word_pop", cap_pop=1.25,    # Zin 2026-09-28 "better": one word per card, on at the word, pop-in (r1)
     cam_moves=True,                         # r3: designed eased push-in/pull-out (replaces breathing zoom)
     kin_title=True, kin_share=0.6,          # r3: keyword title as it is spoken, blur+fade 0.27 s
     kin_size=0.078, kin_y=0.56,             # 150 px; chest band below the chin, above the caption
@@ -402,7 +402,9 @@ R = {
     # against a -20.2 LUFS voice (-17 dB offset) and was then ducked 4:1 --
     # inaudible on a phone. Refs keep music forward: bed ~10 dB under voice,
     # light 2:1 duck.
-    music_lufs=-30.0, music_duck=2.0,
+    # 2026-09-28: -30 measured 17 dB under the voice in the finished mix (music
+    #   stem -31.1 vs voice -14.4 LUFS); reference r3 sits 8 dB under ->  -22.
+    music_lufs=-22.0, music_duck=2.0,
     stroke="brand", stroke_w=0.30, cap_gap=0.18, cap_fade=0.0,   # refs switch cards on a hard cut
     cap_cover=1.0, cap_hold=1.6, scrim=False,
     cap_typo=0.20,

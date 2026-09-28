@@ -396,6 +396,48 @@ def split_two(txt, MW, size, font, maxw):
     # the most balanced split; the caller shrinks if a line still overflows
     return best[1] if best and best[0] < MW(txt, size, font) else None
 
+# particles that never start a chunk: they stay with the word before them
+_PART = {"တဲ့", "တယ်", "ပါ", "မယ်", "ပြီး", "တော့", "နဲ့", "ရဲ့", "က", "ကို", "မှာ", "လို့",
+         "သည်", "၏", "နော်", "ဘူး", "လဲ", "လား", "တွေ", "များ", "ရင်", "ဆို", "လည်း", "ပဲ",
+         "စေ", "ပေး", "သွား", "ခဲ့", "ရ", "နိုင်", "ချင်", "ဖို့"}
+
+def chunk_word(txt, size, maxw, MW, font):
+    """An ASR "word" wider than the line (often a whole phrase with no spaces)
+    -> chunks that fit, broken only where a Burmese word boundary (mmseg) AND a
+    syllable boundary agree; particles stay with the word before them. Text is
+    never changed (R1). Returns [(text, syllables)] -- one chunk if it fits."""
+    if MW(txt, size, font) <= maxw: return [(txt, max(1, len(syllables(txt))))]
+    sy = syllables(txt)
+    sb = set(); pos = 0
+    for p in sy[:-1]: pos += len(p); sb.add(pos)
+    try:
+        import mmseg as _MS
+        ws = _MS.words(txt)
+    except Exception:
+        ws = None
+    if ws and "".join(ws) == txt.replace(" ", "") and " " not in txt:
+        wb = set(); pos = 0
+        for w in ws[:-1]: pos += len(w); wb.add(pos)
+        cut = sorted(wb & sb)
+    else:
+        cut = sorted(sb)                     # fallback: syllable boundaries only
+    units, prev = [], 0
+    for c in cut + [len(txt)]:
+        units.append(txt[prev:c]); prev = c
+    merged = []
+    for u in units:
+        punct = u.strip() in ("။", "၊") or not u.strip()
+        is_p = punct or u.strip() in _PART
+        if merged and (punct or (is_p and MW(merged[-1] + u, size, font) <= maxw)):
+            merged[-1] += u                  # particle stays with its word while the line fits
+        else:
+            merged.append(u)
+    chunks = []
+    for u in merged:
+        if chunks and MW(chunks[-1] + u, size, font) <= maxw: chunks[-1] += u
+        else: chunks.append(u)
+    return [(c, max(1, len(syllables(c)))) for c in chunks]
+
 def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, min_card=0.15):
     """One card per ASR word, like the references (r1/r3: one word per card,
     2.3 cards/s, the card is always the word being said now). Zin 2026-09-28:
@@ -442,10 +484,26 @@ def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, 
             else: groups.append([[w], on])
         for gi, (gw, on) in enumerate(groups):
             off = groups[gi + 1][1] if gi + 1 < len(groups) else rb
-            txt = " ".join(x[2] for x in gw); sz = size
-            while MW(txt, sz, font) > maxw and sz > int(size * 0.6): sz -= 3
+            txt = " ".join(x[2] for x in gw)
             kw = sorted({k for x in gw for k in (caps[x[3]].get("kw") or [])})
-            cards.append(dict(lines=[txt], a=round(on, 3), b=round(off, 3), sz=sz, kw=kw))
+            ch = chunk_word(txt, size, maxw, MW, font)
+            # time the chunks by syllable share, snapped to a dip; each >= min_card
+            tot = float(sum(n for _, n in ch)); t0 = on; acc = 0
+            starts = [on]
+            for _, n in ch[:-1]:
+                acc += n
+                lo = starts[-1] + min_card; hi = off - min_card
+                if hi <= lo: starts.append(None); continue
+                starts.append(snap_to(min(hi, max(lo, on + (off - on) * acc / tot)), lo, hi))
+            pieces = []
+            for (ct, n), st in zip(ch, starts):
+                if st is None and pieces: pieces[-1][0] += ct
+                else: pieces.append([ct, st])
+            for pi, (ct, st) in enumerate(pieces):
+                en = pieces[pi + 1][1] if pi + 1 < len(pieces) else off
+                sz = size
+                while MW(ct, sz, font) > maxw and sz > int(size * 0.6): sz -= 3
+                cards.append(dict(lines=[ct], a=round(st, 3), b=round(en, 3), sz=sz, kw=kw))
     return cards
 
 def plan(segs, spans, max_lines=2):

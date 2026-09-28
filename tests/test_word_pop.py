@@ -43,5 +43,24 @@ class WordPop(unittest.TestCase):
             self.assertGreaterEqual(x["b"] - x["a"], 0.15 - 1e-6)
 
 
+class ChunkWord(unittest.TestCase):
+    """ASR "words" that are whole phrases -> chunks at Burmese word boundaries"""
+
+    def test_roundtrip_fits_and_never_inside_a_syllable(self):
+        W = lambda t, size, font=None: len(t) * size * 0.35
+        for t in ["အသေးစိတ်ဆွေးနွေးချင်တယ်ဆိုရင်တော့", "အခမဲ့တိုင်ပင်ဆွေးနွေးပေးသွားပါမယ်နော်",
+                  "ကိုယ့်ရဲ့အခြေအနေနဲ့ကိုက်မကိုက်"]:
+            ch = CP.chunk_word(t, 80, 400, W, None)
+            self.assertEqual("".join(c for c, _ in ch), t)
+            sy = CP.syllables(t); bounds = set(); pos = 0
+            for p in sy: pos += len(p); bounds.add(pos)
+            pos = 0
+            for c, _ in ch[:-1]:
+                pos += len(c); self.assertIn(pos, bounds)       # break only at a syllable boundary
+
+    def test_short_word_is_one_chunk(self):
+        self.assertEqual(len(CP.chunk_word("ဂျပန်", 80, 778, MW, None)), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
