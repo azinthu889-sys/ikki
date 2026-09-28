@@ -12,7 +12,12 @@ sys.path.insert(0, os.path.join(ROOT, "core"))
 import planner as PL          # noqa: E402
 import sfxpol as SP           # noqa: E402
 
-SRC, OUT, PM = 178.7, 69.3, 6.0
+SRC, OUT = 178.7, 69.3
+# ⚠️ **ဂိတ်ကို ကုဒ်ထဲ ကိန်းသေ မရေးရ** — `headtop` ရဲ့ per_min က ၂၀၂၆-၀၉-၂၈
+#    မှာ ၆.၀ → ၈.၇ ပြောင်းသွားရာ ဤဖိုင်က ၆.၀ ကို ကိုင်ထားလို့ ကျခဲ့သည်
+#    (ထုတ်သူ မှားလို့ မဟုတ် · စမ်းသပ်ချက် ဟောင်းလို့)。 ⇒ **profile ကနေ**
+#    ယူသည် ⇒ တန်ဖိုး ပြောင်းလျှင် စမ်းသပ်ချက်က အလိုလို လိုက်မည်。
+PM = float(SP.policy("zae", "headtop")["per_min"])
 
 
 def _events(n, span):
@@ -51,7 +56,7 @@ class SfxDur(unittest.TestCase):
         self.assertLessEqual(mb, ma, "ဖြတ်ပြီး အရှည်ဆို မပိုရ")
 
     def test_density_gate_would_pass(self):
-        """ဖြတ်ပြီး အရှည်နဲ့ တွက်လျှင် ဂိတ် (≤၆.၀/min) အောင်ရမည်"""
+        """ဖြတ်ပြီး အရှည်နဲ့ တွက်လျှင် ဂိတ် (profile ရဲ့ per_min) အောင်ရမည်"""
         ev = _events(24, SRC)
         cues = PL.sfx_plan(ev, SRC, PM, style="headtop", out_dur=OUT)
         moments = _moments(cues)
