@@ -759,8 +759,20 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     line_h = int(size*2.2)
     timed=[]; k=0
     # cards_pre (short-916 speech timing): one unit per card, already timed
+    # WARN `is not None` let an EMPTY list through, and an empty unit list is a
+    #    video with NO CAPTIONS AT ALL. That happened for real: an approve
+    #    rebuilt each segment as text/start/end only, word_pop_cards() got no
+    #    word timings, returned [], and every caption silently vanished.
+    #    The producers were fixed (2026-09-28, 268319c), but the class stays
+    #    open while the consumer accepts []. So the fallback lives HERE, at the
+    #    one place that decides, not at each call site: empty pre-timed cards
+    #    means "nothing pre-timed", never "render nothing".
+    if cards_pre is not None and not cards_pre and caps:
+        if log:
+            log("  ⚠️ စာတန်း · cards_pre ဗလာ — caps သို့ ပြန်ကျ (စာတန်း မပျောက်စေရ)")
+        cards_pre = None
     _units = ([(dict(kw=x.get("kw")), [(x["lines"], x["a"], x["b"], x["sz"])]) for x in cards_pre]
-              if cards_pre is not None else [(c, None) for c in caps])
+              if cards_pre else [(c, None) for c in caps])
     for c, _pre in _units:
         _wc = None if _pre is not None else (word_cards(c, size, maxw, MW, font, hold=hold) if by_word else None)
         for lines, a, b, sz in (_pre or _wc or cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold)):

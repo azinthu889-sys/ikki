@@ -85,5 +85,29 @@ class Readable(unittest.TestCase):
         self.assertEqual([x["lines"][0] for x in c], ["ကက", "ခခ"])   # would need 30 px < 36
 
 
+class CardsPreEmpty(unittest.TestCase):
+    """cards_pre ဗလာ ⇒ စာတန်း **မပျောက်ရ** (၂၀၂၆-၀၉-၂၈)
+
+    ⚠️ `captions.track()` က `cards_pre is not None` နဲ့ စစ်ခဲ့ရာ **ဗလာ list**
+       ဝင်သွားပြီး unit ၀ ⇒ **စာတန်း လုံးဝ မပါသော ဗီဒီယို** ထွက်ခဲ့သည်。
+       approve က segment ကို text/start/end ချည်း ပြန်ဆောက်၍ စကားလုံးအချိန်
+       ပျောက်ကာ `word_pop_cards()` က [] ပြန်ခြင်းကြောင့် ဖြစ်သည်。
+    ⚠️ ထုတ်သူ ၂ နေရာ ပြင်ရုံနဲ့ **အမျိုးအစား ပွင့်နေဆဲ** — လက်ခံသူက []
+       ကို လက်ခံနေသရွေ့ နောက် ခေါ်သူ အသစ်တိုင်း ထပ်ဖြစ်နိုင်သည် ⇒
+       ဆုံးဖြတ်သည့် **တစ်နေရာတည်း**မှာ ဖြေထားသည်。
+    ⚠️ ဤဖိုင်ရဲ့ အောက်ဆုံးမှာ `unittest.main()` ရှိသဖြင့် အဲဒီနောက် ရေးလျှင်
+       **ဘယ်တော့မှ မပြေး** — ပထမ ရေးတုန်းက အဲလို ဖြစ်ခဲ့သည် (တိတ်တဆိတ်
+       အောင်နေသော စစ်ချက်)。 ⇒ TestCase အဖြစ်သာ ရေးရမည်。
+    """
+
+    def test_empty_cards_pre_falls_back(self):
+        import inspect
+        src = inspect.getsource(CP.track)
+        self.assertIn("cards_pre is not None and not cards_pre", src)
+        self.assertIn("if cards_pre else", src)
+        self.assertNotIn("if cards_pre is not None else", src)
+
+
 if __name__ == "__main__":
     unittest.main()
+
