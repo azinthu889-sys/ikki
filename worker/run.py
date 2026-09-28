@@ -2335,22 +2335,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
         if _n0 != len(gfx):
             log(f"  ဂရပ်ဖစ် {_n0 - len(gfx)} ခု ဗီဒီယို အဆုံးကျော်၍ ဖယ်သည်")
         log(f"  ဂရပ်ဖစ် ရွေး {len(gfx)} ခု · {', '.join(g['kind'] for g in gfx[:4])}…")
-        # ⚠️ `lower3` ရဲ့ **ကိုယ်ပိုင် တိုင်းချက်** ကို log ထဲ ထုတ်သည် —
-        #    တိုက်ရိုက် ခေါ်၍ တိုင်းသော ရလဒ် (token ၆→၃ · size ၅၈) နဲ့
-        #    တကယ့် render ရဲ့ ရလဒ် (ဝါကျ အပြည့် · စာလုံး သေး) **မတူ**ခဲ့သည်
-        #    (၂၀၂၆-၀၉-၂၉ final8)。 ခန့်မှန်းစရာ မလိုအောင် template ကိုယ်တိုင်
-        #    ပြောစေသည် ⇒ နောက် render တစ်ခုတည်းနဲ့ အဖြေ ရမည်。
-        try:
-            import lower3 as _L3D
-            _f = getattr(_L3D, "LAST_FIT", None)
-            if _f:
-                log("  ⑆ lower3 fit · size %s (min %s · max %s) · token %s→%s"
-                    " · wide %s/%s · ink %s · 「%s」"
-                    % (_f.get("size"), _f.get("size_min"), _f.get("size_max"),
-                       _f.get("tok_all"), _f.get("tok_kept"), _f.get("wide"),
-                       _f.get("tw"), _f.get("ink"), str(_f.get("title"))[:40]))
-        except Exception:
-            pass
+        # ⚠️ `lower3` ရဲ့ fit ကိန်းကို **template ကိုယ်တိုင်** ပုံနှိပ်သည် —
+        #    ဤနေရာက ရွေးချယ်မှု နောက်、**ဆောက်ခြင်း ရှေ့** ဖြစ်၍ ဒီမှာ
+        #    ဖတ်လျှင် အမြဲ ဗလာ (၂၀၂၆-၀၉-၂၉ final9 — ဘာမှ မထွက်)。
+
         try:
             # ⚠️ ကတ်တစ်ခု ဘယ်လောက် ရပ်ရမလဲကို **ဗီဒီယို အရှည်ကနေ တွက်**ရမည်。
             #    `gfx_share` (တိုင်းထားသော ၀.၁၀–၀.၁၇) က ပစ်မှတ်、`gfx` က
