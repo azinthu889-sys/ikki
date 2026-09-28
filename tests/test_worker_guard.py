@@ -113,5 +113,41 @@ class SfxMixSurvivesLogging(unittest.TestCase):
         self.assertIn("_au is not None and int(_au) > 0", self.src)
 
 
+class TopicsFailNoJunkCards(unittest.TestCase):
+    """ခေါင်းစဉ် ကျလျှင် **အဓိပ္ပာယ်မဲ့ ကတ် မထုတ်ရ** (၂၀၂၆-၀၉-၂၉)
+
+    ⚠️ Gemini ရဲ့ ခေါင်းစဉ် ၅၀% ကျနေသည် (၈ render မှာ ၄) ⇒ ပြန်ဆုတ်လမ်းက
+       **သာမန် လမ်း** ဖြစ်နေသည်。 အဲဒီလမ်းက အကြောင်းအရာ မပါသော ကတ်
+       ထုတ်ပြီး fill က job/recipe ရဲ့ နာမည်ကို ထည့်သဖြင့် ကတ်တိုင်းမှာ
+       「Short Video」 ပေါ်ကာ donut က `int('Short Video…')` နဲ့ ကျသည် —
+       ဒါပေမဲ့ **QC အောင်**ပြီး ပို့မိသည်。
+    """
+
+    def setUp(self):
+        import inspect
+        self.src = inspect.getsource(W.render)
+
+    def test_fallback_skipped_when_topics_failed(self):
+        self.assertIn("_TOPFAIL[0] = True", self.src)
+        self.assertIn("not _PLAN and _TOPFAIL[0]", self.src)
+        # ⚠️ ပိတ်တဲ့ အကိုင်းက `DR.pick` ရဲ့ **ရှေ့** ဖြစ်ရမည်
+        i_skip = self.src.find("not _PLAN and _TOPFAIL[0]")
+        i_pick = self.src.find("gfx = DR.pick(")
+        self.assertGreater(i_pick, 0)
+        self.assertLess(i_skip, i_pick)
+
+    def test_label_guard_checks_args_not_only_text(self):
+        # ⚠️ `text` သာ စစ်လျှင် မလုံလောက် — `DR.pick()` က label ကို
+        #    `args` ထဲ ထည့်ပြီး `text` ဗလာ ဖြစ်တတ်သည် (ပထမ guard မမိခဲ့)
+        self.assertIn("def _isjunk(g):", self.src)
+        self.assertIn('for a in (g.get("args") or ()):', self.src)
+
+    def test_topfail_reset_per_job(self):
+        import inspect
+        whole = inspect.getsource(W)
+        self.assertIn("_TOPFAIL[0] = False", whole,
+                      "job တစ်ခုချင်း ပြန်မသတ်မှတ်လျှင် ယိုစိမ့်မည်")
+
+
 if __name__ == "__main__":
     unittest.main()

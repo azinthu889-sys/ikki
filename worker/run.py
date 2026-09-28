@@ -2040,6 +2040,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _wg = max(1, _cap)
             # ⚠️ **ပိုတောင်းရမည်** — Gemini က တောင်းသလောက် အမြဲ မပြန်ပေး
             tops = TP.ask(segs, want=int(_wg * 1.6) + 3 if _wg else 0, log=log)
+            # ⚠️⚠️ **ခေါင်းစဉ် ကျကြောင်း မှတ်ထားရမည်**。 ကျလျှင် အောက်က
+            #    `DR.pick()` ပြန်ဆုတ်လမ်းက **အကြောင်းအရာ မပါသော** ကတ်တွေ
+            #    ထုတ်ပြီး fill က job/recipe ရဲ့ နာမည် (「Short Video」) ကို
+            #    ကတ်တိုင်းထဲ ထည့်သည် — donut က `int('Short Video…')` နဲ့ ကျ ·
+            #    counter က 「0.0 / 1.0」 ⇒ **QC အောင်**ပြီး ပို့မိသည်
+            #    (၂၀၂၆-၀၉-၂၉ short-916 final1 · final5)。
+            #    ⚠️ ခေါင်းစဉ် ကျမှု **၅၀%** ရှိသည် (၈ render မှာ ၄) ⇒
+            #      ပြန်ဆုတ်လမ်းက **သာမန် လမ်း** ဖြစ်နေသည်。
+            if not tops:
+                _TOPFAIL[0] = True
             _gfxn = len(tops)              # Gemini ပြန်ပေးတဲ့ ခေါင်းစဉ် အရေအတွက်
             _gfxask = int(_wg * 1.6) + 3 if _wg else 0   # တကယ် တောင်းလိုက်တာ
             # ⚠️ role တစ်ခုလျှင် **ရေကန်** ထဲမှ ရွေးသည် — အရင်က တစ်ခုတည်း
@@ -2146,7 +2156,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    `DR.pick()` ကို ပြေးစေသည်。 `pick()` က **အကြောင်းအရာ စာသား
     #    မပါသော** ဂရပ်ဖစ် ထုတ်သဖြင့် ဗလာ ကွက်များ ဖြစ်ခဲ့သည်
     #    (၂၀၂၆-၀၉-၂၁ — ရွှေရောင် အနားသတ်ကို ဗီဒီယိုတစ်ခုလုံးမှာ မတွေ့ရ)。
-    if not gfx and not _PLAN:
+    if not gfx and not _PLAN and _TOPFAIL[0]:
+        # ⚠️⚠️ **ခေါင်းစဉ် ကျလျှင် ကတ် လုံးဝ မထုတ်ရ**。 `DR.pick()` က
+        #    အကြောင်းအရာ မပါသော ကတ် ထုတ်ပြီး fill က label ထည့်သဖြင့်
+        #    「Short Video」 ကတ်တွေ ဖြစ်သည်。 အဓိပ္ပာယ် မရှိသော ကတ်ထက်
+        #    **ကတ် မရှိတာ က ပိုကောင်း**သည် (Zin:「ပုံတုံးတယ်」)。
+        #    ⇒ စာတန်း · B-roll · အသံ ကတော့ ပုံမှန် ဆက်ရှိသည်。
+        REPORT["gfx_skipped_nocontent"] = 1
+        log("  ⛔ ခေါင်းစဉ် မရသဖြင့် **ဂရပ်ဖစ် မထုတ်ပါ** — အဓိပ္ပာယ်မဲ့ "
+            "ကတ်ထက် မရှိတာ ပိုကောင်းသည် (စာတန်း/B-roll က ပုံမှန်)")
+    elif not gfx and not _PLAN:
         # ⚠️ `_sil_of()` ဖယ်ပြီး **မျှသုံး မြေပုံ**ကနေ ဆင်းသက်စေသည်
         gfx = DR.pick(rc, m["dur"], _M.as_gaps(MEAS[1], 0.20), segs, log)   # ပြန်ဆုတ်လမ်း
         if gfx: log("  ⚠️ အကြောင်းအရာ မရ — တိတ်ဆိတ်မှုပေါ် ချထားသည်")
@@ -2216,9 +2235,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
             job.get("title"), rc.get("label"), rc.get("_id"),
             job.get("recipe"), job.get("brand_id")) if x}
         _junk.discard("")
-        _drop_junk = [g for g in gfx
-                      if " ".join(str(g.get("text") or "").split()).strip().lower()
-                      in _junk]
+        def _isjunk(g):
+            # ⚠️ `text` သာ စစ်လျှင် မလုံလောက် — `DR.pick()` လမ်းက label ကို
+            #    **`args` ထဲ** ထည့်ပြီး `text` ဗလာ ဖြစ်နေတတ်သည်
+            #    (၂၀၂၆-၀၉-၂၉ final5 — ပထမ guard က မမိခဲ့)。
+            if " ".join(str(g.get("text") or "").split()).strip().lower() in _junk:
+                return True
+            for a in (g.get("args") or ()):
+                if isinstance(a, str) and \
+                        " ".join(a.split()).strip().lower() in _junk:
+                    return True
+            return False
+        _drop_junk = [g for g in gfx if _isjunk(g)]
         if _drop_junk:
             gfx = [g for g in gfx if g not in _drop_junk]
             REPORT["gfx_label_text"] = len(_drop_junk)
@@ -4892,6 +4920,9 @@ KEEP_LAST = 3          # ⚠️ နောက်ဆုံး job ဒီအရေ�
 # workers retain the old location unless an operator explicitly chooses one.
 REPORTS = os.environ.get("IKKI_REPORTS") or os.path.expanduser("~/.ikki/reports")
 REPORT = {}            # ⚠️ render() က ဖြည့် · handle() က ဖိုင်ထုတ်
+# ⚠️ ခေါင်းစဉ် (topics) ကျသလား。 **render တစ်ခုချင်း ပြန်သတ်မှတ်ရမည်** —
+#    worker က process တစ်ခုထဲမှာ job အများအပြား ကိုင်သည်。
+_TOPFAIL = [False]
 
 
 def _rv(checks, key):
@@ -5405,6 +5436,7 @@ def handle(d):
         req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})
         print(f"  {n}/7 {name}", flush=True)
     REPORT.clear()
+    _TOPFAIL[0] = False
     try:
         import sys as _sys
         _cp = _sys.modules.get("captions")
