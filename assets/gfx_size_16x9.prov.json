@@ -2,14 +2,12 @@
  "writer": "/Users/zinthuaung/ikki/tools/gfxsize.py",
  "argv": [
   "--fmt=16:9",
-  "maps.connect_web",
-  "charts.gantt",
-  "callouts.numbered_pin"
+  "lower3.lt_number"
  ],
- "ts": 1790576256.437418,
- "when": "2026-09-28 15:17:36",
- "n": 616,
+ "ts": 1790622853.838197,
+ "when": "2026-09-29 04:14:13",
+ "n": 617,
  "n_prev": 616,
  "subset": true,
- "pid": 70397
+ "pid": 84891
 }

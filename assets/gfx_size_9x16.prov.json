@@ -1,12 +1,13 @@
 {
  "writer": "/Users/zinthuaung/ikki/tools/gfxsize.py",
  "argv": [
-  "--fmt=9:16"
+  "--fmt=9:16",
+  "lower3.lt_number"
  ],
- "ts": 1790569575.380744,
- "when": "2026-09-28 13:26:15",
- "n": 616,
+ "ts": 1790622861.741898,
+ "when": "2026-09-29 04:14:21",
+ "n": 617,
  "n_prev": 616,
- "subset": false,
- "pid": 4916
+ "subset": true,
+ "pid": 85011
 }
