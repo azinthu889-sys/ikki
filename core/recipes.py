@@ -413,6 +413,10 @@ R = {
     gfx=14, gfx_scale=1.0, gfx_in_speech=True, gfx_min_sil=0.22,
     gfx_cutaway=0.0,
     broll=10, broll_pct=0.30, broll_max=2.5, broll_gap=1.5,
+    # 2026-09-28: the budget-fill path added random stock (5-6 of 9 clips: headset
+    #   man · camera operator · B/W hijab · maths class) to a Tokutei-visa script.
+    #   strict = LLM-matched clips only (headtop / ref-talk already do this).
+    broll_strict=True,
     zoom_amt=0.08,
     music="upbeat", lufs=-14.0, sfx=True, sfx_per_min=1.5,
     natural=True),
@@ -751,6 +755,8 @@ BOUNDS = dict(
  cap_min=("float", 0.0, 2.0),
  cap_bridge=("float", 0.0, 99.0),
  cam_moves=("bool",),
+ # LLM-matched B-roll only (no random budget fill) -- was not overridable
+ broll_strict=("bool",),
  kin_title=("bool",),
  kin_share=("float", 0.1, 1.0),
  kin_gap=("float", 2.0, 20.0),
