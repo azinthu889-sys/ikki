@@ -406,6 +406,19 @@ body.rv #bsec,body.rv #bonly{display:none}
   <span>အောက်က စာကြောင်း၊ အသံဖြစ်ရပ်ကို နှိပ်ပြီး ဖြတ်/ပြန်ချန်ပါ။ စာကြောင်းအသစ် ရေးရန် မလိုပါ။</span>
   <span id="editstate"></span>
 </div>
+<!-- ⚠️ Script စာလုံးပေါင်း (Zin 2026-09-28) — **အကြံပြုရုံ** · ✓ နှိပ်မှ စာတန်း ပြောင်း。
+     ASR က နာမည်/Latin စကားလုံး မှားကြားတတ်ပြီး ပြောသူက script အတိုင်း တစ်လုံးချင်း
+     မဖတ်တတ် (script 「Zin Apex」 · ပြော 「J-Path」) ⇒ စက်က မဆုံးဖြတ်ရ -->
+<details id="scrp" style="margin:0 0 14px;border:1px solid #E7E5E4;border-radius:12px;padding:10px 14px;background:#FAFAF9">
+  <summary style="cursor:pointer;font-size:13.5px;font-weight:600">📄 Script ရှိရင် ထည့်ပါ — စာလုံးပေါင်း ညှိပေးမယ်</summary>
+  <p style="font-size:12.5px;color:#57534E;margin:8px 0">ပြောသူက script အတိုင်း တစ်လုံးချင်း မဖတ်တတ်လို့ <b>အကြံပြုရုံ</b>ပါ — အသံနားထောင်ပြီး ✓ / ✗ ရွေးပါ။ ✓ က <b>စာတန်းပဲ</b> ပြောင်းပါတယ် (အသံ · ဖြတ်မှတ် မထိ)။</p>
+  <textarea id="scrt" rows="4" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid #E7E5E4;border-radius:9px" placeholder="Script ကို ဒီမှာ ကူးထည့်ပါ…"></textarea>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
+    <input type="file" id="scrf" accept=".txt,.docx" style="font-size:12.5px">
+    <button type="button" class="btn" id="scrb">စာလုံးပေါင်း ညှိမယ်</button>
+    <span id="scrs" style="font-size:12.5px;color:#57534E"></span>
+  </div>
+</details>
 <div id="list"></div>
 </main>
 <div class="tip" id="tip"></div>
@@ -414,6 +427,8 @@ body.rv #bsec,body.rv #bonly{display:none}
 var mm=function(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2)};
 var esc=function(t){return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")};
 var D=null, DEL={}, PDEL={}, UNDO=[], SEL=-1, SECS=[], AUDIO=null, JOB=null;
+// FIX = script spellings the user accepted (n → caption text) · SUG = suggestions on screen
+var FIX={}, SUG=[];
 // ⚠️ SDEL = ဖျက်မည့် အသံ ဖြစ်ရပ် (ချောင်းဆိုး…) · TRIM = ဝါကျ အတွင်း နားနဲ့ ရွေးထားသော အပိုင်း
 var SDEL={}, TRIM={};
 /* ⚠️ UDEL = **ချန်ထားပြီး ဝါကျ မရှိသော ပိုင်း** ကနေ ဖျက်ခိုင်းထားတာ。
@@ -598,8 +613,69 @@ function select(i){
   rows[SEL].scrollIntoView({block:"center",behavior:"smooth"});
 }
 
+// ══ Script စာလုံးပေါင်း အကြံပြု ════════════════════════════════
+function scrSpell(text){
+  var st=document.getElementById("scrs");
+  if(!JOB){ if(st) st.textContent="job မရှိ"; return; }
+  if(st) st.textContent="ညှိနေသည်…";
+  fetch("/api/script/"+JOB+"/spell",{method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+    body:JSON.stringify({text:text, all:true})})
+   .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
+   .then(function(z){
+     if(!z.ok){ if(st) st.textContent="မရပါ: "+String((z.d&&z.d.detail)||"").slice(0,80); return; }
+     SUG=z.d.suggest||[]; placeSug();
+     if(st) st.textContent = SUG.length ? ("အကြံပြု "+SUG.length+" ခု — စာကြောင်းအောက်မှာ ✓ / ✗ ရွေးပါ")
+                                        : "script နဲ့ စာလုံးပေါင်း ကွဲတာ မတွေ့ပါ";
+   }).catch(function(e){ if(st) st.textContent="မရပါ: "+String(e).slice(0,80); });
+}
+function placeSug(){
+  [].forEach.call(document.querySelectorAll("#list .sug"),function(x){x.remove()});
+  SUG.forEach(function(g,k){
+    if(g.done) return;
+    var row=document.querySelector('#list .row[data-n="'+(g.i+1)+'"] .body'); if(!row) return;
+    var el=document.createElement("div"); el.className="sug"; el.setAttribute("data-k",k);
+    el.style.cssText="font-size:12.5px;color:#57534E;margin:6px 0 2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap";
+    el.innerHTML='📄 <s>'+esc(g.base)+'</s> → <b style="color:#1C1917">'+esc(g.new)+'</b>'
+      +'<button type="button" class="btn" data-sok="'+k+'" style="padding:2px 10px">✓</button>'
+      +'<button type="button" class="btn ghost" data-sno="'+k+'" style="padding:2px 10px">✗</button>';
+    row.appendChild(el);
+  });
+}
+document.addEventListener("click",function(ev){
+  var t=ev.target; if(!t||!t.getAttribute) return;
+  if(t.id==="scrb"){
+    var f=document.getElementById("scrf"), tx=document.getElementById("scrt");
+    var file=f&&f.files&&f.files[0];
+    if(!file){ scrSpell((tx&&tx.value)||""); return; }
+    var rd=new FileReader();
+    if(/\.docx$/i.test(file.name)){
+      rd.onload=function(){ var b=new Uint8Array(rd.result), s="";
+        for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]);
+        scrSpell("__DOCX__"+btoa(s)); };
+      rd.readAsArrayBuffer(file);
+    } else { rd.onload=function(){ scrSpell(String(rd.result||"")) }; rd.readAsText(file); }
+    return;
+  }
+  var ok=t.getAttribute("data-sok"), no=t.getAttribute("data-sno");
+  // ⚠️ a click on the suggestion's text must not reach the row -- a row click
+  //    toggles "delete" (measured: a click on the struck-out word deleted the line)
+  if(ok===null && no===null){ if(t.closest && t.closest(".sug")) ev.stopPropagation(); return; }
+  ev.stopPropagation();
+  var g=SUG[+(ok!==null?ok:no)]; if(!g) return;
+  g.done=true;
+  if(ok!==null){
+    var n=g.i+1, cur=FIX[n]||((D.sentences[g.i]||{}).text||"");
+    FIX[n] = cur.indexOf(g.base)>-1 ? cur.replace(g.base,g.new) : g.text;
+    var tx=document.querySelector('#list .row[data-n="'+n+'"] .tx');
+    if(tx && tx.firstChild) tx.firstChild.nodeValue=FIX[n];
+  }
+  placeSug();
+}, true);
+
 function render(d){
   D=d; var S=d.sentences||[], E=(d.events||[]).slice(), out=[], ei=0;
+  setTimeout(placeSug,0);                 // rows are rebuilt below -- re-attach suggestions
   var _ai=0;
   S.forEach(function(s){ if(s.suggest==="delete"){ DEL[s.n]=1; _ai++ } });
   // ⚠️ ငါ ကြိုဖျက်ထားတာ ဘယ်နှစ်ခုလဲ **အမြဲ ပြရမည်** — မပြလျှင် သုံးစွဲသူက
@@ -686,7 +762,7 @@ function render(d){
   function rowHtml(s,longest){
     return '<div class="row'+(s.script_mark?' sm':'')+'" data-n="'+s.n+'">'
       +'<div class="no">['+s.n+'] '+mm(s.start)+'</div>'
-      +'<div class="body"><div class="tx">'+esc(s.text)+(s===longest?'<span class="pill">ပြည့်စုံဆုံး</span>':'')+'</div>'
+      +'<div class="body"><div class="tx">'+esc(FIX[s.n]||s.text)+(s===longest?'<span class="pill">ပြည့်စုံဆုံး</span>':'')+'</div>'
       +'<canvas class="rowwave" data-w data-w0="'+Math.max(0,s.start-0.12).toFixed(2)
       +'" data-w1="'+(s.end+0.12).toFixed(2)+'" data-ha="'+s.start.toFixed(2)
       +'" data-hb="'+s.end.toFixed(2)+'" title="အသံလှိုင်း · ▶ နဲ့နားထောင်၊ ✂ နဲ့အတွင်းပိုင်းရွေးဖြတ်"></canvas></div>'
@@ -926,8 +1002,9 @@ document.getElementById("bok").onclick=function(){
   // ဆုံးဖြတ်ချက်က “ဘယ်ဝါကျ ချန်/ဖြတ်” ဆိုတဲ့ index ပဲ ဖြစ်ပြီး server က
   // မူရင်း ASR စာသားကို index နဲ့ယူသည်။ Unicode/space serialization ကြောင့်
   // မပြင်ထားတဲ့စာကို “စာလုံးအသစ်” ဟု မှားငြင်းခြင်းကို ကာကွယ်သည်။
-  var body = isRev ? {segs: keep.map(function(s){return {i:s.n-1}}), drop_spans: ds, keep_spans: ks}
-                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds, keep_spans: ks};
+  // ✓ ရွေးထားသော script စာလုံးပေါင်း ⇒ `fix` (စာတန်းသာ · အသံ/ဖြတ်မှတ် မထိ)
+  var body = isRev ? {segs: keep.map(function(s){return FIX[s.n] ? {i:s.n-1, fix:FIX[s.n]} : {i:s.n-1}}), drop_spans: ds, keep_spans: ks}
+                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds, keep_spans: ks, fixes: FIX};
   fetch(url,{method:"POST",
     headers:{"Content-Type":"application/json",
              Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
@@ -1654,6 +1731,10 @@ function paintTrim(n){
 }
 /* ── keyboard ── */
 document.addEventListener("keydown",function(e){
+  // ⚠️ typing in a text box (the script panel) must not fire the editor's keys --
+  //    "x" in "Apex" marked a sentence for deletion, Space played audio (2026-09-28)
+  var tg=e.target, tn=(tg&&tg.tagName)||"";
+  if(tn==="TEXTAREA"||tn==="INPUT"||tn==="SELECT"||(tg&&tg.isContentEditable)) return;
   if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z"){e.preventDefault();undo();return}
   var rows=[].slice.call(document.querySelectorAll(".row[data-n]"));
   if(e.key==="ArrowDown"){e.preventDefault();select(SEL+1)}

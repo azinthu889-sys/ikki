@@ -3045,7 +3045,12 @@ async def script_render(jid: str, req: Request, authorization: str = Header(None
     ds = [[float(a), float(bb)] for a, bb in (b.get("drop_spans") or [])
           if float(bb) - float(a) > 0.02]
     if ds: over["_drop_exact"] = (over.get("_drop_exact") or []) + ds
-    payload = dict(segs=[dict(i=n - 1, text=segs[n - 1].get("text") or "") for n in ks],
+    # `fixes` {n: text} = spellings the user accepted (✓) from script suggestions.
+    # A `fix` changes the caption only -- audio and cuts untouched (job_reedit
+    # validates length); the transcript text itself is still sent unchanged (R7).
+    fx = {str(k): str(v) for k, v in (b.get("fixes") or {}).items()} if isinstance(b.get("fixes"), dict) else {}
+    payload = dict(segs=[dict(i=n - 1, text=segs[n - 1].get("text") or "",
+                              **({"fix": fx[str(n)]} if fx.get(str(n)) else {})) for n in ks],
                    over=over, font=b.get("font"), cap=b.get("cap"))
 
     class _Shim:                       # `job_reedit` က `await req.json()` ခေါ်သည်
@@ -3104,8 +3109,19 @@ async def script_spell(jid: str, req: Request, authorization: str = Header(None)
     j = mine(authorization, jid)
     b = await req.json()
     t = (b.get("text") or "").strip()
+    if t.startswith("__DOCX__"):                 # same .docx route as /source
+        import base64, tempfile
+        import script as _SC
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
+                f.write(base64.b64decode(t[8:])); tmp = f.name
+            t = _SC.read(tmp).strip(); os.unlink(tmp)
+        except Exception as e:
+            raise HTTPException(400, f".docx ဖတ်၍ မရပါ: {type(e).__name__}")
     if len(t) > 400000: raise HTTPException(400, "script ရှည်လွန်းသည်")
-    try: segs = json.loads(j.get("segs") or "[]")
+    # ⚠️ Script Editor numbers sentences on `segs_all` (full ASR); the transcript
+    #    editor on `segs` -- `all: true` picks the editor's list so `i` matches
+    try: segs = json.loads((j.get("segs_all") if b.get("all") else None) or j.get("segs") or "[]")
     except Exception: segs = []
     # the worker's audio-checked mode reads the script from `over._script`
     try: over = json.loads(j.get("over") or "{}") or {}
