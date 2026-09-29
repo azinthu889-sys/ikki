@@ -2827,6 +2827,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         template=_cid, props=_ev.get("props") or {})
                 except Exception as _e:
                     log(f"  ⊘ ဖြတ်ပြောင်း ဆောက်မရ: {_cid} — {type(_e).__name__}: {_e}")
+                # ⚠️ **ကတ် တစ်ခုချင်းရဲ့ template id ကို မှတ်ရမည်**。 မမှတ်လျှင်
+                #    「ဘယ် template လဲ」 သိဖို့ **ပြန် render** ရသည် —
+                #    ၂၀၂၆-၀၉-၂၉ မှာ တကယ် ဖြစ်ခဲ့ (checklist နဲ့ pin ၂ ခုအတွက်
+                #    ၂၅ မိနစ် ပြန်ပြေးရ)。 တစ်ကြောင်းက အဲဒါ ကာကွယ်သည်。
+                log(f"  ▸ ကတ် @ {_a0:5.1f}s  {_cid or '—'}  "
+                    f"{'✓' if _mv else ('စာရွက်' if _pp and str(_head or '').strip() else '⊘')}"
+                    f"  「{str(_head or '')[:22]}」")
+                REPORT.setdefault("cards", []).append(
+                    dict(at=round(_a0, 2), cid=_cid,
+                         ok=bool(_mv), text=str(_head or "")[:40]))
                 if _mv:
                     _nok += 1; slides.append((_mv, _a0, _b0, "statement"))
                 elif _pp and str(_head or "").strip():
