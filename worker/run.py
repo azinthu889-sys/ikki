@@ -1955,6 +1955,32 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 #    ပြောင်းလျှင် ဂရပ်ဖစ်/သီချင်း ပါ ကွဲသွားမည်。 အဲဒါဆို
                 #    「SFX တစ်ခုတည်း ကွဲ」 ဆိုသော A/B မဖြစ်တော့ပါ。
                 video_id=(os.environ.get("IKKI_SEED") or job["id"]), log=log)
+            # ⚠️⚠️ **plan ရဲ့ props ထဲ job/recipe နာမည် မရှိရ**。 topics
+            #    လမ်းမှာ ဖယ်ထားပြီး plan လမ်းမှာ မဖယ်ရသေး ⇒ ဘောင်အပြည့်
+            #    slide ရဲ့ အောက်ခြေမှာ 「SHORT VIDEO」 ပေါ်ခဲ့သည်
+            #    (၂၀၂၆-၀၉-၂၉ modern1 · ၃၁.၂s)。 guard က **လမ်းကြောင်း
+            #    တိုင်း**မှာ ရှိရမည် — တစ်နေရာ ကျန်လျှင် အဲဒီက ထွက်သည်。
+            try:
+                _jk = {str(x).strip().lower() for x in (
+                    job.get("title"), rc.get("label"), rc.get("_id"),
+                    job.get("recipe"), job.get("brand_id")) if x}
+                _jk.discard("")
+                _sc = 0
+                for _ev in ((_PLAN or {}).get("templateEvents") or []):
+                    _pr = _ev.get("props")
+                    if not isinstance(_pr, dict):
+                        continue
+                    for _k, _v in list(_pr.items()):
+                        if isinstance(_v, str) and \
+                                " ".join(_v.split()).strip().lower() in _jk:
+                            _pr.pop(_k, None)
+                            _sc += 1
+                if _sc:
+                    REPORT["plan_label_props"] = _sc
+                    log(f"  ⛔ plan props {_sc} ခု — တန်ဖိုးက job/recipe "
+                        f"နာမည် ဖြစ်နေ၍ ဖယ်လိုက်သည်")
+            except Exception as _je:
+                log(f"  ⚠️ plan props စစ်၍ မရ: {type(_je).__name__}")
             # ⚠️ **ထပ်တင် မလုပ်တော့** — plan ရဲ့ template တွေကို အောက်က
             #    ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်。 ဒီမှာ `to_gfx()` ပေးလိုက်လျှင်
             #    ထပ်တင်အဖြစ် တစ်ခါ ကြိုးစားပြီး 「နေရာ မတည့်」နဲ့ ကျမည်
