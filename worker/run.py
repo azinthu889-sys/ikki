@@ -986,6 +986,41 @@ _NOT_TXT = ("bg", "img", "image", "color", "colour", "fill",
             "dur", "size", "align", "y", "x", "shape")
 
 
+# ⚠️⚠️ **job တစ်ခုစီ ရဲ့ ဖရိမ်းများကိုသာ ဖျက်ရမည်** (၂၀၂၆-၀၉-၃၀)。
+#    motionkit က တစ်ခုတည်း ရှိပြီး template တွေက `work/<mod>/<tag>_f0000.png`
+#    ဆိုတဲ့ **relative** လမ်းကြောင်းမှာ ရေးသည် ⇒ render ၂ ခု တစ်ပြိုင်နက်
+#    ပြေးလျှင် `"sl*"` glob က **အခြား job ရဲ့** ဖရိမ်းများပါ ဖျက်မိသည်:
+#      modern15 · `FileNotFoundError 'work/kt/sl_008.png'` ⇒ 「Tokutei」
+#      wipe pop (၀.၄s) ပျောက် · log မှာ ⚠️ တစ်ကြောင်းသာ ကျန်ခဲ့。
+#    VPS မှာ worker ၂ ခု တင်လျှင် ဂရပ်ဖစ် ကျပန်း ပျောက်မည် ([[ikki-scale-500]])。
+def mk_job_tag(work):
+    """job ရဲ့ work လမ်းကြောင်း → **ကွဲပြားသော** motionkit tag ရှေ့စာလုံး
+
+    ⚠️ `out` ရဲ့ ဖိုင်နာမည် (p00 · w03) က job **အတွင်း** ကွဲသော်လည်
+       job ၂ ခု ကြားမှာ တူသည် ⇒ လမ်းကြောင်း ကနေ hash ထည့်ရမည်。
+    """
+    import hashlib as _hl
+    return "s" + _hl.sha1(os.path.abspath(str(work or "")).encode()).hexdigest()[:6]
+
+
+def mk_frames_clear(mkroot, tag):
+    """`motionkit/work/*/<tag>*` ကို ဖျက်သည် — **ဖျက်သော အရေအတွက်**
+
+    ⚠️ `tag` ဗလာ ဆိုလျှင် **ဘာမှ မဖျက်ပါ** — ဗလာက `work/*/*`
+       ဖြစ်ပြီး အားလုံး ပါသွားမည်。
+    """
+    import glob as _gg
+    if not str(tag or "").strip():
+        return 0
+    _f = 0
+    for _q in _gg.glob(os.path.join(mkroot, "work", "*", f"{tag}*")):
+        try:
+            os.remove(_q); _f += 1
+        except OSError:
+            pass
+    return _f
+
+
 def head_text(props):
     """ကတ်ရဲ့ **ပြသော စာသား** — နာမည်သိသူ → စာရင်း → စာသား prop တစ်ခုခု"""
     ph = props or {}
@@ -2791,12 +2826,23 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ရှင်းပြီးနောက် ၅/၅ ကွဲသည် — အတည်ပြုပြီး。
     # ⚠️ **helper module အားလုံး** ရှင်းရမည် — `prem3`/`prem4`/`insert` တို့မှာ
     #    ကိုယ်ပိုင် cache မရှိဘဲ `prem`/`inkbox` ကနေ ယူသည်。
+    # ⚠️⚠️ **job တစ်ခုစီ ရဲ့ tag ကွဲရမည်** (၂၀၂၆-၀၉-၃၀)。 motionkit က
+    #    တစ်ခုတည်း ရှိ၍ `work/<mod>/<tag>_f0000.png` က process အားလုံး
+    #    မှာ တူသည် ⇒ render ၂ ခု တစ်ပြိုင်နက် ပြေးလျှင်
+    #      (က) တူညီသော ဖိုင်နာမည် ကို ၂ ခု ရေးမိ
+    #      (ခ) `_mk_cache_clear()` ရဲ့ glob က **တစ်ခုက တစ်ခုရဲ့** ဖရိမ်းများ
+    #          ကို ဖျက်မိ ⇒ `FileNotFoundError 'work/kt/sl_008.png'` နဲ့
+    #          ဂရပ်ဖစ် တိတ်တဆိတ် ပျောက်သည် (modern15 က 「Tokutei」 ပျောက်)。
+    #    `out` ရဲ့ ဖိုင်နာမည် (p00 · p01) က job **အတွင်း** ကွဲသော်လည် job
+    #    ၂ ခု ကြားမှာ တူသည် ⇒ work လမ်းကြောင်း ကနေ hash ထည့်ရမည်。
+    _MKT = mk_job_tag(work)
+
     _MK_CACHES = (("prem", "_CROP"), ("prem", "_SZ"), ("inkbox", "_C"),
                   ("infogfx", "_MW"), ("odo", "_STRIPS"),
                   ("cttext_rsvg", "_W"), ("render2", "_CACHE"),
                   ("subject", "_CACHE"))
 
-    def _mk_cache_clear(tag="sl"):
+    def _mk_cache_clear(tag=None):
         """ဖြတ်ပြောင်း တစ်ခုစီ မဆောက်ခင် — cache dict + ယာယီ ဖရိမ်း"""
         import glob as _gg
         _n = _f = 0
@@ -2814,11 +2860,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _n += len(_d); _d.clear()
             elif isinstance(_d, list):
                 _n += len(_d); del _d[:]
-        for _q in _gg.glob(os.path.join(_mkroot, "work", "*", f"{tag}*")):
-            try:
-                os.remove(_q); _f += 1
-            except OSError:
-                pass
+        # ⚠️ **ကိုယ့် job ရဲ့ ဖိုင်များကိုသာ ဖျက်ရမည်** — `"sl*"` နဲ့
+        #    glob လျှင် တစ်ပြိုင်နက် ပြေးနေသော အခြား render ရဲ့ ဖရိမ်းများ
+        #    ပါ ပါသွားမည် (`mk_frames_clear` ကို ကြည့်)。
+        _f += mk_frames_clear(_mkroot, tag or _MKT)
         return _n, _f
 
     # ══ Headtop — ဘောင်အပြည့် ကတ်ကို **ဖြတ်ပြောင်း** အဖြစ် ထုတ်သည် ═══════
@@ -2882,7 +2927,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         "statement", str(_head)[:60], None, None, _bn,
                         os.path.join(work_s, f"p{_i:02d}.mov"), _b0 - _a0,
                         log=log, fps=rc["fps"],
-                        template=_cid, props=_pr_ev)
+                        template=_cid, props=_pr_ev,
+                        tag=f"{_MKT}p{_i:02d}")
                 except Exception as _e:
                     log(f"  ⊘ ဖြတ်ပြောင်း ဆောက်မရ: {_cid} — {type(_e).__name__}: {_e}")
                 # ⚠️ **ကတ် တစ်ခုချင်းရဲ့ template id ကို မှတ်ရမည်**。 မမှတ်လျှင်
@@ -2948,7 +2994,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         "statement", str(_pr.get("text") or "")[:24], None, None,
                         _bn, os.path.join(work_s, f"w{_i:02d}.mov"), _d,
                         log=log, fps=rc["fps"],
-                        template=_ev.get("motionKitTemplateId"), props=_pr)
+                        template=_ev.get("motionKitTemplateId"), props=_pr,
+                        tag=f"{_MKT}w{_i:02d}")
                 except Exception as _e:
                     log(f"  ⊘ pop ဆောက်မရ: {type(_e).__name__}: {_e}"); _pv = None
                 if _pv:
@@ -3006,7 +3053,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                         os.path.join(work_s, f"w{_i:02d}r.mov"), _d,
                                         log=log, fps=rc["fps"],
                                         template=_ev.get("motionKitTemplateId"),
-                                        props=_pr2)
+                                        props=_pr2, tag=f"{_MKT}w{_i:02d}r")
                                     if _pv2:
                                         _drop(_pv); _pv = _pv2; _pr = _pr2
                                 except Exception as _re3:
@@ -3054,7 +3101,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                     os.path.join(work_s, f"w{_i:02d}w{_wtry}.mov"),
                                     _d, log=None, fps=rc["fps"],
                                     template=_ev.get("motionKitTemplateId"),
-                                    props=_pr3)
+                                    props=_pr3, tag=f"{_MKT}w{_i:02d}w{_wtry}")
                             except Exception as _we3:
                                 log(f"  ⚠️ pop အကျယ် ပြန်ဆောက်မရ "
                                     f"({type(_we3).__name__})")
@@ -3255,7 +3302,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         _mv = DR.slide_clip(_l, _sp.get("head") or "", _sp.get("items"),
                                             _sp.get("num"), _bn,
                                             os.path.join(work_s, os.path.basename(_p)[:-4] + ".mov"),
-                                            _b - _a, log=log, fps=rc["fps"])
+                                            _b - _a, log=log, fps=rc["fps"],
+                                            tag=_MKT + os.path.basename(_p)[:-4])
                     if _mv: _mk_ok += 1; _sl2.append((_mv, _a, _b, _l))
                     else:   _mk_no += 1; _sl2.append((_p, _a, _b, _l))
                 slides = _sl2

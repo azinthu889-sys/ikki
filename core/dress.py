@@ -1128,7 +1128,7 @@ SLIDE_TPL = {
 
 
 def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
-               template=None, props=None):
+               template=None, props=None, tag=None):
     """slide တစ်ခုကို motionkit template ဖြင့် alpha .mov အဖြစ် ထုတ်သည်。
 
     ရလျှင် `out` လမ်းကြောင်း、မရလျှင် `None` (ခေါ်သူက PNG သို့ ပြန်ဆုတ်ရန်)。
@@ -1167,7 +1167,7 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
         except Exception:
             _W, _H = 1920, 1080
         _wk = _o.path.dirname(out) or "."
-        _tag = _o.path.splitext(_o.path.basename(out))[0] or "sl"
+        _tag = tag or _o.path.splitext(_o.path.basename(out))[0] or "sl"
         el = pack_el(template, dict(props or {}), _wk, _tag, _W, _H,
                      fps=fps, dur=hold, log=log)
         if el is None:
@@ -1198,6 +1198,15 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
             _o.chdir(cwd2)
         return out
     cwd = _o.getcwd()
+    # ⚠️⚠️ **tag ကို job တစ်ခုစီ ကွဲရမည်**。 template တွေက frame PNG ကို
+    #    `motionkit/work/<mod>/<tag>_f0000.png` မှာ ရေးသည် — motionkit က
+    #    **တစ်ခုတည်း ရှိ**၍ render ၂ ခု တစ်ပြိုင်နက် ပြေးလျှင် တူညီသော
+    #    ဖိုင်နာမည် ကို ၂ ခု ရေးမိပြီး `_mk_cache_clear()` က တစ်ခုက
+    #    တစ်ခုရဲ့ ဖရိမ်းများကို **ဖျက်**သည် ⇒ ဂရပ်ဖစ် တိတ်တဆိတ် ပျောက်သည်
+    #    (၂၀၂၆-၀၉-၃၀ · modern15 က 「Tokutei」 wipe pop ပျောက်、log မှာ
+    #    `FileNotFoundError 'work/kt/sl_008.png'` သာ ကျန်ခဲ့)。
+    #    ⇒ VPS မှာ worker ၂ ခု တင်လျှင် ကျပန်း ပျောက်မည် ([[ikki-scale-500]])。
+    _tg = tag or _o.path.splitext(_o.path.basename(out))[0] or "sl"
     try:
         _o.chdir(GC.MK)
         try:
@@ -1207,13 +1216,13 @@ def slide_clip(layout, head, items, num, brand, out, hold, log=print, fps=30,
             if template and props is not None:
                 # ⚠️ plan ရဲ့ props ကို **အတိအကျ** ပေးသည် — manifest နဲ့
                 #    စစ်ပြီးသား ဖြစ်၍ မှန်းဆ မလုပ်ရ。
-                el = _call_template(fn, template, "sl", props)
+                el = _call_template(fn, template, _tg, props)
             elif layout == "bullets":
-                el = fn("sl", head, its or [brand], eyebrow=brand)
+                el = fn(_tg, head, its or [brand], eyebrow=brand)
             elif layout == "bignum":
-                el = fn("sl", str(num or head), head if num else brand, role=brand)
+                el = fn(_tg, str(num or head), head if num else brand, role=brand)
             else:
-                el = fn("sl", head, brand, role="")
+                el = fn(_tg, head, brand, role="")
         except Exception as e:
             log(f"  ⚠️ slide template {mod_name}.{fn_name} မရ: {type(e).__name__}: {e}")
             return None
