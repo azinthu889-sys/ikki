@@ -575,6 +575,83 @@ def annotate(segs, log=print):
 
 
 
+# ══ ခေါင်းစဉ် ≠ စာရင်း ═══════════════════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၉ — `title` ကို `_short(text, 24)`、`items` ကို
+#    `split2(text)` နဲ့ ဖြည့်ခဲ့ရာ **တူတူ စာသား ကနေ ၂ မျိုး** ထွက်သည်:
+#      ခေါင်းစဉ်  「COE စိတ်ချရတဲ့ Class」
+#      စာရင်း ၁  「COE စိတ်ချရတဲ့ Class ကို」   ← ခေါင်းစဉ်ကို ပြန်ဆို
+#    ⇒ ဝါကျ ၂ ခု ကနေ စာသား ၃ ခု ⇒ ပရိသတ် အတွက် တစ်ခုပဲ ဖတ်ရသလို。
+#    ⇒ **ဝါကျ အလိုက်** ခွဲပြီး ခေါင်းစဉ်ကို ဝါကျ ၁ ကနေ、စာရင်းကို
+#       ကျန် ဝါကျများ ကနေ ယူသည် ⇒ ထပ်စရာ မရှိ、ဝါကျကိုလည် အလယ်မှာ
+#       မဖြတ်မိ။ ဝါကျ ၁ ခုတည်း (ဒါမှမဟုတ် ပိုင်းလို့ မရ) လျှင် **ကတ်
+#       ပယ်**သည် — planner က စာရင်းသာ လိုသူ (thm.list_tick) ကို ပြောင်းယူမည်。
+_TITLE_K = ("title", "head", "heading", "name", "label", "q")
+_LIST_K  = ("items", "points", "rows", "lines", "steps", "bullets")
+
+
+def _flat_txt(v):
+    """list/tuple/str → space မပါသော စာသား (ထပ်နေမနေ နှိုင်းရန်)"""
+    if isinstance(v, (list, tuple)):
+        out = []
+        for x in v:
+            out.append(_flat_txt(x[0] if isinstance(x, (list, tuple)) and x else x))
+        return "\u0000".join(out)
+    return "".join(str(v or "").split())
+
+
+def dup_title(title, items):
+    """ခေါင်းစဉ်က စာရင်း ထဲ **ပါနေလား** (ဒါမှမဟုတ် စာရင်းက ခေါင်းစဉ် ထဲ)
+
+    ⚠️ space ဖြုတ်ပြီး နှိုင်းသည် — `split2` က space နေရာမှာ ခွဲ၍
+       「A B」 vs 「A B C」 ကို space ပါလျှင် မမိပါ。
+    """
+    t = "".join(str(title or "").split())
+    if len(t) < 6:
+        return False
+    for one in _flat_txt(items).split("\u0000"):
+        if not one:
+            continue
+        if t in one or one in t:
+            return True
+    return False
+
+
+def sents(text, clauses=False):
+    """စာသား → **ဝါကျ စာရင်း**。 ။ . ? ! နောက်မှာ ခွဲသည်
+
+    ⚠️ မြန်မာ ဝါကျဆုံး 「။」 က space မပါဘဲ ဆက်တတ်သည် ⇒ punctuation
+       ကို **ဝါကျ ရဲ့ အဆုံးမှာ ထားပြီး** ခွဲရမည် (split() နဲ့ ဖြုတ်လျှင်
+       ဝါကျ ဆုံးတာ မသိရ)。 အလွန် တို (< 6 cluster) သူကို ရှေ့ ဝါကျ နဲ့
+       ပြန်ပေါင်းသည် — 「ဟုတ်ကဲ့။」 တစ်ခုတည်း ဝါကျ မဖြစ်ရ。
+
+    ⚠️ 「၊」 က **ဝါကျဆုံး မဟုတ်** (ပုဒ်ထီး မဟုတ် ပုဒ်ဖြတ်) ⇒
+       ပုံသေမှာ မခွဲပါ။ ဝါကျ တစ်ခုတည်း ဖြစ်နေ၍ စာရင်း လိုအပ်တဲ့ အခါမှာသာ
+       `clauses=True` နဲ့ ပုဒ်ဖြတ်ကိုပါ ခွဲသည် (「A ၊ B ၊ C။」 က
+       တကယ့် စာရင်း ဖြစ်တတ်၍)。
+    """
+    t = " ".join(str(text or "").split())
+    if not t:
+        return []
+    _stop = "။၊.?!" if clauses else "။.?!"
+    out, cur = [], ""
+    for ch in t:
+        cur += ch
+        if ch in _stop:
+            out.append(cur.strip()); cur = ""
+    if cur.strip():
+        out.append(cur.strip())
+    keep = []
+    for one in out:
+        one = one.strip(" ။၊.?!").strip()
+        if not one:
+            continue
+        if keep and _ncl(one) < 6:
+            keep[-1] = keep[-1] + " " + one
+        else:
+            keep.append(one)
+    return keep
+
+
 def split2(text, maxlen=34):
     """စာသားကို **အများဆုံး ၂ ကြောင်း** ခွဲသည်
 
@@ -1103,6 +1180,36 @@ def fill(cid, label, text):
     req = [q["name"] for q in (e.get("params") or [])
            if q.get("required") and not q.get("auto")]
     two = split2(text)
+    # ⚠️ ခေါင်းစဉ် **နှင့်** စာရင်း ၂ ခုလုံး လိုသော template (၂၆ ခု) မှာ
+    #    ခေါင်းစဉ်ကို ဝါကျ ရှေ့ပိုင်း ဖြတ်ယူလျှင် စာရင်း ၁ ကို ပြန်ဆိုမိမည်
+    #    ⇒ `head_phrase` (ကြိယာ နောက်ဆက် ဖြတ် · ဆက်စပ် စကားလုံး နောက်ပိုင်း)
+    #    နဲ့ အညွှန်း လုပ်ကြည့်သည် — ထပ်မနေလျှင်သာ သုံးသည်。
+    _need_both = (any(k in req for k in _TITLE_K)
+                  and any(k in req for k in _LIST_K))
+    _ttl = _short(text, 24)
+    if _need_both:
+        # ⚠️ `split2` က စာသား တစ်ခုလုံးကို **၂ ပိုင်း** ခွဲသည် ⇒ ဘယ်
+        #    ခေါင်းစဉ် ထုတ်လည် ၂ ပိုင်း ထဲက တစ်ပိုင်းနဲ့ ထပ်မိမည်。
+        #    ⇒ ဝါကျ အလိုက် ခွဲပြီး **ခေါင်းစဉ်ကို ဝါကျ ၁ ကနေ**、
+        #       **စာရင်းကို ကျန် ဝါကျများ ကနေ** ယူသည် (ထပ်စရာ မရှိ)。
+        _sv = sents(text)
+        if len(_sv) < 2:
+            # ⚠️ ဝါကျ တစ်ခုတည်း — ပုဒ်ဖြတ် 「၊」 နဲ့ ပိုင်းလို့ ရလျှင်
+            #    အဲဒါ တကယ့် စာရင်း ဖြစ်တတ်သည်။ ခေါင်းစဉ် ၁ + စာရင်း ၂ ရရန်
+            #    **၃ ပိုင်း အနည်းဆုံး** လိုသည် (၂ ပိုင်းက စာရင်း ၁ ခုသာ)。
+            _cv = sents(text, clauses=True)
+            if len(_cv) >= 3:
+                _sv = _cv
+        if len(_sv) >= 3:
+            _ttl = head_phrase(_sv[0], maxcl=22) or _short(_sv[0], 24)
+            two = [_short(x, 34) for x in _sv[1:]]
+        elif len(_sv) == 2:
+            _ttl = head_phrase(_sv[0], maxcl=22) or _short(_sv[0], 24)
+            two = [_short(_sv[1], 34)]
+        else:
+            # ⚠️ ဝါကျ တစ်ခုတည်း ကနေ ခေါင်းစဉ်+စာရင်း ခွဲလို့ **မရ** ⇒
+            #    ကတ် ပယ်သည် (planner က စာရင်းသာ လိုသူကို ပြောင်းယူမည်)。
+            return None
     num = _first_number(text)
     hot = _short(text, 14)
     m = {
@@ -1111,7 +1218,7 @@ def fill(cid, label, text):
         "line2":  two[1] if len(two) > 1 else "",
         "text":   _short(text, 30),
         "q":      _short(text, 32),
-        "title":  _short(text, 24),
+        "title":  _ttl,
         "name":   _short(text, 22),
         # ⚠️ နေရာ နာမည် မတွေ့လျှင် **ဗလာ** ⇒ `props_ok` က required ဖြစ်၍
         #    ကတ် ပယ်မည် (မှားသော နေရာ ပြတာထက် မပြတာ သာ)
@@ -1167,6 +1274,16 @@ def fill(cid, label, text):
         _e2 = next((x for x in _GCP.catalog() if x["id"] == cid), None)
         if _e2 is not None and _GCP.pairs_bad(_e2, out):
             return None
+    except Exception:
+        pass
+    # ⚠️ `head_phrase` လုပ်လည် ထပ်နေသေးလျှင် **ကတ် ပယ်**သည်。
+    #    ဝါကျ တစ်ခုတည်း ကနေ ခေါင်းစဉ်+စာရင်း ၂ ခု ခွဲလို့ မရတဲ့ အခါ ဖြစ်သည်。
+    try:
+        if _need_both:
+            _tv = next((out[k] for k in _TITLE_K if k in out), "")
+            _lv = next((out[k] for k in _LIST_K if k in out), None)
+            if _lv is not None and dup_title(_tv, _lv):
+                return None
     except Exception:
         pass
     return out
