@@ -165,6 +165,18 @@ NUMFILL = {"start": 3, "count": 6, "secs": 10, "sec": 10,
            "h": 0, "m": 1, "s": 30, "n": 3, "steps": 3, "total": 100}
 
 
+def _place_of(text):
+    """နေရာ နာမည် — `planner.place_of` (circular import ရှောင်ရန် lazy)"""
+    try:
+        try:
+            from planner import place_of
+        except ImportError:
+            from core.planner import place_of
+        return place_of(text)
+    except Exception:
+        return None
+
+
 def fill(entry, text, sub="", pct=None, shape=None, img=None,
          items=None, nums=None):
     """template တစ်ခုအတွက် positional argument tuple。
@@ -199,6 +211,17 @@ def fill(entry, text, sub="", pct=None, shape=None, img=None,
         #    ⇒ ဖြည့်လို့မရတဲ့ param တွေ့သည်နှင့် **ရပ်**ရမည်。
         if nm == "dur" or p.get("auto"):
             break
+        # ⚠️ **`place` အကွက်ထဲ ဝါကျ မထည့်ရ** — 📍 tag က နေရာ နာမည်
+        #    ပြရမည် (Takadanobaba)、「ကျောင်းရဲ့ ဒီနေရာကလည်း」 မဟုတ်。
+        #    `planner.place_of` နဲ့ ရှာသည် — မတွေ့လျှင် **None** ပြန်ပေးပြီး
+        #    caller က နောက် template ကို ရွေးမည် (မှားသော နေရာ ပြတာထက်
+        #    မပြတာ သာ)。 ၂၀၂၆-၀၉-၂၉ · topics လမ်း နဲ့ ဒီလမ်း ၂ ခုလုံး ရှိသည်。
+        if nm in ("place", "city", "location"):
+            _pl = _place_of(text)
+            if not _pl:
+                return None
+            args.append(_pl)
+            continue
         # ⚠️ **စာရင်း param** — ပုံစံကို `assets/gfx_args.json` မှ ယူသည်
         # ⚠️⚠️ **`SHAPES` ကို အကြောင်းအရာ အဖြစ် သုံး၍ လုံးဝ မရ**。 အရင်က
         #    `SHAPES[sh]` ကို တိုက်ရိုက် ထည့်ခဲ့သည် — ဆိုလိုတာက စာရင်း param

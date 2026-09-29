@@ -171,6 +171,8 @@ CURATED = {
  "title_card":   lambda t,b: (t, b),
  "chapter":      lambda t,b: ("၀၁", t),
  "fact_box":     lambda t,b: (t, ""),
+ # ⚠️ `locator` ရဲ့ ပထမ အကွက်က **နေရာ နာမည်** — ဝါကျ မဟုတ် ⇒
+ #    `targs` က `_place()` နဲ့ ဖြည့်သည်、မတွေ့လျှင် `None` (ကတ် မထုတ်)。
  "locator":      lambda t,b: (t, ""),
  "label_pill":   lambda t,b: (t,),
  "headline_bar": lambda t,b: ("သတင်း", t),
@@ -207,6 +209,9 @@ def trim(t, n=GTXT):
 # Curated templates whose second slot is the brand name.
 USES_SUB = {"title_card", "kicker_title", "split_title", "end_card", "bumper"}
 
+# Curated templates whose first slot is a PLACE NAME, not a phrase.
+PLACE_SLOT = {"locator"}
+
 def _blank(a):
     """an arg tuple with an empty / placeholder text slot"""
     for x in (a or ()):
@@ -214,6 +219,25 @@ def _blank(a):
         if isinstance(x, (list, tuple)) and any(isinstance(y, str) and y.strip() in ("", "—") for y in x):
             return True
     return False
+
+def _place(text):
+    """နေရာ နာမည် — `planner.place_of` (circular import ရှောင်ရန် lazy)
+
+    ⚠️ ၂၀၂၆-၀၉-၂၉ — `CURATED["locator"]` က **ခေါင်းစဉ် စာသားကို
+       တိုက်ရိုက်** နေရာ အကွက်ထဲ ထည့်ခဲ့သည် ⇒ 📍「ကျောင်းရဲ့ ဒီနေရာကလည်း」
+       ဆိုပြီး ဝါကျအပိုင်းအစ ပေါ်ခဲ့သည် (Zin ရဲ့ screenshot · D2)。
+       `planner.fill()` မှာ `place_of` တပ်ထားပြီး ဖြစ်သော်လည် **short-916 က
+       topics လမ်းကို သုံး**၍ အဲဒီ ပြင်ချက် မရောက်ခဲ့ပါ。
+    """
+    try:
+        try:
+            from planner import place_of
+        except ImportError:
+            from core.planner import place_of
+        return place_of(text)
+    except Exception:
+        return None
+
 
 def targs(name, text, sub=""):
     """template ရဲ့ argument — curated ရှိလျှင် အဲဒါ၊ မရှိမှ catalog ကနေ
@@ -223,10 +247,18 @@ def targs(name, text, sub=""):
     on customer videos, 2026-09-26). A template that needs that second text
     returns None so the caller picks another template.
     """
+    _raw = text or ""
     text = trim(text)
     f = CURATED.get(name)
     if f:
         if not sub and name in USES_SUB: return None
+        if name in PLACE_SLOT:
+            # ⚠️ **trim ပြီးသား စာသား နဲ့ မရှာရ** — နေရာ နာမည်က ၃၂
+            #    အက္ခရာ အလွန်မှာ ရှိနိုင်သည် ⇒ မူရင်း စာသား နဲ့ ရှာသည်。
+            _pl = _place(_raw)
+            if not _pl:
+                return None
+            return (_pl, "")
         try: return f(text, sub)
         except Exception: pass
     try:
