@@ -2657,7 +2657,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ **plan ထဲ မထည့်သေးပါ** — `plan_schema` က template ID မဖြစ်မနေ
     #    လိုသဖြင့် ဒီအတွက် schema ချဲ့ရမည်။ v1 မှာ worker က တိုက်ရိုက်
     #    တွက်သည် (segs ရှိပြီးသား)။ ⇒ UI ကနေ ပြင်လို့ မရသေး。
-    if rc.get("plan") and segs:
+    # ⚠️⚠️ **lower3 ရှိလျှင် rail မဆောက်ရ** (၂၀၂၆-၀၉-၂၉ Zin ရဲ့ ဖန်သားပြင်ပုံ)。
+    #    ၄၈–၅၁s မှာ rail + lower3 + ခေါင်းစဉ် **၃ ခု တစ်ပြိုင်နက်** ပေါ်နေပြီး
+    #    ၂ ခုက **တူညီသော အကြောင်းအရာ** (နံပါတ်တပ် item) ကို ပြောနေသည်。
+    #    ⇒ တူညီတာ ၂ ခု ပြတာထက် **ကောင်းတာ တစ်ခု** ပြတာ သာသည်。
+    #    rail က နံပါတ်တပ် မရှိသော ဗီဒီယိုတွေမှာ ဆက် အလုပ်လုပ်သည်。
+    _has_lt = False
+    try:
+        try:
+            import planner as _PLN5
+        except ImportError:
+            from core import planner as _PLN5
+        _has_lt = any(g.get("kind") == _PLN5.NUM_LT for g in (gfx or [])) or \
+            any((e.get("motionKitTemplateId") == _PLN5.NUM_LT)
+                for e in ((_PLAN or {}).get("templateEvents") or []))
+    except Exception:
+        _has_lt = False
+    if rc.get("plan") and segs and _has_lt:
+        log("  ⓘ rail မဆောက်ပါ — နံပါတ်တပ် item ကို lower third က "
+            "ပြပြီးသား (တူညီတာ ၂ ခု မပြရ)")
+    if rc.get("plan") and segs and not _has_lt:
         try:
             import rail as RL
             _r = RL.find(segs)
