@@ -973,6 +973,42 @@ def _pxname(jid, speed=1.0):
     return os.path.join(BIG, "%s_px%s.mp4" % (jid, tag))
 
 
+# ══ ကတ် ရဲ့ စာသား ═══════════════════════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၉ — key စာရင်းက **q · text · title · items** ၄ ခုသာ
+#    ဖြစ်၍ `headtop.ht_concept_card` (လိုအပ်သော param က `head`) နှင့်
+#    `thm.cut_pct` မှာ ဗလာ ဖြစ်ခဲ့သည် ⇒ log က 「」 ပြပြီး `REPORT["cards"]`
+#    ရဲ့ စာသားလည် ဗလာ、template ဆောက်မရလျှင် **စာ မပါသော စာရွက်** ထွက်မည်。
+_HEAD_K = ("q", "text", "title", "head", "heading", "name",
+           "label", "line1", "hot", "before")
+_LIST_HK = ("items", "lines", "points", "steps", "bullets")
+# စာသား **မဟုတ်** သော prop (အရောင် · ပုံ · အရွယ်) — နောက်ဆုံး အဆင့်မှာ ဖယ်
+_NOT_TXT = ("bg", "img", "image", "color", "colour", "fill",
+            "dur", "size", "align", "y", "x", "shape")
+
+
+def head_text(props):
+    """ကတ်ရဲ့ **ပြသော စာသား** — နာမည်သိသူ → စာရင်း → စာသား prop တစ်ခုခု"""
+    ph = props or {}
+    for k in _HEAD_K:
+        v = ph.get(k)
+        if isinstance(v, str) and v.strip():
+            return v
+    for k in _LIST_HK:
+        v = ph.get(k)
+        if isinstance(v, (list, tuple)) and v:
+            x = v[0]
+            if isinstance(x, (list, tuple)) and x:
+                x = x[0]
+            if isinstance(x, str) and x.strip():
+                return x
+    for k, v in ph.items():
+        if k in _NOT_TXT or not isinstance(v, str):
+            continue
+        if v.strip() and not v.startswith(("#", "/", "data:")):
+            return v
+    return ""
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -2820,10 +2856,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 if _win is None:
                     continue
                 _a0, _b0 = _win
-                _head = (_ev.get("props") or {}).get("q") \
-                    or (_ev.get("props") or {}).get("text") \
-                    or (_ev.get("props") or {}).get("title") \
-                    or ((_ev.get("props") or {}).get("items") or [""])[0]
+                _head = head_text(_ev.get("props") or {})
                 _pp = os.path.join(work_s, f"p{_i:02d}.png")
                 try:
                     SL2.statement(str(_head)[:60], index=_i + 1,
