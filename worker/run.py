@@ -2829,8 +2829,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     log(f"  ⊘ ဖြတ်ပြောင်း ဆောက်မရ: {_cid} — {type(_e).__name__}: {_e}")
                 if _mv:
                     _nok += 1; slides.append((_mv, _a0, _b0, "statement"))
-                elif _pp:
+                elif _pp and str(_head or "").strip():
                     _nno += 1; slides.append((_pp, _a0, _b0, "statement"))
+                else:
+                    # ⚠️⚠️ **အကြောင်းအရာ မရှိလျှင် ကတ် မထည့်ရ**。 template
+                    #    ဆောက်မရလျှင် စာရွက် ပြန်ဆုတ်သည် — ဒါပေမဲ့ `_head`
+                    #    ဗလာဆိုလျှင် **စာသား မပါသော** ကတ် ထွက်သည်:
+                    #    မီးခိုးရောင် quote 「9」 ကြီး + အဝါ မျဉ်းတို ·
+                    #    အဖြူပေါ် ဘာမှ မရှိ ⇒ ပျက်နေသလို မြင်ရသည်
+                    #    (၂၀၂၆-၀၉-၂၉ modern4 · ၃၁.၂s)。
+                    #    ⇒ ဗလာ ကတ်ထက် **ကတ် မရှိတာ** က သာသည် — ဒီည
+                    #      ၃ ခါမြောက် တူညီသော ဆုံးဖြတ်ချက်。
+                    REPORT["slide_skipped_empty"] = \
+                        REPORT.get("slide_skipped_empty", 0) + 1
+                    log(f"  ⊘ ဖြတ်ပြောင်း @ {_a0:.1f}s — {_cid} ဆောက်မရ "
+                        f"ပြီး စာသားလည် မရှိ ⇒ **ကတ် မထည့်ပါ**")
             # ══ keyword pop — ပြောသူပေါ် ထပ်တင် ═══════════════════
             # ⚠️ `docs/HEADTALK_STYLE.md` — reference က စာလုံးကို ပြောသူပေါ်
             #    တိုက်ရိုက် တင်ပြီး **မျက်နှာကိုသာ ရှောင်**သည် (၈–၁၆%H)。
