@@ -398,7 +398,11 @@ R = {
     cap_by_word=True,                       # cut cards between words, time from word onsets
     cap_timing="word_pop", cap_pop=1.25,    # Zin 2026-09-28 "better": one word per card, on at the word, pop-in (r1)
     cam_moves=True,                         # r3: designed eased push-in/pull-out (replaces breathing zoom)
-    kin_title=True, kin_share=0.8, kin_gap=4.5,  # r3 ~7 titles/min; 0.6/6 s gave 3.9/min (2026-09-28)
+    # 2026-09-29: OFF. With plan=True the planner's keyword pops (top, yellow) fill
+    # the r3 kinetic-word role; both at once gave three stacked texts at 34.8 s
+    # ("Class" pop + "COE" title + the "နံပါတ်တစ် COE" caption) and the title
+    # repeated the caption. One kinetic system, not two.
+    kin_title=False, kin_share=0.8, kin_gap=4.5,  # r3 ~7 titles/min; 0.6/6 s gave 3.9/min (2026-09-28)
     kin_size=0.078, kin_y=0.56,             # 150 px; chest band below the chin, above the caption
     # Zin 2026-09-26 "no background music": the upbeat bed measured -39.9 LUFS
     # against a -20.2 LUFS voice (-17 dB offset) and was then ducked 4:1 --
