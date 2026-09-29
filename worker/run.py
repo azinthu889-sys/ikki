@@ -2820,11 +2820,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 #    ပထမ ဖြတ်ပြောင်းရဲ့ စာ ပြန်ပေါ်မည် (အပေါ်မှာ ရှင်းပြထား)。
                 _mk_cache_clear()
                 try:
+                    # ⚠️⚠️ **ကတ်ရဲ့ တကယ့် ကြာချိန်ကို template ကို ပြောရမည်**。
+                    #    မပြောလျှင် template က သူ့ ပုံသေ (ဥပမာ ၃.၄s) နဲ့
+                    #    လှုပ်ရှားပြီး compositor က ရှေ့ပိုင်းသာ ပြသည် ⇒
+                    #    နောက်ဆုံး item တွေ **ဘယ်တော့မှ အပြည့် မပေါ်**။
+                    #    `prem7.checklist_tick` ရဲ့ item ၄ ခုက u=၀.၇၈ မှာမှ
+                    #    ပြီးပြီး ကတ်က ၂.၀s (u=၀.၅၉) ဆိုလျှင် နောက်ဆုံး ၂ ခု
+                    #    ဖျော့နေမည် (၂၀၂၆-၀၉-၂၉ D4 ရဲ့ ဖြစ်နိုင်ချေ)。
+                    _pr_ev = dict(_ev.get("props") or {})
+                    if float(_b0 - _a0) > 0.2:
+                        _pr_ev.setdefault("dur", round(float(_b0 - _a0), 2))
                     _mv = _DR.slide_clip(
                         "statement", str(_head)[:60], None, None, _bn,
                         os.path.join(work_s, f"p{_i:02d}.mov"), _b0 - _a0,
                         log=log, fps=rc["fps"],
-                        template=_cid, props=_ev.get("props") or {})
+                        template=_cid, props=_pr_ev)
                 except Exception as _e:
                     log(f"  ⊘ ဖြတ်ပြောင်း ဆောက်မရ: {_cid} — {type(_e).__name__}: {_e}")
                 # ⚠️ **ကတ် တစ်ခုချင်းရဲ့ template id ကို မှတ်ရမည်**。 မမှတ်လျှင်

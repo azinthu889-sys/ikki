@@ -56,6 +56,24 @@ def main():
     check("၂၀ ကျော် ⇒ item မဟုတ်", P.numbered_item("45. တစ်ခုခု ဖြစ်တယ်") is None,
           P.numbered_item("45. တစ်ခုခု ဖြစ်တယ်"))
 
+    print("\n── ၂-ဃ · နေရာ ကတ်က **နေရာ နာမည်** ပြရမည် ──")
+    # ⚠️ ၂၀၂၆-၀၉-၂၉ — `place` ကို `_short(text, 20)` နဲ့ ဖြည့်ခဲ့ရာ ဝါကျရဲ့
+    #    ရှေ့ စကားလုံးများ တင်မိသည်:「ကျောင်းရဲ့ ဒီနေရာကလည်း」。 တကယ့် နေရာ
+    #    「Takadanobaba」က **အဲဒီ ဝါကျထဲမှာပဲ** ရှိပြီး B-roll matcher က
+    #    တွေ့ပြီးသား — ကတ်ကပဲ မရှာခြင်း。
+    for _t, _w in (("ကျောင်းရဲ့ ဒီနေရာကလည်း Takadanobaba မှာ ရှိပါတယ်",
+                    "Takadanobaba"),
+                   ("Tokyo နဲ့ Osaka ၂ ခု", "Tokyo"),
+                   ("Shinjuku station အနား", "Shinjuku")):
+        check(f"နေရာ ⇒ {_w}", P.place_of(_t) == _w, P.place_of(_t))
+    # ⚠️ **ခန့်မှန်း၍ မဖြည့်ရ** — အစီအစဉ်/အဖွဲ့အစည်း နာမည်က နေရာ မဟုတ်
+    for _t in ("ဒါက သာမန် ဝါကျ ဖြစ်ပါတယ်",
+               "Japanese Language School မှာ တက်ခဲ့တယ်",
+               "Tokutei skill program နဲ့ သွားမယ်",
+               "N5 level အောင်ရမယ်", ""):
+        check(f"နေရာ မဟုတ် ⇒ None  「{_t[:18]}」", P.place_of(_t) is None,
+              P.place_of(_t))
+
     print("\n── ၂-ခ · planner ထုတ်သော cid တိုင်း manifest ထဲ ရှိရမည် ──")
     # ⚠️⚠️ ဤစစ်ချက်က ၂၀၂၆-၀၉-၂၈ ရဲ့ ချို့ယွင်းချက်ကို ဖမ်းဖို့ —
     #    route ရဲ့ ဂိတ်ကို `MF.ids()` နဲ့ စစ်ခဲ့ရာ `ids()` (motionkit ဖိုင်

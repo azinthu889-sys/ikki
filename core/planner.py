@@ -595,6 +595,66 @@ def split2(text, maxlen=34):
     return [" ".join(words[:bi]), " ".join(words[bi:])]
 
 
+# ══ နေရာ နာမည် ══════════════════════════════════════════════
+# ⚠️ ၂၀၂၆-၀၉-၂၉ — `map_locator` ရဲ့ `place` ကို `_short(text, 20)` နဲ့
+#    ဖြည့်ခဲ့ရာ ဝါကျရဲ့ **ရှေ့ စကားလုံးများ** တင်မိသည်:
+#      「ကျောင်းရဲ့ ဒီနေရာကလည်း」 ← တကယ့် နေရာက **Takadanobaba**、
+#      အဲဒီ ဝါကျ ထဲမှာပဲ ရှိပြီး B-roll matcher က တွေ့ပြီးသား。
+#    ⇒ နေရာ ကတ်က **နေရာ နာမည်** ပြရမည်、ဝါကျ အပိုင်းအစ မဟုတ်。
+#    ⇒ မတွေ့လျှင် **ကတ် မထုတ်ရ** (မှားသော နေရာ ပြတာထက် မပြတာ သာ)。
+_PLACE_SUF = ("\u1019\u103c\u102d\u102f\u1037",      # မြို့
+              "\u101b\u103d\u102c",                    # ရွာ
+              "\u1010\u102d\u102f\u1004\u103a\u1038",  # တိုင်း
+              "\u1015\u103c\u100a\u103a\u1014\u101a\u103a")  # ပြည်နယ်
+_LAT_NAME = re.compile(r"\b([A-Z][A-Za-z]{3,})\b")
+_LAT_STOP = {"The", "And", "For", "This", "That", "With", "From", "Class",
+             "Level", "Program", "School", "Skill", "Japan", "Japanese"}
+# ⚠️ နောက်က စကားလုံး (အကြီးအသေး မခွဲ) — ဤစကားလုံး လိုက်လာလျှင်
+#    ရှေ့ကဟာက **နေရာ မဟုတ်**、အစီအစဉ်/အဖွဲ့အစည်း နာမည် ဖြစ်သည်。
+_LAT_STOP_L = {"skill", "skills", "program", "programme", "school", "class",
+               "level", "course", "visa", "test", "exam", "system", "job",
+               "language", "college", "university", "academy", "center",
+               "centre", "company"}
+
+
+def place_of(text):
+    """ဝါကျကနေ **နေရာ နာမည်** — မတွေ့လျှင် `None`
+
+    ⚠️ ခန့်မှန်း၍ မဖြည့်ရ。 ဝါကျရဲ့ ရှေ့ပိုင်းက နေရာ နာမည် မဟုတ်ပါ。
+    """
+    t = " ".join(str(text or "").split())
+    if not t:
+        return None
+    # ① Latin proper noun — 「Takadanobaba」·「Shinjuku」
+    # ⚠️ **နောက်က စကားလုံးကိုပါ ကြည့်ရမည်** — 「Japanese **Language**
+    #    School」မှာ 「Language」 က နေရာ မဟုတ်ပါ。 နောက်မှာ `School` ·
+    #    `Program` စသည် ပါလျှင် အဲဒါက **အဖွဲ့အစည်း** နာမည် ဖြစ်၍ ကျော်သည်。
+    # ⚠️ နောက်က စကားလုံးကို **အကြီးအသေး မခွဲဘဲ** ကြည့်ရမည် —
+    #    「Tokutei **skill** program」မှာ `skill` က အသေး ဖြစ်၍
+    #    `_LAT_NAME` (အကြီး လိုသည်) က မမြင်ပါ ⇒ 「Tokutei」 ကို နေရာ ဟု
+    #    မှားယူမိသည် (ဗီဇာ အစီအစဉ် ဖြစ်သည်)。
+    for m in _LAT_NAME.finditer(t):
+        w = m.group(1)
+        if w in _LAT_STOP:
+            continue
+        _rest = t[m.end():].lstrip()
+        _nx = re.match(r"[A-Za-z]+", _rest)
+        if _nx and _nx.group(0).lower() in _LAT_STOP_L:
+            continue
+        return w
+    # ② မြန်မာ နေရာ နောက်ဆက် — 「ရန်ကုန်မြို့」 ⇒ နောက်ဆက် အပါ တစ်လုံး
+    for suf in _PLACE_SUF:
+        i = t.find(suf)
+        if i > 0:
+            head = t[:i]
+            # ⚠️ space မရှိလျှင် cluster ၄ လုံး ယူသည် (မြန်မာမှာ space နည်း)
+            w = head.split()[-1] if " " in head else head
+            out = (w[-14:] + suf).strip()
+            if _ncl(out) >= 2:
+                return out
+    return None
+
+
 def _first_number(text):
     """ဝါကျထဲက ပထမ ဂဏန်း — မတွေ့လျှင် None"""
     m = re.search(r"[0-9\u1040-\u1049]+(?:[.,][0-9\u1040-\u1049]+)?", text or "")
@@ -984,7 +1044,9 @@ def fill(cid, label, text):
         "q":      _short(text, 32),
         "title":  _short(text, 24),
         "name":   _short(text, 22),
-        "place":  _short(text, 20),
+        # ⚠️ နေရာ နာမည် မတွေ့လျှင် **ဗလာ** ⇒ `props_ok` က required ဖြစ်၍
+        #    ကတ် ပယ်မည် (မှားသော နေရာ ပြတာထက် မပြတာ သာ)
+        "place":  place_of(text) or "",
         "before": two[0] if two else _short(text, 20),
         "hot":    hot,
         "after":  two[1] if len(two) > 1 else "",
