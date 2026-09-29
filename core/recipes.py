@@ -418,6 +418,10 @@ R = {
     #   man · camera operator · B/W hijab · maths class) to a Tokutei-visa script.
     #   strict = LLM-matched clips only (headtop / ref-talk already do this).
     broll_strict=True,
+    # Zin 2026-09-29: "Motion Kit ထဲက Modern ဖြစ်တဲ့ အသစ်သစ်တွေ သုံးပေးပါ" -- the topics
+    # path only draws from topics.POOLS (19 older titles); the Visual Plan picks from
+    # the verified catalog through the premium MotionKit profile, like headtop.
+    plan=True, motionkit_profile="premium", energy="standard",
     zoom_amt=0.08,
     music="inspiration", lufs=-14.0, sfx=True, sfx_per_min=1.5,   # Zin 2026-09-28
     natural=True),
