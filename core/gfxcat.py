@@ -405,6 +405,46 @@ def numslot_bad(entry, args):
     return out
 
 
+def pairs_bad(entry, args):
+    """**အတွဲ စာရင်း** လိုသော param ထဲ ရိုးရိုး စာသား ဝင်နေသလား
+
+    ပြန်ပေးသည် — `[(param, နမူနာ အတွဲ အရေအတွက်)]` · မရှိလျှင် `[]`
+
+    ⚠️ ၂၀၂၆-၀၉-၂၉ — `odo.tick_row(rows=[[label, number], …])` ကို ဝါကျ
+       ရိုးရိုး ပေးလျှင် `too many values to unpack (expected 2)` နဲ့
+       **ဆောက်ချိန်မှာ** ကျသည် ⇒ စာရွက် ပြန်ဆုတ်。 `demoargs` အရ ဤပုံစံ
+       **၅၄ ခု** ရှိသည် (charts ၉ · infogfx ၈ · dash ၄ · brows …) ⇒
+       တစ်ခုချင်း `STRUCTURED` ထဲ ထည့်နေလို့ မလုံလောက် — planner က
+       နောက်တစ်ခု ကောက်ယူသည် (tick_row → checklist_tick → card_grid)。
+    ⚠️ **ရွေးချိန်မှာ အကုန် မဖယ်ရ** — `number`/`compare` အညွှန်းတွေက
+       အတွဲ ဒေတာ တကယ် ပေးနိုင်သည် ⇒ **ဖြည့်ချိန်**မှာ တန်ဖိုး ကြည့်ပြီးမှ
+       ဆုံးဖြတ်ရမည်。 အတွဲ ပေးထားလျှင် ဖြတ်မထားပါ。
+    """
+    try:
+        import demoargs as _DA
+    except Exception:
+        return []
+    shp = ((_DA.ALL or {}).get(entry.get("module")) or {}).get(entry.get("fn"))
+    if not isinstance(shp, (list, tuple)):
+        return []
+    names = [p["name"] for p in (entry.get("params") or [])]
+    bad = []
+    for i, dv in enumerate(shp):
+        if not (isinstance(dv, (list, tuple)) and dv
+                and all(isinstance(x, (list, tuple)) and len(x) >= 2
+                        for x in dv)):
+            continue
+        if i >= len(names):
+            continue
+        got = (args or {}).get(names[i])
+        if not isinstance(got, (list, tuple)) or not got:
+            continue
+        # ⚠️ တစ်ခုချင်းက အတွဲ ဖြစ်ရမည် — မဟုတ်လျှင် ဆောက်ချိန် ကျမည်
+        if not all(isinstance(x, (list, tuple)) and len(x) >= 2 for x in got):
+            bad.append((names[i], len(dv)))
+    return bad
+
+
 def fill_kw(entry, texts, img=None, pct=None, nums=None, strict=False):
     """`{param: တန်ဖိုး}` သို့ `None` — `demoargs` ပုံစံ + အသုံးပြုသူ စာသား。
 
@@ -425,6 +465,13 @@ def fill_kw(entry, texts, img=None, pct=None, nums=None, strict=False):
                 LAST_ERR[0] = ("numeric_slot_overflow: "
                                + " · ".join(f"{k}={d!r}←{n}လုံး"
                                             for k, d, n in _nb))
+                return None
+        if _r is not None and os.environ.get("IKKI_PAIRS_OFF") != "1":
+            _pb = pairs_bad(entry, _r)
+            if _pb:
+                LAST_ERR[0] = ("pair_rows_required: "
+                               + " · ".join(f"{k} (အတွဲ {n} တွဲ လို)"
+                                            for k, n in _pb))
                 return None
         return _r
     except Exception as e:

@@ -445,11 +445,12 @@ ENERGY = {
 STRUCTURED = {
     "infogfx.compare_bar",     # rows = [(စာသား, ဘယ်, ညာ)] ၃ လုံးတွဲ
     "infogfx.timeline",        # points = ဖွဲ့စည်းပုံ ရှိသော စာရင်း
-    # ⚠️ ၂၀၂၆-၀၉-၂၉ — `rows = [[label, number], …]` အတွဲ စာရင်း လိုသည်。
-    #    ဝါကျ ရိုးရိုး ပေးလျှင် `too many values to unpack (expected 2)`
-    #    နဲ့ ကျပြီး **စာရွက် ပြန်ဆုတ်** ဖြစ်ကာ စာသား မပါသော ကတ် ထွက်သည်
-    #    (short-916 modern1–4 · ၃၁.၂s)。
-    "odo.tick_row",
+    # ⚠️ `odo.tick_row` ကို ဤမှာ ခေတ္တ ထည့်ခဲ့သည် — ယခု `fill()` ရဲ့
+    #    အဆုံးမှာ **အတွဲ စာရင်း ဂိတ်** (၅၄ ခုလုံး) ရှိသဖြင့် ဖယ်လိုက်သည်。
+    #    ⚠️ `STRUCTURED` က **လမ်းကြောင်း အားလုံး** ပိတ်သည် ⇒ alias လမ်း
+    #      (`fill_kw`) က အတွဲ တကယ် ထုတ်ပေးနိုင်ပါလျက် ပိတ်မိမည် ⇒
+    #      ကောင်းသော template ဆုံးရှုံးသည်。 ဂိတ်က **တန်ဖိုး ကြည့်ပြီးမှ**
+    #      ဆုံးဖြတ်၍ ပိုမှန်သည်。
 }
 # ⚠️ **ဤစာရင်းက လက်နဲ့ ရေးထားသည် — မလုံလောက်ပါ**。 `demoargs` ကနေ
 #    တိုင်းကြည့်ရာ **အတွဲ စာရင်း လိုသော template ၅၄ ခု** ရှိသည်
@@ -1078,6 +1079,28 @@ def fill(cid, label, text):
         if v in ("", [], None):
             return None
         out[k] = v
+    # ⚠️⚠️ **အတွဲ စာရင်း လိုသော template ကို ဤလမ်းက မဖြည့်နိုင်**。
+    #    ဤ `fill()` က `items` ကို **စာသား စာရင်း** အဖြစ်သာ ထုတ်သည် ⇒
+    #    `rows=[[label, number], …]` လိုသော template ကို ပေးလျှင်
+    #    **ဆောက်ချိန်မှာ** `too many values to unpack (expected 2)` နဲ့ ကျပြီး
+    #    စာရွက် ပြန်ဆုတ် ဖြစ်သည်。 `demoargs` အရ ဤပုံစံ **၅၄ ခု** ရှိ ⇒
+    #    တစ်ခုချင်း `STRUCTURED` ထဲ ထည့်နေလို့ မလုံလောက် — planner က
+    #    နောက်တစ်ခု ကောက်ယူသည် (tick_row → checklist_tick → card_grid ·
+    #    တူညီသော segs ပေါ်မှာ run တိုင်း ပြောင်းသည်)。
+    # ⚠️ **ကိန်း မတီထွင်ရ** — `[s1, s2]` ကို `[[s1, 240], [s2, 36]]` ဟု
+    #    ပြင်လျှင် ဒေတာ လုပ်ကြံရာ ရောက်သည် (Zin ရဲ့ တားမြစ်ချက်) ⇒
+    #    **ပယ်ရ**မည်、ပြင်လို့ မရ。 alias လမ်း (`fill_kw`) က demoargs ပုံစံ
+    #    အတိုင်း အတွဲ ထုတ်ပေးနိုင်၍ အဲဒီလမ်း မထိပါ。
+    try:
+        try:
+            import gfxcat as _GCP
+        except ImportError:
+            from core import gfxcat as _GCP
+        _e2 = next((x for x in _GCP.catalog() if x["id"] == cid), None)
+        if _e2 is not None and _GCP.pairs_bad(_e2, out):
+            return None
+    except Exception:
+        pass
     return out
 
 # ⚠️ semantic label → pack intent。 pack က `title`/`statement`/`chapter`/
