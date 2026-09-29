@@ -229,6 +229,27 @@ def measure(path):
         #    (တကန် တိုင်းတွေ့ · ၂၀၂၆-၀၉-၂၁)。 ⇒ အသံ ကျယ်ချိန်ကို မှတ်ထားသည် —
         #    `sfxpool.lead()` က ဒီကို သုံးပြီး **အချိန်ကိုက်အောင် အစား ထည့်**သည်。
         peak_t = float((int(np.argmax(_e)) + _w / 2.0) / sr)
+    # ⚠️⚠️ **transient အတွက် `peak_t` က မမှန်ပါ**。 အပေါ်က ၃၀၀ms ဗိန်ဒိုးရဲ့
+    #    **အလယ်** ကို ယူသည် ⇒ impact (တိုက်ချက် ~၀.၀၂s ပြီး ကျဆင်း) မှာ
+    #    ဗိန်ဒိုးက ၀ နားက စ၍ `peak_t` ≈ ၀.၁၅s ထွက်သည် — တကယ် ကြားရတာက
+    #    တိုက်ချက်。 `lead()` က အဲဒီ ၀.၁၅ အပြည့် စောစေ၍ **၃ ဖရိမ်း စော**သည်。
+    #    တိုင်းချက် (၂၀၂၆-၀၉-၂၉ · pool အားလုံး · ၂၀ms RMS envelope argmax):
+    #      impact    ၂၅၉ ဖိုင် · အလယ်တန်း **−၀.၁၁s** · ၂၅၉ ထဲ ၁၆၈ က ၂ ဖရိမ်း ကျော်
+    #      whoosh_in  ၈၄ ဖိုင် · အလယ်တန်း −၀.၀၃s (peak ကျယ်၍ နီးသည်)
+    #      latch       ၃ ဖိုင် · ၀.၀၀
+    #    ⇒ **သီးသန့် field** အဖြစ် မှတ်သည် — `peak_t` ကို မပြောင်းပါ
+    #      (riser က နောက်မှ ကျယ်သည် · အဲဒီအတွက် peak_t မှန်သည်)。
+    #      `sfxpool.lead()` က transient role တွေမှာသာ ဒါကို သုံးမည်。
+    try:
+        _aw = max(1, int(sr * 0.02))
+        _ac2 = np.cumsum(np.concatenate(([0.0], m.astype(np.float64) ** 2)))
+        if len(m) > _aw:
+            _ae = (_ac2[_aw:] - _ac2[:-_aw]) / _aw
+            attack_t = float((int(np.argmax(_ae)) + _aw / 2.0) / sr)
+        else:
+            attack_t = float(int(np.argmax(np.abs(m))) / sr)
+    except Exception:
+        attack_t = None
     rms = float(np.sqrt((m ** 2).mean()))
     # ⚠️ brightness — spectral centroid (Hz)。 「တောက်」「မှိန်」ခွဲရန်
     k = min(len(m), 1 << 15)
@@ -280,6 +301,9 @@ def measure(path):
                 peak_mid_db=round(20 * np.log10(max(1e-6, peak_mid)), 1),
                 loud_db=round(20 * np.log10(max(1e-6, loud)), 1),
                 peak_t=round(peak_t, 3),
+                # ⚠️ transient ရဲ့ **တိုက်ချက် အချိန်** — `lead()` က
+                #    impact/latch/click/pop/snap/tick မှာ ဒါကို သုံးသည်
+                attack_t=(None if attack_t is None else round(attack_t, 3)),
                 rms_db=round(20 * np.log10(max(1e-6, rms)), 1),
                 brightness=int(cen), width=round(min(2.0, width), 3),
                 mask_gap=round(float(_gap), 1), impact=round(imp, 3))

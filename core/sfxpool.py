@@ -558,6 +558,21 @@ def lead(it, fam=None):
     """
     if not it or fam == "bed":
         return 0.0
+    # ⚠️⚠️ **transient မှာ `peak_t` ကို မသုံးရ**。 `peak_t` က အကျယ်ဆုံး
+    #    ၃၀၀ms ဗိန်ဒိုးရဲ့ **အလယ်** ဖြစ်၍ impact (တိုက်ချက် ~၀.၀၂s ပြီး
+    #    ကျဆင်း) မှာ ~၀.၁၅s ထွက်သည် — တကယ် ကြားရတာက တိုက်ချက်。
+    #    အဲဒီအတိုင်း စောစေလျှင် **၃ ဖရိမ်း စော**သည်。
+    #    တိုင်းချက် (၂၀၂၆-၀၉-၂၉): impact ၂၅၉ ဖိုင် · အလယ်တန်း −၀.၁၁s ·
+    #      ၁၆၈/၂၅၉ က ၂ ဖရိမ်းထက် လွဲ · whoosh_in က −၀.၀၃ (peak ကျယ်၍ ရ)
+    #    ⚠️ `riser` က **နောက်မှ ကျယ်**သည် ⇒ အဲဒီအတွက် `peak_t` က မှန်သည်
+    #      ⇒ **transient family မှာသာ** `attack_t` ကို သုံးရမည်。
+    #    ⚠️ catalog ဟောင်းမှာ `attack_t` မရှိ ⇒ ယခင်အတိုင်း (ပြန်ဆောက်မှ ရ)。
+    _TRANSIENT = ("impact", "latch", "click", "click2", "pop", "snap",
+                  "tick", "type_tick", "type_key", "deep_hit", "shutter")
+    if fam in _TRANSIENT:
+        _at = it.get("attack_t")
+        if _at is not None:
+            return max(0.0, min(LEAD_MAX, float(_at)))
     pt = it.get("peak_t")
     if pt is None:
         return 0.0
