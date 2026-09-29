@@ -3641,26 +3641,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #      **curve@175**       skin **136** · p05 **50** · p95 225 · ပြတ် 0.01%
         #      curve@190           skin  146 · p05 53 · p95 **236** (ပြတ်ဖို့ နီး)
         #    ⇒ ၁၇၅ ကို ရွေးသည် — အနက် မပျက် · ပြတ် မရှိ · အသားရေ +၃၆。
-        _SKIN_ANCHOR = 175.0
-        if _sy and _sy < _SKIN_ANCHOR:
-            _sk = max(0.05, min(0.75, float(_sy) / 255.0))
-            _ys = min(0.94, _SKIN_ANCHOR / 255.0)
-            if _ys > _sk + 0.02:
-                _mx = min(0.99, (_sk + 1.0) / 2.0)
-                _my = min(0.995, (_ys + 1.0) / 2.0 + 0.04)
-                if _mx > _sk + 0.02 and _my > _ys + 0.02:
-                    rc["curve"] = (f"0/0 0.05/0.045 {_sk:.3f}/{_ys:.3f} "
-                                   f"{_mx:.3f}/{_my:.3f} 1/1")
-                    # ⚠️ `gamma` ကို **မထားရ** — ထားလျှင် `eq` ဝင်လာပြီး
-                    #    curve နဲ့ ထပ်တင်ကာ အလွန်အကျွံ ဖြစ်မည်。
-                    rc.pop("gamma", None)
-                    if (rc.get("lv_imin") or 0) > 0.05:
-                        rc["lv_imin"] = 0.04
-                    log(f"  အသားအရောင် · skin Y {_sy:.0f} < ပစ်မှတ် "
-                        f"{_SKIN_ANCHOR:.0f} ⇒ curve ({_sk:.3f}→{_ys:.3f}) · "
-                        f"gamma မသုံး · levels imin {rc.get('lv_imin')}")
-        elif _sy:
-            log(f"  အသားအရောင် · skin Y {_sy:.0f} — ချိန်ညှိချက် မလို")
+        # ⚠️ ပစ်မှတ်ကို **၁၃၀** ထားသည် (၁၇၅ မဟုတ်)。 luma-only ဆိုတော့
+        #    ပစ်မှတ်ကို တိုက်ရိုက် မီသည် ⇒ ၁၇၅ ဆိုလျှင် အသားရေ ၁၆၉ ·
+        #    အနက် p05 **၉၀** (နို့ရည်ရောင်)。 ၁၃၀ ⇒ အသားရေ **၁၂၅** ·
+        #    p05 **၅၇** (ယခင် ထွက်ဖိုင် ၅၅ နဲ့ နီးပါး) ⇒ အနက် မဆုံးရှုံးဘဲ
+        #    အသားရေ ၁၀၅ → ၁၂၅ တက်သည် (တိုင်းပြီး)。
+        _SKIN_ANCHOR = 130.0
+        if _sy and _sy < _SKIN_ANCHOR - 4.0:
+            rc["luma_lift"] = (float(_sy), _SKIN_ANCHOR)
+            rc.pop("gamma", None)
+            rc.pop("curve", None) if rc.get("_skin_curve") else None
+            if (rc.get("lv_imin") or 0) > 0.05:
+                rc["lv_imin"] = 0.04
+            log(f"  အသားအရောင် · skin Y {_sy:.0f} → ပစ်မှတ် "
+                f"{_SKIN_ANCHOR:.0f} ⇒ **luma သာ** (chroma မထိ) · "
+                f"gamma မသုံး · levels imin {rc.get('lv_imin')}")
     except Exception as e:
         log(f"  ⚠️ အသားအရောင် မတိုင်းနိုင်: {type(e).__name__}: {e}")
     try:
