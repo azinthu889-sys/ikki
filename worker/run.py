@@ -4269,9 +4269,60 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    Zin ၏ ဆုံးဖြတ်ချက်: 「scrim ခံပြီးတင်ပါ」。
     # ⚠️ **ထပ်နေသော အပိုင်းမှာသာ** ခံရမည် — ဂရပ်ဖစ် တစ်ခုလုံး ခံလျှင်
     #    ပြောသူပေါ်က ဂရပ်ဖစ်တွေပါ မှောင်သည် (recipe က `scrim=False`)。
-    _scrim_wins = []
+    # ══ ⚠️ **လင်းသော နောက်ခံပေါ်မှာ အမှောင်ကွက် ခံရမည်** ═══════════
+    #    Zin ၂၀၂၆-၀၉-၂၉:「အမှောင်ကွက် ခံ」。 တိုင်းချက် — အဖြူနံရံ/ကောင်းကင်
+    #    ပေါ်မှာ အဖြူစာက **၁.၂၃:၁** · မှိန်ရောင်က **၁.၇၇:၁** (လိုတာ ၄.၅:၁)
+    #    ⇒ **ဘယ်အရောင် ရွေးရွေး မရ** ⇒ နောက်ခံကို မှောင်စေရမည်。
+    #    ⚠️ **မှောင်သော နောက်ခံမှာ မခံရ** — ခံလျှင် ပုံက ညစ်သည် ⇒
+    #      overlay တစ်ခုချင်းရဲ့ အောက်က ရုပ်ကို **တိုင်းပြီးမှ** ဆုံးဖြတ်သည်。
+    #    အဖြူစာ (L≈1.0) အတွက် ၄.၅:၁ လိုလျှင် နောက်ခံ L ≤ **၀.၁၈၃**。
+    def _bg_lum(_vid, _t, _y0, _y1):
+        """`_vid` ရဲ့ `_t` စက္ကန့်မှာ y-band ရဲ့ **relative luminance**"""
+        _px = os.path.join(work, f"bgl_{int(_t*100)}_{int(_y0)}.png")
+        try:
+            ff(["ffmpeg", "-v", "error", "-ss", f"{max(0.0,_t):.2f}",
+                "-i", _vid, "-frames:v", "1", "-y", _px])
+            from PIL import Image
+            import numpy as _np
+            _a = _np.array(Image.open(_px).convert("RGB")).astype(float)
+            _h = _a.shape[0]
+            _yy0 = max(0, min(_h - 2, int(_y0)))
+            _yy1 = max(_yy0 + 1, min(_h, int(_y1)))
+            _c = _a[_yy0:_yy1, :, :] / 255.0
+            _c = _np.where(_c <= 0.03928, _c / 12.92,
+                           ((_c + 0.055) / 1.055) ** 2.4)
+            return float((0.2126 * _c[..., 0] + 0.7152 * _c[..., 1]
+                          + 0.0722 * _c[..., 2]).mean())
+        except Exception:
+            return None
+        finally:
+            _drop(_px)
+
+    _scrim_bright = []
+    try:
+        _srcv = cutv if os.path.exists(str(cutv)) else None
+        if _srcv:
+            _cand = ([(float(x[0]), float(x[2]), int(x[3]), int(x[4]))
+                      for x in (gmov or [])]
+                     + [(float(x[0]), float(x[2]), 0, int(TH["H"]))
+                        for x in (pmov or [])])
+            for _a0, _dd, _y0, _y1 in _cand[:12]:
+                _L = _bg_lum(_srcv, _a0 + _dd / 2.0, _y0, _y1)
+                if _L is not None and _L > 0.183:
+                    _scrim_bright.append((_a0, _a0 + _dd, _y0, _y1))
+            if _scrim_bright:
+                log(f"  ◐ အမှောင်ကွက် — လင်းသော နောက်ခံပေါ် overlay "
+                    f"{len(_scrim_bright)}/{len(_cand)} ခု (L > 0.183 ⇒ "
+                    f"အဖြူစာ ၄.၅:၁ မမီ)")
+                REPORT["scrim_bright"] = len(_scrim_bright)
+    except Exception as _sbe:
+        log(f"  ⚠️ နောက်ခံ အလင်း မတိုင်းနိုင်: {type(_sbe).__name__}")
+
+    # ⚠️ **ပေါင်းရမည်、မလွှမ်းရ** — အောက်က အကိုင်းတွေက `=` နဲ့ ရေးထားလျှင်
+    #    လင်းသော နောက်ခံ စာရင်းက ပျောက်မည် (ရေးပြီးမှ သတိထားမိ)。
+    _scrim_wins = list(_scrim_bright)
     if rc.get("scrim") and gmov:
-        _scrim_wins = [(at, at + d, y0, y1) for at, _m, d, y0, y1 in gmov]
+        _scrim_wins += [(at, at + d, y0, y1) for at, _m, d, y0, y1 in gmov]
     elif bmov and (gmov or pmov or rmov):
         # ⚠️ **overlay ၃ မျိုးလုံး** စစ်ရမည် — v9 မှာ `gmov` တစ်ခုတည်း
         #    စစ်ခဲ့ရာ ၄၈.၈s က ဂရပ်ဖစ်က `pmov`/`rmov` ကနေ လာသဖြင့်

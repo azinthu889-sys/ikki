@@ -684,6 +684,74 @@ _NUM_MARK = re.compile(
     r"|[\(\uFF08]?\s*(" + _D + r")\s*[\)\uFF09\.\u104B\-\u2013:])\s*")
 
 
+# ⚠️ မြန်မာ ဝါကျဆုံး **ကြိယာ နောက်ဆက်** — ရှည်သူ အရင်。
+#    Zin ၂၀၂၆-၀၉-၂၉:「ခေါင်းစဉ်တို」 ⇒ lower third က **အဓိပ္ပာယ် ရှိသော
+#    စကားစု တို** ဖြစ်ရမည်、ဝါကျ အပြည့်လည် မဟုတ်、ပထမ စကားလုံး တစ်လုံးလည်
+#    မဟုတ်。 ဥပမာ —
+#      「COE စိတ်ချရတဲ့ Class 1 ကျောင်း**ဖြစ်ရပါမယ်**」→「… ကျောင်း」
+#      「N5 level အောင်လက်မှတ် **ရှိထားရပါမယ်**」   →「… အောင်လက်မှတ်」
+#    ⇒ နောက်ဆုံး token ကနေ ကြိယာ နောက်ဆက်ကို ဖြတ်သည်。
+_VERB_END = (
+    "\u101b\u103e\u102d\u1011\u102c\u1038\u101b\u1015\u102b\u1019\u101a\u103a",   # ရှိထားရပါမယ်
+    "\u1016\u103c\u1005\u103a\u101b\u1015\u102b\u1019\u101a\u103a",                 # ဖြစ်ရပါမယ်
+    "\u1011\u102c\u1038\u101b\u1015\u102b\u1019\u101a\u103a",                        # ထားရပါမယ်
+    "\u1016\u103c\u1005\u103a\u1015\u102b\u1010\u101a\u103a",                        # ဖြစ်ပါတယ်
+    "\u101b\u1015\u102b\u1019\u101a\u103a",                                             # ရပါမယ်
+    "\u101b\u1015\u102b\u1010\u101a\u103a",                                             # ရပါတယ်
+    "\u1015\u102b\u1019\u101a\u103a",                                                     # ပါမယ်
+    "\u1015\u102b\u1010\u101a\u103a",                                                     # ပါတယ်
+    "\u1015\u102b\u1018\u1030\u1038",                                                     # ပါဘူး
+    "\u101b\u1019\u101a\u103a",                                                            # ရမယ်
+    "\u1010\u101a\u103a",                                                                   # တယ်
+    "\u1019\u101a\u103a",                                                                   # မယ်
+    "\u101e\u100a\u103a",                                                                   # သည်
+)
+
+
+def head_phrase(text, maxcl=22):
+    """ဝါကျ → **အဓိပ္ပာယ် ရှိသော စကားစု တို** (ကြိယာ နောက်ဆက် ဖြတ်)
+
+    ⚠️ ဖြတ်လို့ **၂ cluster အောက်** ကျလျှင် မဖြတ်ပါ — တိုလွန်းတာထက်
+       ရှည်တာ သာသည် (「ကိုယ့်ဘက်က」 တစ်လုံးတည်း ဖြစ်ခဲ့သော အမှား)。
+    """
+    t = " ".join(str(text or "").split())
+    if not t:
+        return ""
+    t = t.rstrip("\u104b\u104a.!?, ")
+    # ⚠️ **အဓိက ဝါကျပိုင်းက နောက်မှာ ရှိတတ်သည်**。「… ထားပြီးတော့ N5
+    #    အောင်လက်မှတ် ရှိထားရပါမယ်」 မှာ အရေးကြီးတာက 「N5 အောင်လက်မှတ်」
+    #    ဖြစ်ပြီး ရှေ့ပိုင်းက အခြေအနေ ပြသာ。 ⇒ ဆက်စပ် စကားလုံး
+    #    (ပြီးတော့ · ပြီးရင် · ပြီး) ရှိလျှင် **နောက်ပိုင်း** ယူသည်。
+    for _cj in ("\u1015\u103c\u102e\u1038\u1010\u1031\u102c\u1037",   # ပြီးတော့
+                "\u1015\u103c\u102e\u1038\u101b\u1004\u103a",          # ပြီးရင်
+                "\u1015\u103c\u102e\u1038"):                              # ပြီး
+        _ix = t.rfind(_cj)
+        if _ix > 0 and len(t) - (_ix + len(_cj)) >= 6:
+            _tail = t[_ix + len(_cj):].strip(" -\u2013:")
+            if _ncl(_tail) >= 3:
+                t = _tail
+                break
+    tk = t.split()
+    if tk:
+        last = tk[-1]
+        for suf in _VERB_END:
+            if last.endswith(suf) and len(last) > len(suf):
+                _cut = last[:-len(suf)]
+                if _ncl(_cut) >= 2:
+                    tk[-1] = _cut
+                else:
+                    tk = tk[:-1] or tk
+                break
+        else:
+            # token တစ်ခုလုံးက ကြိယာ ဆိုလျှင် ဖယ်သည် (ကျန်တာ ရှိမှ)
+            if last in _VERB_END and len(tk) > 1:
+                tk = tk[:-1]
+    out = " ".join(tk).strip()
+    while _ncl(out) > maxcl and len(out.split()) > 1:
+        out = " ".join(out.split()[:-1])
+    return out or t
+
+
 def numbered_item(text):
     """「နံပါတ် ၂ - အေဂျင်စီကောင်း」→ `("02", "အေဂျင်စီကောင်း")` · မဟုတ်လျှင် None
 
@@ -724,7 +792,7 @@ def numbered_item(text):
         body = rest2[len(w):].strip(" -\u2013:\u104B\u002E")
         if not body or _ncl(body) < 2 or not (1 <= n2 <= 20):
             return None
-        return ("%02d" % n2, _short(body, 30))
+        return ("%02d" % n2, head_phrase(body))
     rest = t[m.end():].strip(" -\u2013:\u104B")
     if not rest or _ncl(rest) < 2:
         return None
@@ -732,7 +800,7 @@ def numbered_item(text):
                 for c in (m.group(1) or m.group(2)))
     if not d.isdigit() or not (1 <= int(d) <= 20):
         return None
-    return ("%02d" % int(d), _short(rest, 30))
+    return ("%02d" % int(d), head_phrase(rest))
 
 
 _CL = re.compile(r"[\u1000-\u102A\u103F\u104C-\u104F\u0020-\u007E]"
