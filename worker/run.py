@@ -4302,10 +4302,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
     try:
         _srcv = cutv if os.path.exists(str(cutv)) else None
         if _srcv:
-            _cand = ([(float(x[0]), float(x[2]), int(x[3]), int(x[4]))
-                      for x in (gmov or [])]
-                     + [(float(x[0]), float(x[2]), 0, int(TH["H"]))
-                        for x in (pmov or [])])
+            # ⚠️⚠️ **`pmov` ကို မထည့်ရ** — keyword pop မှာ y-band မရှိ၍
+            #    ဘောင်အပြည့် (0, H) ပေးခဲ့ရာ `scrim._band()` ရဲ့
+            #    `maxfrac=0.34` guard က **ဘောင်အလယ်မှာ ၃၄% band** ဖြစ်အောင်
+            #    ပြန်ချုံ့သည် ⇒ ပြောသူရဲ့ **မျက်နှာပေါ် အမှောင်ကွက်** ကြီး
+            #    ကျသည် — စာသားက အပေါ်က ကောင်းကင်ပေါ်မှာ ကျန်ခဲ့သည်
+            #    (၂၀၂၆-၀၉-၂၉ modern10 · ၂.၂s နဲ့ ၁၇.၉s)。
+            #    ⇒ band မသိသေးသရွေ့ **မခံရ** — မှားရာ ခံတာထက် မခံတာ သာ。
+            #    pop အတွက် ink bbox တိုင်းပြီးမှ ပြန်ထည့်ရမည်。
+            _cand = [(float(x[0]), float(x[2]), int(x[3]), int(x[4]))
+                     for x in (gmov or [])]
             for _a0, _dd, _y0, _y1 in _cand[:12]:
                 _L = _bg_lum(_srcv, _a0 + _dd / 2.0, _y0, _y1)
                 if _L is not None and _L > 0.183:
