@@ -1200,7 +1200,22 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _ac = (CUT.calib(job.get("brand_id") or rc.get("theme")) or {}).get("asr_align")
             _before = [(float(x.get("start")), float(x.get("end")))
                        for x in segs if isinstance(x, dict)]
-            _aligned = ASR2.align_provided(segs, MEAS, cfg=_ac)
+            # ⚠️⚠️ **bias ကို ဒုတိယ အကြိမ် မထည့်ရ**。 `segs` က ယခင်
+            #    `ASR.run` ကနေ လာပြီး **bias ပြင်ပြီးသား · snap ပြီးသား**
+            #    ဖြစ်သည်。 `align_provided` က `est_bias` ပြန်ပြေးရာ
+            #    ဖြတ်ပြီး timeline မှာ အတွဲ **၁ ခုသာ** တွေ့သည် (MIN_PAIRS ၈
+            #    အောက်) ⇒ ပုံသေ `BIAS=0.43` သို့ ပြန်ဆုတ်ပြီး စာကြောင်း
+            #    ၁၈ ခုလုံးကို **+၀.၄၃s ရွှေ့**သည် (「median ရွှေ့ 0.43s」)。
+            #    ⇒ စာတန်းက စကားထက် နောက်ကျသည်。
+            #    တိုင်းချက် (၂၀၂၆-၀၉-၂၉ short-916 · ၂၅၀–၃၅၀၀Hz onset):
+            #      ဝါကျ ၆ ခုရဲ့ တကယ့် အသံစ က စာတန်းထက် **၀.၃၈–၀.၅၃s စော**
+            #      မရွှေ့ဘဲ ကိန်းက ကိုက်သည် (၆.၀၅ ↔ onset ၅.၉၅)
+            #    ⇒ `bias_s=0.0` — `est_bias` က အတွဲ ၈ ခု ရမှသာ ကိုယ်တိုင်
+            #      တိုင်းပြီး ရွှေ့မည် (ဂိတ် မလျှော့ပါ)。
+            #    test render: card ပြင်ပ စကားလုံး ၇.၇% → **၃.၇%** ·
+            #      heard_before_seen ၅ → ၂ · 「median ရွှေ့ 0.00s」
+            _aligned = ASR2.align_provided(segs, MEAS,
+                                           cfg=dict(_ac or {}, bias_s=0.0))
             if len(_aligned) == len(segs):
                 _delta = [abs(float(a.get("start", 0)) - b[0])
                           for a, b in zip(_aligned, _before)]
