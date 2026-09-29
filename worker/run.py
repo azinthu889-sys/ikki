@@ -2764,7 +2764,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
             import dress as _DR
             work_s = os.path.join(work, "sl"); os.makedirs(work_s, exist_ok=True)
             SL2.setsize(TH["W"], TH["H"])
-            _bn = (brand or {}).get("name") or rc["label"]
+            # ⚠️⚠️ **`rc["label"]` ကို ပြန်ဆုတ် မသုံးရ**。 brand နာမည် မရှိလျှင်
+            #    recipe ရဲ့ နာမည် («Short Video») က `slide._canvas()` ရဲ့
+            #    အောက်ခြေမှာ small caps နဲ့ ပေါ်သည် ⇒ အသုံးပြုသူရဲ့ ဗီဒီယိုမှာ
+            #    ကျွန်တော်တို့ recipe နာမည် ပါသွားသည် (၂၀၂၆-၀၉-၂၉ modern1–3 ·
+            #    ၃၁.၂s)。 brand မရှိလျှင် **အောက်ခြေ မထည့်ဘဲ ထားရမည်** —
+            #    `slide.py` က `if brand:` နဲ့ ကျော်ပေးသည်。
+            _bn = (brand or {}).get("name") or ""
             _nok = _nno = 0
             # ⚠️ **keyword pop ကို ဒီထဲ မထည့်ရ** — အဲဒါတွေက ထပ်တင် ဖြစ်ပြီး
             #    ဘောင်အပြည့် ဖြတ်ပြောင်း မဟုတ်ပါ。 မခွဲလျှင် စကားလုံးတစ်လုံးအတွက်
@@ -2863,6 +2869,27 @@ def render(job, brand, src, out, stage, log=print, over=None):
                             _h_got = (_ik0[3] - _ik0[2]) / float(TH["H"])
                             _s_new, _redo = _pop_size(_pr["size"], _h_got, _h,
                                                       TH["H"])
+                            # ⚠️⚠️ **အကျယ်ကိုပါ စစ်ရမည်**。 ဤချိန်ညှိချက်က
+                            #    **အမြင့် တစ်ခုတည်း** ကြည့်ခဲ့သည် ⇒ အမြင့်
+                            #    မှန်ပြီး **ဘောင်ထက် ကျယ်**သော pop က
+                            #    ဘယ်တော့မှ မချိန်ရဘဲ ၂ ဘက်လုံး **ပြတ်**သည်
+                            #    (၂၀၂၆-၀၉-၂၉:「…kutei sk…」·「…kutei progra…」·
+                            #     「Language school…[」)。 အောက်က `_dx` က
+                            #    **ရွှေ့**ရုံသာ ဖြစ်၍ ကျယ်လွန်းလျှင် မကူညီနိုင်。
+                            # ⚠️ ပြတ်နေလျှင် တိုင်းရသော အကျယ်က **ဘောင်အတိုင်း**
+                            #    ဖြစ်၍ တကယ့် အကျယ်ကို မသိရ ⇒ တစ်ခါတည်း
+                            #    မမီနိုင် ⇒ အောက်မှာ ထပ် စစ်သည် (အများဆုံး ၃ ခါ)。
+                            _w_got = float(_ik0[1] - _ik0[0])
+                            if _w_got > float(TH["W"]) * 0.90:
+                                _s_w = max(24, int(float(_pr["size"])
+                                                   * (float(TH["W"]) * 0.86)
+                                                   / max(1.0, _w_got)))
+                                if _s_w < _s_new:
+                                    log(f"  ↔ pop「{str(_pr.get('text'))[:12]}」"
+                                        f"အကျယ် {_w_got:.0f}px > ဘောင် "
+                                        f"{TH['W']} ⇒ size {_pr['size']} → "
+                                        f"{_s_w}")
+                                    _s_new, _redo = _s_w, True
                             if _redo:
                                 log(f"  ↕ pop「{str(_pr.get('text'))[:12]}」"
                                     f"အမြင့် {_h_got*100:.1f}%H → ပစ်မှတ် {_h*100:.1f}% "
@@ -2894,6 +2921,47 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                         f"[{_ev.get('motionKitTemplateId')}] "
                                         f"{type(_re3).__name__}: "
                                         f"{str(_re3)[:80]}")
+                        # ⚠️ ပြန်ဆောက်ပြီးလည် ကျယ်နေသေးလျှင် ထပ် ချုံ့သည် —
+                        #    ပြတ်နေချိန်မှာ တိုင်းချက်က ဘောင်အတိုင်းသာ ဖြစ်၍
+                        #    တစ်ခါတည်း မမီနိုင်。 ၂ ခါ ကြိုးစားပြီး မရလျှင်
+                        #    **ပထမ စကားလုံး တစ်လုံးသာ** ကျန်စေသည် —
+                        #    ပြတ်နေသော စာထက် တိုသော စာ က သာသည်。
+                        for _wtry in (1, 2, 3):
+                            try:
+                                _ikw = _pop_ink(_pv, work_s, _i)
+                            except Exception:
+                                break
+                            if not _ikw:
+                                break
+                            _ww = float(_ikw[1] - _ikw[0])
+                            if _ww <= float(TH["W"]) * 0.92:
+                                break
+                            _pr3 = dict(_pr)
+                            if _wtry < 3:
+                                _pr3["size"] = max(24, int(float(_pr["size"]) * 0.82))
+                            else:
+                                _t1 = str(_pr.get("text") or "").split()
+                                if len(_t1) <= 1:
+                                    break
+                                _pr3["text"] = _t1[0]
+                            log(f"  ↔ pop「{str(_pr.get('text'))[:12]}」ကျယ် "
+                                f"{_ww:.0f}px ⇒ " + (f"size {_pr3['size']}"
+                                if _wtry < 3 else f"စာသား「{_pr3['text']}」သာ"))
+                            try:
+                                _pv3 = _DR.slide_clip(
+                                    "statement", str(_pr3.get("text") or "")[:24],
+                                    None, None, _bn,
+                                    os.path.join(work_s, f"w{_i:02d}w{_wtry}.mov"),
+                                    _d, log=None, fps=rc["fps"],
+                                    template=_ev.get("motionKitTemplateId"),
+                                    props=_pr3)
+                            except Exception as _we3:
+                                log(f"  ⚠️ pop အကျယ် ပြန်ဆောက်မရ "
+                                    f"({type(_we3).__name__})")
+                                break
+                            if not _pv3:
+                                break
+                            _drop(_pv); _pv = _pv3; _pr = _pr3
                     except Exception as _he:
                         log(f"  ⚠️ pop အမြင့် မတိုင်းနိုင် ({type(_he).__name__})")
                     # ⚠️ **အကျယ်ကို မှန်းဆ၍ မရ** — plan က စာလုံးရေနဲ့ ခန့်မှန်းသည်
@@ -3069,7 +3137,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 # ── slide ကို **motionkit template** နဲ့ ပြန်ထုတ် ──
                 # ⚠️ Zin ၂၀၂၆-၀၉-၂၀: IKKI ကိုယ်ပိုင် ဖြူဖြူ slide မသုံးတော့。
                 #    မရလျှင် PNG အတိုင်း ချန်သည် (job မကျစေရန်)。
-                _bn = (brand or {}).get("name") or rc["label"]
+                # ⚠️⚠️ **`rc["label"]` ကို ပြန်ဆုတ် မသုံးရ** — အထက်နဲ့ အတူတူ。
+                #    brand မရှိလျှင် အောက်ခြေ မထည့်ဘဲ ထားရမည်。
+                _bn = (brand or {}).get("name") or ""
                 # ⚠️ **ပုံသေက စာရွက်ပုံစံ (အလင်း) slide** — ၂၀၂၆-၀၉-၂၀ Zin ရဲ့
                 #    reference (`01BnhfTaQoo`) ကို တိုင်းတော့ ဘောင်အပြည့် ကတ်က
                 #    **တောက်ပမှု ၂၃၆/၂၅၅** (စာရွက် · အစက်ကွက် · မှောင်သော စာ)。
