@@ -637,8 +637,17 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    အစားထိုးပြီးမှ ပြန်ပေးသည် (ကုန်လျှင် လှည့်ပြန်သုံး)。
             if a is None:
                 try:
-                    _tx = [x for x in (g.get("text"), g.get("sub"), label, brand)
-                           if x] or [label or brand or "-"]
+                    # ⚠️⚠️ **`label` ကို ဖြည့်စာသား အဖြစ် မသုံးရ**。 `label` က
+                    #    recipe/job ရဲ့ **နာမည်** ဖြစ်ပြီး အကြောင်းအရာ မဟုတ်ပါ。
+                    #    အကွက် များသော template (ဥပမာ quote ကြီး + အောက်ခြေ)
+                    #    မှာ အောက်ခြေက 「SHORT VIDEO」 ဖြစ်သွားသည်
+                    #    (၂၀၂၆-၀၉-၂၉ modern1/modern2 · ၃၁.၂s)。
+                    #    ⚠️ worker ဘက်မှာ guard ၃ နေရာ ထားပြီးမှ ဒီမှာ
+                    #      ပေါက်နေခြင်း — ဖြည့်တာက **ဒီနေရာ** ဖြစ်၍。
+                    #    `brand` ကတော့ ချန်ထားသည် — တကယ့် brand နာမည်က
+                    #    ကတ်ပေါ် တင်ထိုက်သည် (ZAE/ZJL လိုဟာ)。
+                    _tx = [x for x in (g.get("text"), g.get("sub"), brand)
+                           if x] or [brand or "-"]
                     _tx = list(dict.fromkeys([str(x) for x in _tx]))
                     if isinstance(g.get("items"), (list, tuple)):
                         _tx = [str(x) for x in g["items"] if x] + _tx
@@ -705,8 +714,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    positional argument` နဲ့ ၂၀ ခု ကျန်ခဲ့သည်။
             if not _retry and not isinstance(e, _PackDone):
                 try:
-                    _tx2 = [x for x in (g.get("text"), g.get("sub"), label, brand)
-                            if x] or [label or brand or "-"]
+                    # ⚠️ အထက်နဲ့ အတူတူ — `label` က အကြောင်းအရာ မဟုတ်
+                    _tx2 = [x for x in (g.get("text"), g.get("sub"), brand)
+                            if x] or [brand or "-"]
                     _tx2 = list(dict.fromkeys([str(x) for x in _tx2]))
                     if isinstance(g.get("items"), (list, tuple)):
                         _tx2 = [str(x) for x in g["items"] if x] + _tx2
@@ -1308,7 +1318,12 @@ def _cargs(kind, brand, label, g=None):
         #    နှစ်ခုတည်း ပေးခဲ့သည် ⇒ စာရင်း param ယူသော template ၅၂ ခုက
         #    `SHAPES` ထဲက **နမူနာစာအတိအကျ** (「ဂျပန်မှာ အလုပ် ၆၂」)
         #    ကို ထုတ်ပြနေခဲ့သည် — အသုံးပြုသူရဲ့ script နဲ့ မသက်ဆိုင်ပါ။
-        return GC.fill(e, brand, label,
+        # ⚠️⚠️ `fill(entry, text, sub)` ⇒ `brand`/`label` ပေးလျှင် **label က
+        #    `sub`** ဖြစ်ပြီး ကတ်ပေါ် တင်မိသည် (「SHORT VIDEO」 အောက်ခြေ ·
+        #    ၂၀၂၆-၀၉-၂၉)。 ⇒ **ကတ်ရဲ့ ကိုယ်ပိုင် စာသား** ကို ပေးရမည် ·
+        #    မရှိမှသာ brand ကို ပြန်ဆုတ်သုံးသည် · `label` **လုံးဝ မသုံးရ**。
+        return GC.fill(e, ((g or {}).get("text") or brand or ""),
+                       ((g or {}).get("sub") or ""),
                        items=(g or {}).get("items"),
                        nums=([(g or {}).get("num")] if (g or {}).get("num")
                              not in (None, "") else None))
