@@ -4057,6 +4057,37 @@ def render(job, brand, src, out, stage, log=print, over=None):
             REPORT["sfx_respace"] = _drop2
             REPORT["sfx_respace_moments"] = _dropm
         cues = sorted(_keep2, key=lambda x: x[0])
+        # ══ ⚠️⚠️ **ဝင်ခါနီး အသံကို ကတ်နဲ့ တပြိုင်နက် ဖြစ်စေရမည်** ═══════
+        #    ၂၀၂၆-၀၉-၂၉ ဖရိန်လိုက် စစ်ဆေးချက် (short-916 modern11) —
+        #    ကတ်တွေကို ease ပြန်ချိန်ရာ **၀.၁၈s စော**စေသည် (plan 2.38 ⇒
+        #    render 2.20 · ကတ် ၇ ခုလုံး တူညီ) ဒါပေမဲ့ **cue က plan
+        #    အချိန်မှာပဲ ကျန်**ခဲ့သည် ⇒ whoosh က ရုပ် စလှုပ်ပြီး
+        #    **၈ ဖရိမ်း (၀.၂၇s) နောက်ကျ**မှ ထွက်သည် — ၀.၄၅s ဝင်ခန်းရဲ့
+        #    အများစု ကုန်ပြီးမှ。 တိုင်းချက်: အလယ်တန်း **−၅ ဖရိမ်း** ·
+        #    ၁၂ ခုထဲ ၉ ခု ၂ ဖရိမ်းထက် လွဲ。
+        #    ⚠️ **ဝင်ခါနီး အသံကိုသာ ရွှေ့ရမည်** — `latch`/`impact` က
+        #      ကတ် **အပြည့် ပေါ်ချိန်** (render + ၀.၄၅) မှာ ကျပြီး
+        #      **မှန်နေပြီး** ဖြစ်သည် ⇒ ရွှေ့လျှင် ပျက်မည်。
+        _ENTRY_ROLES = ("whoosh_in", "whoosh_out", "whoosh_std", "swipe",
+                        "swipe_metal", "riser", "riser_air", "riser_soft",
+                        "deep_whoosh", "subdrop")
+        _PULL_IN = 0.18
+        try:
+            _sh_n = 0
+            _cs2 = []
+            for _ct, _cr, _cd in cues:
+                if str(_cr) in _ENTRY_ROLES and float(_ct) - _PULL_IN > 0.05:
+                    _cs2.append((round(float(_ct) - _PULL_IN, 3), _cr, _cd))
+                    _sh_n += 1
+                else:
+                    _cs2.append((_ct, _cr, _cd))
+            if _sh_n:
+                cues = sorted(_cs2, key=lambda x: x[0])
+                REPORT["sfx_pull_in"] = _sh_n
+                log(f"  ⟵ ဝင်ခါနီး အသံ {_sh_n} ခု · −{_PULL_IN:.2f}s ရွှေ့ "
+                    f"(ကတ်နဲ့ တပြိုင်နက် ဖြစ်စေရန် — ease ပြန်ချိန်ချက်နဲ့ တူ)")
+        except Exception as _pie:
+            log(f"  ⚠️ အသံ ရွှေ့၍ မရ: {type(_pie).__name__}")
         # ══ `per_min` ကိုပါ ချိန်ရမည် ═══════════════════════════════════
         # ⚠️ အပေါ်က ချိန်ချက်က **`gap` ကိုသာ** ကြည့်သည် — headtop မှာ
         #    gap 2.0 ⇒ မိနစ်လျှင် ဖြစ်ရပ် ၃၀ အထိ ခွင့်ပြုသဖြင့် တကယ့်
