@@ -57,5 +57,47 @@ class HeadText(unittest.TestCase):
         self.assertEqual(W.head_text({"value": 240}), "")
 
 
+class KeepWork(unittest.TestCase):
+    """`IKKI_KEEP_WORK=1` ⇒ `_drop()` က ဖိုင် မဖျက်ရ
+
+    ⚠️ ၂၀၂၆-၀၉-၃၀ — `_drop` က flag ကို လျစ်လျူရှုခဲ့သဖြင့် အရောင်
+       ချွတ်ယွင်းချက် ရှာရာမှာ `graded.mp4` · `raw.mp4` မကျန်ခဲ့ ⇒
+       「ဘယ်အဆင့်မှာ အစိမ်း ဝင်လဲ」 တိုင်းလို့ မရခဲ့。
+    """
+
+    def _tmp(self):
+        import tempfile
+        f = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        f.write(b"x" * 64); f.close()
+        return f.name
+
+    def test_drops_by_default(self):
+        p = self._tmp()
+        old = W.KEEP_WORK
+        try:
+            W.KEEP_WORK = False
+            W._drop(p)
+            self.assertFalse(os.path.exists(p))
+        finally:
+            W.KEEP_WORK = old
+            if os.path.exists(p): os.unlink(p)
+
+    def test_keeps_when_flag(self):
+        p = self._tmp()
+        old = W.KEEP_WORK
+        try:
+            W.KEEP_WORK = True
+            W._drop(p)
+            self.assertTrue(os.path.exists(p), "flag ရှိလည် ဖျက်မိသည်")
+        finally:
+            W.KEEP_WORK = old
+            if os.path.exists(p): os.unlink(p)
+
+    def test_flag_default_off(self):
+        # ⚠️ ပုံသေ ပိတ် ဖြစ်ရမည် — disk ပြည့်မှု ပြန်မလာစေရန်
+        self.assertEqual(W.KEEP_WORK,
+                         os.environ.get("IKKI_KEEP_WORK") == "1")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
