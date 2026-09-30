@@ -1463,6 +1463,38 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _kept = sum(b - a for a, b in spans)
             _dok, _dbad = CUT.validate_drops(user_drop_exact, MEAS[0], m["dur"],
                                              kept=_kept)
+            # 2026-09-30 (Zin: "the bits I cut inside a phrase must really go"):
+            # `_drop_exact` is also the channel for every cut the user makes by
+            # ear in Script Editor (✂ in-phrase trim, sound events, manual cuts on
+            # the waveform). Those edges sit inside speech *by definition*, so
+            # the retake guard above rejected 100% of them and the audio stayed
+            # (measured on j_4f10b8172b9a: 2/2 trims audible, corr 0.97/0.99).
+            # The user chose these by listening, so cut them: nudge each edge to
+            # the quietest point within 0.12 s instead of refusing.  Every other
+            # rejection (bad numbers, overlap, too short, nothing left) stays.
+            _inph = []
+            if _dbad:
+                import measure as _Mx
+                def _edge_in_speech(d):
+                    try: a, b = float(d[0]), float(d[1])
+                    except (TypeError, ValueError, IndexError): return False
+                    if not (0 <= a < b <= float(m["dur"]) + 0.05) or b - a < CUT.MIN_DROP:
+                        return False
+                    if any(a < y and b > x for x, y in _dok): return False
+                    return bool(_Mx.in_speech(a, MEAS[0], pad=CUT.EDGE_PAD)
+                                or _Mx.in_speech(b, MEAS[0], pad=CUT.EDGE_PAD))
+                _inph = [[float(d[0]), float(d[1])] for d, _w in _dbad if _edge_in_speech(d)]
+                _dbad = [(d, w) for d, w in _dbad if not _edge_in_speech(d)]
+            if _inph and sum(b - a for a, b in spans) - sum(b - a for a, b in _inph) >= CUT.MIN_LEFT:
+                spans, _rm3 = CUT.subtract(spans, _inph, None, snap=0.12,
+                                           db=_DBTRACK[0], hop=_DBTRACK[1])
+                log(f"  ✂ စကားစုထဲက ဖြတ်ချက် {len(_inph)} ခု · ဖြုတ် {_rm3:.1f}s "
+                    f"(အစွန်းကို ±0.12s အတွင်း အသံ အနိမ့်ဆုံးမှတ်သို့ ညှိ)")
+                _lft = [[round(a, 2), round(b, 2)] for a, b in _inph
+                        if sum(max(0.0, min(b, y) - max(a, x)) for x, y in spans) > 0.15]
+                if _lft:
+                    log(f"  ⚠️ စကားစုထဲက ဖြတ်ချက် {len(_lft)} ခု အပြည့် မပျောက် — {_lft[:4]}")
+                st["inphrase_cuts"] = len(_inph); st["inphrase_removed"] = _rm3
             if _dbad:
                 _fl = st.get("flag_list") or []
                 for _d, _why in _dbad:
@@ -5103,6 +5135,7 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
     """
     r = urllib.request.Request(API + f"/api/w/{path}/{jid}")
     r.add_header("Authorization", "Bearer " + TOKEN)
+    _j = {}
     # ⚠️ R2 mode — API က JSON {url:…} ပြန်ပေးသည်。 အဲဒီ URL ကို
     #    **Authorization header မပါဘဲ** ဆွဲရမည် (presigned ဖြစ်သဖြင့်)。
     with urllib.request.urlopen(r, timeout=60) as f0:
@@ -5120,7 +5153,21 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
             u = _j.get("url")
             if u: r = urllib.request.Request(u)
     t0 = time.time(); got = 0; nxt = 10
-    with urllib.request.urlopen(r, timeout=180) as f:
+    try:
+        f = urllib.request.urlopen(r, timeout=180)
+    except urllib.error.HTTPError as _he:
+        # 2026-09-30 j_aec7757ad1dd: the R2 object of a 9/26 upload was gone
+        # while the DB still said "uploaded", so every re-edit died with a bare
+        # "HTTP Error 404". If this Mac still has the same file (exact byte
+        # size), render from it so the user's cuts are kept.
+        if _he.code != 404 or not _j.get("url"): raise
+        _lp = _local_by_size(int(_j.get("size") or 0))
+        if _lp:
+            print(f"  ⚠️ storage ထဲ မူရင်းဖိုင် မရှိ — စက်ထဲက ဖိုင်တူ (byte တူ) သုံးသည်: {_lp}", flush=True)
+            return _lp
+        raise RuntimeError("မူရင်းဗီဒီယိုဖိုင် storage ထဲ မရှိတော့ပါ (R2 404) — ဗီဒီယိုကို "
+                           "~/Movies ထဲ ထည့်ပြီး ပြန်ထုတ်ပါ၊ သို့မဟုတ် ပြန် upload လုပ်ပါ") from None
+    with f:
         total = int(f.headers.get("Content-Length") or 0)
         with open(dest, "wb") as o:
             while True:
@@ -5136,6 +5183,27 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
                         except Exception: pass
                     nxt = pc - pc % 10 + 10
     return dest
+
+
+def _local_by_size(size):
+    """A readable video under IDX_ROOTS with exactly `size` bytes, or None.
+    The byte size of a multi-MB video is effectively unique; under 1 MB it is
+    not, so refuse."""
+    if size < (1 << 20):
+        return None
+    for root in IDX_ROOTS:
+        if not os.path.isdir(root): continue
+        for dp, dns, fns in os.walk(root):
+            dns[:] = [d for d in dns if not d.startswith(".")
+                      and d not in ("Library", "node_modules", "Photos Library.photoslibrary")]
+            for fn in fns:
+                if not fn.lower().endswith(IDX_EXT): continue
+                q = os.path.join(dp, fn)
+                try:
+                    if os.path.getsize(q) == size and os.access(q, os.R_OK): return q
+                except OSError:
+                    continue
+    return None
 
 
 def fetch_take(jid, n, dest, on_progress=None):
@@ -5784,7 +5852,10 @@ def handle(d):
             if ok:
                 mx = os.path.join(SCRATCH, jid + "_mux.mp4")
                 DU.mux(src, a2, mx, off, log=lambda m: print(m, flush=True))
-                os.remove(src); src = mx
+                # never delete a source we did not download (a local file of the user's)
+                if os.path.realpath(src).startswith((os.path.realpath(SCRATCH), os.path.realpath(BIG))):
+                    os.remove(src)
+                src = mx
                 _sy["used"] = True
                 print(f"  ✓ recorder အသံ သုံးသည် (offset {off:+.2f}s)", flush=True)
             else:
