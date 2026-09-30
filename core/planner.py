@@ -739,6 +739,52 @@ def _first_number(text):
     return m.group(0) if m else None
 
 
+# ══ ရာခိုင်နှုန်း အကွက် ═══════════════════════════════════════
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၁ တွေ့ချက် — `"pct": num or ""` က ဝါကျထဲက
+#    **ဘယ်ကိန်းမဆို** ရာခိုင်နှုန်း အကွက်ထဲ ထည့်ခဲ့သည်:
+#      「အချက် ၃ ချက် ရှိပါတယ်」        ⇒ gauge က **၃%** ပြမည်
+#      「ကျောင်းလခ ယန်း ၆၈၀၀၀၀」      ⇒ **၆၈၀၀၀၀%**
+#    ဖန်သားပြင်ပေါ် **မဟုတ်သော အချက်** တင်လိုက်တာ ဖြစ်သည် — ကိန်း
+#    မတီထွင်တာထက် ဆိုးသည် (ကိန်းက အမှန်、အဓိပ္ပာယ်က အမှား)。
+#    ရာခိုင်နှုန်း လိုသော template **၁၃ ခု** ရှိပြီး plan လမ်းက ၁၂ ခု ထိသည်。
+# ⇒ ဝါကျက တကယ် ရာခိုင်နှုန်း ပြောမှသာ ဖြည့်ရမည် (% · ％ · ရာခိုင်နှုန်း)
+#   ပြီးတော့ ၀–၁၀၀ အတွင်း ဖြစ်ရမည်。 မဟုတ်လျှင် **ဗလာ** ⇒ `props_ok` က
+#   ကတ် ပယ်ပြီး planner က နောက် template ကောက်မည် (မှားပြတာထက် မပြတာ သာ)。
+_PCT_MARK = ("%", "％", "ရာခိုင်နှုန်း",
+             "percent", "Percent", "PERCENT")
+
+
+def pct_of(text):
+    """ဝါကျက ရာခိုင်နှုန်း ပြောလျှင် အဲဒီကိန်း — မဟုတ်လျှင် `None`"""
+    t = str(text or "")
+    if not any(m in t for m in _PCT_MARK):
+        return None
+    # ⚠️ % ရဲ့ **ရှေ့** ကိန်းကို ယူရမည် — 「၉၅% ကျောင်းသား ၂၄၀」 မှာ
+    #    ပထမ ကိန်း မဟုတ်ဘဲ % နဲ့ တွဲသူကို ယူရန်。
+    m = re.search(r"([0-9\u1040-\u1049]{1,3}(?:[.][0-9\u1040-\u1049]{1,2})?)\s*[%\uff05]", t)
+    if not m:
+        m = re.search(r"[0-9\u1040-\u1049]{1,3}(?:[.][0-9\u1040-\u1049]{1,2})?", t)
+    if not m:
+        return None
+    raw = m.group(1) if m.groups() else m.group(0)
+    try:
+        v = float(_latin_digits(raw))
+    except (TypeError, ValueError):
+        return None
+    if not (0.0 <= v <= 100.0):
+        return None
+    return raw
+
+
+def _latin_digits(s):
+    """မြန်မာ ဂဏန်း → Latin (float() အတွက်)"""
+    out = []
+    for ch in str(s or ""):
+        o = ord(ch)
+        out.append(chr(o - 0x1040 + 0x30) if 0x1040 <= o <= 0x1049 else ch)
+    return "".join(out)
+
+
 # ══ နံပါတ်တပ် item — **lower third တစ်မျိုးတည်း**သို့ ══════════════
 # ⚠️ ၂၀၂၆-၀၉-၂၈ short-916 (seed `t_s916_pin`) ကို ဖရိန်လိုက် ကြည့်ရာ
 #    「နံပါတ် ၁/၂/၃」 ၃ ခုက **ပုံစံ ၃ မျိုး** နဲ့ ထွက်ခဲ့သည် —
@@ -1235,7 +1281,8 @@ def fill(cid, label, text):
         "right":  two[1] if len(two) > 1 else _short(text, 12),
         "value":  num or "",
         "target": num or "",
-        "pct":    num or "",
+        # ⚠️ ရာခိုင်နှုန်း အကွက်ကို **ဘယ်ကိန်းမဆို** နဲ့ မဖြည့်ရ (`pct_of`)
+        "pct":    pct_of(text) or "",
         "label":  _short(text, 18),
         "num":    num or "1",
     }
