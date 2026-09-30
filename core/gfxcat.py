@@ -165,6 +165,36 @@ NUMFILL = {"start": 3, "count": 6, "secs": 10, "sec": 10,
            "h": 0, "m": 1, "s": 30, "n": 3, "steps": 3, "total": 100}
 
 
+# ⚠️⚠️ **အကြောင်းအရာ ကိန်းကို မတီထွင်ရ** (၂၀၂၆-၁၀-၀၁)。
+#    အောက်က `NUMFILL.get(nm, pct if pct is not None else 3)` က နာမည် မသိသော
+#    ကိန်း param တိုင်းကို **「၃」 ဟု တီထွင်**ပေးခဲ့သည်。 ရာခိုင်နှုန်း
+#    template ၁၃ ခုမှာ အဲဒါက ဖန်သားပြင်ပေါ် **「၃%」 အမြဲ** ပြခြင်း ဖြစ်သည် —
+#    ဗီဒီယိုထဲ ၃% ဆိုတာ မရှိဘဲ。 topics လမ်း (recipe ၁၁ ခု) က ဒီ function
+#    ကို သုံး၍ `planner.pct_of` ရဲ့ ကာကွယ်ချက် **မရောက်**ခဲ့ပါ
+#    (တစ်လမ်းပဲ ပြင်မိသော အမှား — ဒီ session မှာ ၄ ခါ ဖြစ်ပြီ)。
+# ⇒ ကိန်း param ကို ၂ မျိုး ခွဲသည်:
+#    **ဖွဲ့စည်းပုံ** (start · count · secs · h · m · s · n · steps · total) —
+#      animation/layout ကိန်း、အကြောင်းအရာ မဟုတ် ⇒ `NUMFILL` ပုံသေ ရသည်
+#    **အကြောင်းအရာ** (pct · percent · ratio · value · target · num) —
+#      ဝါကျကနေ **တကယ့် ကိန်း** ရမှသာ、မရလျှင် `None` (ကတ် ပယ်) ⇒ ခေါ်သူက
+#      နောက် template ကောက်မည် (မှားပြတာထက် မပြတာ သာ)
+_CONTENT_NUM = ("pct", "percent", "ratio", "value", "target", "num", "amount")
+
+
+def _num_from(text, name):
+    """ဝါကျကနေ အကြောင်းအရာ ကိန်း — မရလျှင် `None`"""
+    try:
+        try:
+            from planner import pct_of, _first_number
+        except ImportError:
+            from core.planner import pct_of, _first_number
+    except Exception:
+        return None
+    if name in ("pct", "percent", "ratio"):
+        return pct_of(text)
+    return _first_number(text)
+
+
 def _place_of(text):
     """နေရာ နာမည် — `planner.place_of` (circular import ရှောင်ရန် lazy)"""
     try:
@@ -307,7 +337,22 @@ def fill(entry, text, sub="", pct=None, shape=None, img=None,
         #    · typo2.orbit_dots — တိုင်းပြီး ၅ ခု)。
         #    `auto` ကိန်း (size · y · fill · maxtrack) ကိုတော့ အပေါ်မှာ ရပ်ပြီးသား。
         if req and ty in ("int", "number"):
-            args.append(NUMFILL.get(nm, pct if pct is not None else 3))
+            if nm in NUMFILL:
+                args.append(NUMFILL[nm])
+                continue
+            if pct is not None:
+                args.append(pct)
+                continue
+            # ⚠️ အကြောင်းအရာ ကိန်း — ဝါကျကနေ ရမှသာ (တီထွင်လျှင်
+            #    ဖန်သားပြင်ပေါ် မရှိသော အချက် တင်မိမည်)
+            if nm in _CONTENT_NUM:
+                _v = _num_from(text, nm)
+                if _v is None:
+                    return None
+                args.append(_v)
+                continue
+            # နာမည် မသိသော ဖွဲ့စည်းပုံ ကိန်း — ၃ က အထိမ်းအမတ် ပုံသေ
+            args.append(3)
             continue
         break
     # ⚠️ နောက်ဆုံး **ဗလာစာသား**တွေ ဖြုတ်တာက `optional` param အတွက်သာ ဖြစ်ရမည်。

@@ -140,5 +140,58 @@ class SeqVsDataNumber(unittest.TestCase):
         self.assertIn("seq_reset()", src[ix:ix + 900])
 
 
+class GfxcatPathToo(unittest.TestCase):
+    """⚠️ **topics လမ်းကလည် တီထွင်နေခဲ့သည်** — တစ်လမ်းပဲ ပြင်မိသော အမှား
+
+    `planner.fill` ကိုသာ ပြင်ခဲ့ရာ recipe ၃ ခု (plan=True) မှာသာ ရောက်သည်。
+    ကျန် **၁၁ ခု** က `gfxcat.fill` ကို သုံးပြီး အဲဒီမှာ
+      `NUMFILL.get(nm, pct if pct is not None else 3)`
+    ဟု ရေးထားသဖြင့် နာမည် မသိသော ကိန်း param တိုင်းကို **「၃」 တီထွင်**
+    ပေးခဲ့သည် ⇒ ရာခိုင်နှုန်း template ၁၃ ခုမှာ ဖန်သားပြင်ပေါ်
+    **「၃%」 အမြဲ** ပြခြင်း。 (Zin မေးမှ တွေ့သည်: 「Talking Head ကိုပဲ
+    လုပ်ပေးနေတာ ဟုတ်ရဲ့လား」)
+    """
+
+    NO = "အချက် ၃ ချက် ရှိပါတယ်"
+    YES = "ကျောင်းသား ၉၅% အောင်ပါတယ်"
+
+    def _pct_entries(self):
+        return [e for e in GC.catalog()
+                if any(q.get("name") in ("pct", "percent", "ratio")
+                       and q.get("required") and not q.get("auto")
+                       for q in (e.get("params") or []))]
+
+    def test_entries_exist(self):
+        self.assertGreater(len(self._pct_entries()), 5)
+
+    def test_no_invented_percent(self):
+        bad = []
+        for e in self._pct_entries():
+            a = GC.fill(e, self.NO, "ZAE")
+            if a is not None:
+                bad.append((e["id"], a))
+        self.assertEqual(bad, [], "ရာခိုင်နှုန်း တီထွင်မိ: %s" % (bad[:4],))
+
+    def test_real_percent_fills(self):
+        ok = sum(1 for e in self._pct_entries()
+                 if GC.fill(e, self.YES, "ZAE") is not None)
+        self.assertGreater(ok, 0)
+
+    def test_structural_numbers_still_default(self):
+        # ⚠️ start · count · secs · h · m · s · n · steps · total က
+        #    animation/layout ကိန်း — အကြောင်းအရာ မဟုတ် ⇒ ပုံသေ ရဆဲ
+        for nm in ("start", "count", "secs", "h", "m", "s", "n", "steps", "total"):
+            self.assertIn(nm, GC.NUMFILL, nm)
+        ents = [e for e in GC.catalog()
+                if any(q.get("name") in GC.NUMFILL and q.get("required")
+                       and not q.get("auto") for q in (e.get("params") or []))]
+        if ents:
+            self.assertIsNotNone(GC.fill(ents[0], self.NO, "ZAE"), ents[0]["id"])
+
+    def test_content_names_listed(self):
+        for nm in ("pct", "percent", "ratio", "value", "target", "num"):
+            self.assertIn(nm, GC._CONTENT_NUM, nm)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
