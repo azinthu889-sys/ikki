@@ -50,6 +50,26 @@ class Pool(unittest.TestCase):
             for i in TP.pool_ids(r):
                 self.assertNotIn(cat.get(i), TP._BAD_CAT, (r, i, cat.get(i)))
 
+    def test_no_pair_requiring_template(self):
+        """⚠️ အတွဲ (အညွှန်း, ကိန်း) လိုသူ မပါရ — **category နဲ့ ဖမ်းလို့ မရ**
+
+        `charts.gantt` က category `"chart"` (「infographic」 မဟုတ်) ဖြစ်၍
+        ပထမ ရေကန်ထဲ ဝင်ပြီး knowledge render မှာ
+        `ValueError: too many values to unpack (expected 3)` နဲ့ ကျခဲ့သည်。
+        အတွဲ လိုသူ ၂၀ ခုက category ၅ မျိုး ကွဲသည် ⇒ `pairs_bad` နဲ့ စစ်ရမည်。
+        """
+        ent = {e["id"]: e for e in GC.catalog()}
+        for r in ROLES:
+            for i in TP.pool_ids(r):
+                self.assertFalse(TP._wants_pairs(ent[i]), (r, i))
+
+    def test_no_chart_or_cutaway(self):
+        # chart = ဒေတာ လို (ကိန်း မတီထွင်ရ) · cutaway = ဘောင်အပြည့် (engine သီးသန့်)
+        for r in ROLES:
+            for i in TP.pool_ids(r):
+                self.assertFalse(i.startswith(("charts.", "dash.", "maps.")), (r, i))
+                self.assertFalse(i.split(".", 1)[1].startswith("cut_"), (r, i))
+
     def test_curated_stays_first(self):
         # ⚠️ အရည်အသွေး အစဉ်လိုက် မပျက်ရ — လက်ရေး စာရင်းက ရှေ့မှာ
         for r in ROLES:

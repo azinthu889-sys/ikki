@@ -163,9 +163,37 @@ _ROLE_RX = {
  "cta":     r"cta|outro|end_|subscribe|price|phone|alert|follow|link|qr|button|promo|ticket",
  "typo":    r"type|kern|sweep|word|line|text|caption|emphas|highlight|marks|vertical|reveal",
 }
-_BAD_CAT = ("mockup", "transition", "motion", "infographic")
+# ⚠️⚠️ **category စာသားကို မယုံရ** — chart template ရဲ့ category က
+#    `"chart"` ဖြစ်ပြီး `"infographic"` မဟုတ်။ 「infographic」 တစ်ခုတည်း
+#    ဖယ်ခဲ့ရာ `charts.gantt` က ရေကန်ထဲ ဝင်ပြီး knowledge render မှာ
+#    `ValueError: too many values to unpack (expected 3)` နဲ့ ကျခဲ့သည်
+#    (၂၀၂၆-၁၀-၀၁ · ဖမ်းမိ၍ ကတ် ကျော်သွား၊ ဗီဒီယို မပျက်)。
+#    ⇒ category ၁၃ ခုလုံး ရေတွက်ပြီး ဖယ်ရမည်များ ပြင်သည်:
+#      chart 20    ဒေတာ လို (ကိန်း မတီထွင်ရ)
+#      cutaway 15  **ဘောင်အပြည့်** ကတ် — cutaway engine က ဘယ်အချိန် သင့်လဲ
+#                  ဆုံးဖြတ်သည်、overlay ရေကန်ထဲ မဝင်ရ
+#    ကျန် ui 11 · board 5 · explainer 2 က စာသား overlay အစစ် ⇒ ချန်သည်
+#    (param စစ်ပြီး — ပုံ လိုသူ မရှိ)。
+_BAD_CAT = ("mockup", "transition", "motion", "infographic", "chart", "cutaway")
 _ELIG = None
 _POOLIDS = {}
+
+
+def _wants_pairs(entry):
+    """template က **(အညွှန်း, ကိန်း) အတွဲ** စာရင်း လိုလား"""
+    try:
+        try:
+            import gfxcat as GC
+        except ImportError:
+            from core import gfxcat as GC
+        for q in (entry.get("params") or []):
+            if q.get("auto") or not q.get("required"):
+                continue
+            if str(q.get("type")) in ("list", "rows", "pairs"):
+                return bool(GC.pairs_bad(entry, {q["name"]: ["\u1021\u1031", "\u1017\u102e"]}))
+    except Exception:
+        return False
+    return False
 
 
 def _eligible():
@@ -184,8 +212,17 @@ def _eligible():
         out = []
         for e in GC.catalog():
             cat = str(e.get("cat") or e.get("category") or "")
-            if e["id"] in ver and e["id"] not in bad and cat not in _BAD_CAT:
-                out.append(e["id"])
+            if e["id"] not in ver or e["id"] in bad or cat in _BAD_CAT:
+                continue
+            # ⚠️⚠️ **အတွဲ ဒေတာ လိုသူကို category နဲ့ ဖမ်းလို့ မရ** —
+            #    `pairs_bad` နဲ့ စစ်ရာ ၂၀ ခု ရှိပြီး category ၅ မျိုး ကွဲသည်
+            #    (chart 10 · title 6 · callout 1 · board 1 · cutaway 2)。
+            #    topics လမ်းက စာသား စာရင်းသာ ထုတ်နိုင်၍ အတွဲ လိုသူက
+            #    **ဆောက်ချိန်မှာ** ကျမည် ⇒ ရေကန်ကနေ ဖယ်ရမည်。
+            #    ကိန်း တီထွင်ပြီး ဖြည့်တာက Zin ရဲ့ တားမြစ်ချက် (မလုပ်ရ)。
+            if _wants_pairs(e):
+                continue
+            out.append(e["id"])
         _ELIG = out
     except Exception:
         _ELIG = []
