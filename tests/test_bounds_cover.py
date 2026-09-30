@@ -93,5 +93,46 @@ class BoundsSane(unittest.TestCase):
                 self.assertTrue(b[1], k)
 
 
+class CleanReportsDrops(unittest.TestCase):
+    """`clean()` က တိတ်တဆိတ် ဖြုတ်တာ **မှတ်ရမည်**
+
+    ⚠️ ၂၀၂၆-၁၀-၀၁ — `api.job_reedit` က `_drop_exact`/`_keep` ကို `clean()`
+       ထဲ ထည့်ခဲ့ရာ BOUNDS မှာ မရှိသဖြင့် **ပျောက်**ပြီး ✂ ဖြတ်ချက်
+       တစ်ခုမှ worker ဆီ မရောက်ခဲ့ပါ。 တိတ်တဆိတ် ဖြုတ်တာက ဒီ project မှာ
+       ချွတ်ယွင်းချက် ၂ ခု ဖြစ်စေခဲ့ ⇒ မှတ်ထားရမည်。
+    """
+
+    def test_unknown_key_recorded(self):
+        RC.clean({"gfx": 5, "nonsense": 9})
+        self.assertIn("nonsense", RC.LAST_DROPPED)
+
+    def test_known_key_not_recorded(self):
+        RC.clean({"gfx": 5})
+        self.assertNotIn("gfx", RC.LAST_DROPPED)
+
+    def test_reset_each_call(self):
+        RC.clean({"nonsense": 1})
+        RC.clean({"gfx": 5})
+        self.assertEqual(RC.LAST_DROPPED, [])
+
+    def test_keep_passes_through_untouched(self):
+        v = [[1.0, 2.0], [3.0, 4.5]]
+        o = RC.clean({"_drop_exact": v, "gfx": 5}, keep=("_drop_exact",))
+        self.assertEqual(o["_drop_exact"], v)
+        self.assertEqual(o["gfx"], 5)
+        self.assertEqual(RC.LAST_DROPPED, [])
+
+    def test_keep_does_not_bypass_bounds(self):
+        # ⚠️ `keep` က BOUNDS ရဲ့ ချချက်ကို မဖျက်ရ — BOUNDS ထဲ ရှိသူအတွက်
+        o = RC.clean({"gfx": 9999}, keep=("gfx",))
+        self.assertEqual(o["gfx"], 9999, "keep ဆိုလျှင် အတိုင်း ဖြစ်ရမည်")
+        o2 = RC.clean({"gfx": 9999})
+        self.assertEqual(o2["gfx"], 30, "keep မပါလျှင် ချရမည်")
+
+    def test_default_signature_unchanged(self):
+        # ခေါ်သူ အားလုံးကို မထိရ — `keep` က optional
+        self.assertEqual(RC.clean({"gfx": 5}), {"gfx": 5})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

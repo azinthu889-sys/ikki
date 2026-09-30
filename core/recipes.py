@@ -831,15 +831,39 @@ def cut_name(r):
         if a == kp and b == ms: return k
     return "custom"
 
-def clean(over):
+# ⚠️⚠️ `clean()` က **တိတ်တဆိတ် ဖြုတ်ပစ်သည်** — ဒါက ချွတ်ယွင်းချက်
+#    အနည်းဆုံး ၂ ခု ဖြစ်စေခဲ့သည်:
+#      ① `api.job_reedit` က `_drop_exact`/`_keep` ကို ဒီထဲ ထည့်ခဲ့ရာ BOUNDS
+#         မှာ မရှိသဖြင့် **ပျောက်**ပြီး ✂ ဖြတ်ချက် တစ်ခုမှ worker ဆီ
+#         မရောက်ခဲ့ (၂၀၂၆-၁၀-၀၁ · short-video session တွေ့)。
+#      ② ဘောင်ပြင် ကျသော ပုံသေများ (cap_pct 0.024 စသည်) ကို UI က ပြန်ပို့လျှင်
+#         တိတ်တဆိတ် ချခံရ ([[test_bounds_cover]])。
+#    ⇒ ဖြုတ်လိုက်သည့် key များကို **မှတ်ထား**ပြီး ခေါ်သူ စစ်နိုင်စေသည်。
+#    `clean()` ရဲ့ ပြန်ပေးချက် ပုံစံ **မပြောင်း** (dict အတိုင်း) — ခေါ်သူ
+#    အားလုံးကို မထိရန်。 `LAST_DROPPED` ကနေ ယူသည်。
+LAST_DROPPED = []
+
+
+def clean(over, keep=()):
     """သုံးစွဲသူ ပို့လာသော ပြင်ချက်ကို **စစ်ပြီး** ဘောင်အတွင်း ချသည်。
 
     မသိသော field · ဘောင်ပြင် တန်ဖိုး → **ဖြုတ်ပစ်သည်** (ကျဘမ်း မလုပ်ဘူး)。
+
+    `keep` — BOUNDS မှာ မရှိပေမယ့် **ဖြတ်မပစ်ရ**သော key များ
+      (ဥပမာ `_drop_exact` · `_keep` — engine ရဲ့ ဖြတ်ချက် ဒေတာ)。
+      ဖြုတ်လိုက်သူများကို `LAST_DROPPED` ထဲ မှတ်သည်。
     """
     out = {}
+    _drop = []
+    _keepk = set(keep or ())
     for k, v in (over or {}).items():
+        if k in _keepk:
+            out[k] = v
+            continue
         b = BOUNDS.get(k)
-        if not b: continue
+        if not b:
+            _drop.append(k)
+            continue
         t = b[0]
         try:
             if t == "bool":
@@ -877,6 +901,9 @@ def clean(over):
             if _FN.ok(str(over["mmf"])): out["mmf"] = str(over["mmf"])
         except Exception:
             pass
+    # ⚠️ ဖြုတ်လိုက်သူများကို ခေါ်သူ သိနိုင်စေရန်
+    del LAST_DROPPED[:]
+    LAST_DROPPED.extend(sorted(_drop))
     return out
 
 def apply(name, over):
