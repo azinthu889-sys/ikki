@@ -558,6 +558,25 @@ def _expand(r):
        `slide_amt="heavy"` ရွေးလည်း ကိန်းတွေ မပြောင်းပါ (၂၀၂၆-၀၉-၂၀ တကယ် ဖြစ်)。
        `natural` မှာလည်း ဒီအမှားမျိုး ဖြစ်ခဲ့ဖူးသည် — အလွှာ အစဉ် အရေးကြီးသည်。
     """
+    # ⚠️⚠️ **B-roll က ဇာတ်လမ်းနဲ့ ဆိုင်ရမည်** — `broll_strict` ကို
+    #    ပုံသေ **ဖွင့်**သည် (၂၀၂၆-၁၀-၀၁)。
+    #    ဖွင့်ပြီးသား: headtop · ref-talk · short-916 (၃ ခု)。
+    #    မဖွင့်ခဲ့သူ: cinematic-vlog · knowledge · ref-fast · ref-slides ·
+    #      short-video · vlog (၆ ခု) ⇒ အဲဒီ ၆ ခုမှာ 「budget ဖြည့်」 လမ်းက
+    #      **မဆိုင်သော clip** တွေနဲ့ အချိန် ဖြည့်သည်。 တိုင်းချက် (knowledge):
+    #        B-roll · လိုက်ဖက်သော clip 10 / 253 (Gemini)
+    #        B-roll တွဲမှု · **match 0** · **ကျပန်း ဖြည့် 6**
+    #        2.40 · 8.40 · 14.40 · 20.40 · 26.40 · 32.40s — ၆ စက္ကန့် တစ်ခါ ·
+    #        ၃.၀s အတူတူ · အားလုံး တူညီသော folder
+    #      ⇒ ဗီဒီယိုက ဂျပန် ပညာရေး、library က ကား/abstract/office stock ⇒
+    #        ဆိုင်စရာ မရှိ。 `match 0` က **မှန်**သည် — matcher ပျက်တာ မဟုတ်、
+    #        **library မှာ အဲဒီ အကြောင်းအရာ မရှိ**တာ。
+    #    ⇒ မဆိုင်တာ ထည့်တာထက် **မထည့်တာ သာ** ([[sourcing-first-rule]] ·
+    #      「An empty gap beats a meaningless graphic」)。
+    #    ပုံစံ အလိုက် `broll_strict=False` နဲ့ ပြန်ပိတ်နိုင်သည် (BOUNDS ထဲ ရှိ)。
+    if r.get("broll_strict") is None:
+        r["broll_strict"] = True
+
     sa = SLIDE_AMT.get(r.get("slide_amt") or "")
     if sa: r.update({k: v for k, v in sa.items() if v is not None})
     pc = PACE.get(r.get("pace") or "")

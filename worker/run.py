@@ -3824,6 +3824,31 @@ def render(job, brand, src, out, stage, log=print, over=None):
                        f"{_sc[len(_sc)//2]:.2f} · max {_sc[-1]:.2f}"
                        if _sc else " · score **မတိုင်းရ**")
                     + (" · strict" if rc.get("broll_strict") else ""))
+                # ⚠️⚠️ **လိုအပ်ချက်ကို ကြေညာရမည်** ([[sourcing-first-rule]])。
+                #    `match 0` ဆိုတာ matcher ပျက်တာ မဟုတ် — **library မှာ အဲဒီ
+                #    အကြောင်းအရာ မရှိ**တာ ဖြစ်နိုင်သည်。 knowledge render မှာ
+                #    ဗီဒီယိုက ဂျပန် ပညာရေး (COE · N5 · အေဂျင်စီ · ကျောင်းလခ)、
+                #    library က ကား/abstract/office stock ⇒ ဆိုင်စရာ မရှိ。
+                #    တိတ်တဆိတ် ကျပန်း ဖြည့်လျှင် Zin က 「ပုံစံ မဖြစ်ဘူး」 ဆိုမည် —
+                #    ဘာ footage လိုလဲ **မသိရ**။ ⇒ ဒီမှာ ရှင်းရှင်း ပြောသည်。
+                if not _m and nb:
+                    try:
+                        _need = []
+                        for _c in (caps or [])[:40]:
+                            _t = str((_c or {}).get("text") or "").strip()
+                            if len(_t) > 8:
+                                _need.append(_t[:34])
+                        log("  ⚠️⚠️ **B-roll လိုအပ်ချက်** — ဒီဗီဒီယိုရဲ့ "
+                            "အကြောင်းအရာနဲ့ ဆိုင်သော clip library မှာ **မရှိပါ** "
+                            "(Gemini စစ်ချက်: တွဲမှု ၀)。 လိုအပ်သော ရုပ်:")
+                        for _t in _need[:5]:
+                            log(f"       · {_t}")
+                        log("     ⇒ အဲဒီအကြောင်းအရာ footage ရိုက်/ဝယ်ပြီး "
+                            "`assets/broll` ထဲ ထည့်ပါ。 strict ဖွင့်ထားသဖြင့် "
+                            "မဆိုင်တာ **မထည့်ပါ** (မဆိုင်တာ ထည့်တာထက် သာသည်)。")
+                        REPORT["broll_need"] = _need[:8]
+                    except Exception:
+                        pass
                 for _r in _brec[:8]:
                     log(f"     {_r['at']:>6.1f}s {str(_r.get('score')):>6} "
                         f"{'✓' if _r.get('kept') else '✗'} "
