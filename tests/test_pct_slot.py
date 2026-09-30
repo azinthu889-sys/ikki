@@ -92,5 +92,53 @@ class LatinDigits(unittest.TestCase):
         self.assertEqual(P._latin_digits("၄၂.၅"), "42.5")
 
 
+class SeqVsDataNumber(unittest.TestCase):
+    """`num` အကွက် — အစဉ်လိုက်လား ဒေတာလား ခွဲရမည်
+
+    ⚠️ ၂၀၂၆-၁၀-၀၁ — `"num": num or "1"` ဟု ရေးထားရာ ဝါကျထဲ ကိန်း မပါလျှင်
+       **「၁」 တီထွင်** ပေးခဲ့သည်。 ဆိုးကျိုး ၂ ချက်:
+         ① `titles2.big_number` · `typo.number_hero` က ကြီးမားသော 「၁」 ပြ
+            — ဗီဒီယိုထဲ မရှိသော အချက်
+         ② chapter ကတ် ၃ ခုက **၃ ခုလုံး 「၁」** ပြ (အစဉ်လိုက် မဖြစ်)
+    """
+
+    SEQ = ("titles.chapter", "prem.chapter", "titles3.chapter_split",
+           "qcard.num_point")
+    DATA = ("titles2.big_number", "typo.number_hero")
+    NO = "COE စိတ်ချရတဲ့ Class ကို ရွေးချယ်ပါ"
+    HAS = "အချက် ၃ ချက် ရှိပါတယ်"
+
+    def test_data_card_rejected_without_a_number(self):
+        for cid in self.DATA:
+            self.assertIsNone(P.fill(cid, "number", self.NO), cid)
+
+    def test_data_card_uses_the_real_number(self):
+        for cid in self.DATA:
+            r = P.fill(cid, "number", self.HAS)
+            self.assertIsNotNone(r, cid)
+            self.assertEqual(r.get("num"), "၃", cid)
+
+    def test_sequence_cards_count_up(self):
+        P.seq_reset()
+        got = [(P.fill(c, "section", self.NO) or {}).get("num") for c in self.SEQ]
+        self.assertEqual(got, ["01", "02", "03", "04"], got)
+
+    def test_sequence_resets_per_video(self):
+        P.seq_reset()
+        P.fill(self.SEQ[0], "section", self.NO)
+        P.fill(self.SEQ[1], "section", self.NO)
+        P.seq_reset()
+        self.assertEqual((P.fill(self.SEQ[0], "section", self.NO) or {}).get("num"), "01")
+
+    def test_plan_resets(self):
+        # ⚠️ worker က ဗီဒီယို အများ ဆောက်သည် ⇒ `plan()` က reset ရမည်
+        import io as _io, os as _os
+        src = _io.open(_os.path.join(_os.path.dirname(__file__), "..",
+                                     "core", "planner.py"), encoding="utf-8").read()
+        ix = src.find("def plan(segs, dur")
+        self.assertGreater(ix, 0)
+        self.assertIn("seq_reset()", src[ix:ix + 900])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

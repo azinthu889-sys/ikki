@@ -1158,6 +1158,30 @@ def _buildable(cid):
     return cid in _BUILDABLE
 
 
+# ⚠️⚠️ `num` အကွက်ကို `num or "1"` နဲ့ ဖြည့်ခဲ့သည် ⇒ ဝါကျထဲ ကိန်း
+#    မပါလျှင် **「၁」 တီထွင်** ပေးသည်。 template ၈ ခုက `num` လိုပြီး ၂ မျိုး
+#    ကွဲသည် — အဲဒါကို ခွဲရမည် (၂၀၂၆-၁၀-၀၁):
+#      **အစဉ်လိုက်** (chapter · အပိုင်း · နံပါတ်တပ် အချက်) — 「၀၁」「၀၂」က
+#        broadcast စည်း၊ အကြောင်းအရာ အချက် မဟုတ် ⇒ ကိန်း မပါလည် ရသည်၊
+#        ဒါပေမယ့် **တစ်ပုဒ်တည်းမှာ ၃ ခုလုံး 「၁」 မဖြစ်ရ** (အရင် ဖြစ်ခဲ့) ⇒
+#        ဗီဒီယိုအလိုက် counter。
+#      **ဒေတာ** (big_number · number_hero) — ကြီးမားသော ကိန်း ပြသည် ⇒
+#        ဝါကျထဲ ကိန်း မပါလျှင် **ကတ် ပယ်**ရမည် (မရှိသော အချက် မပြရ)。
+_SEQ_NUM = ("chapter", "chapter_split", "num_point", "step_badge", "number_cap")
+_DATA_NUM = ("big_number", "number_hero")
+_SEQ_N = [0]
+
+
+def seq_reset():
+    """ဗီဒီယို အသစ် — အစဉ်လိုက် ကိန်း ပြန်စသည် (`plan()` က ခေါ်သည်)"""
+    _SEQ_N[0] = 0
+
+
+def _seq_next():
+    _SEQ_N[0] += 1
+    return "%02d" % _SEQ_N[0]
+
+
 def fill(cid, label, text):
     """template ရဲ့ **required param အတိုင်း** ဖြည့်သည် — မဖြည့်နိုင်လျှင် None
 
@@ -1284,8 +1308,20 @@ def fill(cid, label, text):
         # ⚠️ ရာခိုင်နှုန်း အကွက်ကို **ဘယ်ကိန်းမဆို** နဲ့ မဖြည့်ရ (`pct_of`)
         "pct":    pct_of(text) or "",
         "label":  _short(text, 18),
-        "num":    num or "1",
+        # ⚠️ `num` — အစဉ်လိုက်လား ဒေတာလား template အလိုက် ကွာသည်
+        #    (အောက်မှာ `_num_for` နဲ့ အစားထိုးသည်)
+        "num":    num or "",
     }
+    # ⚠️ `num` လိုသော template အတွက် — အစဉ်လိုက် / ဒေတာ ခွဲသည်
+    if "num" in req and not num:
+        _fn2 = str(cid).split(".", 1)[-1]
+        if any(k in _fn2 for k in _SEQ_NUM):
+            m["num"] = _seq_next()
+        elif any(k in _fn2 for k in _DATA_NUM):
+            # ဝါကျထဲ ကိန်း မပါဘဲ ကြီးမားသော ကိန်း မပြရ ⇒ ကတ် ပယ်
+            return None
+        else:
+            m["num"] = _seq_next()
     out = {}
     for k in req:
         _k = k
@@ -2193,6 +2229,9 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
 
     schema မအောင်လျှင် **fallback** ကို သုံးသည် — အလုပ် မရပ်ပါ。
     """
+    # ⚠️ အစဉ်လိုက် ကိန်း ပြန်စရမည် — worker က ဗီဒီယို အများ တစ်ပြီးတစ်
+    #    ဆောက်သဖြင့် reset မလုပ်လျှင် ဒုတိယ ဗီဒီယိုက 「၀၅」 ကနေ စမည်。
+    seq_reset()
     # ⚠️ **job တစ်ခုချင်း** flag — `over`/recipe ကနေ (`gfx_rotate`/`gfx_alias`)。
     #    `None` ⇒ env ကို ကြည့်သည် (harness)。 job တိုင်း ပြန်သတ်မှတ်သဖြင့်
     #    ယိုစိမ့်မှု မဖြစ်。
