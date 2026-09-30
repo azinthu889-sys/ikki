@@ -1851,6 +1851,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    **#E5BC32** (နွေးထွေးသော ရွှေရောင်) ဖြစ်ပြီး ZJL ရဲ့ #FFE000
         #    (တောက်သော အဝါ) နဲ့ RGB ၁၁၂ ကွာသည် ⇒ override လိုသည်。
         _ac = (rc.get("accent") or "").strip()
+        # 2026-10-01 Zin: "colours as the brand I picked". The recipe accent is
+        # tuned for the style's own house theme; on any other brand it painted
+        # over that brand's highlight colour (headtop #FFE000, knowledge/podcast
+        # #E5BC32, ref-talk #22D3C5). Apply it only on the style's own theme.
+        if _ac and bid != rc.get("theme"):
+            log(f"  accent · recipe {_ac} ကို မသုံး — brand {bid} ရဲ့ အရောင် {TH.get('GOLD')} ကို ထား")
+            _ac = ""
         if _ac.startswith("#") and len(_ac) == 7:
             TH = dict(TH); TH["GOLD"] = _ac
             log(f"  accent · recipe က {_ac} (theme GOLD လွှမ်း)")
