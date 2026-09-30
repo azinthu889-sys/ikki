@@ -100,8 +100,21 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
     #    ဖယ်သည် ⇒ "များသည်" ဆိုတာ အမှား မဟုတ်။ runaway bug ဖမ်းရန်သာ ကျန်။
     if ratio > max_removed:
         warn.append(f"F1 removed_ratio {ratio:.3f} > {max_removed} — ဖယ်တာ များ (ထုတ်သည် · စစ်ကြည့်ပါ)")
-    if bad:   refus.append(f"F2 ဖြတ်မှတ် {len(bad)} ခု စကားပေါ် ကျသည်")
-    if short: refus.append(f"F3 တိုလွန်းသော အပိုင်း {short}")
+    # ⚠️⚠️ **သုံးစွဲသူ ဖတ်ရသော စာ ဖြစ်ရမည်**。 「F2 ဖြတ်မှတ် ၃ ခု
+    #    စကားပေါ် ကျသည်」 ဆိုတာ customer အတွက် လုပ်စရာ မပြပါ — ကုတ် နာမည်
+    #    (F2/F3) က support အတွက်、ကျန်တာက **ဘာဖြစ်လဲ + ဘာလုပ်ရမလဲ**。
+    #    ဂိတ်ကို **မလျှော့ပါ** — F2/F3 က ထုတ်ခွင့် ပိတ်ဆဲ (product ရဲ့ ကတိ:
+    #    စကားထဲ ဘယ်တော့မှ မဖြတ်)。 စာသားသာ ပြင်သည် (၂၀၂၆-၁၀-၀၁)。
+    if bad:
+        refus.append(
+            f"F2 — ဖြတ်မှတ် {len(bad)} ခု စကားသံပေါ် ကျနေသည် ⇒ စကားလုံး "
+            f"ပြတ်မည်ဖြစ်၍ မထုတ်ပါ။ 「ဖြတ်မှု」 ကို 「ညင်သာ」 သို့မဟုတ် "
+            f"「မဖြတ်ပါ」 နဲ့ ပြန်စမ်းပါ")
+    if short:
+        refus.append(
+            f"F3 — ဖြတ်ပြီး ကျန်သော အပိုင်း {len(short)} ခု တိုလွန်းသည် "
+            f"({min(short):.2f}s) ⇒ ခုန်နေမည်ဖြစ်၍ မထုတ်ပါ။ 「ဖြတ်မှု」 ကို "
+            f"ပိုညင်သာစွာ ထားပါ (တိတ်ဆိတ်မှု အနည်းဆုံး ကို တင်ပါ)")
     st = dict(cuts=len(cuts), points=len(pts), in_speech=len(bad),
               removed=round(removed,2), removed_ratio=round(ratio,3),
               src_dur=round(dur,2), silences=len(sil), thr=ev.get("thr_db"),
