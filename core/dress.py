@@ -65,6 +65,29 @@ def pick(rc, dur, sil, segs, log=None):
     return apply_inserts(out, rc, dur, log=log)
 
 
+_IFF = {}
+
+
+def _insert_full_frame(kind):
+    """bare fn → ဘောင်အပြည့် လား (`planner._full_frame` ကို ပြန်သုံး)"""
+    if kind in _IFF:
+        return _IFF[kind]
+    ok = False
+    try:
+        try:
+            import gfxcat as _GC, planner as _PL
+        except ImportError:
+            from core import gfxcat as _GC, planner as _PL
+        for e in _GC.catalog():
+            if e["fn"] == kind and _PL._full_frame(e["id"]):
+                ok = True
+                break
+    except Exception:
+        ok = False
+    _IFF[kind] = ok
+    return ok
+
+
 def apply_inserts(out, rc, dur, log=None):
     """ရွေးပြီးသား ဂရပ်ဖစ် စာရင်းထဲ **explainer insert** ကို နှုန်းအလိုက် ထည့်သည်。
 
@@ -83,6 +106,29 @@ def apply_inserts(out, rc, dur, log=None):
         # ⚠️ reference ရဲ့ ၂.၅/မိနစ် က **မြင်ကွင်း ပြောင်းမှု အားလုံး** (B-roll ပါ)
         #    ဖြစ်၍ explainer insert တစ်ခုတည်းနဲ့ မပြည့်နိုင်ပါ。 `gfx` နည်းလျှင်
         #    ရနိုင်သလောက်သာ ရသည် — log မှာ အမှန်အတိုင်း ပြသည်。
+        # ⚠️⚠️ **ဘောင်အပြည့် insert က overlay track မှာ ဘယ်တော့မှ မဆံ့**
+        #    (၂၀၂၆-၁၀-၀၁ တိုင်းချက်)。 `insert_label`/`insert_flow` က
+        #    ၁၀၇၉px (1080 ဘောင်) ဖြစ်၍ worker က
+        #      「⊘ နေရာ မတည့် · ကတ်အမြင့် 1079 · မျက်နှာဇုန် 151–756」
+        #    နဲ့ **အမြဲ ပယ်**သည်。 ဒီ function က ရှိပြီးသား ဂရပ်ဖစ်ရဲ့ `kind`
+        #    ကို **အစားထိုး**သဖြင့် (၄၀% အထိ) insert မဆံ့တာ တစ်ခုတည်း မဟုတ်ဘဲ
+        #    **အလုပ်လုပ်နေသော overlay တွေပါ ဖျက်ဆီး**သည်:
+        #      knowledge · ရွေး ၁၀ → တပ်ရ **၄** · gfx_share 0.134 (ပစ်မှတ် 0.17)
+        #    ⇒ ဘောင်အပြည့် ဆိုလျှင် **အစားမထိုးပါ** — ဂရပ်ဖစ် ကျန်စေသည်。
+        # ⚠️ ဒါက ပြည့်စုံသော ပြင်ချက် **မဟုတ်**。 explainer insert က တကယ်
+        #    ဘောင်အပြည့် ဖြစ်သင့်၍ **slide/cutaway track** ကနေ ထွက်ရမည် —
+        #    overlay track မဟုတ်。 အဲဒါက သီးသန့် အလုပ် (routing) ဖြစ်သည်。
+        #    ယခု လုပ်တာက **ဖျက်ဆီးမှု ရပ်တာ**သာ — recipe ရဲ့ `insert_per_min`
+        #    က အရင်လည် ၀ ရခဲ့သည် (ပယ်ခံရ၍)、ယခုလည် ၀၊ ဒါပေမယ့် overlay
+        #    တွေ ကျန်သည်。
+        _ff = [k for k in pool if _insert_full_frame(k)]
+        if _ff and len(_ff) == len(pool):
+            if log:
+                log("  ⚠️ explainer insert **မထည့်ပါ** — %s က ဘောင်အပြည့် "
+                    "(overlay track မှာ မဆံ့) ⇒ ဂရပ်ဖစ် %d ခု ကျန်စေသည်。 "
+                    "insert လိုလျှင် slide track ကနေ ထုတ်ရမည် (မဆောက်ရသေး)"
+                    % (", ".join(_ff), len(out)))
+            return out
         n = int(round(float(ins_pm) * dur / 60.0))
         n = max(1, min(int(len(out) * 0.40) or 1, n))
         step = len(out) / float(n)
