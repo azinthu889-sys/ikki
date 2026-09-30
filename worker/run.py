@@ -3965,11 +3965,29 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     _parts = []
                     for _a, _b, _k, _st in _segs:
                         _rc2 = SH.merge(rc, _k, _st)
-                        _fc = GR.chain(_rc2)
+                        # ⚠⚠ **အသားရေ အလင်း (`lutyuv`) ကို အပိုင်းလိုက် မထည့်ရ**。
+                        #    အဲဒါက YUV filter ဖြစ်၍ RGB filter
+                        #    (`colorlevels`/`curves`) ကြားမှာ ထည့်တိုင်း ffmpeg က
+                        #    yuv↔rgb အသွားအပြန် တစ်ခါ ထည့်သည်。 အပိုင်း ၅ ခု
+                        #    ဆိုလျှင် ၅ ခါ ⇒ ၈-bit အနှစ်ချုပ် အမှား ပေါင်းပြီး
+                        #    အသားရေ G−B ကို **၇.၃ → ၁၂.၅** တင်သည် (Zin ရဲ့
+                        #    「အစိမ်းတွေများနေတယ်」 — တိုင်း၍ အတည်ပြုပြီး:
+                        #    အပိုင်း ၁ ခု ၇.၃၀ · ၂ ခု ၈.၇၅ · ၅ ခု ၁၂.၄၅、
+                        #    filter တူတူ ဝင်းဒိုး ကွာရုံ · ၂၀၂၆-၁၀-၀၁)。
+                        #    Y က ပစ်မှတ်ကို ပြန်ချိန်တာ ဖြစ်၍ **luma မှာ မပေါ်**
+                        #    ⇒ တိတ်တဆိတ် ဖြစ်ခဲ့သည်。
+                        #    ကိန်းက တစ်ခုတည်း (skin Y တစ်ခါ တိုင်း) ⇒ အဆုံးမှာ
+                        #    **တစ်ခါတည်း** ထည့်သည်。
+                        _fc = GR.chain(_rc2, lift=False)
                         if _fc:
                             _parts.append(SH.windowed(_fc, _a, _b))
                     if _parts:
                         _sg = ",".join(_parts)
+                        _lf = GR.luma_filter(rc)
+                        if _lf:
+                            _sg = _sg + "," + _lf
+                            log("  grade · အသားရေ အလင်းကို အဆုံးမှာ "
+                                "**တစ်ခါတည်း** (အပိုင်းလိုက် မထည့်)")
             except Exception as _e:
                 log(f"  ⚠️ အပိုင်းလိုက် grade မရ ({type(_e).__name__}: {_e})")
         if _sg:

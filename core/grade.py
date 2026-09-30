@@ -39,7 +39,49 @@ CBAL   = dict(rm=0.0, gm=0.035, bm=-0.03, rh=0.01, gh=0.03, bh=-0.045)
 try: from recipes import NATURAL
 except ImportError: from core.recipes import NATURAL
 
-def chain(rc):
+def luma_filter(rc):
+    """အသားရေ အလင်း တင်ရန် `lutyuv` တစ်ကြောင်း — မလိုလျှင် `""`
+
+    ⚠⚠ **ဒါက YUV filter** ⇒ RGB filter (`colorlevels`/`curves`) ကြားမှာ
+       ထည့်လျှင် ffmpeg က **yuv↔rgb အသွားအပြန်** တစ်ခါ ထည့်သည်。
+       အပိုင်းလိုက် grade (`shotlook.windowed`) မှာ အပိုင်းတိုင်းအတွက်
+       ထည့်ခဲ့ရာ အသွားအပြန် **၅ ခါ** ဖြစ်ပြီး အသားရေ G−B ကို
+       **၇.၃ → ၁၂.၅** တင်ခဲ့သည် (၂၀၂၆-၁၀-၀၁ တိုင်း၍ တွေ့ · အပိုင်း ၁ ခု
+       ၇.၃၀ · ၂ ခု ၈.၇၅ · ၅ ခု ၁၂.၄၅ — filter တူတူ、ဝင်းဒိုး ကွာရုံ)。
+       ကိန်းက **တစ်ခုတည်း** (skin Y တစ်ခါ တိုင်း → ပစ်မှတ် တစ်ခု) ဖြစ်၍
+       အပိုင်းလိုက် ထည့်စရာ **အကြောင်း မရှိ** ⇒ ခေါ်သူက `lift=False` နဲ့
+       အပိုင်းတွေ ဆောက်ပြီး ဒီ filter ကို **အဆုံးမှာ တစ်ခါတည်း** ထည့်ရမည်。
+       (`eq` ကလည် တူညီသော ကုန်ကျစရိတ် ရှိ၍ sat ၁.၀ မှာ မထည့်ပါ — အောက်
+        မှတ်ချက် ကြည့်)。
+    """
+    _ll = rc.get("luma_lift")
+    if not _ll:
+        return ""
+    try:
+        # ⚠️ အရှည် ၂ မဟုတ်လျှင် `IndexError` — အောက်က except မှာ
+        #    မပါခဲ့၍ grade တစ်ခုလုံး ကျမည် (ကိုယ့် test က ဖမ်းမိသည်)。
+        if len(_ll) < 2:
+            return ""
+        _sk, _tg = float(_ll[0]), float(_ll[1])
+        if not (8.0 < _sk < 240.0 and _tg > _sk + 4.0):
+            return ""
+        # ⚠️ အနက် knee — မထားလျှင် အောက်ပိုင်း အကုန် ဆွဲတက်ပြီး
+        #    နို့ရည်ရောင် ဖြစ်သည် (p05 ၃၄ → ၉၀)。
+        _sx, _sy = 20.0, 20.0 * 1.28
+        _bx = (_sk + 255.0) / 2.0
+        _by = min(250.0, (_tg + 255.0) / 2.0 + 10.0)
+        return ("lutyuv=y='"
+                f"if(lt(val,{_sx:.1f}),val*{_sy/_sx:.5f},"
+                f"if(lt(val,{_sk:.1f}),{_sy:.1f}+(val-{_sx:.1f})*"
+                f"{(_tg-_sy)/(_sk-_sx):.5f},"
+                f"if(lt(val,{_bx:.1f}),{_tg:.1f}+(val-{_sk:.1f})*"
+                f"{(_by-_tg)/(_bx-_sk):.5f},"
+                f"{_by:.1f}+(val-{_bx:.1f})*{(255.0-_by)/(255.0-_bx):.5f})))'")
+    except (TypeError, ValueError, ZeroDivisionError, IndexError, KeyError):
+        return ""
+
+
+def chain(rc, lift=True):
     """recipe အလိုက် ffmpeg filter chain — မလိုလျှင် None"""
     if not rc.get("grade", True): return None
     # သဘာဝ mode — recipe က သီးသန့် မသတ်မှတ်ထားသော ကိန်းတိုင်းကို ဖြည့်ပေးသည်
@@ -124,26 +166,10 @@ def chain(rc):
     #     ငါ အစိမ်းကို ဖယ်ရင်း **ခရမ်း ထည့်**မိခြင်း)。
     # ⇒ `lutyuv` နဲ့ **Y တစ်ခုတည်း** ကို ရွှေ့သည် — U/V မထိ ⇒ hue/sat
     #   အတိအကျ ကျန်သည်。
-    _ll = rc.get("luma_lift")
-    if _ll:
-        try:
-            _sk, _tg = float(_ll[0]), float(_ll[1])
-            if 8.0 < _sk < 240.0 and _tg > _sk + 4.0:
-                # ⚠️ အနက် knee — မထားလျှင် အောက်ပိုင်း အကုန် ဆွဲတက်ပြီး
-                #    နို့ရည်ရောင် ဖြစ်သည် (p05 ၃၄ → ၉၀)。
-                _sx, _sy = 20.0, 20.0 * 1.28
-                _bx = (_sk + 255.0) / 2.0
-                _by = min(250.0, (_tg + 255.0) / 2.0 + 10.0)
-                parts.append(
-                    "lutyuv=y='"
-                    f"if(lt(val,{_sx:.1f}),val*{_sy/_sx:.5f},"
-                    f"if(lt(val,{_sk:.1f}),{_sy:.1f}+(val-{_sx:.1f})*"
-                    f"{(_tg-_sy)/(_sk-_sx):.5f},"
-                    f"if(lt(val,{_bx:.1f}),{_tg:.1f}+(val-{_sk:.1f})*"
-                    f"{(_by-_tg)/(_bx-_sk):.5f},"
-                    f"{_by:.1f}+(val-{_bx:.1f})*{(255.0-_by)/(255.0-_bx):.5f})))'")
-        except (TypeError, ValueError, ZeroDivisionError):
-            pass
+    if lift:
+        _lf = luma_filter(rc)
+        if _lf:
+            parts.append(_lf)
     g = rc.get("gamma")
     if g:
         g = max(0.85, min(1.30, float(g)))
