@@ -70,6 +70,24 @@ class Pool(unittest.TestCase):
                 self.assertFalse(i.startswith(("charts.", "dash.", "maps.")), (r, i))
                 self.assertFalse(i.split(".", 1)[1].startswith("cut_"), (r, i))
 
+    def test_no_full_frame_card(self):
+        """⚠️ ဘောင်အပြည့် ကတ် မပါရ — `gfx` slot က **ထပ်တင်** ဖြစ်သည်
+
+        knowledge render မှာ `insert.insert_label` (1079px) ရွေးမိပြီး
+        「⊘ နေရာ မတည့် · မျက်နှာဇုန် 151–756」 နဲ့ ပယ်ခံခဲ့သည် ⇒ ရွေး ၁၀
+        ထဲ တပ်ရ ၄ ခုသာ · gfx_share 0.134 (ပစ်မှတ် 0.17)。
+        ⚠️ `h_pct` နဲ့ မစစ်ရ — canvas တိုင်းသဖြင့် `prem.lower_third` ကို
+           0.999 ပြသည် (တကယ်တော့ အောက်ခြေ strip)。
+        """
+        import planner as PL
+        for r in ROLES:
+            for i in TP.pool_ids(r):
+                self.assertFalse(PL._full_frame(i), (r, i))
+
+    def test_lower_third_kept(self):
+        # ⚠️ negative control — ဘောင်အပြည့် ဖယ်တာက lower third ကို မဖယ်မိရ
+        self.assertIn("prem.lower_third", TP.pool_ids("label"))
+
     def test_curated_stays_first(self):
         # ⚠️ အရည်အသွေး အစဉ်လိုက် မပျက်ရ — လက်ရေး စာရင်းက ရှေ့မှာ
         for r in ROLES:

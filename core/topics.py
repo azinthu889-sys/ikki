@@ -179,6 +179,18 @@ _ELIG = None
 _POOLIDS = {}
 
 
+def _is_full_frame(tid):
+    """ဘောင်အပြည့် ဖုံးသော template လား (`planner._full_frame` ကို ပြန်သုံး)"""
+    try:
+        try:
+            import planner as _PL
+        except ImportError:
+            from core import planner as _PL
+        return bool(_PL._full_frame(tid))
+    except Exception:
+        return False
+
+
 def _wants_pairs(entry):
     """template က **(အညွှန်း, ကိန်း) အတွဲ** စာရင်း လိုလား"""
     try:
@@ -221,6 +233,21 @@ def _eligible():
             #    **ဆောက်ချိန်မှာ** ကျမည် ⇒ ရေကန်ကနေ ဖယ်ရမည်。
             #    ကိန်း တီထွင်ပြီး ဖြည့်တာက Zin ရဲ့ တားမြစ်ချက် (မလုပ်ရ)。
             if _wants_pairs(e):
+                continue
+            # ⚠️⚠️ **ဘောင်အပြည့် ကတ်ကို overlay ရေကန်ထဲ မထည့်ရ** —
+            #    topics ရဲ့ `gfx` slot က ပြောသူပေါ် **ထပ်တင်** ဖြစ်သည်。
+            #    knowledge render မှာ `insert.insert_label` (1079px) နဲ့
+            #    `insert.insert_flow` ကို ရွေးမိပြီး worker က
+            #    「⊘ နေရာ မတည့် · ကတ်အမြင့် 1079 · မျက်နှာဇုန် 151–756」 နဲ့
+            #    ပယ်ခဲ့သည် ⇒ ရွေး ၁၀ ခု ထဲ **တပ်ရ ၄ ခု**သာ、gfx_share 0.134
+            #    (ပစ်မှတ် 0.17) (၂၀၂၆-၁၀-၀၁)。
+            #    ⚠️ `gfx_size_*.json` ရဲ့ `h_pct` နဲ့ **မစစ်ရ** — အဲဒါက canvas
+            #      (နောက်ခံ gradient ပါ) တိုင်းသဖြင့် `prem.lower_third` ကို
+            #      0.999 ပြသည် — တကယ်တော့ အောက်ခြေ strip ([[canvas-vs-ink]])。
+            #      `planner._full_frame` က `gfx_fullstage.txt` + pack manifest
+            #      ကနေ ယူ၍ lower_third=False · glass_stat=True ဟု **မှန်**သည်。
+            #    ဘောင်အပြည့် ၂၈ ခုက plan လမ်း နဲ့ cutaway engine မှာ ရဆဲ。
+            if _is_full_frame(e["id"]):
                 continue
             out.append(e["id"])
         _ELIG = out
