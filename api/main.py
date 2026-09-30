@@ -981,6 +981,19 @@ def styles(authorization: str = Header(None)):
             "motionkit_profiles": [dict(id=k, **v)
                                    for k, v in RC.MOTIONKIT_PROFILES.items()],
             "cuts": [{"id": k, "my": v[0], "en": v[1]} for k, v in RC.CUT_LABEL.items()],
+            # ⚠️⚠️ **slider ရဲ့ အနိမ့်/အမြင့်ကို UI ထဲ ကိန်းသေ မရေးရ**。
+            #    app.js က `rng('cap_pct',0.035,0.110,…)` ဟု ရေးထားခဲ့ရာ
+            #    BOUNDS က ၀.၀၂၂ သို့ ကျယ်လာသော်လည် slider က ၀.၀၃၅ မှာ ကျန်ပြီး
+            #    `knowledge` (0.024) · `ref-slides` (0.024) · `ref-fast` (0.026) ·
+            #    `short-biz` (0.0333) တို့ရဲ့ **ပုံသေကို slider က ပြလို့ မရ**ခဲ့ပါ。
+            #    `cap_base` လည် ၀.၈၇ မှာ ကျန်ပြီး `headtop` (0.92) · `course` (0.88) ·
+            #    `short-video` (0.877) မပြနိုင်ခဲ့ (၂၀၂၆-၁၀-၀၁ တိုင်း၍ တွေ့)。
+            #    ⇒ ဘောင်ကို **ဒီမှာ တစ်နေရာတည်း** ကနေ ပို့သည်。
+            "ranges": {k: {"min": v[1], "max": v[2],
+                           "int": v[0] == "int"}
+                       for k, v in RC.BOUNDS.items()
+                       if isinstance(v, tuple) and len(v) == 3
+                       and v[0] in ("int", "float")},
             "lufs": [{"v": k, "my": v[0], "en": v[1]} for k, v in RC.LUFS.items()],
             "music": RC.MUSIC, "captions": RC.CAPSTYLE, "latin": RC.LATIN}
 

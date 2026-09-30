@@ -2852,6 +2852,10 @@ function loadStyles(){
   }).catch(function(){});
 }
 function scutLabel(k){
+  // WARN 'custom' is not in SMETA.cuts, so this printed the raw English word
+  //   "custom" next to the control while the dropdown said the translated
+  //   "As measured" -- for 5 styles including headtop. Same wording now.
+  if(k==='custom') return cur==='my'?'တိုင်းထားတာ':'As measured';
   if(!SMETA) return k;
   var f=SMETA.cuts.filter(function(c){return c.id===k})[0];
   return f?(cur==='my'?f.my:f.en):k;
@@ -2873,7 +2877,18 @@ function sopen(id){
     return '<select class="sel" style="min-width:172px" data-sk="'+key+'">'+
       opts.map(function(o2){ return '<option value="'+o2[0]+'"'+(String(o2[0])===String(val)?' selected':'')+'>'+o2[1]+'</option>' }).join('')+'</select>';
   }
+  // WARN the slider range must come from the SERVER, not from literals here.
+  //   `cap_pct` was written as 0.035..0.110 while BOUNDS had widened to 0.022,
+  //   so the sliders could not even show the defaults of knowledge (0.024),
+  //   ref-slides (0.024), ref-fast (0.026) and short-biz (0.0333); `cap_base`
+  //   was 0.55..0.87 and could not show headtop (0.92), course (0.88) or
+  //   short-video (0.877). Measured 2026-10-01. The literals stay as the
+  //   fallback for a cached app.js talking to an older server.
+  //   A default outside the range still has to be reachable: widen to it.
   function rng(key,min,max,step,val,fmt){
+    var R=(SMETA&&SMETA.ranges)?SMETA.ranges[key]:null;
+    if(R){ if(typeof R.min==='number') min=R.min; if(typeof R.max==='number') max=R.max; }
+    if(typeof val==='number'){ if(val<min) min=val; if(val>max) max=val; }
     return '<input type="range" data-sk="'+key+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'">'+
       '<span class="num" data-num="'+key+'">'+fmt(val)+'</span>';
   }
@@ -2911,11 +2926,11 @@ function sopen(id){
   if(st.cap_pct!==null&&st.cap_pct!==undefined)
     h+=row('cap_pct', cur==='my'?'စာတန်း အရွယ်':'Caption size',
       cur==='my'?'ဘောင် အမြင့်၏ %':'% of frame height',
-      rng('cap_pct',0.035,0.110,0.005,(o.cap_pct!==undefined?o.cap_pct:st.cap_pct),pc), pc(st.cap_pct));
+      rng('cap_pct',0.022,0.110,0.002,(o.cap_pct!==undefined?o.cap_pct:st.cap_pct),pc), pc(st.cap_pct));
   if(st.cap_base!==null&&st.cap_base!==undefined)
     h+=row('cap_base', cur==='my'?'စာတန်း အနေရာ':'Caption position',
       cur==='my'?'အပေါ်မှ % — ကြီးလျှင် အောက်ဆုံးသို့':'% from top — higher sits lower',
-      rng('cap_base',0.550,0.870,0.005,(o.cap_base!==undefined?o.cap_base:st.cap_base),pc), pc(st.cap_base));
+      rng('cap_base',0.550,0.930,0.005,(o.cap_base!==undefined?o.cap_base:st.cap_base),pc), pc(st.cap_base));
   h+=row('stroke', cur==='my'?'စာတန်း အနားသတ်':'Caption stroke',
       cur==='my'?'အဖြူနံရံရော အမှောင် B-roll ရော ဖတ်လို့ရစေရန်':'Keeps text readable on light and dark',
       '<input type="checkbox" data-sk="stroke_on"'+(((o.stroke!==undefined?o.stroke:st.stroke))?' checked':'')+'>'+
@@ -2926,7 +2941,7 @@ function sopen(id){
       rng('gfx',0,30,1,(o.gfx!==undefined?o.gfx:st.gfx),String), st.gfx);
   h+=row('broll','B-roll',
       cur==='my'?'အများဆုံး — စာကြည့်တိုက်နဲ့ ကိုက်တဲ့အခါပဲ':'Max — only where the library matches',
-      rng('broll',0,10,1,(o.broll!==undefined?o.broll:st.broll),String), st.broll);
+      rng('broll',0,20,1,(o.broll!==undefined?o.broll:st.broll),String), st.broll);
   h+=row('music', cur==='my'?'သီချင်း':'Music','',
       sel('music',SMETA.music.map(function(m){return [m===null?'none':m, m===null?(cur==='my'?'မပါ':'None'):m]}),
           (o.music!==undefined?(o.music===null?'none':o.music):(st.music===null?'none':st.music))),
