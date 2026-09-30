@@ -2552,7 +2552,23 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     return any(_s.get("req") and _s.get("type") == "number"
                                for _s in (_x.get("slots") or []))
                 _meta = {_x["id"]: _x for _x in _items}
-                _pool_n = [_x["id"] for _x in _items if not _needs_num(_x)]
+                # ⚠️⚠️ **လဲမယ့် pool ကို catalog အပြည့် ကနေ မယူရ** —
+                #    `mkcat.build()` က mockup · chart · cutaway · transition
+                #    အားလုံး ပါသည်。 「ကိန်း မလို」 တစ်ခုတည်း စစ်ခဲ့ရာ
+                #    `kinetic2.count_roll` ဖြည့်၍ မရသဖြင့် **`mockups.browser_window`**
+                #    ကို လဲမိပြီး overlay နေရာမှာ ပုံ လိုသော template တင်ခဲ့သည်
+                #    (၂၀၂၆-၁၀-၀၁ knowledge render)。 chart လဲမိလျှင်
+                #    `too many values to unpack` နဲ့ ကျမည်。
+                #    ⇒ `topics._eligible()` (overlay အဖြစ် သုံးနိုင်သူ ၃၅၂ ခု)
+                #      ကို **တစ်နေရာတည်း** အဖြစ် သုံးသည်。
+                try:
+                    import topics as _TP2
+                    _elig2 = set(_TP2._eligible())
+                except Exception:
+                    _elig2 = None
+                _pool_n = [_x["id"] for _x in _items
+                           if not _needs_num(_x)
+                           and (_elig2 is None or _x["id"] in _elig2)]
                 def _buildable(_k, _g):
                     _x = _meta.get(_k)
                     if not _x or not _needs_num(_x):
