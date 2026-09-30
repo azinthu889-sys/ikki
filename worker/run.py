@@ -1492,6 +1492,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     f"(အစွန်းကို ±0.12s အတွင်း အသံ အနိမ့်ဆုံးမှတ်သို့ ညှိ)")
                 _lft = [[round(a, 2), round(b, 2)] for a, b in _inph
                         if sum(max(0.0, min(b, y) - max(a, x)) for x, y in spans) > 0.15]
+                # a remnant up to ~0.12 s is expected where an edge snapped into a
+                # dip (j_4f10b8172b9a: 0.11 s at -46.8 dB vs -23.5 dB speech =
+                # silence, not a leak). Only more than 0.15 s is reported.
                 if _lft:
                     log(f"  ⚠️ စကားစုထဲက ဖြတ်ချက် {len(_lft)} ခု အပြည့် မပျောက် — {_lft[:4]}")
                 st["inphrase_cuts"] = len(_inph); st["inphrase_removed"] = _rm3
@@ -5128,7 +5131,7 @@ def post_result(jid, out, meta):
     r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
     with urllib.request.urlopen(r, timeout=1800) as f: return json.loads(f.read())
 
-def fetch_src(jid, dest, on_progress=None, path="src"):
+def fetch_src(jid, dest, on_progress=None, path="src", expect_dur=None):
     """source ကို chunk အလိုက် disk ပေါ် တိုက်ရိုက် ရေးသည် · ၁၀% တိုင်း အစီရင်ခံသည်。
 
     `path="src2"` ⇒ dual-system အသံ ဖိုင် (မရှိလျှင် 404 ⇒ ခေါ်သူက ကိုင်ရမည်)。
@@ -5161,9 +5164,9 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
         # "HTTP Error 404". If this Mac still has the same file (exact byte
         # size), render from it so the user's cuts are kept.
         if _he.code != 404 or not _j.get("url"): raise
-        _lp = _local_by_size(int(_j.get("size") or 0))
+        _lp = _local_by_size(int(_j.get("size") or 0), expect_dur)
         if _lp:
-            print(f"  ⚠️ storage ထဲ မူရင်းဖိုင် မရှိ — စက်ထဲက ဖိုင်တူ (byte တူ) သုံးသည်: {_lp}", flush=True)
+            print(f"  ⚠️ storage ထဲ မူရင်းဖိုင် မရှိ — စက်ထဲက ဖိုင်တူ (byte တူ · ကြာချိန်တူ) သုံးသည်: {_lp}", flush=True)
             return _lp
         raise RuntimeError("မူရင်းဗီဒီယိုဖိုင် storage ထဲ မရှိတော့ပါ (R2 404) — ဗီဒီယိုကို "
                            "~/Movies ထဲ ထည့်ပြီး ပြန်ထုတ်ပါ၊ သို့မဟုတ် ပြန် upload လုပ်ပါ") from None
@@ -5185,12 +5188,14 @@ def fetch_src(jid, dest, on_progress=None, path="src"):
     return dest
 
 
-def _local_by_size(size):
-    """A readable video under IDX_ROOTS with exactly `size` bytes, or None.
-    The byte size of a multi-MB video is effectively unique; under 1 MB it is
-    not, so refuse."""
+def _local_by_size(size, expect_dur=None):
+    """The one readable video under IDX_ROOTS with exactly `size` bytes (and, when
+    known, the job's source duration within 0.2 s), or None.  Two candidates is
+    ambiguous and returns None: rendering someone's transcript over the wrong
+    footage is worse than asking for a re-upload."""
     if size < (1 << 20):
         return None
+    hits = []
     for root in IDX_ROOTS:
         if not os.path.isdir(root): continue
         for dp, dns, fns in os.walk(root):
@@ -5200,10 +5205,30 @@ def _local_by_size(size):
                 if not fn.lower().endswith(IDX_EXT): continue
                 q = os.path.join(dp, fn)
                 try:
-                    if os.path.getsize(q) == size and os.access(q, os.R_OK): return q
+                    if os.path.getsize(q) == size and os.access(q, os.R_OK):
+                        if os.path.realpath(q) not in [os.path.realpath(h) for h in hits]:
+                            hits.append(q)
                 except OSError:
                     continue
-    return None
+    if expect_dur:
+        hits = [q for q in hits
+                if abs(float((probe(q) or {}).get("dur") or 0) - float(expect_dur)) < 0.2]
+    if len(hits) > 1:
+        # copies of one file (e.g. Downloads + a copy in Movies) are not ambiguous
+        import hashlib
+        def _sig(q):
+            with open(q, "rb") as fh:
+                h = hashlib.sha1(fh.read(1 << 20)); fh.seek(-(1 << 20), 2); h.update(fh.read())
+            return h.hexdigest()
+        try:
+            if len({_sig(q) for q in hits}) == 1: hits = hits[:1]
+        except OSError:
+            pass
+    if len(hits) != 1:
+        if len(hits) > 1:
+            print(f"  ⚠️ byte တူ ဖိုင် {len(hits)} ခု — ဘယ်ဟာလဲ မသေချာ၍ မသုံးပါ: {hits[:3]}", flush=True)
+        return None
+    return hits[0]
 
 
 def fetch_take(jid, n, dest, on_progress=None):
@@ -5796,7 +5821,8 @@ def handle(d):
         src = fetch_src(jid, src, lambda pc, mb, sp:
                   req(f"/api/w/{jid}/stage",
                       {"stage":0,"name":f"ဆွဲချ {pc}% ({mb:.0f} MB · {sp:.1f} MB/s)",
-                       "minutes":(time.time()-t0)/60})) or src
+                       "minutes":(time.time()-t0)/60}),
+                  expect_dur=job.get("src_dur")) or src
         print(f"  ဆွဲချ {os.path.getsize(src)/1e6:.0f} MB · {time.time()-t0:.1f}s", flush=True)
     # ── dual-system — recorder အသံ ရှိလျှင် ချိန်ညှိပြီး ပေါင်း ────────────
     # ⚠️ ကင်မရာ mic က −53 LUFS ဖြစ်တတ်ပြီး သီချင်းက စကားကို ဖုံးသည်。
