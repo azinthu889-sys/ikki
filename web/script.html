@@ -953,9 +953,15 @@ document.getElementById("bok").onclick=function(){
   if(!JOB){tip("demo — job မရှိ၍ မထုတ်နိုင်ပါ");return}
   // ⚠️ `confirm()` **မသုံးရ** — တိတ်တဆိတ် false ပြန်လျှင် ခလုတ် နှိပ်လို့ မရဟု ဖြစ်သည်
   var self=this;
+  // 2026-10-01 Zin: "not the settings I chose in the UI" -- the re-render used to
+  // inherit the old job's style/format silently. Send the UI's current choice
+  // (ikki_prefs, written by the main page) and say it out loud before rendering.
+  var UIP={}; try{ UIP=JSON.parse(localStorage.getItem("ikki_prefs")||"{}")||{} }catch(e){ UIP={} }
+  var _set=[UIP.style, UIP.fmt, UIP.brand, UIP.font, UIP.cap&&("စာတန်း "+UIP.cap)].filter(Boolean).join(" · ");
   ask("ဗီဒီယို ထုတ်မလား?",
       "ဝါကျ "+keep.length+" ကြောင်း ချန်ပြီး "
-      +(D.sentences.length-keep.length)+" ကြောင်း ဖြတ်ပါမည်။",
+      +(D.sentences.length-keep.length)+" ကြောင်း ဖြတ်ပါမည်။"
+      +(_set && D.status!=="review" ? "  Setting: "+_set : ""),
       "✂️ ထုတ်မယ်", fire);
   return;
   function fire(){
@@ -1004,7 +1010,10 @@ document.getElementById("bok").onclick=function(){
   // မပြင်ထားတဲ့စာကို “စာလုံးအသစ်” ဟု မှားငြင်းခြင်းကို ကာကွယ်သည်။
   // ✓ ရွေးထားသော script စာလုံးပေါင်း ⇒ `fix` (စာတန်းသာ · အသံ/ဖြတ်မှတ် မထိ)
   var body = isRev ? {segs: keep.map(function(s){return FIX[s.n] ? {i:s.n-1, fix:FIX[s.n]} : {i:s.n-1}}), drop_spans: ds, keep_spans: ks}
-                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds, keep_spans: ks, fixes: FIX};
+                   : {keep: keep.map(function(s){return s.n}), drop_spans: ds, keep_spans: ks, fixes: FIX,
+                      over: ks.length ? {_keep: ks} : undefined,
+                      recipe: UIP.style||undefined, brand_id: UIP.brand||undefined,
+                      fmt: UIP.fmt||undefined, font: UIP.font||undefined, cap: UIP.cap||undefined};
   fetch(url,{method:"POST",
     headers:{"Content-Type":"application/json",
              Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},

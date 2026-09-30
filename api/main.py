@@ -771,7 +771,28 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     import recipes as _RC
     over = b.get("over") or {}
     if not isinstance(over, dict): over = {}
+    # 2026-10-01: `_drop_exact` (every by-ear cut from Script Editor: ✂ in-phrase
+    # trims, sound events, waveform cuts) and `_keep` (restored pauses) are not
+    # recipe settings, so `clean()` threw them away and they never reached the
+    # worker -- no Zin job ever carried one. Keep them, as numeric pairs only.
+    def _pairs(v):
+        out = []
+        for p in (v if isinstance(v, list) else []):
+            try:
+                a, c = float(p[0]), float(p[1])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if 0 <= a < c and c - a > 0.02: out.append([round(a, 3), round(c, 3)])
+        return out[:400]
+    _pipe = {k: _pairs(over.get(k)) for k in ("_drop_exact", "_keep")}
     over = _RC.clean(over)
+    over.update({k: v for k, v in _pipe.items() if v})
+    # the style / size picked in the UI; unknown values keep the parent's
+    _nrec = (b.get("recipe") or "").strip()
+    if _nrec and not _RC.R.get(_nrec): _nrec = ""
+    import formats as _FM
+    _nfmt = (b.get("fmt") or "").strip()
+    if _nfmt and _nfmt not in _FM.keys(): _nfmt = ""
     fnt = (b.get("font") or par.get("font") or "")[:48]
     capz = (b.get("cap") or par.get("cap") or "").strip()
     if capz and capz not in _RC.CAPSIZE:
@@ -797,7 +818,7 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
            #    (များသောအားဖြင့် `zjl`) က ထာဝရ ကပ်နေမည်。 မသိသော brand ကို
            #    လက်မခံဘဲ မူရင်းကို ဆက်သုံးသည်。
            nid, (par["title"] or "") + " · ပြင်ပြီး", par["upload_id"], _nbrand,
-           b.get("recipe") or par["recipe"], fnt, par.get("fmt") or "", capz,
+           _nrec or par["recipe"], fnt, _nfmt or par.get("fmt") or "", capz,
            json.dumps(clean, ensure_ascii=False),
            json.dumps(orig, ensure_ascii=False),
            json.dumps(sorted({int(k.get("i")) + 1 for k in keep
@@ -3074,7 +3095,11 @@ async def script_render(jid: str, req: Request, authorization: str = Header(None
     fx = {str(k): str(v) for k, v in (b.get("fixes") or {}).items()} if isinstance(b.get("fixes"), dict) else {}
     payload = dict(segs=[dict(i=n - 1, text=segs[n - 1].get("text") or "",
                               **({"fix": fx[str(n)]} if fx.get(str(n)) else {})) for n in ks],
-                   over=over, font=b.get("font"), cap=b.get("cap"))
+                   over=over, font=b.get("font"), cap=b.get("cap"),
+                   # 2026-10-01: the settings picked in the UI. Before this the
+                   # Script Editor re-render always inherited the parent job's
+                   # style/format (Zin: a 9:16 short came out as 16:9 headtop).
+                   recipe=b.get("recipe"), brand_id=b.get("brand_id"), fmt=b.get("fmt"))
 
     class _Shim:                       # `job_reedit` က `await req.json()` ခေါ်သည်
         async def json(self): return payload
