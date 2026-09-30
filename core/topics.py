@@ -138,6 +138,99 @@ POOLS = {
              "typewriter", "subtitle_2line", "quote_marks", "vertical_jp"],
 }
 
+# ══ catalog အပြည့် — role အလိုက် ═══════════════════════════════
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၁ တိုင်းချက် — `POOLS` က **လက်ရေး bare fn နာမည် ၄၃ ခု**သာ
+#    ဖြစ်ပြီး catalog မှာ ၆၁၇ ခု ရှိသည် ⇒ topics လမ်းက **၇.၀%** ကိုသာ
+#    ထိသည်。 recipe ၁၄ ခုမှာ **၁၁ ခု** (plan=False) က ဒီလမ်းကို သုံး၍
+#    ဗီဒီယိုတိုင်း တစ်ပုံစံတည်း ဖြစ်ခဲ့ခြင်း。 plan လမ်း (၃ ခု) က
+#    `planner._profile_candidates` နဲ့ **၇၇.၁%** ထိပြီးသား。
+#    Zin: 「Motion KIT ကနေ edit style အားလုံးအတွက် ၁၀၀% ယူသုံးလို့ရအောင်」
+# ⇒ plan လမ်းရဲ့ ပုံစံ အတိအကျ: **လက်ရေး စာရင်းကို ရှေ့မှာ** (အရည်အသွေး
+#   အစဉ်လိုက် မပျက်စေရန်) → role regex → **ကျန်သမျှ** ဆက်တွဲသည်。
+#   ဖြည့်လို့ မရသူကို `targs()` က `None` ပြန်ပေး၍ ခေါ်သူက နောက်တစ်ခု
+#   ကောက်သည် (run.py မှာ retry ၈ ခါ ရှိပြီးသား) ⇒ tail က ကုန်ကျစရိတ် မရှိ。
+# ⚠️ **ဖယ်ထုတ်ရမည်များ** — overlay မဟုတ်သူ:
+#     mockup      ပုံ လိုသည် (phone/browser/app frame)
+#     transition  ဖြတ်ပြောင်း slot ကိုသာ
+#     motion      motion FX slot ကိုသာ
+#     infographic တကယ့် ဒေတာ လိုသည် (ကိန်း မတီထွင်ရ — Zin ရဲ့ တားမြစ်ချက်)
+#   ⇒ ကျန် **၃၉၅ ခု** (၆၄.၀%) က overlay အဖြစ် သုံးနိုင်သည်。
+_ROLE_RX = {
+ "title":   r"title|intro|open|hook|stinger|episode|hero|headline|kicker|split|bars|ident",
+ "chapter": r"chapter|section|step|id_strip|phase|stage|topic|roman|num_card",
+ "fact":    r"fact|stat|quote|pull|call|note|key|box|scan|vs|versus|metric|big|number|pct",
+ "label":   r"locator|name|third|plate|badge|tag|pill|clock|photo|map|place|strip|lower",
+ "cta":     r"cta|outro|end_|subscribe|price|phone|alert|follow|link|qr|button|promo|ticket",
+ "typo":    r"type|kern|sweep|word|line|text|caption|emphas|highlight|marks|vertical|reveal",
+}
+_BAD_CAT = ("mockup", "transition", "motion", "infographic")
+_ELIG = None
+_POOLIDS = {}
+
+
+def _eligible():
+    """overlay အဖြစ် သုံးနိုင်သော **verified** template id များ (အစဉ်လိုက်)"""
+    global _ELIG
+    if _ELIG is not None:
+        return _ELIG
+    try:
+        try:
+            import gfxcat as GC, mkcat as MK, planner as PL
+        except ImportError:
+            from core import gfxcat as GC, mkcat as MK, planner as PL
+        ver = set(MK.verified())
+        # ⚠️ `STRUCTURED` — ASR စာသားကနေ ဖွဲ့စည်းပုံ ဒေတာ မမှန်းရ
+        bad = set(getattr(PL, "STRUCTURED", ()) or ())
+        out = []
+        for e in GC.catalog():
+            cat = str(e.get("cat") or e.get("category") or "")
+            if e["id"] in ver and e["id"] not in bad and cat not in _BAD_CAT:
+                out.append(e["id"])
+        _ELIG = out
+    except Exception:
+        _ELIG = []
+    return _ELIG
+
+
+def _id_of(fn):
+    """bare fn → **verified** module-qualified id (မတွေ့လျှင် `None`)
+
+    ⚠️ fn နာမည် ၂၁ အုပ်စု (၄၄ template) က module အချင်းချင်း **တူနေသည်**
+       (`big_number` က infogfx · titles2 · prem2 ၃ ခုမှာ)。 bare နာမည်
+       သုံးလျှင် `dress._fn` က **ပထမတွေ့သူ** ကို ယူပြီး verify မထားသူ
+       ဖြစ်နိုင်သည် ⇒ id အပြည့် ပြောင်းရမည်。
+    """
+    for i in _eligible():
+        if i.split(".", 1)[1] == fn:
+            return i
+    return None
+
+
+def pool_ids(role):
+    """role အတွက် template **id** စာရင်း — လက်ရေး ရှေ့ · catalog နောက်"""
+    if role in _POOLIDS:
+        return _POOLIDS[role]
+    import re as _re
+    seen, out = set(), []
+    for fn in POOLS.get(role, []):
+        i = _id_of(fn)
+        if i and i not in seen:
+            seen.add(i); out.append(i)
+    rx = _ROLE_RX.get(role)
+    if rx:
+        r = _re.compile(rx, _re.I)
+        for i in _eligible():
+            if i not in seen and r.search(i.split(".", 1)[1]):
+                seen.add(i); out.append(i)
+    # ⚠️ **ကျန်သမျှ ဆက်တွဲရမည်** — role regex က ၁၃၃ ခု လွတ်သည် ⇒
+    #    ဗလာ အခါမှသာ မဟုတ်、အမြဲ ဆက်တွဲသည် (plan လမ်း နဲ့ တူ)。
+    for i in _eligible():
+        if i not in seen:
+            seen.add(i); out.append(i)
+    _POOLIDS[role] = out
+    return out
+
+
 _OKSET = None
 def _ok():
     """တကယ် render စမ်းပြီး အောင်မြင်ခဲ့သော template နာမည် set"""
@@ -160,7 +253,11 @@ def templ(kind, seed=0, used=None):
     ⚠️ seed ကို job id ကနေ ပေးရမည် — ဗီဒီယိုတစ်ခုတည်းမှာ ထပ်တလဲလဲ
        မဖြစ်စေရန် `used` နှင့် ရှောင်ပြီး၊ ဗီဒီယိုအလိုက် ကွဲပြားစေရန်。
     """
-    pool = [t for t in POOLS.get(kind, []) if t in _ok()] or POOLS.get(kind) or ["title_card"]
+    pool = pool_ids(kind)
+    if not pool:
+        # ⚠️ catalog မရလျှင် ယခင် အပြုအမူ (bare fn) ကို ပြန်ကျသည်
+        pool = [t for t in POOLS.get(kind, []) if t in _ok()] \
+            or POOLS.get(kind) or ["title_card"]
     fresh = [t for t in pool if t not in (used or set())] or pool
     return fresh[seed % len(fresh)]
 
@@ -249,10 +346,14 @@ def targs(name, text, sub=""):
     """
     _raw = text or ""
     text = trim(text)
-    f = CURATED.get(name)
+    # ⚠️ `templ()` က ယခု **module.fn** ပြန်ပေးသည် (fn နာမည် တူသူ ၂၁
+    #    အုပ်စု ရှိ၍)。 `CURATED` က fn နာမည် နဲ့ key လုပ်ထားသဖြင့် fn အပိုင်း
+    #    နဲ့ ရှာရမည်、catalog ကိုတော့ **id အတိအကျ** နဲ့ ရှာရမည်。
+    _fnpart = name.split(".", 1)[1] if "." in str(name) else name
+    f = CURATED.get(_fnpart)
     if f:
         if not sub and name in USES_SUB: return None
-        if name in PLACE_SLOT:
+        if _fnpart in PLACE_SLOT:
             # ⚠️ **trim ပြီးသား စာသား နဲ့ မရှာရ** — နေရာ နာမည်က ၃၂
             #    အက္ခရာ အလွန်မှာ ရှိနိုင်သည် ⇒ မူရင်း စာသား နဲ့ ရှာသည်。
             _pl = _place(_raw)
@@ -265,7 +366,10 @@ def targs(name, text, sub=""):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import gfxcat as GC
         for e in GC.catalog():
-            if e["fn"] == name:
+            # ⚠️ **id အတိအကျ နဲ့ ရှာရမည်** — `e["fn"] == name` က fn
+            #    နာမည် တူသော module ၂၁ အုပ်စုမှာ **ပထမတွေ့သူ** ကို ယူပြီး
+            #    verify မထားသူ ဖြစ်နိုင်သည် (တိတ်တဆိတ် အမှား)。
+            if e["id"] == name or (("." not in str(name)) and e["fn"] == name):
                 a = GC.fill(e, text, sub)
                 if not sub and _blank(a): return None
                 return a or (text,)
