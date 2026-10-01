@@ -2056,6 +2056,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 dict(energy=rc.get("energy"), fps=rc["fps"],
                      aspect=f'{TH["W"]}:{TH["H"]}',
                      pose=_pose_fr, cap_base=rc.get("cap_base") or 0.92,
+                     # ⚠️⚠️ **ခေါင်းစဉ်က စာတန်းထက် မသေးရ** — planner က
+                     #    စာတန်း အရွယ်ကို သိမှ ဂရပ်ဖစ် စာလုံးရဲ့ ကြမ်းခင်း
+                     #    တွက်နိုင်သည်。 မပေးခဲ့သဖြင့် ၉:၁၆ မှာ ခေါင်းစဉ် ၅၂px ·
+                     #    စာတန်း ၁၈၂px (**၃.၅ ဆ သေး**) ဖြစ်ခဲ့သည်
+                     #    (Zin ၂၀၂၆-၁၀-၀၂: 「fitting မဖြစ်」)。
+                     cap_pct=rc.get("cap_pct"),
                      # ⚠️ SFX မူဝါဒကို **recipe ကနေ** ယူရမည် — planner ထဲ
                      #    ကိန်းသေ ရေးလျှင် ပုံစံတိုင်း တူသွားမည်。
                      sfx_on=rc.get("sfx_on"), sfx=rc.get("sfx", True),

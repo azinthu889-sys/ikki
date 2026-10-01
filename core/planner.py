@@ -1756,6 +1756,17 @@ def sfx_plan(events, dur, per_min, log=None, style=None, out_dur=None):
 def build(segs, labels, dur, opts=None, video_id="src"):
     """အညွှန်း → plan (ကုဒ်က တည်ဆောက်သည်、AI မဟုတ်)"""
     o = dict(opts or {})
+    # ⚠️⚠️ **စာတန်း အရွယ်ကို px နဲ့** — ဂရပ်ဖစ် စာလုံးရဲ့ ကြမ်းခင်း。
+    #    `aspect` က "W:H" (worker က `f'{TH["W"]}:{TH["H"]}'` ပို့သည်) ⇒
+    #    H ကို အဲဒီကနေ ယူသည်。 `cap_pct` မပါလျှင် ၀ (ယခင် အပြုအမူ)。
+    try:
+        _ap = str(o.get("aspect") or "16:9").split(":")
+        _fh = int(float(_ap[1])) if len(_ap) == 2 else 1080
+        if _fh < 240:                      # "16:9" လို အချိုးသာ ဆိုလျှင်
+            _fh = 1080
+        _cap_px = int(round(float(o.get("cap_pct") or 0) * _fh))
+    except (TypeError, ValueError, IndexError):
+        _fh, _cap_px = 1080, 0
     en = ENERGY.get(o.get("energy") or "standard", ENERGY["standard"])
     profile = str(o.get("motionkit_profile") or "premium")
     gap = float(o.get("changeGap") or en["gap"])
@@ -1954,6 +1965,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         _ni = numbered_item(txt)
         if _ni is not None and MF.entry(NUM_LT):
             cid, pr = NUM_LT, {"value": _ni[0], "title": _ni[1]}
+            # ⚠️ ခေါင်းစဉ် ကြမ်းခင်း = စာတန်း အရွယ် (`cap_px`)。
+            #    template က မပေးလျှင် ယခင်အတိုင်း ဆက်လုပ်သည်。
+            if _cap_px:
+                pr["size"] = _cap_px
         _pack_c = _ff_order(_pack_c) if not cid else []
         _stale = []
         for _pid in _pack_c:
