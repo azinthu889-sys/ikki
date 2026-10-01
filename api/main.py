@@ -516,7 +516,9 @@ async def job_new(req: Request, authorization: str = Header(None)):
     rf = (b.get("ref_id") or "").strip()
     if rf:
         r = db.one("SELECT * FROM refs WHERE id=? AND acct=?", rf, aid(authorization))
-        if not r: raise HTTPException(404, "reference မရှိပါ")
+        if not r: raise HTTPException(404, "ရွေးထားတဲ့ reference ကို ဖျက်ပြီးသား ဖြစ်နေပါတယ် — "
+                                           "စာမျက်နှာကို refresh လုပ်ပြီး ပြန်ထုတ်ပါ "
+                                           "(reference was deleted — refresh and try again)")
         if r["status"] != "done":
             raise HTTPException(409, f"စိစစ်မှု မပြီးသေးပါ ({r['status']})")
         try: _dna = json.loads(r["dna"] or "{}") or {}

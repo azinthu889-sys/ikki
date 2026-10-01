@@ -3273,7 +3273,13 @@ function loadRefs(){
     /* ⚠️ အရင် ရွေးထားတာ ရှိလျှင် ပြန်ပြ — refresh လုပ်လျှင် မပျောက်ရ */
     if(state.ref && REF.list.filter(function(x){return x.id===state.ref}).length){
       REF.id=state.ref; REF.applied=state.ref;
-    } else if(!REF.id && REF.list.length){ REF.id=REF.list[0].id }
+    } else {
+      /* 2026-10-01: a reference deleted earlier stayed in the saved prefs and was
+         sent with every new job, which then failed "reference မရှိပါ" (404).
+         A saved reference that no longer exists is cleared here. */
+      if(state.ref){ state.ref=''; REF.applied=null; savePrefs() }
+      if(!REF.id && REF.list.length){ REF.id=REF.list[0].id }
+    }
     paintRef();
     var cu=REF.list.filter(function(x){return x.id===REF.id})[0];
     if(cu&&(cu.status==='queued'||cu.status==='running')) refPoll();
