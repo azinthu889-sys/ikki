@@ -523,6 +523,35 @@ def match(segs, want, used=None, log=print, strict=False):
     # ⚠️ ၆၀ ကန့်သတ်ချက်က **အသစ် ထည့်ထားသော clip တွေကို Gemini မမြင်**စေခဲ့
     #    (၂၀၂၆-၀၉-၁၇ — stock ၁၈ ခု ထည့်ပြီးနောက် index ၇၉ ဖြစ်သွားပြီး
     #     အသစ်တွေက စာရင်း အောက်ဆုံးမှာ ကျန်ခဲ့သည်)。 ⇒ ၁၂၀ သို့ တိုးသည်。
+    # ⚠️⚠️ **၁၂၀ သို့ တိုးလည် အဲဒီ ချွတ်ယွင်းချက် ပြန်ဖြစ်ခဲ့သည်** (၂၀၂၆-၁၀-၀၁
+    #    တိုင်းချက်) — index 432 ထဲ သက်ဆိုင်သူ 57 · screen() ပြီး 253/46 ·
+    #    `av[:120]` မှာ သက်ဆိုင်သူ **19 သာ** ⇒ **133 ခု Gemini မမြင်ရ**ပြီး
+    #    အဲဒီထဲ သက်ဆိုင်သူ **27** ပါသည် (「classroom · students · online ·
+    #    learning」 — ဂျပန် ပညာရေး ဗီဒီယိုအတွက် အတိအကျ လိုတဲ့ ရုပ်)。
+    #    knowledge render မှာ **match 0** ဖြစ်ခဲ့ခြင်းရဲ့ အကြောင်းရင်း。
+    #    index အစဉ်လိုက် ယူသဖြင့် **အသစ်/သက်ဆိုင်သူက အောက်ဆုံး** ကျသည်。
+    # ⇒ **retrieve-then-rerank**: `_score` (စာလုံး ဆိုင်မှု) နဲ့ အရင် စီပြီး
+    #   ထိပ်ပိုင်းကို Gemini ဆီ ပို့သည်。 score ၀ သူများက ယခင် အစဉ်အတိုင်း
+    #   နောက်မှာ ကျန်သည် ⇒ ကန့်သတ်ချက် တူတူနဲ့ **သက်ဆိုင်သူ အားလုံး** ဝင်မည်。
+    try:
+        _best = {}
+        for _c in av:
+            _m = 0
+            for _s in (segs or [])[:80]:
+                _v = _score(str((_s or {}).get("text") or ""), _c)
+                if _v > _m:
+                    _m = _v
+            _best[_c["path"]] = _m
+        if any(_best.values()):
+            av = sorted(av, key=lambda c: -_best.get(c["path"], 0))
+            _nz = sum(1 for v in _best.values() if v)
+            if log:
+                log(f"  B-roll · ဆိုင်မှု အရင် စီ — စာလုံး တွဲမိသူ {_nz} ခု "
+                    f"ကို ရှေ့တန်း တင်သည် (Gemini မြင်ရန် ၁၂၀ ကန့်သတ်)")
+    except Exception as _se:
+        if log:
+            log(f"  ⚠️ B-roll ဆိုင်မှု စီချက် မရ ({type(_se).__name__}) — "
+                f"index အစဉ်အတိုင်း")
     for i, c in enumerate(av[:120]):
         cid = "c%02d" % i; ids[cid] = c
         rows.append(f'{cid}: {" · ".join((c.get("my") or [])[:4])}  [{c["dur"]:.0f}s]')
