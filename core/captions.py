@@ -316,6 +316,21 @@ def speech_cards(caps, runs, db, size, maxw, MW, font, max_dur=4.0, short=0.6,
             while max(MW(l, sz, font) for l in lines) > maxw and sz > int(size * 0.6):
                 sz -= 3                       # still too wide: shrink
             kw = sorted({k for x in pc for k in (caps[x[3]].get("kw") or [])})
+            if len(lines) == 1 and MW(lines[0], sz, font) > maxw:
+                # 2026-10-02 j_71ca78a46acc: one ASR "word" can be a whole phrase
+                # with no spaces; at XL even the 0.6x floor ran off both edges.
+                # Split it where word and syllable boundaries agree (chunk_word,
+                # text unchanged) and share the card's time by syllables.
+                ch = chunk_word(lines[0], size, maxw, MW, font)
+                if len(ch) > 1:
+                    a0, b0 = edges[i], edges[i + 1]; tot = float(sum(n for _, n in ch)); acc = 0
+                    for k, (ct, n) in enumerate(ch):
+                        ca = a0 + (b0 - a0) * acc / tot; acc += n
+                        cb = b0 if k == len(ch) - 1 else a0 + (b0 - a0) * acc / tot
+                        s2 = size
+                        while MW(ct, s2, font) > maxw and s2 > int(size * 0.6): s2 -= 3
+                        cards.append(dict(lines=[ct], a=round(ca, 3), b=round(cb, 3), sz=s2, kw=kw))
+                    continue
             cards.append(dict(lines=lines, a=round(edges[i], 3), b=round(edges[i + 1], 3), sz=sz, kw=kw,
                               **({"split": True} if len(lines) > 1 else {})))
     return settle(cards, trail=trail, min_dur=min_dur if max_lines >= 2 else 0.0, bridge=bridge,
@@ -475,7 +490,10 @@ def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, 
         ws_.sort()
         ons = [ra]
         for w in ws_[1:]:
-            lo = ons[-1] + min_card; hi = rb - min_card
+            # the last word that got a slot -- a None (no room) must not be the base:
+            # `None + min_card` raised and the whole video lost its word-pop captions
+            # (j_71ca78a46acc, 2026-10-02)
+            lo = next(x for x in reversed(ons) if x is not None) + min_card; hi = rb - min_card
             if hi <= lo: ons.append(None); continue
             ons.append(snap_to(min(hi, max(lo, w[0])), lo, hi))
         # words that found no room join the previous card (text kept whole)
@@ -493,7 +511,7 @@ def word_pop_cards(caps, runs, db, size, maxw, MW, font, snap=0.10, frame=0.02, 
             starts = [on]
             for _, n in ch[:-1]:
                 acc += n
-                lo = starts[-1] + min_card; hi = off - min_card
+                lo = next(x for x in reversed(starts) if x is not None) + min_card; hi = off - min_card
                 if hi <= lo: starts.append(None); continue
                 starts.append(snap_to(min(hi, max(lo, on + (off - on) * acc / tot)), lo, hi))
             pieces = []

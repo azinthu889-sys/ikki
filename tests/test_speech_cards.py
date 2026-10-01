@@ -144,5 +144,21 @@ class Syllables(unittest.TestCase):
         self.assertTrue(all(MW(l, 40) <= 500 for l in two))
 
 
+class OverflowSplit(unittest.TestCase):
+    """2026-10-02 j_71ca78a46acc: a one-token Burmese phrase too wide even at the
+    0.6x floor ran off both frame edges. It must become several cards that fit,
+    with the text unchanged when joined."""
+    def test_too_wide_phrase_splits_and_fits(self):
+        txt = "ရှည်စိတ်ကျေနပ်မှုအပြည့်ရှိနိုင်မယ့်နည်းလမ်း"
+        c = CP.speech_cards([cap(txt, [(txt, 1.0, 3.0)])], [(1.0, 3.0)], np.zeros(400),
+                            40, 300, MW, None, max_lines=1)
+        self.assertGreater(len(c), 1)
+        self.assertEqual("".join(x["lines"][0] for x in c), txt)
+        for x in c:
+            self.assertLessEqual(MW(x["lines"][0], x["sz"]), 300 + 1e-6, x)
+        self.assertAlmostEqual(c[0]["a"], 1.0, places=2)
+        for p_, q in zip(c, c[1:]): self.assertLessEqual(p_["b"], q["a"] + 1e-6)
+
+
 if __name__ == "__main__":
     unittest.main()

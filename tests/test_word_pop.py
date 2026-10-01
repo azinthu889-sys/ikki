@@ -108,6 +108,18 @@ class CardsPreEmpty(unittest.TestCase):
         self.assertNotIn("if cards_pre is not None else", src)
 
 
+class NoRoomTwice(unittest.TestCase):
+    """2026-10-02 j_71ca78a46acc: three words packed into a short run -- the 2nd
+    got no slot (None) and the 3rd computed `None + min_card` -> TypeError, so
+    the whole video fell back from word-pop to sentence captions."""
+    def test_no_crash_and_text_whole(self):
+        ws = [("a", 1.00, 1.02), ("b", 1.03, 1.05), ("c", 1.06, 1.08), ("d", 1.09, 1.10)]
+        c = CP.word_pop_cards([cap(ws)], [(1.0, 1.3)], np.zeros(200), 40, 2000, MW, None)
+        self.assertTrue(c)
+        self.assertEqual(" ".join(x["lines"][0] for x in c).split(), ["a", "b", "c", "d"])
+        for x in c: self.assertLess(x["a"], x["b"])
+
+
 if __name__ == "__main__":
     unittest.main()
 
