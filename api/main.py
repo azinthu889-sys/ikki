@@ -566,8 +566,10 @@ def job_list(authorization: str = Header(None)):
     rows = db.rows(
         "SELECT * FROM jobs WHERE deleted IS NULL AND acct=? "
         "ORDER BY created DESC LIMIT 200", aid(authorization))
+    _src_gone_many([r.get("upload_id") for r in rows])
     for r in rows:
-        r["src_gone"] = _src_gone(r.get("upload_id"))
+        hit = _SRC_CACHE.get(r.get("upload_id"))
+        r["src_gone"] = bool(hit and hit[0])
     return {"jobs": rows}
 
 
@@ -576,6 +578,27 @@ def job_list(authorization: str = Header(None)):
 # and every attempt died later with a bare "HTTP Error 404" (j_aec7757ad1dd).
 # Ask storage once per upload and remember the answer for a while.
 _SRC_CACHE = {}
+def _refuse_src_gone(uid):
+    """Refuse a render whose source is known to be gone -- before any free
+    preview or minute is counted (the job could only fail later with a 404)."""
+    if _src_gone(uid, ttl=60):
+        raise HTTPException(410, "မူရင်း ဗီဒီယိုကို သိမ်းထားချိန် ကုန်၍ ဖျက်ပြီးပါပြီ — ဗီဒီယိုကို ပြန် upload လုပ်ပါ "
+                                 "(the source video has expired — upload it again)")
+
+
+def _src_gone_many(uids, deadline=3.0):
+    """Fill the cache for many uploads at once: HEADs run concurrently and the
+    call never blocks the list for more than `deadline` s (unknown = not gone)."""
+    todo = [u for u in set(x for x in uids if x)
+            if not (_SRC_CACHE.get(u) and time.time() - _SRC_CACHE[u][1] < 6 * 3600)]
+    if not todo: return
+    import concurrent.futures as _cf
+    ex = _cf.ThreadPoolExecutor(max_workers=8)
+    futs = [ex.submit(_src_gone, u) for u in todo]
+    _cf.wait(futs, timeout=deadline)
+    ex.shutdown(wait=False)
+
+
 def _src_gone(uid, ttl=6 * 3600):
     """True only when the source is known to be gone; False when present or unknown."""
     if not uid: return False
@@ -592,8 +615,10 @@ def _src_gone(uid, ttl=6 * 3600):
             gone = not ST.head(u["key"])
         elif u.get("local"):
             gone = False                      # a worker-local file: cannot tell from here
+        elif u.get("path"):
+            gone = True                       # a recorded file that is no longer there
         else:
-            gone = not (u.get("path") and os.path.isfile(u["path"]))
+            gone = False                      # nothing to check against -> unknown
     except Exception:
         return False                          # cannot tell -> do not block the user
     _SRC_CACHE[uid] = (gone, time.time())
@@ -744,6 +769,7 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
     b = await req.json()
     par = mine(authorization, jid)
+    _refuse_src_gone(par.get("upload_id"))
     # ⚠️ **`segs_all` (ASR အပြည့်) ကနေ ယူရမည်**。 `segs` က အရင် ချန်ခဲ့သော
     #    ဝါကျများသာ ဖြစ်ပြီး — အဲဒါနဲ့ diff လုပ်လျှင် အရင် ဖျက်ထားတဲ့ ဝါကျတွေ
     #    `drop` ထဲ မပါဘဲ **ပြန်ပါလာ**သည် (Zin ၂၀၂၆-၀၉-၂၀: ချန် ၁၁၂s ဖြစ်ပါလျက်
@@ -2137,6 +2163,7 @@ async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(
     """
     auth(authorization, UTOKEN)
     j = mine(authorization, jid)
+    _refuse_src_gone(j.get("upload_id"))
     # ⚠️ `done` + `mode='prev'` ကိုပါ လက်ခံရမည် — preview ကြည့်ပြီး
     #    ပြင်ပြီး **ထပ် preview / တကယ် ထုတ်** ဖို့ ဝင်လမ်း လိုသည်。
     #    မရှိလျှင် preview တစ်ခါပြီးတာနဲ့ ပိတ်မိမည်。

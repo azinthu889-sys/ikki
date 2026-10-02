@@ -1366,6 +1366,13 @@ function watchJob(jid, el){
                 +'ထုတ်ရင် မိနစ် ကောက်ပါမယ်။'))+'</p>';
          var _bok=document.getElementById("cok"), _brc=document.getElementById("crc");
          var _bpv=document.getElementById("cpv");
+         /* 2026-10-02: source already removed -> preview and render would both fail
+            (and a preview would spend a free allowance). Say it, switch them off. */
+         if(j.src_gone){
+           [_bok,_bpv].forEach(function(b){ if(b) b.disabled=true });
+           var _vp=el.querySelector(".vpn");
+           if(_vp) _vp.textContent="မူရင်း ဗီဒီယိုကို သိမ်းထားချိန် ကုန်၍ ဖျက်ပြီးပါပြီ — ပြန်ထုတ်ရန် ဗီဒီယိုကို ပြန် upload လုပ်ပါ။";
+         }
          var _lv="auto";
          /* ── Fine tune ── */
          (function(){
