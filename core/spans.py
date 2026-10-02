@@ -65,6 +65,68 @@ def _punch(z, w, h, y=PUNCH_Y, x=0.5):
     return (f"crop={cw}:{ch}:{ox}:{int((h - ch) * y)},scale={w}:{h}")
 
 
+XFADE = 0.025   # ⚠️ ဆက်မှတ် ထပ်ချိန် — လူတည်းဖြတ်သူ သုံးသော ၂၀–၃၀ms
+
+
+def xfade_audio(src, spans, out, d=XFADE, log=None):
+    """ဖြတ်မှတ်များကို **crossfade** နဲ့ ဆက်သော အသံ လမ်းကြောင်း
+
+    ⚠️⚠️ **ဘာကြောင့် လိုလဲ** — ယခင်က အပိုင်းတိုင်းကို သုညဆီ `afade`
+       လုပ်ပြီး `concat` လုပ်ခဲ့သည် ⇒ ဆက်မှတ်တိုင်းမှာ ၄၀ms **အသံ ပြတ်**သည်。
+       အဲဒါ မကြားရတာက ဖြတ်မှတ် အားလုံး တိတ်ဆိတ်မှုထဲ ရှိနေလို့ ဖြစ်သည်
+       (ထွက်ဖိုင် တိုင်းချက်: ချိုင့် ၀ ခု)。 ⇒ **တိတ်ဆိတ်မှုထဲ ဖြတ်ရတာက
+       crossfade မရှိလို့**、တိတ်ဆိတ်မှုဆီ ဆွဲရလို့ user ရဲ့ ဖျက်ချက်
+       နယ်နိမိတ် ရွေ့ရသည် (ဘေးက စကား ၀.၂၂s ပါသွားခဲ့သည်)。
+       crossfade ရှိလျှင် **စကားလုံးအလယ် ဖြတ်လည် မကြားရ** ⇒ user ရဲ့
+       နယ်နိမိတ်အတိုင်း တိတိကျကျ ဖြတ်နိုင်သည် (Zin ရွေးချယ်ချက် 「က」)。
+
+    ⚠️⚠️ **ကြာချိန် မရွေ့စေရ**。 `acrossfade=d` က အပိုင်း ၂ ခုကို `d` ကြာ
+       ထပ်စေသဖြင့် ဆက်မှတ် ၄၃ ခု ဆိုလျှင် **၁.၀၇s တို**သွားမည် ⇒ ဗီဒီယိုနဲ့
+       မကိုက်တော့ (တိုင်းပြီး: handle မပါလျှင် −၀.၁၀၀s / ဆက်မှတ် ၄ ခု)。
+       ⇒ အပိုင်းတိုင်းကို `d/2` စီ **ပိုဆွဲ** (handle) ပြီး ထပ်ချက်က အဲဒါကို
+         စားစေသည်。 ⚠️ **ပထမရဲ့ အစ · နောက်ဆုံးရဲ့ အဆုံး** မှာ handle
+         မထည့်ရ — ထပ်ချက် မရှိ၍ စားမခံရဘဲ ကျန်မည် (တိုင်းပြီး: +၀.၀၂၅s)。
+       တိုင်းချက် — handle မှန်မှန် ထည့်လျှင် ရွေ့ **+၀.၀၀၀s**。
+    ⚠️ handle က **ဖျက်လိုက်သော အပိုင်း**ကနေ ၁၂.၅ms ယူသည် — မကြားနိုင်သော
+       အရှည် ဖြစ်ပြီး လူတည်းဖြတ်သူရဲ့ 「handle」 နဲ့ အတူတူ。
+    """
+    n = len(spans)
+    if n == 0:
+        raise RuntimeError("span မရှိ")
+    work = os.path.dirname(out) or "."
+    parts = []
+    for i, (a, b) in enumerate(spans):
+        hl = (d / 2.0) if i > 0 else 0.0
+        hr = (d / 2.0) if i < n - 1 else 0.0
+        a2 = max(0.0, float(a) - hl); b2 = float(b) + hr
+        q = os.path.join(work, "_xa%04d.wav" % i)
+        # ⚠️ `-ss` ကို `-i` **နောက်မှာ** ထားသည် — တိကျသော ရှာဖွေမှု
+        #    (keyframe မဟုတ်)。 အသံသာ ဖြစ်၍ နှေးမှု သိပ် မရှိ。
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src,
+                        "-ss", "%.4f" % a2, "-t", "%.4f" % (b2 - a2),
+                        "-vn", "-ac", "2", "-ar", "48000", q], check=True)
+        parts.append(q)
+    if n == 1:
+        os.replace(parts[0], out)
+        return out
+    cmd = ["ffmpeg", "-v", "error", "-y"]
+    for q in parts:
+        cmd += ["-i", q]
+    fc = []; last = "0:a"
+    for i in range(1, n):
+        lab = "x%d" % i
+        fc.append("[%s][%d:a]acrossfade=d=%.4f:c1=tri:c2=tri[%s]" % (last, i, d, lab))
+        last = lab
+    cmd += ["-filter_complex", ";".join(fc), "-map", "[%s]" % last, out]
+    subprocess.run(cmd, check=True)
+    for q in parts:
+        try:
+            os.remove(q)
+        except OSError:
+            pass
+    return out
+
+
 def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
           fade=FADE, zooms=None, scale=None):
     """ဖြတ်မှတ်အတိုင်း ဖြတ်ပြီး ပြန်ဆက်သည်。
@@ -91,14 +153,18 @@ def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
                         y=_zv.get("y", PUNCH_Y), x=_zv.get("x", 0.5))
         else:
             vf = _punch(_zv, _w, _h)
+        # ⚠️⚠️ **အသံကို ဒီမှာ မထည့်တော့ပါ** (၂၀၂၆-၁၀-၀၂)。 ယခင်က အပိုင်း
+        #    တိုင်းကို သုညဆီ `afade` လုပ်ပြီး concat လုပ်ခဲ့ရာ ဆက်မှတ်တိုင်းမှာ
+        #    အသံ ၄၀ms ပြတ်သည် ⇒ ဖြတ်မှတ်ကို တိတ်ဆိတ်မှုထဲ ထားရသည် ⇒
+        #    user ရဲ့ ဖျက်ချက် နယ်နိမိတ် ရွေ့ရသည်。 ယခု အသံကို
+        #    `xfade_audio()` နဲ့ **crossfade** လုပ်ပြီး နောက်မှ mux သည်。
         cmd = ["ffmpeg","-v","error","-y",
-            "-ss",f"{a:.3f}","-i",src,"-t",f"{d:.3f}",
-            "-af",f"afade=t=in:st=0:d={fade:.4f},afade=t=out:st={max(0,d-fade):.3f}:d={fade:.4f}"]
+            "-ss",f"{a:.3f}","-i",src,"-t",f"{d:.3f}","-an"]
         if scale:
             _sc = f"scale=-2:{int(scale)}"
             vf = f"{vf},{_sc}" if vf else _sc
         if vf: cmd += ["-vf", vf]
-        cmd += ["-r",str(fps),*enc,"-c:a","aac","-b:a","192k",
+        cmd += ["-r",str(fps),*enc,
                 "-avoid_negative_ts","make_zero",p]
         subprocess.run(cmd, check=True)
         parts.append(p)
@@ -106,10 +172,48 @@ def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
     lst=os.path.join(work,"parts.txt")
     with open(lst,"w") as f:
         for p in parts: f.write("file '%s'\n" % p.replace("'","'\\''"))
+    _v = os.path.join(work, "_vonly.mp4")
     subprocess.run(["ffmpeg","-v","error","-y","-f","concat","-safe","0","-i",lst,
-                    "-c","copy",out], check=True)
+                    "-c","copy",_v], check=True)
+    # ── အသံကို crossfade နဲ့ ဆောက်ပြီး mux ───────────────────────────
+    # ⚠️ ကြာချိန် မရွေ့ကြောင်း `xfade_audio` မှာ handle နဲ့ အာမခံထားသည်。
+    #    ⚠️ ကျဆုံးလျှင် **တိတ်တဆိတ် မကျော်ရ** — ယခင် နည်း (အသံပါ concat)
+    #      ကို ပြန်သုံးပြီး အကြောင်း ပြရမည်。
+    _a = os.path.join(work, "_axf.wav")
+    try:
+        xfade_audio(src, spans, _a)
+        subprocess.run(["ffmpeg","-v","error","-y","-i",_v,"-i",_a,
+                        "-map","0:v:0","-map","1:a:0","-c:v","copy",
+                        "-c:a","aac","-b:a","192k","-shortest",out], check=True)
+    except Exception as _xe:
+        print(f"  ⚠️ အသံ crossfade မရ ({type(_xe).__name__}: {_xe}) — "
+              f"ယခင်နည်း (fade+concat) သို့ ပြန်သွားသည်", flush=True)
+        _p2 = []
+        for i, (a, b) in enumerate(spans):
+            d = b - a
+            if d <= 0.05: continue
+            q = os.path.join(work, f"a{i:04d}.m4a")
+            subprocess.run(["ffmpeg","-v","error","-y","-i",src,
+                "-ss",f"{a:.3f}","-t",f"{d:.3f}","-vn",
+                "-af",f"afade=t=in:st=0:d={fade:.4f},"
+                      f"afade=t=out:st={max(0,d-fade):.3f}:d={fade:.4f}",
+                "-c:a","aac","-b:a","192k",q], check=True)
+            _p2.append(q)
+        l2 = os.path.join(work,"aparts.txt")
+        with open(l2,"w") as f:
+            for q in _p2: f.write("file '%s'\n" % q.replace("'","'\\''"))
+        subprocess.run(["ffmpeg","-v","error","-y","-f","concat","-safe","0",
+                        "-i",l2,"-c","copy",_a+".m4a"], check=True)
+        subprocess.run(["ffmpeg","-v","error","-y","-i",_v,"-i",_a+".m4a",
+                        "-map","0:v:0","-map","1:a:0","-c","copy",
+                        "-shortest",out], check=True)
+        for q in _p2 + [l2, _a+".m4a"]:
+            try: os.remove(q)
+            except OSError: pass
     for p in parts: os.remove(p)
-    os.remove(lst)
+    for q in (lst, _v, _a):
+        try: os.remove(q)
+        except OSError: pass
     return out
 
 def _solve_ceiling(got_tp, tp, applied, lo=-12.0, hi=-1.0):
