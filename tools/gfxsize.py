@@ -62,6 +62,7 @@ if len(anim) < 2:
     print(json.dumps({"ok":0,"why":"ဖရိမ်း %%d" %% len(anim)})); raise SystemExit
 seq = list(anim[len(anim)//2:]) + [(q,x,y) for q,x,y,_d in el.get("statics",[])]
 y0, y1, x0, x1, H, W = 10**9, -1, 10**9, -1, 0, 0
+_bm, _br, _PH = 0.0, None, int(TH.t()["H"])
 for it in seq:
     q = rp(it[0] if isinstance(it,(list,tuple)) else it)
     if not os.path.exists(q): continue
@@ -70,20 +71,37 @@ for it in seq:
     a = np.asarray(im)[:,:,3]
     ys = np.nonzero(a.max(axis=1) > 8)[0]
     xs = np.nonzero(a.max(axis=0) > 8)[0]
+    oy = it[2] if isinstance(it,(list,tuple)) and len(it) > 2 else 0
+    ox = it[1] if isinstance(it,(list,tuple)) and len(it) > 1 else 0
     if len(ys):
-        oy = it[2] if isinstance(it,(list,tuple)) and len(it) > 2 else 0
-        ox = it[1] if isinstance(it,(list,tuple)) and len(it) > 1 else 0
         y0 = min(y0, oy+int(ys.min())); y1 = max(y1, oy+int(ys.max()))
         x0 = min(x0, ox+int(xs.min())); x1 = max(x1, ox+int(xs.max()))
+    # ⚠️⚠️ veil — `dress._ybox()` နဲ့ **အတိအကျ တူညီသော** တွက်နည်း
+    #    (မတူလျှင် ကြိုတိုင်းချက်က အလကား — ရွေးချိန်မှာ ပယ်ဖြစ်မည်)。
+    _af = a.astype("float32") / 255.0
+    _m = float(_af.sum()) / max(1.0, float(_PH) * float(_af.shape[1]))
+    if _m > _bm:
+        _bm = _m
+        _rr = np.zeros(_PH, dtype="float64")
+        _hi = min(_PH, int(oy) + _af.shape[0])
+        if _hi > int(oy):
+            _rr[int(oy):_hi] = _af[:_hi-int(oy)].sum(axis=1)
+        _br = _rr
 if y1 < 0 or not H:
     print(json.dumps({"ok":0,"why":"မှင် မရှိ"})); raise SystemExit
+_veil = 0
+if (y1 - y0) >= 0.90 * _PH and _bm < 0.50 and _br is not None and _br.max() > 0:
+    _ix = np.nonzero(_br >= 0.20 * float(_br.max()))[0]
+    if len(_ix) and int(_ix[-1]) > int(_ix[0]):
+        y0, y1 = int(_ix[0]), int(_ix[-1]); _veil = 1
 # \u26a0\ufe0f **\u1021\u1001\u103b\u102d\u102f\u1038\u1000\u102d\u102f element canvas \u1014\u1032\u1037 \u1019\u1010\u103d\u1000\u103a\u101b** \u2014 `word_pop` \u101b\u1032 canvas \u1000 \u1041\u1049\u1047px 
 #    \u1016\u103c\u1005\u103a\u101e\u1016\u103c\u1004\u103a\u1037 \u1041\u1042\u1042/\u1041\u1049\u1047 = \u1046\u1042%% \u1011\u103d\u1000\u103a\u1015\u103c\u102e\u1038 \u1010\u1000\u101a\u103a\u1010\u1019\u103a\u1038\u1000 \u1018\u1031\u102c\u1004\u103a\u101b\u1032\u1037 \u1041\u1041%% \u101e\u102c\u3002
 #    \u21d2 **production \u1018\u1031\u102c\u1004\u103a\u1021\u1019\u103c\u1004\u103a\u1037** (theme \u101b\u1032 H) \u1000\u102d\u102f \u1021\u1001\u103c\u1031\u1001\u1036 \u1011\u102c\u1038\u101e\u100a\u103a\u3002
 _d = TH.t()
 print(json.dumps({"ok":1, "h": int(y1-y0), "w": int(max(0,x1-x0)),
                   "H": int(_d["H"]), "W": int(_d["W"]),
-                  "canvas_h": int(H), "canvas_w": int(W), "n": len(anim)}))
+                  "canvas_h": int(H), "canvas_w": int(W), "n": len(anim),
+                  "mass": round(_bm, 5), "veil": _veil}))
 ''' % {"HERE": HERE}
 
 
