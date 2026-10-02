@@ -1506,8 +1506,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _req = [[float(a), float(b)] for a, b in user_drop]   # guard မတိုင်မီ တောင်းချက်
             # ⚠️ စွမ်းအင် မြေပုံ ပေးရမည် — တိတ်ဆိတ်မှု မရှိရာမှာ
             #    အနိမ့်ဆုံးမှတ်ဆီ ဆွဲသွင်းနိုင်ရန် (`quiet_at`)。
+            # ⚠️⚠️ `grow=True` — ဖျက်ချက်ကို **အသံ ဆက်နေသမျှ** ချဲ့သည်。
+            #    မချဲ့လျှင် ဝါကျရဲ့ အမြီး ကျန်ပြီး 「ဖျက်ပေမယ့် မပျောက်」
+            #    ဖြစ်မည် — တကယ့် transcript ၃၁ ဝါကျနဲ့ တိုင်းချက်:
+            #    leftover p90 ၀.၅၆s · max ၀.၈၄s · **၂၂/၃၁ မကောင်း**。
+            #    ချဲ့ပြီး — p90 ၀.၁၄s · max ၀.၁၈s · ၁၅/၃၁ (overcut မတက်)。
             spans, _rm = CUT.subtract(spans, user_drop, _sil2,
-                                      db=_DBTRACK[0], hop=_DBTRACK[1])
+                                      db=_DBTRACK[0], hop=_DBTRACK[1],
+                                      grow=True, dur=float(m["dur"]))
             log(f"  သုံးစွဲသူ ဖျက်ချက် {len(user_drop)} ခု · ဖြုတ် {_rm:.1f}s"
                 f" → ကျန် {sum(b-a for a,b in spans):.1f}s")
             st["user_removed"] = _rm
@@ -1569,8 +1575,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _inph = [[float(d[0]), float(d[1])] for d, _w in _dbad if _edge_in_speech(d)]
                 _dbad = [(d, w) for d, w in _dbad if not _edge_in_speech(d)]
             if _inph and sum(b - a for a, b in spans) - sum(b - a for a, b in _inph) >= CUT.MIN_LEFT:
+                # ⚠️⚠️ `grow=False` — **ဒါက ဝါကျအတွင်းက ဖြတ်ချက်**
+                #    (ချောင်းဆိုးသံ · ထပ်နေတာ) ဖြစ်၍ ချဲ့လျှင် ဘေးက
+                #    စကားလုံးတွေ ပါသွားမည်。 ဝါကျ ဖျက်ချက် (အပေါ်) က
+                #    ဝါကျတစ်ခုလုံး ဖြစ်၍ ချဲ့ရသည် — **၂ ခု မတူ**。
                 spans, _rm3 = CUT.subtract(spans, _inph, None, snap=0.12,
-                                           db=_DBTRACK[0], hop=_DBTRACK[1])
+                                           db=_DBTRACK[0], hop=_DBTRACK[1],
+                                           grow=False)
                 log(f"  ✂ စကားစုထဲက ဖြတ်ချက် {len(_inph)} ခု · ဖြုတ် {_rm3:.1f}s "
                     f"(အစွန်းကို ±0.12s အတွင်း အသံ အနိမ့်ဆုံးမှတ်သို့ ညှိ)")
                 _lft = [[round(a, 2), round(b, 2)] for a, b in _inph
