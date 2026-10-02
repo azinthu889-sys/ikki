@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0A0A0A">
-<link rel="stylesheet" href="/app.css?v=1790073417">
+<link rel="stylesheet" href="/app.css?v=1790949143">
 </head>
 <body>
 
@@ -29,12 +29,12 @@
     <div class="lang" role="group" aria-label="Language">
       <button id="l-my" aria-pressed="true">မြန်မာ</button><button id="l-en" aria-pressed="false">EN</button>
     </div>
-    <span id="acctchip" class="mono" style="font-size:12px;color:var(--tx3);
+    <span id="acctchip" class="mono" data-my-tt="ဝင်ထားသော အကောင့်" data-en-tt="Signed-in account" title="Signed-in account" style="font-size:12px;color:var(--tx3);
       padding:0 10px;white-space:nowrap"></span>
     <button class="ico" id="logout" aria-label="Log out"
       data-my-tt="ထွက်မယ်" data-en-tt="Log out" title="Log out">⏻</button>
     <button class="ico" id="priv" aria-label="File privacy" data-my-tt="ဖိုင် လုံခြုံရေး" data-en-tt="File privacy" title="ဖိုင် လုံခြုံရေး">🔒</button>
-    <button class="ico" id="thm" aria-label="Theme">◑</button>
+    <button class="ico" id="thm" aria-label="Theme" data-my-tt="အလင်း / အမှောင်" data-en-tt="Light / dark" title="Light / dark">◑</button>
   </div>
 </header>
 
@@ -86,7 +86,7 @@
           <div class="mode-pick" id="modepick" role="group" aria-labelledby="brandstep">
             <button type="button" class="mode" data-mode="smart" aria-pressed="true">
               <b data-my="✦ IKKI Smart Edit" data-en="✦ IKKI Smart Edit">✦ IKKI Smart Edit</b>
-              <span data-my="AI お任せ · အကြံပြု" data-en="AI お任せ · Recommended">AI お任せ · အကြံပြု</span></button>
+              <span data-my="AI ကို အပ်ထား · အကြံပြု" data-en="AI decides · Recommended">AI ကို အပ်ထား · အကြံပြု</span></button>
             <button type="button" class="mode" data-mode="brand" aria-pressed="false">
               <b data-my="ကိုယ်ပိုင် brand သုံးမယ်" data-en="Use my brand">ကိုယ်ပိုင် brand သုံးမယ်</b>
               <span data-my="Logo · အရောင် · ဖောင့်" data-en="Logo · colour · font">Logo · အရောင် · ဖောင့်</span></button>
@@ -144,6 +144,15 @@
             data-my="ဘယ်အရှိန်ရွေးရွေး 10 စက္ကန့်ကျော် shot ~15% ကို ချန်ထားပါတယ် — ZIN JAPAN LIFE vlog ၅ ပုဒ်လုံးမှာ ပြောင်းမသွားတဲ့ အချက်ပါ။"
             data-en="Whatever the pace, about 15% of shots stay over 10 s — the one thing all five ZIN JAPAN LIFE vlogs share.">ဘယ်အရှိန်ရွေးရွေး 10 စက္ကန့်ကျော် shot ~15% ကို ချန်ထားပါတယ် — ZIN JAPAN LIFE vlog ၅ ပုဒ်လုံးမှာ ပြောင်းမသွားတဲ့ အချက်ပါ။</p>
         </div>
+        <!-- 2026-10-02 UI audit: video type, speaking pace and recorder audio sat in the
+             main path; most uploads never need them, and "Podcast" here repeated the
+             Podcast style. Folded away with a summary of what is set. -->
+        <details id="more03" style="margin:0 0 16px;border:1px solid var(--ln);border-radius:14px;padding:0 14px">
+          <summary style="cursor:pointer;padding:13px 0;font-weight:600;font-size:14px;list-style:none"
+            ><span data-my="ထပ်ဆောင်း ရွေးချယ်မှု" data-en="More options">ထပ်ဆောင်း ရွေးချယ်မှု</span><span
+            style="font-weight:400;color:var(--tx3);margin-left:8px;font-size:12.5px" data-my="ဗီဒီယို အမျိုးအစား · စကား အရှိန် · အသံ သီးသန့်"
+            data-en="video type · speaking pace · separate audio">ဗီဒီယို အမျိုးအစား · စကား အရှိန် · အသံ သီးသန့်</span></summary>
+          <div style="padding-bottom:6px">
 <div class="sech" id="vfmthead"><h3 data-my="ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?" data-en="What kind of video is this?">ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ?</h3></div>
         <div class="chips" id="vfmtbox" style="margin-bottom:8px">
           <button class="chip vfmt" data-vfmt="camera" aria-pressed="false"
@@ -197,6 +206,7 @@
              data-my="ဒီ recorder အသံက ချိန်ညှိပြီးလျှင် **ကင်မရာအသံကို အစားထိုး**ပါမယ် — နောက်ခံ တီးလုံး မဟုတ်ပါ။"
              data-en="This recorder track will replace camera audio after sync; it is not background music.">ဒီ recorder အသံက ချိန်ညှိပြီးလျှင် ကင်မရာအသံကို အစားထိုးပါမယ် — နောက်ခံ တီးလုံး မဟုတ်ပါ။</p>
         </div>
+        </div></details>
         <div class="project-upload">
           <div><span class="eyebrow" data-my="READY WHEN YOU ARE" data-en="READY WHEN YOU ARE">READY WHEN YOU ARE</span>
             <p id="uplede" data-my="တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။"
@@ -226,29 +236,28 @@
           <summary style="cursor:pointer;padding:14px 0;font-weight:600;font-size:14px;list-style:none"
             ><span data-my="အဆင့်မြင့် ချိန်ညှိချက်" data-en="Advanced">အဆင့်မြင့် ချိန်ညှိချက်</span><span id="advsum" style="font-weight:400;color:#78716C;margin-left:8px;font-size:13px"></span></summary>
           <div style="padding-bottom:10px">
-<div class="sech"><h3 data-my="ဘရန်း" data-en="Brand">ဘရန်း</h3>
+<!-- 2026-10-02 UI audit: the brand was chosen twice (step 01 and here). Step 01
+     is the one place now; these stay in the DOM (hidden) because app.js paints them. -->
+<div class="sech" hidden><h3 data-my="ဘရန်း" data-en="Brand">ဘရန်း</h3>
           <button class="more" id="gostyle" data-my="ဘရန်း ပြင်မယ် →" data-en="Edit brands →">ဘရန်း ပြင်မယ် →</button></div>
-        <p class="lede" style="margin:0 0 12px;font-size:13px"
-          data-my="အရောင်နှင့် ဖောင့်ကို ဘရန်းက ဆုံးဖြတ်တယ်။ အရွယ်က သီးသန့်။"
-          data-en="The brand sets colours and type. Size is separate.">အရောင်နှင့် ဖောင့်ကို ဘရန်းက ဆုံးဖြတ်တယ်။ အရွယ်က သီးသန့်။</p>
-        <div class="chips" id="brandpick"></div>
+        <div class="chips" id="brandpick" hidden></div>
 
         <div class="sech"><h3 data-my="အရွယ်" data-en="Size">အရွယ်</h3>
-          <button class="more" id="fmtreset" data-my="ဘရန်း ပုံသေ ပြန်သုံး" data-en="Use brand default">ဘရန်း ပုံသေ ပြန်သုံး</button></div>
+          <button class="more" id="fmtreset" data-my="↺ ဘရန်း ပုံသေ ပြန်သုံး" data-en="↺ Reset to brand default">ဘရန်း ပုံသေ ပြန်သုံး</button></div>
         <p class="lede" style="margin:0 0 12px;font-size:13px"
           data-my="တင်မယ့် platform အလိုက် ရွေးပါ။ ဘရန်းက ဘယ်အရွယ်နဲ့မဆို အလုပ်လုပ်တယ်။"
           data-en="Pick the platform you post to. Any brand works at any size.">တင်မယ့် platform အလိုက် ရွေးပါ။ ဘရန်းက ဘယ်အရွယ်နဲ့မဆို အလုပ်လုပ်တယ်။</p>
         <div id="fmtpick"></div>
 
         <div class="sech"><h3 data-my="စာတန်း အရွယ်" data-en="Subtitle size">စာတန်း အရွယ်</h3>
-          <button class="more" id="capreset" data-my="ပုံစံ ပုံသေ ပြန်သုံး" data-en="Use style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
+          <button class="more" id="capreset" data-my="↺ ပုံစံ ပုံသေ ပြန်သုံး" data-en="↺ Reset to style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
         <p class="lede" style="margin:0 0 12px;font-size:13px"
           data-my="ဖုန်းမှာ ကြည့်ရင် ကြီးတာက ဖတ်ရလွယ်တယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ သုံးပါမယ်။"
           data-en="Bigger reads better on a phone. Leave it unset to use the style's default.">ဖုန်းမှာ ကြည့်ရင် ကြီးတာက ဖတ်ရလွယ်တယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ သုံးပါမယ်။</p>
         <div class="chips" id="cappick"></div>
 
         <div class="sech"><h3 data-my="မြန်မာ ဖောင့်" data-en="Burmese font">မြန်မာ ဖောင့်</h3>
-          <button class="more" id="fontreset" data-my="ပုံစံ ပုံသေ ပြန်သုံး" data-en="Use style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
+          <button class="more" id="fontreset" data-my="↺ ပုံစံ ပုံသေ ပြန်သုံး" data-en="↺ Reset to style default">ပုံစံ ပုံသေ ပြန်သုံး</button></div>
         <p class="lede" style="margin:0 0 12px;font-size:13px"
           data-my="ရွေးလိုက်တဲ့ ဖောင့်အတိုင်း ထွက်လာပါမယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ ဖောင့် သုံးပါမယ်။"
           data-en="The font you pick is the font you get. Leave it unset to use the style's default.">ရွေးလိုက်တဲ့ ဖောင့်အတိုင်း ထွက်လာပါမယ်။ မရွေးရင် ပုံစံရဲ့ ပုံသေ ဖောင့် သုံးပါမယ်။</p>
@@ -460,10 +469,14 @@
         <label class="srch"><span aria-hidden="true">⌕</span>
           <input id="q" type="search" data-my-ph="ရှာရန်  /" data-en-ph="Search  /" placeholder="ရှာရန်  /" aria-label="Search"></label>
         <button class="fdrop stf" aria-pressed="true" data-st="all" data-my="အားလုံး" data-en="All">အားလုံး</button>
+        <button class="fdrop stf" data-st="review" data-my="စစ်ရန်" data-en="To review">စစ်ရန်</button>
         <button class="fdrop stf" data-st="running" data-my="လုပ်နေဆဲ" data-en="Running">လုပ်နေဆဲ</button>
         <button class="fdrop stf" data-st="failed" data-my="ပျက်သွား" data-en="Failed">ပျက်သွား</button>
         <button class="fdrop stf" data-st="done" data-my="ပြီးပြီ" data-en="Done">ပြီးပြီ</button>
       </div>
+      <!-- 2026-10-02 UI audit: ~45 of 82 rows were "file gone" — kept, but folded away -->
+      <button id="arch" class="linkbtn" hidden aria-pressed="false"
+        style="background:none;border:0;color:var(--tx3);font-size:12.5px;cursor:pointer;margin:-4px 0 12px;padding:4px 0"></button>
       <!-- ⚠️ ဖျက်တာက ပြန်ရနိုင်ရမည် — ၂၄ နာရီအတွင်း -->
         <div id="undobar" hidden style="margin:0 0 14px;padding:12px 16px;
              border:1px solid var(--ac);border-radius:12px;display:flex;gap:14px;
@@ -519,7 +532,10 @@
         data-en="Add photos or footage and the AI places them where the speech actually matches. A photo gets a slow push so the frame never sits still.">ပုံ ဒါမှမဟုတ် ရုပ်ကြမ်း ထည့်ထားရင် ပြောနေတဲ့ အကြောင်းအရာနဲ့ ကိုက်တဲ့နေရာမှာ AI က ကိုယ်တိုင် ထည့်ပေးပါမယ်။ ပုံဆိုရင် နှေးနှေး တိုးဝင်သွားအောင် လုပ်ပေးတယ် — တည်ငြိမ်နေရင် ရုပ်သေနေသလို ဖြစ်လို့ပါ။</p>
       <div class="rows" id="brolllist"></div>
 
-      <div class="sech"><h3 data-my="03 · Engine defaults" data-en="03 · Engine defaults">03 · Engine defaults</h3></div>
+      <!-- 2026-10-02 UI audit: per-style engine numbers are an expert tool -- folded. -->
+      <details id="engwrap" style="margin:4px 0 0;border:1px solid var(--ln);border-radius:14px;padding:0 14px">
+        <summary style="cursor:pointer;padding:13px 0;font-weight:600;font-size:14px;list-style:none"
+          data-my="03 · Engine defaults (ကျွမ်းကျင်သူအတွက်)" data-en="03 · Engine defaults (for experts)">03 · Engine defaults (ကျွမ်းကျင်သူအတွက်)</summary>
       <p class="lede" style="margin:0 0 12px;font-size:13px"
         data-my="ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။"
         data-en="Every style's numbers were measured from reference videos. You can change them, and reset back.">ပုံစံတိုင်းရဲ့ ကိန်းတွေက reference ဗီဒီယိုကနေ တိုင်းယူထားတာ။ ပြင်လို့ရတယ်၊ ပုံသေလည်း ပြန်သုံးလို့ရတယ်။</p>
@@ -536,6 +552,7 @@
           <button class="btn" id="secancel" data-my="ပယ်မယ်" data-en="Cancel">ပယ်မယ်</button>
           <button class="btn dg" id="sereset" data-my="ပုံသေ ပြန်သုံး" data-en="Reset to default">ပုံသေ ပြန်သုံး</button></div>
       </div>
+      </details>
 
       <!-- ဘရန်း ပြင်ခြင်း — ⚠️ Create စာမျက်နှာမှာ **ရွေးရုံ**၊ ပြင်တာ ဒီမှာ -->
       <div id="bedit" class="card" hidden style="margin-top:18px">
@@ -589,6 +606,11 @@
         <button class="more" id="payrefresh" data-my="ပြန်ဆွဲ" data-en="Refresh">ပြန်ဆွဲ</button></div>
       <div class="card" id="payadmin" hidden style="margin-bottom:22px"></div>
 
+      <!-- 2026-10-02 UI audit: owner-only set-up (bot token, chat id) sat open on every
+           account page; non-owners saw disabled fields. Owner: folded. Others: hidden. -->
+      <details id="tgwrap" style="margin:0 0 22px;border:1px solid var(--ln);border-radius:14px;padding:0 14px">
+        <summary style="cursor:pointer;padding:13px 0;font-weight:600;font-size:14px;list-style:none"
+          data-my="Telegram အကြောင်းကြားချက် ဆက်တင် (ပိုင်ရှင်)" data-en="Telegram notifications set-up (owner)">Telegram အကြောင်းကြားချက် ဆက်တင် (ပိုင်ရှင်)</summary>
       <div class="sech"><h3 data-my="Telegram အကြောင်းကြားချက်" data-en="Telegram notifications">Telegram အကြောင်းကြားချက်</h3>
         <button class="more" id="tgsave" data-my="သိမ်းမယ်" data-en="Save">သိမ်းမယ်</button></div>
       <div class="card">
@@ -602,6 +624,7 @@
           data-my="ဗီဒီယို ပြီးတိုင်း ဖြတ်ချက်အရေအတွက်နဲ့ အတည်ပြုရန် အရေအတွက်ကို ပို့ပါမယ်။"
           data-en="Every finished video sends the cut count and anything awaiting your approval.">ဗီဒီယို ပြီးတိုင်း ဖြတ်ချက်အရေအတွက်နဲ့ အတည်ပြုရန် အရေအတွက်ကို ပို့ပါမယ်။</p>
       </div>
+      </details>
 
       <div class="sech" id="privacy"><h3 data-my="သင့် ဖိုင်တွေ ဘာဖြစ်သွားလဲ" data-en="What happens to your files">သင့် ဖိုင်တွေ ဘာဖြစ်သွားလဲ</h3></div>
       <p style="font-size:13.5px;color:var(--tx2);margin-bottom:13px"
@@ -635,6 +658,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1790861719"></script>
+<script src="/app.js?v=1790950212"></script>
 </body>
 </html>

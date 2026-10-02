@@ -563,9 +563,41 @@ def job_list(authorization: str = Header(None)):
     except Exception: pass
     try: _verify()
     except Exception: pass
-    return {"jobs": db.rows(
+    rows = db.rows(
         "SELECT * FROM jobs WHERE deleted IS NULL AND acct=? "
-        "ORDER BY created DESC LIMIT 200", aid(authorization))}
+        "ORDER BY created DESC LIMIT 200", aid(authorization))
+    for r in rows:
+        r["src_gone"] = _src_gone(r.get("upload_id"))
+    return {"jobs": rows}
+
+
+# 2026-10-02 UI audit: sources are removed after SRC_DAYS (R2 lifecycle, stated
+# on the Account page), but the list kept offering "✂️ Edit" / re-render for them
+# and every attempt died later with a bare "HTTP Error 404" (j_aec7757ad1dd).
+# Ask storage once per upload and remember the answer for a while.
+_SRC_CACHE = {}
+def _src_gone(uid, ttl=6 * 3600):
+    """True only when the source is known to be gone; False when present or unknown."""
+    if not uid: return False
+    hit = _SRC_CACHE.get(uid)
+    if hit and time.time() - hit[1] < ttl: return hit[0]
+    gone = False
+    try:
+        u = db.one("SELECT * FROM uploads WHERE id=?", uid)
+        if not u:
+            gone = True
+        elif u.get("path") and os.path.isfile(u["path"]):
+            gone = False
+        elif u.get("key") and ST.on():
+            gone = not ST.head(u["key"])
+        elif u.get("local"):
+            gone = False                      # a worker-local file: cannot tell from here
+        else:
+            gone = not (u.get("path") and os.path.isfile(u["path"]))
+    except Exception:
+        return False                          # cannot tell -> do not block the user
+    _SRC_CACHE[uid] = (gone, time.time())
+    return gone
 
 @app.get("/api/jobs/{jid}")
 def job_get(jid: str, authorization: str = Header(None)):
@@ -579,6 +611,7 @@ def job_get(jid: str, authorization: str = Header(None)):
     #    ၄၀၂ ပြန်လာမှ သိရမည် (ခလုပ် နှိပ်ပြီးမှ)。
     j["prev_free"] = PREVIEW_FREE
     j["prev_used"] = prev_used(j.get("upload_id"), j.get("acct"))
+    j["src_gone"] = _src_gone(j.get("upload_id"))
     return j
 
 @app.post("/api/jobs/{jid}/cancel")
@@ -835,7 +868,9 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
            # ⚠️ brand ကို ပြင်ခွင့် ပေးသည် — မဟုတ်လျှင် အဟောင်း job ရဲ့ brand
            #    (များသောအားဖြင့် `zjl`) က ထာဝရ ကပ်နေမည်。 မသိသော brand ကို
            #    လက်မခံဘဲ မူရင်းကို ဆက်သုံးသည်。
-           nid, (par["title"] or "") + " · ပြင်ပြီး", par["upload_id"], _nbrand,
+           # one suffix only: re-editing a re-edit used to stack
+           # "· ပြင်ပြီး · ပြင်ပြီး · …" and make rows indistinguishable
+           nid, (par["title"] or "").replace(" · ပြင်ပြီး", "") + " · ပြင်ပြီး", par["upload_id"], _nbrand,
            _nrec or par["recipe"], fnt, _nfmt or par.get("fmt") or "", capz,
            json.dumps(clean, ensure_ascii=False),
            json.dumps(orig, ensure_ascii=False),
@@ -999,7 +1034,30 @@ def brands(authorization: str = Header(None)):
     for b in bs:
         b["colors"] = json.loads(b["colors"])
         b["is_system"] = False
+        # 2026-10-02 UI audit: for a house brand the worker renders with the
+        # measured house theme and ignores the record's colours and fonts
+        # ("house brand zae ⇒ theme palette (DB အရောင် မယူ)"). Show what is used.
+        h = HOUSE_THEME.get(b["id"])
+        if h:
+            b["house"] = True
+            b["colors_used"] = h["colors"]; b["mmf_used"] = h["mmf"]; b["latin_used"] = h["latin"]
+        # the worker's default size is formats.NATIVE first, the record second
+        # (ZAE: the record says 9:16, the render default is 3:4)
+        if getattr(FM, "NATIVE", {}).get(b["id"]):
+            b["aspect_used"] = FM.NATIVE[b["id"]]
     return {"brands": [_sys_brand()] + bs}
+
+
+# Mirror of motionkit theme.THEMES for the house brands (the API image has no
+# motionkit). tests/test_house_theme.py fails if the two drift apart.
+HOUSE_THEME = {
+    "zae":  dict(colors=["#0B1B33", "#16304C", "#F5C543", "#4FA8DC", "#E5484D"],
+                 mmf="MyanmarHeadOne", latin="Figtree-Black"),
+    "zjl":  dict(colors=["#101014", "#1C1C22", "#FFE000", "#5B9BD5", "#E8102A"],
+                 mmf="MyanmarYinmar", latin="Figtree-Black"),
+    "ikki": dict(colors=["#0A0A0A", "#101418", "#FFE000", "#5B9BD5", "#E8102A"],
+                 mmf="MasterpieceUniRound", latin="Figtree-Black"),
+}
 
 @app.get("/api/styles")
 def styles(authorization: str = Header(None)):
@@ -1087,18 +1145,18 @@ def brand_del(bid: str, authorization: str = Header(None)):
 # ⚠️ `/api/fonts` နှင့် `/api/fonts/suggest` **တစ်ခုတည်းကို** သုံးရမည် —
 #    နှစ်နေရာ ခွဲရေးလျှင် AI က UI မှာ မရှိတဲ့ ဖောင့် ရွေးမိနိုင်သည်。
 FONTS = [
-      dict(id="Pyidaungsu",           name="Pyidaungsu",             look="ပါးလွှာ · ရုပ်ရှင်ဆန်",  good="Cinematic · Podcast"),
-      dict(id="Pyidaungsu-Bold",      name="Pyidaungsu Bold",        look="ထူ · ဝေးကကြည့်ရ",       good="Short Video · ZAE"),
-      dict(id="MasterpieceUniRound",  name="Masterpiece Uni Round",  look="လုံးဝိုင်း · ချောမွေ့",  good="ZJL house font"),
-      dict(id="MyanmarYinmar",        name="Myanmar Yinmar",         look="အသားရ · ခေါင်းစဉ်ဆန်",  good="Vlog · ခေါင်းစဉ်"),
-      dict(id="MyanmarSansPro",       name="Myanmar Sans Pro",       look="ပြတ်သား · သန့်",        good="Knowledge"),
-      dict(id="MyanmarHeadOne",       name="Myanmar Head One",       look="ခေါင်းစဉ် အသွင်",       good="ZAE ခေါင်းစဉ်"),
-      dict(id="PadaukBook-Bold",      name="Padauk Book Bold",       look="စာအုပ်ဆန် · ဖတ်ရလွယ်",  good="Course"),
-      dict(id="Padauk",               name="Padauk",                 look="ရိုးရိုး · ယုံကြည်ရ",    good="Brand Review"),
-      dict(id="NotoSansMyanmar-Bold", name="Noto Sans Myanmar Bold", look="ကျယ် · corporate",      good="Promotional"),
-      dict(id="MyanmarPonenyet",      name="Myanmar Ponenyet",       look="အခြေခံ · box",          good="ZJL box"),
-      dict(id="MyanmarBlack",         name="Myanmar Black",          look="အထူဆုံး",               good="စာလုံးကြီး"),
-      dict(id="MyanmarSagar",         name="Myanmar Sagar",          look="သေးသွယ်",               good="ကြောင်းသေး"),
+      dict(id="Pyidaungsu",           name="Pyidaungsu",             look="ပါးလွှာ · ရုပ်ရှင်ဆန်",  good="Cinematic · Podcast", look_en="Light · cinematic", good_en="Cinematic · Podcast"),
+      dict(id="Pyidaungsu-Bold",      name="Pyidaungsu Bold",        look="ထူ · ဝေးကကြည့်ရ",       good="Short Video · ZAE", look_en="Heavy · reads from afar", good_en="Short Video · ZAE"),
+      dict(id="MasterpieceUniRound",  name="Masterpiece Uni Round",  look="လုံးဝိုင်း · ချောမွေ့",  good="ZJL house font", look_en="Rounded · smooth", good_en="ZJL house font"),
+      dict(id="MyanmarYinmar",        name="Myanmar Yinmar",         look="အသားရ · ခေါင်းစဉ်ဆန်",  good="Vlog · ခေါင်းစဉ်", look_en="Solid · headline feel", good_en="Vlog · headlines"),
+      dict(id="MyanmarSansPro",       name="Myanmar Sans Pro",       look="ပြတ်သား · သန့်",        good="Knowledge", look_en="Crisp · clean", good_en="Knowledge"),
+      dict(id="MyanmarHeadOne",       name="Myanmar Head One",       look="ခေါင်းစဉ် အသွင်",       good="ZAE ခေါင်းစဉ်", look_en="Headline look", good_en="ZAE headlines"),
+      dict(id="PadaukBook-Bold",      name="Padauk Book Bold",       look="စာအုပ်ဆန် · ဖတ်ရလွယ်",  good="Course", look_en="Bookish · easy to read", good_en="Course"),
+      dict(id="Padauk",               name="Padauk",                 look="ရိုးရိုး · ယုံကြည်ရ",    good="Brand Review", look_en="Plain · trustworthy", good_en="Brand Review"),
+      dict(id="NotoSansMyanmar-Bold", name="Noto Sans Myanmar Bold", look="ကျယ် · corporate",      good="Promotional", look_en="Wide · corporate", good_en="Promotional"),
+      dict(id="MyanmarPonenyet",      name="Myanmar Ponenyet",       look="အခြေခံ · box",          good="ZJL box", look_en="Basic · boxy", good_en="ZJL box"),
+      dict(id="MyanmarBlack",         name="Myanmar Black",          look="အထူဆုံး",               good="စာလုံးကြီး", look_en="Heaviest", good_en="Big captions"),
+      dict(id="MyanmarSagar",         name="Myanmar Sagar",          look="သေးသွယ်",               good="ကြောင်းသေး", look_en="Thin", good_en="Small lines"),
     ]
 
 # ⚠️ show only the fonts the LIVE worker renders faithfully (Zin, 2026-09-26:
@@ -3131,6 +3189,7 @@ def script_get(jid: str, authorization: str = Header(None)):
             #    သုံးရမည် (job တစ်ခုတည်း · render တစ်ခါပဲ)。 `done` ဆိုမှ reedit。
             "status": j.get("status"),
             "script": (dict(chars=len(stext), **smark) if stext else None),
+            "src_gone": _src_gone(j.get("upload_id")),
             "sentences": sents, "events": events,
             "stat": {"n": len(sents), "groups": ng,
                      "silence": len(events),

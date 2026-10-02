@@ -37,10 +37,10 @@ var STYLES={creator:[
      သီးသန့် brand** ရှိပြီး (id b_94ad…) ဤ style ရဲ့ theme `zae` နှင့် မတူ。
      နာမည် တူနေသဖြင့် ဘယ်ဟာ ရွေးမှန်း မသိရခဲ့သည်。 */
   /* 9:16 general short (2026-09-26) — recipe `short-916`; ZAE 3:4 kept below */
-  ["short-916","Short Video","9:16 · TikTok/Reels · စာတန်းကြီး · ပြတ်သား",
-   "9:16 · TikTok/Reels · bold captions · snappy","Myanmar Black","9:16"],
-  ["short-video","ZAE Short","3:4 · စာတန်းကြီး + navy အနားသတ်",
-   "3:4 · big captions, navy outline","Pyidaungsu Bold","3:4"]],
+  ["short-916","Short Video","9:16 · TikTok/Reels · ဘယ်ဘရန်းမဆို · စာတန်းကြီး",
+   "9:16 · TikTok/Reels · any brand · bold captions","Myanmar Black","9:16"],
+  ["short-video","ZAE Short","3:4 · ZAE ပုံစံ · စာတန်းကြီး + navy အနားသတ်",
+   "3:4 · ZAE house look · big captions, navy outline","Pyidaungsu Bold","3:4"]],
  biz:[["promotional","Promotional","logo sting · CTA · ဈေးနှုန်း",
    "Logo sting · CTA · pricing","Noto Sans Myanmar","30–90s"],
   ["brand-review","Brand Review","နှိုင်းယှဉ်တန်း · ကြယ် အဆင့်",
@@ -60,7 +60,9 @@ var STYLE_PREVIEW={
   'cinematic-vlog':'stock/cinematic-vlog', 'vlog':'stock/vlog',
   'podcast':'stock/podcast', 'knowledge':'stock/knowledge',
   'headtop':'stock/headtop', 'ref-talk':'stock/ref-talk',
-  'short-video':'stock/short-video', 'short-916':'stock/short-916', 'promotional':'stock/promotional',
+  /* short-916 has no clip of its own yet (prev/stock/short-916.* was a 404 = broken
+     image on the selected card); the short-video stock clip is the closest look */
+  'short-video':'stock/short-video', 'short-916':'stock/short-video', 'promotional':'stock/promotional',
   'brand-review':'stock/brand-review', 'short-biz':'stock/short-biz',
   'course':'stock/course'
 };
@@ -101,6 +103,24 @@ var NATIVE={};
 var BRANDS=[];
 var FONTS=[];
 var FMTS=[];
+var CAPS=[];
+/* 2026-10-02 UI audit: caption sizes were labelled at a fixed 1440 px frame, so
+   "Extra large 137px" was the 3:4 number — at 9:16 the same choice is 182 px.
+   Label with the height of the size that will actually be rendered. */
+function capH(){
+  var k=state.fmt||NATIVE[state.brand]||'';
+  var f=(FMTS||[]).filter(function(x){return x.key===k})[0];
+  return f? f.h : 1920;
+}
+function paintCaps(){
+  var el=$('cappick'); if(!el||!CAPS.length) return;
+  var H=capH();
+  el.innerHTML=CAPS.map(function(c){
+    return '<button class="chip cp" data-cap="'+c.id+'"'+
+      (c.id===state.cap?' aria-pressed="true"':'')+'>'+
+      (cur==='my'?c.my:c.en)+'<small>'+Math.round(c.pct*H)+'px</small></button>';
+  }).join('');
+}
 /* ⚠️ Zin ၂၀၂၆-၀၉-၁၉: 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ် တန်း edit လုပ်လို့ရအောင်」
    ⇒ ရွေးချယ်မှုကို **မှတ်ထား**သည် — နောက်ဗီဒီယိုမှာ အစကနေ ပြန်ရွေးစရာ မလို。 */
 var SKEY='ikki_prefs';
@@ -311,7 +331,9 @@ function go(id){
   if(id==='v-lib') loadJobs();
   if(id==='v-acc'||id==='v-sty') loadMeta();
   if(id==='v-sty') loadStyles();
-  window.scrollTo({top:0,behavior:'smooth'});
+  /* instant, not smooth: with a long Create page the smooth scroll left the new
+     tab half off-screen for a moment and a tap looked like it did nothing */
+  window.scrollTo({top:0,behavior:'auto'});
 }
 var scenes=['s-ready','s-up','s-work','s-done','s-err','s-quota'];
 function scene(id){scenes.forEach(function(s){var e=$(s); if(e) e.hidden=s!==id})}
@@ -401,7 +423,7 @@ function paintProjectBrand(){
     var cs=(sysb&&sysb.colors||['#0A0A0A','#101418','#FFE000','#5B9BD5','#E8102A']).slice(0,5);
     el.innerHTML='<div class="brand-summary smart">'
       +'<div class="brand-mark">✦</div>'
-      +'<div class="brand-detail"><span class="eyebrow">AI お任せ</span>'
+      +'<div class="brand-detail"><span class="eyebrow">'+(cur==='my'?'AI ကို အပ်ထား':'AI decides')+'</span>'
       +'<b>'+esc((sysb&&sysb.name)||'IKKI Smart Edit')+'</b>'
       +'<small>'+esc(my?((sysb&&sysb.my)||'AI က ပရီမီယံ ပုံစံကို သင် ရွေးထားသော edit direction အပေါ် အသုံးချပါမယ်။ IKKI logo မထည့်ပါ။')
                       :((sysb&&sysb.en)||'AI applies a premium visual system to the edit direction you pick. No IKKI logo is added.'))+'</small></div>'
@@ -423,12 +445,14 @@ function paintProjectBrand(){
     el.innerHTML='<span class="brand-loading">'+(cur==='my'?'ဘရန်းကို ဖွင့်နေသည်…':'Loading your brand…')+'</span>';
     return;
   }
-  var colors=(brand.colors||[]).slice(0,5);
+  /* house brands render with the measured theme, not the record (see API) */
+  var colors=(brand.colors_used||brand.colors||[]).slice(0,5);
   var logo=brand.logo ? ' style="background-image:url(/api/brands/'+esc(brand.id)+'/logo?t='+encodeURIComponent(TOKEN)+'&v='+Date.now()+')"' : '';
   el.innerHTML='<div class="brand-summary">'
     +'<div class="brand-mark"'+logo+'>'+(!brand.logo?esc((brand.name||'I').slice(0,1).toUpperCase()):'')+'</div>'
     +'<div class="brand-detail"><span class="eyebrow">'+(cur==='my'?'ACTIVE BRAND':'ACTIVE BRAND')+'</span>'
-    +'<b>'+esc(brand.name)+'</b><small>'+esc(brand.mmf||'')+' · '+esc(brand.aspect||'')+'</small></div>'
+    +'<b>'+esc(brand.name)+'</b><small>'+(cur==='my'?'ဂရပ်ဖစ် ဖောင့် ':'Graphics font ')+esc(brand.mmf_used||brand.mmf||'')
+    +(brand.house?(cur==='my'?' · house theme အရောင်':' · house theme colours'):'')+'</small></div>'
     +'<div class="brand-swatches">'+colors.map(function(color){return '<i style="background:'+esc(color)+'"></i>'}).join('')+'</div></div>'
     +'<div class="brand-quick">'+kits.map(function(b){return '<button class="bp" data-b="'+esc(b.id)+'"'
       +(b.id===state.brand?' aria-pressed="true"':'')+'>'+esc(b.name)+'</button>'}).join('')+'</div>';
@@ -466,7 +490,8 @@ function paintStyles(){
       h+='<button type="button" class="scard" data-sv="'+esc(id)+'"'
        + ' aria-pressed="'+(id===cur_?'true':'false')+'">'
        + '<span class="thumb">'
-       +   '<img src="prev/'+esc(preview)+'.jpg" alt="" loading="lazy" decoding="async">'
+       +   '<img src="prev/'+esc(preview)+'.jpg" alt="" loading="lazy" decoding="async"'
+       +   ' onerror="this.style.visibility=\'hidden\'">'
        /* Do not give every gallery card `autoplay`. On a desktop-sized
           viewport that starts 5–6 H.264 decoders simultaneously; Chrome then
           kills the renderer (Aw, Snap / error 5) on lower-memory or embedded
@@ -481,8 +506,14 @@ function paintStyles(){
     });
   });
   h+='</div>';
+  /* 2026-10-02 UI audit: this line showed the style's default font even after
+     another font was picked ("Myanmar Black" while "Noto Sans Myanmar Bold" was
+     SELECTED below). Show what the captions will actually use. */
+  var _fsel=(FONTS||[]).filter(function(f){return f.id===state.font})[0];
   h+='<p class="lede" style="font-size:12.5px;margin:10px 0 0">'
-   + esc(pick[4])+' · '+esc(pick[5])+'</p>';
+   + (cur==='my'?'စာတန်း ဖောင့် ':'Caption font ')+esc(_fsel?(_fsel.name||_fsel.id):(state.font||pick[4]))
+   + (state.font?'':(cur==='my'?' (ပုံစံ ပုံသေ)':' (style default)'))
+   + ' · '+esc(state.fmt||pick[5])+'</p>';
   el.innerHTML=h;
   paintAdv();
   paintCine();
@@ -519,6 +550,11 @@ function paintStyles(){
       if(v===state.style) return;
       state.style=v;
       state.family=familyForStyle(v);
+      /* the Podcast style already says what kind of video it is -- the folded
+         "video type" choice follows it so the two never disagree */
+      state.vfmt = (v==='podcast') ? 'podcast' : (state.vfmt==='podcast' ? 'camera' : state.vfmt);
+      [].forEach.call(document.querySelectorAll('.vfmt'),function(o){
+        o.setAttribute('aria-pressed', o.getAttribute('data-vfmt')===state.vfmt?'true':'false') });
       if(styleDefaults()) loadMeta();
       paintStyles();
     };
@@ -559,7 +595,7 @@ function loadMeta(){
     var _own=ownKits();
     $('brandpick').innerHTML=_own.map(function(b){
       return '<button class="chip bp" data-b="'+b.id+'"'+(b.id===state.brand?' aria-pressed="true"':'')+'>'+
-        b.name+(b.id===_dflt?'<em class="dflt">'+(cur==='my'?'ပုံသေ':'default')+'</em>':'')+'<small>'+(b.colors||[]).slice(0,4).map(function(c){
+        b.name+(b.id===_dflt?'<em class="dflt">'+(cur==='my'?'ပုံသေ':'default')+'</em>':'')+'<small>'+(b.colors_used||b.colors||[]).slice(0,4).map(function(c){
           return '<i style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px;background:'+c+'"></i>'
         }).join('')+'</small></button>';
     }).join('');
@@ -567,11 +603,11 @@ function loadMeta(){
       return '<div class="card"'+(b.id===state.brand?' style="outline:2px solid var(--ac)"':'')+'>'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:13px">'+
         '<b style="font-size:18px;font-weight:700;letter-spacing:-.03em">'+b.name+'</b>'+
-        '<span class="mono" style="font-size:11px;color:var(--tx3)">'+b.aspect+'</span></div>'+
-        '<div class="sws">'+b.colors.map(function(c){return '<i style="background:'+c+'" data-h="'+c.slice(1)+'"></i>'}).join('')+'</div>'+
-        '<div class="opt" style="padding-top:12px;border:0"><div class="txt"><span>'+(cur==='my'?'မြန်မာ ဖောင့်':'Burmese type')+'</span></div><span class="mono" style="font-size:12px">'+b.mmf+'</span></div>'+
-        '<div class="opt"><div class="txt"><span>Latin</span></div><span class="mono" style="font-size:12px">'+b.latin+'</span></div>'+
-        '<div class="opt"><div class="txt"><span>'+(cur==='my'?'ပုံသေ အရွယ်':'Default size')+'</span></div><span class="mono" style="font-size:12px">'+b.aspect+'</span></div>'+
+        '<span class="mono" style="font-size:11px;color:var(--tx3)">'+(b.aspect_used||b.aspect)+'</span></div>'+
+        '<div class="sws">'+(b.colors_used||b.colors).map(function(c){return '<i style="background:'+c+'" data-h="'+c.slice(1)+'"></i>'}).join('')+'</div>'+
+        '<div class="opt" style="padding-top:12px;border:0"><div class="txt"><span>'+(cur==='my'?'မြန်မာ ဖောင့်':'Burmese type')+'</span></div><span class="mono" style="font-size:12px">'+(b.mmf_used||b.mmf)+'</span></div>'+
+        '<div class="opt"><div class="txt"><span>Latin</span></div><span class="mono" style="font-size:12px">'+(b.latin_used||b.latin)+'</span></div>'+
+        '<div class="opt"><div class="txt"><span>'+(cur==='my'?'ပုံသေ အရွယ်':'Default size')+'</span></div><span class="mono" style="font-size:12px">'+(b.aspect_used||b.aspect)+'</span></div>'+
         // ⚠️ logo တင်လိုက်တာနဲ့ **ဗီဒီယိုရဲ့ theme ပါ ပြောင်း**သည် —
         //    logo ထဲက အရောင်ကို ထုတ်ပြီး brand.colors ထဲ ထည့်သည်。
         //    နောက်ခံကိုတော့ logo အရောင်အတိုင်း **မထားရ** — အဝါ/အဖြူ logo ဆိုလျှင်
@@ -587,25 +623,24 @@ function loadMeta(){
             (b.logo?'<button class="more" data-logodel="'+b.id+'" style="margin-left:10px">'+
               (cur==='my'?'ဖယ်မယ်':'Remove')+'</button>':'')+
             '<p class="lede" style="font-size:12px;margin:7px 0 0;color:var(--tx3)">'+
-              (cur==='my'?'တင်လိုက်တာနဲ့ အရောင် ထုတ်ပြီး ဗီဒီယိုက သင့် theme အတိုင်း ဖြစ်သွားမယ်'
-                         :'The palette is read from it and the video follows your theme')+'</p>'+
+              /* 2026-10-02 UI audit: for a house brand (ZAE · ZJL · IKKI) the worker
+                 keeps the measured house theme and ignores logo colours -- this line
+                 promised the opposite. The logo is still placed on the video. */
+              (b.house
+                ? (cur==='my'?'House theme ဖြစ်၍ အရောင်/ဖောင့် ပုံသေ — logo ကို ဗီဒီယိုပေါ်မှာ တံဆိပ်အဖြစ်သာ တပ်မယ်'
+                             :'House theme: colours and fonts are fixed — the logo is placed on the video as a mark')
+                : (cur==='my'?'တင်လိုက်တာနဲ့ အရောင် ထုတ်ပြီး ဗီဒီယိုက သင့် theme အတိုင်း ဖြစ်သွားမယ်'
+                             :'The palette is read from it and the video follows your theme'))+'</p>'+
           '</div></div>'+
         '<button class="btn kit-e" data-edit="'+b.id+'">'+(cur==='my'?'ပြင်မယ်':'Edit')+'</button></div>';
     }).join('');
     paintProjectBrand();
   }).catch(function(){});
   paintBroll();
-  api('/capsizes').then(function(d){
-    var el=$('cappick'); if(!el) return;
-    el.innerHTML=d.sizes.map(function(c){
-      return '<button class="chip cp" data-cap="'+c.id+'"'+
-        (c.id===state.cap?' aria-pressed="true"':'')+'>'+
-        (cur==='my'?c.my:c.en)+'<small>'+Math.round(c.pct*1440)+'px</small></button>';
-    }).join('');
-  }).catch(function(){});
+  api('/capsizes').then(function(d){ CAPS=d.sizes||[]; paintCaps() }).catch(function(){});
   api('/formats').then(function(d){
     var el=$('fmtpick'); if(!el) return;
-    NATIVE=d.native||{}; FMTS=d.formats||[];
+    NATIVE=d.native||{}; FMTS=d.formats||[]; paintCaps();
     var native=NATIVE[state.brand]||'';
     var G={vertical:[cur==='my'?'ဒေါင်လိုက်':'Vertical'],
            square:[cur==='my'?'စတုရန်း':'Square'],
@@ -638,8 +673,8 @@ function loadMeta(){
       return '<div class="lrow'+(f.id===state.font?' sel':'')+'" data-font="'+f.id+'">'+
         '<span class="fprev" style="-webkit-mask-image:url(/img/fonts/'+f.id+'.png);'+
           'mask-image:url(/img/fonts/'+f.id+'.png)" aria-hidden="true"></span>'+
-        '<div class="lname"><b>'+f.name+'</b><span class="my">'+f.look+'</span></div>'+
-        '<div class="lmeta hidesm">'+f.good+'</div>'+
+        '<div class="lname"><b>'+f.name+'</b><span'+(cur==='my'?' class="my"':'')+'>'+((cur!=='my'&&f.look_en)||f.look)+'</span></div>'+
+        '<div class="lmeta hidesm">'+((cur!=='my'&&f.good_en)||f.good)+'</div>'+
         '<div class="ldur hidesm mono">'+f.id+'</div><div class="wave hidesm"></div>'+
         '<div class="lacts">'+(f.id===state.font
           ? '<span class="pill p-ac">'+(cur==='my'?'ရွေးထား':'Selected')+'</span>' : '')+'</div></div>';
@@ -1197,8 +1232,11 @@ function done(j){
     $('flags').innerHTML=fl.map(function(f){
       var k=K[f.kind]||[f.kind,f.kind];
       var mm=Math.floor(f.at/60), ss=('0'+Math.floor(f.at%60)).slice(-2);
+      /* long engine explanations were shown in full; show the first sentence and
+         keep the rest one tap away (2026-10-02 audit) */
+      var _t=String(f.text||''), _c=_t.search(/[။.!?]\s|—/), _sh=(_c>20&&_c<_t.length-5)?_t.slice(0,_c+1):_t;
       return '<div class="row fl"><span class="tc">'+mm+':'+ss+'</span>'+
-        '<span class="tx my">'+(f.text||'')+
+        '<span class="tx my">'+(_sh===_t?_t:'<details style="display:inline"><summary style="cursor:pointer;list-style:none">'+_sh+' <u style="opacity:.6">…</u></summary>'+_t.slice(_sh.length)+'</details>')+
         (f.keep?' <ins>→ '+f.keep+'</ins>':'')+'</span>'+
         '<span class="rt lo">'+(cur==='my'?k[0]:k[1])+
         (f.score?' · '+f.score:'')+'</span></div>';
@@ -1211,6 +1249,7 @@ function done(j){
   // ⚠️ အခမဲ့ preview ကျန်အရေအတွက် — `rrSum()` က ခလုတ်ပေါ် ပြသည်。
   //    **ဒီမှာ မထည့်လျှင်** ခလုတ်က ဘယ်တော့မှ မပေါ် (တိတ်တဆိတ် ပျောက်)。
   state.prev_free=+(j.prev_free||0); state.prev_used=+(j.prev_used||0);
+  state.src_gone=!!j.src_gone;
   // ── ပြင်ကွက် ──
   ADJ={};
   var ab=$('adjbox');
@@ -1333,11 +1372,25 @@ function paintJobs(){
   var P={queued:['p-dim','တန်းစီ','Queued'],running:['p-dim','လုပ်နေဆဲ','Running'],
          review:['p-ac','စာတမ်း စစ်ရန်','Review transcript'],
          done:['p-ok','ပြီး','Done'],failed:['p-no','ပျက်သွား','Failed'],cancelled:['p-dim','ရပ်ထား','Stopped']};
+  /* 2026-10-02 UI audit: rows whose finished file AND source are gone can only be
+     deleted -- folded behind a toggle instead of being half the list. */
+  var dead=function(j){ return (j.gone || ['failed','cancelled'].indexOf(j.status)>-1) && j.src_gone };
+  var nDead=(ALL||[]).filter(dead).length, showDead=$('arch')&&$('arch').getAttribute('aria-pressed')==='true';
+  if($('arch')){
+    $('arch').hidden=!nDead;
+    $('arch').textContent=showDead
+      ? (cur==='my'?'သက်တမ်းကုန်သော '+nDead+' ခု ဖျောက်မယ်':'Hide '+nDead+' expired')
+      : (cur==='my'?'သက်တမ်းကုန်သော '+nDead+' ခု ပြမယ် ▾':'Show '+nDead+' expired ▾');
+  }
   var rows=ALL.filter(function(j){
     var okF = f==='all' || (f==='running'? ['queued','running'].indexOf(j.status)>-1 : j.status===f);
     var okQ = !q || ((j.title||'')+' '+(j.recipe||'')+' '+(j.brand_id||'')).toLowerCase().indexOf(q)>-1;
-    return okF&&okQ;
+    return okF&&okQ&&(showDead||!dead(j)||f==='failed');
   });
+  var sname=function(id){ var all=[]; Object.keys(STYLES).forEach(function(k){ all=all.concat(STYLES[k]||[]) });
+    var s=all.filter(function(x){return x[0]===id})[0]; return s?s[1]:(id||'') };
+  var when=function(t){ if(!t) return ''; var d=new Date(t*1000);
+    return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2) };
   // ⚠️ ဘာမှ မရှိတာ (အသစ်) နဲ့ ရှာလို့ မတွေ့တာ **ခွဲပြရမည်**
   var noAny = (ALL||[]).length===0;
   $('nojobs').hidden = !(noAny);
@@ -1348,30 +1401,37 @@ function paintJobs(){
     //    ဘယ်ဟာ ဘယ်ဟာလဲ ခွဲလို့ မရ (ဗီဒီယို ၂၀ ခုရှိရင် အကုန် တူနေသည်)。
     var th = j.status==='done'
       ? '<img class="thumb" loading="lazy" alt="" src="/api/jobs/'+j.id+'/thumb?t='+
-        encodeURIComponent(TOKEN)+'" onerror="this.className=\'thumb im'+
-        ((j.id.charCodeAt(3)%5)+1)+'\';this.removeAttribute(\'src\')">'
+        encodeURIComponent(TOKEN)+'" onerror="this.outerHTML=\'<div class=&quot;thumb im'+
+        ((j.id.charCodeAt(3)%5)+1)+'&quot;></div>\'">'
       : '<div class="thumb im'+((j.id.charCodeAt(3)%5)+1)+'"></div>';
     return '<div class="lrow">'+th+
       // ⚠️ ခေါင်းစဉ်က R2 key (pYoIvgBmehsq…) ဖြစ်တတ်၍ **ဖတ်လို့ မရ** ⇒
       //    extension ဖြုတ် · ရှည်လျှင် ဖြတ် (**ပြဖို့သာ** — DB မထိ)。
-      '<div class="lname"><b class="my">'+nice(j.title||j.id)+'</b><span>'+(j.brand_id||'')+'</span></div>'+
-      '<div class="lmeta hidesm">'+(j.recipe||'')+'</div>'+
+      '<div class="lname"><b class="my">'+nice(j.title||j.id)+'</b><span>'+
+        [(j.brand_id||'').toUpperCase(), when(j.created)].filter(Boolean).join(' · ')+'</span></div>'+
+      '<div class="lmeta hidesm">'+sname(j.recipe)+'</div>'+
       '<div class="ldur hidesm mono">'+(j.out_dur?Math.round(j.out_dur)+'s':'—')+'</div>'+
       '<div class="wave hidesm"></div><div class="lacts">'+
       '<span class="pill '+p[0]+'">'+(cur==='my'?p[1]:p[2])+'</span>'+
       // ⚠️ ဖိုင် ပျောက်နေလျှင် **ဒေါင်းလုပ် မပြရ** — နှိပ်ပြီး ကျရင် ယုံကြည်မှု ပျက်သည်
-      (j.gone? '<span class="pill p-no">'+(cur==='my'?'ဖိုင် ပျောက်':'file gone')+'</span>' : '')+
-      (j.status==='done' && !j.gone?'<button class="iact" data-play="'+j.id+'" aria-label="Play">▶</button>'+
-        '<a class="iact" href="/api/jobs/'+j.id+'/file?t='+encodeURIComponent(TOKEN)+'" aria-label="Download">↓</a>':'')+
+      (j.gone? '<span class="pill p-no" title="'+(cur==='my'?'ထွက်ဖိုင်ကို ရက် ၃၀ ပြည့်၍ ဖျက်ပြီး':'Finished file removed after 30 days')+'">'+(cur==='my'?'ဖိုင် ပျောက်':'file gone')+'</span>' : '')+
+      /* 2026-10-02: the source is removed after 7 days -- say so, and do not offer
+         edit/re-render/retry that can only fail later with "HTTP Error 404" */
+      (j.src_gone ? '<span class="pill p-dim" title="'+(cur==='my'
+          ?'မူရင်း ဗီဒီယိုကို ရက် ၇ ပြည့်၍ ဖျက်ပြီး — ပြန်ပြင်/ပြန်ထုတ်ရန် ဗီဒီယိုကို ပြန် upload လုပ်ပါ'
+          :'Source removed after 7 days — upload the video again to edit or re-render')+'">'+
+          (cur==='my'?'မူရင်း သက်တမ်းကုန်':'source expired')+'</span>' : '')+
+      (j.status==='done' && !j.gone?'<button class="iact" data-play="'+j.id+'" aria-label="Play" title="'+(cur==='my'?'ကြည့်မယ်':'Play')+'">▶</button>'+
+        '<a class="iact" href="/api/jobs/'+j.id+'/file?t='+encodeURIComponent(TOKEN)+'" aria-label="Download" title="'+(cur==='my'?'ဒေါင်းလုပ်':'Download')+'">↓</a>':'')+
       // ⚠️ Script Editor — စာသား ရှိပြီးသား job တိုင်းမှာ ပြရမည်。 ဖိုင် ပျောက်နေလည်း
       //    စာသား တည်းဖြတ်လို့ ရသည် (ထွက်ဖိုင် မလို · segs ကိုသာ သုံး)。
       //    token က `ikki_token` အတူတူမို့ ပြန် login စရာ မလို。
       // ⚠️ `review` = **သင် လုပ်ရန် ကျန်နေတာ** ⇒ icon သေးသေး မဟုတ်ဘဲ
       //    ခလုတ် ရှင်းရှင်း ပြရမည် (၂၀၂၆-၀၉-၁၉ — icon ချည်း ဖြစ်နေ၍ ဘာလုပ်ရမှန်း မသိ)。
-      (j.status==='review'
+      (j.status==='review' && !j.src_gone
         ? '<a class="btn" style="text-decoration:none;padding:7px 14px;font-size:12.5px" '+
           'href="/script.html?job='+j.id+'">'+(cur==='my'?'✂️ ဖြတ်ရန်':'✂️ Edit')+'</a>' : '')+
-      (j.status==='done'
+      (j.status==='done' && !j.src_gone
         ? '<a class="iact" href="/script.html?job='+j.id+'" aria-label="'+
           (cur==='my'?'စာသား တည်းဖြတ်':'Script editor')+'" title="'+
           (cur==='my'?'စာသား တည်းဖြတ်':'Script editor')+'">📝</a>' : '')+
@@ -1379,22 +1439,22 @@ function paintJobs(){
       //    worker က ဆက်ရေးနေပြီး ဖိုင် ကျန်နေမည် ⇒ အရင် ရပ်ခိုင်းရသည်。
       (['done','failed','cancelled'].indexOf(j.status)>-1
         ? '<button class="iact idel" data-del-job="'+j.id+'" aria-label="'+
-          (cur==='my'?'ဖျက်မယ်':'Delete')+'">🗑</button>' : '')+
+          (cur==='my'?'ဖျက်မယ်':'Delete')+'" title="'+(cur==='my'?'ဖျက်မယ် (၂၄ နာရီ ပြန်ယူလို့ရ)':'Delete (undo within 24 h)')+'">🗑</button>' : '')+
       // ⚠️ လုပ်နေဆဲ/တန်းစီ job ကို **ပြန်ဖွင့်ကြည့်လို့ ရရမည်** —
       //    မရလျှင် render လုပ်ရင်း tab ပိတ်မိတာနဲ့ တိုးတက်မှု ပျောက်သည်
       //    (Pro app မှာ လက်ခံလို့ မရသော အားနည်းချက်)。
       (['queued','running'].indexOf(j.status)>-1
         ? '<button class="iact" data-open="'+j.id+'" aria-label="'+
-          (cur==='my'?'တိုးတက်မှု ကြည့်':'View progress')+'">↗</button>' : '')+
+          (cur==='my'?'တိုးတက်မှု ကြည့်':'View progress')+'" title="'+(cur==='my'?'တိုးတက်မှု ကြည့်':'View progress')+'">↗</button>' : '')+
       (j.status==='failed'
         ? '<button class="iact" data-open="'+j.id+'" aria-label="'+
-          (cur==='my'?'အမှား ကြည့်':'View error')+'">↗</button>' : '')+
+          (cur==='my'?'အမှား ကြည့်':'View error')+'" title="'+(cur==='my'?'ဘာကြောင့် ပျက်လဲ ကြည့်':'Why it failed')+'">↗</button>' : '')+
       // ⚠️ ကျဘမ်းဖြစ်သွားလျှင် **ပြန်စလို့ ရရမည်** — မရလျှင် disk ပြည့်တာမျိုး
       //    ယာယီ ပြဿနာတစ်ခုအတွက် GB ချီတဲ့ ဗီဒီယို ပြန်တင်ရမည်。
       //    upload က R2 ပေါ် ရှိပြီးသား。
-      (['failed','cancelled'].indexOf(j.status)>-1
+      (['failed','cancelled'].indexOf(j.status)>-1 && !j.src_gone
         ? '<button class="iact" data-retry="'+j.id+'" aria-label="'+
-          (cur==='my'?'ပြန်စမယ်':'Retry')+'">↻</button>' : '')+
+          (cur==='my'?'ပြန်စမယ်':'Retry')+'" title="'+(cur==='my'?'ပြန်စမယ် (မိနစ် ထပ်မယူ)':'Retry (no extra minutes)')+'">↻</button>' : '')+
       '</div></div>';
   }).join('');
 }
@@ -1526,9 +1586,12 @@ document.addEventListener('click',function(e){
     [].forEach.call(document.querySelectorAll('.cp'),function(o){o.setAttribute('aria-pressed',o===cp?'true':'false')})}
   var fm=e.target.closest&&e.target.closest('.fmt');
   if(fm){state.fmt=fm.getAttribute('data-fmt'); state.ovrFmt=true;
-    [].forEach.call(document.querySelectorAll('.fmt'),function(o){o.setAttribute('aria-pressed',o===fm?'true':'false')})}
+    [].forEach.call(document.querySelectorAll('.fmt'),function(o){o.setAttribute('aria-pressed',o===fm?'true':'false')});
+    paintCaps()}
   var fd=e.target.closest&&e.target.closest('.stf');
   if(fd){[].forEach.call(document.querySelectorAll('.stf'),function(o){o.setAttribute('aria-pressed',o===fd?'true':'false')}); paintJobs()}
+  var ar=e.target.closest&&e.target.closest('#arch');
+  if(ar){ ar.setAttribute('aria-pressed', ar.getAttribute('aria-pressed')==='true'?'false':'true'); paintJobs() }
 });
 document.addEventListener('keydown',function(e){
   if(e.target.matches('input,textarea,select')) return;
@@ -1924,6 +1987,9 @@ function paintMe(){
     ME=a;
     var own=!!a.owner;
     var anew=$('acctnew'); if(anew) anew.hidden=!own;
+    /* owner-only tools are not shown to customers at all (2026-10-02 audit) */
+    var tgw=$('tgwrap'); if(tgw) tgw.hidden=!own;
+    var ped=$('planedit'); if(ped) ped.hidden=!own;
     ['tgchat','tgtok','tgsave'].forEach(function(id){
       var node=$(id); if(node) node.disabled=!own;
     });
@@ -2443,6 +2509,14 @@ function rrSum(){
   sm.textContent = p.join(' · ') + (my
     ? ' — အားလုံးကို တစ်ခါတည်း ပြန်ထုတ်ပါမယ်။'
     : ' — all of it goes in one render.');
+  /* 2026-10-02: source already removed (7-day retention) -> a re-render can only
+     fail with "HTTP Error 404" later. Say it now and switch the buttons off. */
+  if(state.src_gone){
+    [$('rrgo'),$('txre'),$('txpv'),$('rrpv')].forEach(function(b){ if(b){ b.disabled=true } });
+    sm.textContent = my
+      ? 'မူရင်း ဗီဒီယိုကို ရက် ၇ ပြည့်၍ ဖျက်ပြီးပါပြီ — ပြန်ထုတ်ရန် ဗီဒီယိုကို ပြန် upload လုပ်ပါ။'
+      : 'The source was removed after 7 days — upload the video again to re-render.';
+  }
 }
 
 function adjPaint(){
@@ -2538,7 +2612,12 @@ function paintBroll(){
       var p=P[x.status]||P.pending;
       var tg=[]; try{ tg=JSON.parse(x.tags||'[]') }catch(e){}
       return '<div class="row"><div class="lname"><b>'+(x.name||x.id)+'</b>'+
-        '<span class="my">'+(tg.join(' · ')||x.note||'')+'</span></div>'+
+        /* a rejected item carried the engine's note ("Gemini က မသုံးရ ဟု ဆိုသည်…");
+           say what it means for the user instead */
+        '<span class="my">'+(x.status==='failed'
+          ? (my?'ဗီဒီယိုထဲ သုံးလို့ မရနိုင်ပါ — ပုံ မရှင်းတာ ဒါမှမဟုတ် အကြောင်းအရာ မသင့်တာ ဖြစ်နိုင်ပါတယ်'
+               :'Can\'t be used in videos — unclear or unsuitable content')
+          : (tg.join(' · ')||x.note||''))+'</span></div>'+
         '<div class="lmeta hidesm">'+(x.ext||'')+'</div><div class="wave hidesm"></div>'+
         '<div class="lacts"><span class="pill '+p[0]+'">'+p[1]+'</span>'+
         '<button class="iact idel" data-bdel="'+x.id+'" aria-label="Delete">🗑</button></div></div>';

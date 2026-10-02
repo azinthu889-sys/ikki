@@ -26,7 +26,8 @@ FORMATS = {
     TOP=130, BOT=1600, SIDE_R=140, SIDE_L=60, measured=True,
  ),
  "3:4": dict(
-    W=1080, H=1440, label="ZAE short-form", group="vertical",
+    # label was "ZAE short-form": it read as a brand, not a size (UI audit 2026-10-02)
+    W=1080, H=1440, label="Feed · portrait", group="vertical",
     # ⚠️ READING TIPS ရဲ့ စာတမ်းက y 969 မှ 1238 — BOT 940 က ၂၉px ချန်သည်
     TOP=300, BOT=940, SIDE_R=60, SIDE_L=60, measured=True,
  ),

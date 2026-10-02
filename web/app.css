@@ -88,6 +88,11 @@ button{font-family:inherit}
 .nav .n{margin-left:auto;font-size:10.5px;font-family:"IBM Plex Mono",monospace;background:var(--ac);
   color:var(--ac-ink);border-radius:999px;padding:1px 7px;font-weight:600}
 .sdiv{height:1px;background:var(--line);margin:16px 6px}
+/* 2026-10-02 UI audit: two navs showed at once (top pills + side list, and below
+   900px the side list became a second row of the same four buttons). One nav per
+   width: the side list on wide screens, the top pills below 900px. */
+@media (min-width:901px){.pillnav{display:none}}
+@media (max-width:900px){.side{display:none}}
 .suse{padding:0 13px;font-size:11.5px;color:var(--tx3)}
 .meter{height:4px;background:var(--up2);border-radius:3px;margin:9px 0 7px;overflow:hidden}
 .meter i{display:block;height:100%;width:27%;background:var(--ac);border-radius:3px}

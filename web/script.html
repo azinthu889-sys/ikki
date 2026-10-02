@@ -389,15 +389,20 @@ body.rv #bsec,body.rv #bonly{display:none}
     <button class="btn ghost" id="bonly">ဖျက်တာပဲ ပြ</button>
     <button class="btn primary" id="bok">ဖြတ်ချက် စစ်မယ် →</button>
   </div>
+  <!-- 2026-10-02 UI audit: nine legend entries in one line; the three that matter
+       most stay visible, the rest fold under ⓘ -->
   <div class="lg">
     <span><i style="background:#FEF2F2;border:1px solid #FCA5A5"></i>ပျောက်မယ်</span>
     <span><i style="background:#fff;border:1px solid #E7E5E4"></i>ကျန်မယ်</span>
-    <span><i style="background:#FEE2E2;border:1px solid #EF4444"></i>script မှာ မပါ</span>
     <span><i style="background:#E11D48"></i>🔴 ပြန်ရိုက် — သင် ရွေးပါ</span>
-    <span>⏸ တိတ်</span><span style="color:#15803D">🟢 အသံ</span>
-    <span>⏸ အနားယူ — <b style="font-weight:600">ပြန်ချန်</b> လို့ ရသည်</span>
-    <span>❓ စာတမ်းမှာ မပါသော အသံ — <b style="font-weight:600">နားထောင်ပြီး ဖြတ်</b> လို့ ရသည်</span>
-    <span>⋯ ဝါကျ အတွင်း ခွဲ</span>
+    <details style="display:inline-block"><summary style="cursor:pointer;list-style:none;color:var(--mute,#78716C)">ⓘ အမှတ်အသား အားလုံး</summary>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px">
+      <span><i style="background:#FEE2E2;border:1px solid #EF4444"></i>script မှာ မပါ</span>
+      <span>⏸ တိတ်</span><span style="color:#15803D">🟢 အသံ</span>
+      <span>⏸ အနားယူ — <b style="font-weight:600">ပြန်ချန်</b> လို့ ရသည်</span>
+      <span>❓ စာတမ်းမှာ မပါသော အသံ — <b style="font-weight:600">နားထောင်ပြီး ဖြတ်</b> လို့ ရသည်</span>
+      <span>⋯ ဝါကျ အတွင်း ခွဲ</span>
+      </div></details>
   </div>
 </div></div>
 <main class="wrap editor">
@@ -951,6 +956,14 @@ document.getElementById("bok").onclick=function(){
   }
   if(BUSY) return;                        // ② Edit → render
   if(!JOB){tip("demo — job မရှိ၍ မထုတ်နိုင်ပါ");return}
+  // 2026-10-02: the source is removed after 7 days; a render would fail later
+  // with a bare "HTTP Error 404" (j_aec7757ad1dd). Stop here and say why.
+  if(D.src_gone && D.status!=="review"){
+    ask("ဗီဒီယို မထုတ်နိုင်ပါ",
+        "မူရင်း ဗီဒီယိုကို ရက် ၇ ပြည့်၍ ဖျက်ပြီးပါပြီ။ ပြန်ထုတ်ရန် ဗီဒီယိုကို ပြန် upload လုပ်ပါ။",
+        "နားလည်ပြီ", function(){});
+    return;
+  }
   // ⚠️ `confirm()` **မသုံးရ** — တိတ်တဆိတ် false ပြန်လျှင် ခလုတ် နှိပ်လို့ မရဟု ဖြစ်သည်
   var self=this;
   // 2026-10-01 Zin: "not the settings I chose in the UI" -- the re-render used to
