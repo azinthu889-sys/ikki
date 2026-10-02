@@ -1,55 +1,79 @@
 # **ဖြတ်ပြောင်း (cutaway)** — ပြောသူကို တကယ် ဖုံးသူ。
-#
-# ရင်းမြစ် ၂ ခု —
-#   ① **တိုင်းချက်** (`tools/gfx_cutaway.py` · alpha အလယ်မှတ် ≥ ၀.၈၅) —
-#      30 ခု。 ဤအစုက ၂၀၂၆-၀၉-၂၄ ကတည်းက အလုပ်လုပ်နေသည်。
-#   ② **ကြေညာချက်** (`manifests/thm.json` ရဲ့ `role: "cutaway"`) —
-#      27 ခု。 `thm.py` ရဲ့ `_cut_el()` က 「overlay အဖြစ် သုံးလျှင်
-#      ပြောသူ လုံးဝ ပျောက်မည်」 ဟု ဆိုသည်。 ယခင် စာရင်းမှာ **မပါ**ခဲ့သဖြင့်
-#      ဖြတ်ပြောင်း slot က တကယ့် ဖြတ်ပြောင်း မရခဲ့ပါ。
-#   ⇒ ပေါင်း **57 ခု**。
-#
-# ⚠️ **ဤစာရင်းကို ကျယ်လွန်းအောင် မလုပ်ရ** (၂၀၂၆-၀၉-၂၅ တိုင်းချက်)。
-#    တိုင်းချက် ≥၀.၈၅ ဖြစ်သူ **၁၀၂ ခု**လုံး ထည့်ကြည့်ရာ `_ff_order()` က
-#    Headtop pack တစ်ခုလုံးကို inline slot ကနေ ဖယ်ပြီး ဝါကျ ၁၅ ကြောင်း
-#    plan မှာ **ဂရပ်ဖစ် ၀ ခု** ဖြစ်သွားသည်。 ⇒ အလုပ်လုပ်ပြီးသား အစုနဲ့
-#    ကြေညာချက်ကိုသာ ပေါင်းသည်。
-#
-# ⚠️ **RGB mode က တိုင်းချက် ပျက်တာ မဟုတ်** — PNG encoder က alpha အားလုံး
-#    ၂၅၅ ဆိုလျှင် channel ကို ဖြုတ်ပစ်သဖြင့် ဖြစ်သည် (= အလင်းပိတ် အပြည့်)。
-#    `prem5.karaoke_cap` ရဲ့ pixel က RGB (23,49,77) · alpha ၂၅၅ အားလုံး。
-#    ကျွန်တော် ဒါကို 「အမှား」 ဟု မှတ်ပြီး စာရင်းကို ကြေညာချက် ၂၇ ခုသာ
-#    ဖြစ်အောင် လျှော့ခဲ့ရာ **အကာအကွယ် ပျက်**ခဲ့သည် ⇒ မလုပ်ရ。
-#
-# ⚠️ `gfx_fullstage.txt` က `bbox` (alpha > ၁၆) ကနေ ⇒ လွှာလေးကိုပင်
-#    「ဘောင်အပြည့်」 ဟု မှတ်သည် ⇒ **မသုံးရ**။ planner က ဤဖိုင်ကိုသာ ဖတ်သည်။
+# ထုတ်သူ: tools/gfx_cutaway_from_ypos.py — `assets/gfx_ypos_9x16.json` ရဲ့ alpha ပျမ်းမျှ ≥ 0.85。
+# ⚠️ template **၆၁၇ ခုလုံး** တိုင်းထားသည် (ယခင်က gfx_fullstage.txt ၂၁၇ ခုသာ)。
+# ⚠️ **ဖြည့်ရုံသာ** — ယခင်စာရင်းက တစ်ခုမှ မဖယ်ပါ。
+# ⚠️ `thm.media_*` တို့က demo မှာ မီဒီယာ မပါ၍ ဖုံးအုပ်မှု နည်းပြသည် — ထုတ်လုပ်မှုမှာ ဘောင်အပြည့်。
 insert.insert_flow
 insert.insert_label
 motionfx.shape_wipe
+prem.chapter
+prem.cta_outro
 prem.glass_stat
+prem.hero_line
 prem.list_reveal
+prem.logo_reveal
+prem.lower_third
+prem.metric_trio
+prem.quote_card
 prem.split_hero
+prem2.bento_grid
 prem2.big_number
+prem2.chip_row
 prem2.split_compare
+prem2.stat_ring
+prem2.tilt_card
+prem2.timeline_flow
 prem2.word_pop
+prem3.countdown
+prem3.end_card
+prem3.feature_grid
+prem3.logo_wall
 prem3.marquee_band
+prem3.photo_card
+prem3.price_card
 prem3.serif_quote
 prem3.step_bar
+prem3.testimonial
 prem4.arrow_point
+prem4.big_question
+prem4.mistake_hook
 prem4.pov_label
+prem4.shock_stat
 prem4.stop_scroll
+prem4.tap_reveal
+prem4.this_or_that
 prem4.three_reasons
 prem4.wait_for_it
 prem5.bounce_cap
 prem5.box_cap
+prem5.chip_cap
+prem5.cinema_cap
 prem5.hl_word_cap
 prem5.karaoke_cap
 prem5.line_by_line
+prem5.number_cap
+prem5.speaker_cap
 prem5.word_pop_cap
+prem6.comment_pop
+prem6.follow_cta
+prem6.like_burst
 prem6.poll_sticker
+prem6.progress_ring_cta
+prem6.rating_stars
 prem6.save_reminder
+prem6.share_row
 prem6.social_proof
+prem6.swipe_hint
+prem7.audio_wave
+prem7.checklist_tick
+prem7.compare_bar
 prem7.end_grid
+prem7.location_tag
+prem7.note_card
+prem7.price_badge
+prem7.spec_list
+prem7.step_badge
+prem7.timer_badge
 thm.cut_before_after
 thm.cut_cta
 thm.cut_grid
@@ -80,3 +104,4 @@ thm.media_window
 titles2.wipe_word
 typew.grad_card
 typew.split_grad
+typo.flat_beat

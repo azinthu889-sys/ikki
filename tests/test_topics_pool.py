@@ -29,7 +29,18 @@ class Pool(unittest.TestCase):
         wide = set()
         for r in ROLES:
             wide |= set(TP.pool_ids(r))
-        self.assertGreater(len(wide), 300, len(wide))
+        # ⚠️⚠️ **overlay pool တစ်ခုတည်းနဲ့ မတိုင်းရ**。 ၂၀၂၆-၁၀-၀၂ မှာ
+        #    template ၆၁၇ လုံး ဖုံးအုပ်မှု တိုင်းပြီး ဘောင်အပြည့် ၄၅ ခု
+        #    အသစ် တွေ့သဖြင့် overlay pool က ၃၂၄ → **၂၉၁** ကျသည် —
+        #    ဒါက ဆုံးရှုံးခြင်း **မဟုတ်**、အဲဒီ ၄၅ ခုက ဖြတ်ပြောင်း လမ်းသို့
+        #    ရွှေ့သွားခြင်း ဖြစ်သည် (ဘောင်အပြည့် ဆေးသုတ်သူကို ပြောသူပေါ်
+        #    ထပ်တင်လျှင် ပြောသူ ပျောက်မည်)。 ⇒ **လမ်း ၂ ခုပေါင်း** တိုင်းသည်。
+        import planner as _PL
+        import gfxcat as _GC
+        _ff = {e["id"] for e in _GC.catalog() if _PL._full_frame(e["id"])}
+        self.assertGreater(len(wide | _ff), 380, (len(wide), len(_ff)))
+        # overlay pool ကိုယ်တိုင်လည် ကျဉ်းမသွားရ (လက်ရေး ၆၀ ထက် အများကြီး)
+        self.assertGreater(len(wide), 280, len(wide))
 
     def test_all_ids_are_qualified(self):
         for r in ROLES:
@@ -85,8 +96,19 @@ class Pool(unittest.TestCase):
                 self.assertFalse(PL._full_frame(i), (r, i))
 
     def test_lower_third_kept(self):
-        # ⚠️ negative control — ဘောင်အပြည့် ဖယ်တာက lower third ကို မဖယ်မိရ
-        self.assertIn("prem.lower_third", TP.pool_ids("label"))
+        """⚠️ negative control — ဘောင်အပြည့် ဖယ်တာက **တကယ့်** lower third
+           ကို မဖယ်မိရ。
+
+        ⚠️⚠️ အရင်က `prem.lower_third` ကို သုံးခဲ့သည် — **နာမည်ကို ယုံခဲ့ခြင်း**
+           ဖြစ်သည်。 ၂၀၂၆-၁၀-၀၂ တိုင်းချက်: `prem.lower_third` ရဲ့ alpha
+           ဖုံးအုပ်မှုက **၁.၀၀၀** (ဘောင်တစ်ခုလုံး အလင်းပိတ် ဆေးသုတ်သည် —
+           `prem` မိသားစု အားလုံး နောက်ခံ gradient ဆွဲသဖြင့်) ⇒ overlay
+           အဖြစ် ချလျှင် ပြောသူ လုံးဝ ပျောက်မည်。
+           `titles.lower_third` က ၀.၀၉၉ · cy ၀.၇၅ ⇒ **အဲဒါက တကယ့် lower third**。
+        """
+        self.assertIn("titles.lower_third", TP.pool_ids("label"))
+        # ⚠️ ဘောင်အပြည့် ဆေးသုတ်သူက overlay pool ထဲ **မရှိရ**
+        self.assertNotIn("prem.lower_third", TP.pool_ids("label"))
 
     def test_curated_stays_first(self):
         # ⚠️ အရည်အသွေး အစဉ်လိုက် မပျက်ရ — လက်ရေး စာရင်းက ရှေ့မှာ
