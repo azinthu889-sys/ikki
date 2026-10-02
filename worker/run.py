@@ -1085,6 +1085,39 @@ def head_text(props):
     return ""
 
 
+_TXT_PARAMS = {}
+
+
+def tmpl_wants_text(cid):
+    """ဒီ template က **စာသား param လိုလား** (catalog ကနေ · cache)
+
+    ⚠️⚠️ ၂၀၂၆-၁၀-၀၂ — render s6 ရဲ့ ၆၆.၇s မှာ `callouts.underline_call` က
+       **မျဉ်းတစ်ကြောင်းပဲ** ဆွဲပြီး စာ လုံးဝ မပါခဲ့ (အဝါမင် ၂၉၀၅px ·
+       y ၈၀၄–၈၁၁ = **၇px အမြင့်**)。 log က 「」 ပြပါလျက် ကတ်က ✓ ဖြစ်ခဲ့သည်。
+       အကြောင်းရင်း — `_head` ဗလာ ဖြစ်တာကို **ငြင်းမယ့် စစ်ချက် မရှိ**။
+    ⚠️ ၂၀၂၆-၀၉-၂၉ မှာ ဒီလက္ခဏာကို `_HEAD_K` ချဲ့ပြီး ပြင်ခဲ့သည် — အဲဒါက
+       **ရှာတွေ့အောင်** လုပ်တာသာ、စာ တကယ် မရှိတဲ့အခါ မကာကွယ်。 plan က
+       Gemini ဆီက လာသဖြင့် props ဗလာ ဖြစ်နိုင်ဆဲ ⇒ သုံးရာမှာ စစ်ရသည်。
+    ⚠️ `thm.media_*` လို **စာ မလိုသော** template တွေ ရှိသည် ⇒ ပုံသေ
+       「ဗလာ ဆို ငြင်း」 မလုပ်ရ — catalog မှာ `text` param ရှိမှသာ ငြင်းသည်。
+    """
+    if not cid:
+        return False
+    if cid in _TXT_PARAMS:
+        return _TXT_PARAMS[cid]
+    try:
+        import gfxcat as _GC
+        e = next((x for x in _GC.catalog() if x["id"] == cid), None)
+        v = bool(e) and any((p.get("type") == "text")
+                            for p in (e.get("params") or []))
+    except Exception:
+        # ⚠️ catalog မရလျှင် **ခွင့်ပြု**ရမည် — စစ်လို့မရလို့ ပယ်လျှင်
+        #    ဂရပ်ဖစ် အားလုံး ပျောက်မည် (manifest ids ထောင်ချောက်နဲ့ အတူတူ)。
+        v = False
+    _TXT_PARAMS[cid] = v
+    return v
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -3026,6 +3059,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
                     continue
                 _a0, _b0 = _win
                 _head = head_text(_ev.get("props") or {})
+                # ⚠️⚠️ **စာ မပါသော ကတ်ကို မဆောက်ရ** — ဘောင်အပြည့် ဖုံးပြီး
+                #    မျဉ်း/ပုံသဏ္ဌာန်ပဲ ပြတာက အလှမဟုတ်、အမှား ဖြစ်သည်
+                #    (render s6 ၆၆.၇s `callouts.underline_call`)。
+                if not str(_head or "").strip() and tmpl_wants_text(_cid):
+                    log(f"  ⊘ ကတ် @ {_a0:5.1f}s  {_cid} — **စာ မပါ** ⇒ မဆောက်ပါ")
+                    _nno += 1
+                    REPORT.setdefault("cards_empty", []).append(
+                        dict(at=round(_a0, 2), cid=_cid))
+                    continue
                 _pp = os.path.join(work_s, f"p{_i:02d}.png")
                 try:
                     SL2.statement(str(_head)[:60], index=_i + 1,
