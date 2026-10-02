@@ -91,10 +91,17 @@ def main():
         #    `tools/mixkitvid.py` က clip ရဲ့ ခေါင်းစဉ်ကနေ တိကျသော tag ပေးသည်
         #    ⇒ ရှိလျှင် **ရှေ့တန်း တင်**ပြီး style tag ကို နောက်က ပေါင်းသည်
         #    (ဖယ်မထားရ — အထွေထွေ ရှာမှုအတွက် လိုသေး)。
+        # ⚠️⚠️ **clip tag ရှိလျှင် style tag ကို ပေါင်း၍ မရ**。 ပထမ
+        #    ရေးချက်မှာ ပေါင်းခဲ့ရာ 「tokyo-night-street」 clip က
+        #    `my` ထဲ 「စာသင်ခန်း ကျောင်းသား」 ပါလာပြီး `broll._score()` က
+        #    စာသင်ခန်း အကြောင်း ဝါကျနဲ့ **တွဲမိ**မည် (၂၀၂၆-၁၀-၀၂ တွေ့)。
+        #    `_score` က tag အားလုံးကို ပေါင်းသဖြင့် ညစ်ပတ်သော tag က
+        #    အမှတ် တင်ပေးသည် ⇒ **အစားထိုး**ရမည်、မပေါင်းရ。
         if r.get("my"):
-            my = list(dict.fromkeys(list(r["my"]) + list(my)))
+            my = list(dict.fromkeys(r["my"]))
         if r.get("tags"):
-            en = list(dict.fromkeys(list(r["tags"]) + en))
+            en = list(dict.fromkeys(list(r["tags"])
+                                    + ([] if r.get("my") else en)))
         if r.get("title"):
             en = list(dict.fromkeys(str(r["title"]).split() + en))
         c = dict(path=p, src=r.get("page") or r.get("url"), size=os.path.getsize(p),
