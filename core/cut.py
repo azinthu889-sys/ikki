@@ -43,7 +43,37 @@ MIN_KEEP_RUN = 0.25      # SKILL — ဒီထက် တိုသော အပ�
 MAX_REMOVED  = 0.80      # SKILL F1 — ဒီထက် ဖြတ်လျှင် သတိပေး
 
 
-def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None):
+# ══ အနားယူချိန် ပြန်ပေးခြင်း ═══════════════════════════════════════
+# ⚠️⚠️ ယခင်က တိတ်ဆိတ်မှု **အရှည် ဘယ်လောက်ပဲဖြစ်ဖြစ်** `2×pad` ပဲ ချန်ခဲ့သည်
+#    ⇒ ၁၄.၉s အနားယူချိန်နဲ့ ၀.၅s အနားယူချိန် **ရလဒ် တူတူ**。 တိုင်းချက်
+#    (၂၀၂၆-၁၀-၀၂ · short-916 ထွက်ဖိုင်): အနားယူချိန် **အရှည်ဆုံး ၀.၈၈s** ·
+#    p90 ၀.၄၂s ⇒ စည်းချက် ပြားသွားသည်。
+# ⚠️ Zin ရဲ့ **ကိုယ်ပိုင် ဗီဒီယို ၁၀ ခု** (ZJL knowledge) ကနေ တိုင်းချက် —
+#      p50 ၀.၁၆ · p75 ၀.၃၆ · **p90 ၀.၅၆** · အရှည်ဆုံး ၁.၄–၁၃.၀ (အလယ် ၄.၉)
+#    တိုတဲ့အနားတွေက ကိုက်နေပြီး **အရှည်ပဲ ကွာ**သည်。
+# ⇒ မူရင်း အရှည်အလိုက် **အချိုးကျ ချန်**သည် (ပြောသူ ကိုယ်တိုင် ရပ်ထားတာက
+#   ခေါင်းစဉ် ပြောင်းချက် ဖြစ်သည် — cut အဆင့်မှာ label မရသေး၍ ဒါက
+#   တစ်ခုတည်းသော အချက်ပြ)。
+# ⚠️ ကိန်းကို **ညှိပြီး ရွေးထားသည်** (မှန်းချက် မဟုတ်) — ratio ၀.၁၀ ·
+#    အများဆုံး ၁.၅s ⇒ p90 **၀.၅၈** (ပစ်မှတ် ၀.၅၆) · ဗီဒီယို +၉.၆%。
+PAUSE_RATIO = 0.10      # မူရင်း အပိုအရှည်ရဲ့ ဒီအချိုးကို ချန်သည်
+PAUSE_MAX   = 1.5       # ချန်ရမည့် အများဆုံး (စက္ကန့်)
+
+
+def pause_keep(length, pad, min_sil, ratio=PAUSE_RATIO, mx=PAUSE_MAX):
+    """မူရင်း `length` ကြာသော တိတ်ဆိတ်မှုမှာ **ချန်ရမည့် အရှည်**
+
+    ⚠️ အနည်းဆုံး `2×pad` — ဖြတ်မှတ်က စကားနားမှာ မကပ်စေရန်。
+    ⚠️ `ratio=0` ဆိုလျှင် ယခင် အပြုအမူ အတိအကျ (ပြန်ပိတ်နိုင်ရန်)。
+    """
+    base = 2.0 * float(pad)
+    if ratio <= 0:
+        return base
+    return max(base, min(float(mx), base + float(ratio) * (float(length) - float(min_sil))))
+
+
+def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None,
+         pause_ratio=None, pause_max=None):
     """(spans, cuts, stats) — SKILL `ikki-cut-engine` အတိုင်း。
 
     spans = ထားမည့် (start, end) စာရင်း — trim+concat ဖြင့် ထုတ်ရန်
@@ -72,13 +102,22 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
         min_sil    = float(cal.get("cut_threshold_s", min_sil))
         keep_pause = 2.0*float(cal.get("pad_s", keep_pause/2.0))
     pad = keep_pause/2.0
+    # ⚠️ recipe/calib ကနေ ကန့်သတ်နိုင်သည် — `pause_ratio=0` ⇒ ယခင် အပြုအမူ
+    _pr = PAUSE_RATIO if pause_ratio is None else float(pause_ratio)
+    _pm = PAUSE_MAX if pause_max is None else float(pause_max)
+    if cal:
+        _pr = float(cal.get("pause_keep_ratio", _pr))
+        _pm = float(cal.get("pause_keep_max", _pm))
     # ⚠️ F1 ကန့်သတ်ချက်ကို **calib ကနေ** ယူသည် (R5) — မရှိလျှင် module default
     max_removed = float((cal or {}).get("max_removed_ratio", MAX_REMOVED))
 
     spans=[]; cuts=[]; pos=0.0
     for a, b in sil:
         if b-a <= min_sil: continue                 # တိုသော အနားယူချိန် — မထိ
-        ca = a + pad; cb = b - pad                  # ⚠️ တိတ်ဆိတ်မှု **အထဲက** ယူ
+        # ⚠️ ချန်ရမည့် အရှည်က **မူရင်း အရှည်အလိုက်** ကွဲသည် (အထက် မှတ်ချက်)。
+        _keep = pause_keep(b - a, pad, min_sil, _pr, _pm)
+        _h = _keep / 2.0
+        ca = a + _h; cb = b - _h                    # ⚠️ တိတ်ဆိတ်မှု **အထဲက** ယူ
         if cb - ca < 0.08: continue
         if ca - pos >= MIN_KEEP_RUN: spans.append((pos, ca))
         elif spans:                                 # F3 — တိုလွန်းလျှင် ပေါင်း
@@ -122,6 +161,7 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
               calib_src=(cal or {}).get("calibrated_against"),
               cut_threshold=round(min_sil,3), pad=round(pad,3),
               max_removed=max_removed,
+              pause_ratio=_pr, pause_max=_pm,
               cut_src=src, refusals=refus, warnings=warn)
     return spans, cuts, st
 
