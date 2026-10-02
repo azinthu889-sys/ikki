@@ -590,6 +590,43 @@ def _ybox(el, H):
     return max(0, int(y0)), min(int(H), int(y1))
 
 
+def _xbox(el, n=6):
+    """element ရဲ့ **အလျားလိုက် မှင် အကွာအဝေး** `(x0, x1, width)`
+
+    ⚠️⚠️ **နောက်ဆုံး frame တစ်ခုတည်းနဲ့ တွက်၍ မရ**。 စာလုံး animation
+       အများစုက ဘေးကနေ ရှော့ဝင်/ကျယ်လာသဖြင့် အလယ် frame တွေရဲ့ မှင်က
+       ပိုကျယ်နိုင်သည် ⇒ နောက်ဆုံး frame နဲ့ ရွှေ့လျှင် အစောပိုင်း frame
+       တွေ **အစွန် ပြတ်**သည် (၂၀၂၆-၀၉-၂၂:「Casper Mobile」·「account level」)。
+       ⇒ frame %d ခု နမူနာယူပြီး **အကျယ်ဆုံး** မှင်ကို ယူသည်。
+    """ % n
+    try:
+        import numpy as _np
+        from PIL import Image as _Im
+        _fr = el.get("anim") or []
+        if not _fr:
+            return 0, 0, 0
+        _pick = sorted({0, len(_fr) - 1} |
+                       {max(0, min(len(_fr) - 1, len(_fr) * k // n))
+                        for k in range(1, n)})
+        lo = hi = None
+        for _j in _pick:
+            if not (0 <= _j < len(_fr)):
+                continue
+            _a0 = _np.asarray(_Im.open(_fr[_j][0]).convert("RGBA"))[:, :, 3]
+            _xs = _np.nonzero(_a0.max(axis=0) > 8)[0]
+            if not len(_xs):
+                continue
+            _o = _fr[_j][1] if isinstance(_fr[_j], (list, tuple)) and len(_fr[_j]) > 1 else 0
+            _a, _b = int(_xs.min()) + _o, int(_xs.max()) + _o
+            lo = _a if lo is None else min(lo, _a)
+            hi = _b if hi is None else max(hi, _b)
+        if lo is None:
+            return 0, 0, 0
+        return lo, hi, hi - lo
+    except Exception:
+        return 0, 0, 0
+
+
 def _yparam(fn):
     """template က နေရာ ရွှေ့လို့ရသော param ရှိလား (`cy` · `y`)。"""
     import inspect
@@ -626,7 +663,9 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
     made=[]
     LAST.clear()
     LAST.update(want=len(gfx), no_template=0, build_fail=0,
-                no_room=0, out_of_frame=0, overlap=0, moved=0, placed=0)
+                no_room=0, out_of_frame=0, overlap=0, moved=0, placed=0,
+                # ⚠️ ဘောင်ထက် ကျယ်၍ ချုံ့လည် မဝင်သူ — report မှာ ပေါ်ရမည်
+                too_wide=0, fit_w=0)
     for i,g in enumerate(gfx):
         # ⚠️ အရင်က module ၂ ခု (titles · titles2) ထဲမှာပဲ ရှာသဖြင့်
         #    typo · kinetic · callouts · infogfx ထဲက template တွေ
@@ -874,10 +913,41 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         #    (၂၀၂၆-၀၉-၂၁ တိုင်းချက်)。 ဒေါင်လိုက်သာ ရွှေ့နေလျှင် ၃၃px သာ
         #    ရပြီး template ၂၄၃ ခုထဲက တစ်ခုမှ မဝင်ပါ ⇒ ဘေးကို ရွှေ့လျှင်
         #    **၂၀၆/၂၄၃ ဝင်**သည်。
+        # ══ ⚠️⚠️ **ဘောင်အကျယ် ဝင်အောင် ချုံ့ခြင်း — ခြွင်းချက် မရှိ** ══════
+        #    ယခင်က အကျယ် ချိန်ညှိချက်က **ဘေးနေရာ အကိုင်းထဲမှာသာ** ရှိခဲ့သည်
+        #    (`_sr >= W*0.22`)。 ၉:၁၆ မှာ ပြောသူက အကျယ် အပြည့် ယူသဖြင့်
+        #    ဘေးနေရာက **၂px** သာ ⇒ အကိုင်း ဘယ်တော့မှ မပြေး ⇒ ကတ်က
+        #    ဘောင်ထက် ကျယ်လျှင် **အစွန် ပြတ်**သည်。
+        #    တိုင်းချက် (၂၀၂၆-၁၀-၀၂ short-916 v2 · ၆၉.၉s `thm.hook_red`):
+        #    「upgrade လုပ်ထားသူများသာ ဒီ 3」က ညာဘက် ပြတ်နေသည်。
+        #    ⚠️ `gfx_size_*.json` ရဲ့ `w` နဲ့ ကြိုမသိနိုင်ပါ — အဲဒါက demo
+        #       စာသားနဲ့ တိုင်းထားပြီး (`thm.hook_red` ၉၃၀px = ၈၆%)
+        #       တကယ့် မြန်မာ စာသားက ပိုရှည်သည် ⇒ **ဆောက်ပြီးမှ** တိုင်းရသည်。
+        #    ⚠️ ဖတ်ရလွယ်မှု ကြမ်းခင်း ၀.၇၀ — ဘေးနေရာ အကိုင်းနဲ့ အတူတူ。
+        #       ၀.၇၀ နဲ့လည် မဝင်လျှင် ယခင်အတိုင်း အလယ်မှာ ချပြီး
+        #       **log မှာ ပြ**သည် (တိတ်တဆိတ် မပြတ်စေရ)。
+        _ox0, _ox1, _iw0 = _xbox(el)
+        _m0 = max(8, int(W * 0.02))
+        _avail = W - 2 * _m0
+        if _iw0 and _iw0 * gsc > _avail:
+            _need = _avail / float(_iw0)
+            if _need >= 0.70:
+                log(f"  ⤡ {g['kind']} — ဘောင်အကျယ် ဝင်အောင် ×{_need:.2f} "
+                    f"ချုံ့သည် (မှင် {int(_iw0 * gsc)}px > {_avail}px)")
+                gsc = _need
+                LAST["fit_w"] = LAST.get("fit_w", 0) + 1
+            else:
+                LAST["too_wide"] = LAST.get("too_wide", 0) + 1
+                log(f"  ⚠️ {g['kind']} — မှင် {int(_iw0 * gsc)}px · ဘောင် "
+                    f"{_avail}px ⇒ ×{_need:.2f} လိုပြီး ကြမ်းခင်း ၀.၇၀ အောက် "
+                    f"⇒ အလယ်မှာ ချသည် (အစွန် ပြတ်မည်)")
+        _ix0, _ix1 = int(_ox0 * gsc), int(_ox1 * gsc)
+        _iw = _ix1 - _ix0
         _sr = side_room(avoid, W)
         if avoid and _sr >= int(W * 0.22) and not _over_subject(g.get("kind")):
             _ay0, _ay1, _x0, _x1 = _box(avoid)
-            _y0b, _y1b = _ybox(el, H)
+            _oy0b, _oy1b = _ybox(el, H)
+            _y0b, _y1b = int(_oy0b * gsc), int(_oy1b * gsc)
             # ⚠️ **နောက်ဆုံး frame တစ်ခုတည်းနဲ့ တွက်၍ မရ**。 စာလုံး animation
             #    အများစုက ဘေးကနေ **ရှော့ဝင်/ကျယ်လာ**သဖြင့် အလယ် frame တွေရဲ့
             #    ink က ပိုကျယ်/ပိုဘယ်ဘက် ရှိနိုင်သည် ⇒ နောက်ဆုံး frame နဲ့
@@ -885,37 +955,14 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    (၂၀၂၆-၀၉-၂၂ Zin ရဲ့ render: 「Casper Mobile」·「account level」
             #     ဘယ်ဘက် ပြတ်နေခဲ့သည်)。
             #    ⇒ frame ၆ ခု နမူနာယူပြီး **အကျယ်ဆုံး** ink ကို သုံးသည်。
-            _iw = 0; _ix0 = 0; _ix1 = 0
-            try:
-                import numpy as _np
-                from PIL import Image as _Im
-                _fr = el["anim"]
-                _pick = sorted({0, len(_fr) - 1,
-                                len(_fr) // 5, 2 * len(_fr) // 5,
-                                3 * len(_fr) // 5, 4 * len(_fr) // 5})
-                _lo, _hi = None, None
-                for _j in _pick:
-                    if not (0 <= _j < len(_fr)): continue
-                    _a0 = _np.asarray(_Im.open(_fr[_j][0]).convert("RGBA"))[:, :, 3]
-                    _xs = _np.nonzero(_a0.max(axis=0) > 8)[0]
-                    if not len(_xs): continue
-                    _o = _fr[_j][1]
-                    _a, _b = int(_xs.min()) + _o, int(_xs.max()) + _o
-                    _lo = _a if _lo is None else min(_lo, _a)
-                    _hi = _b if _hi is None else max(_hi, _b)
-                if _lo is not None:
-                    _ix0, _ix1 = _lo, _hi
-                    _iw = _hi - _lo
-            except Exception:
-                _iw, _ix0, _ix1 = 0, 0, 0
+            # ⚠️ မှင် အကျယ်ကို **အပေါ်မှာ တိုင်းပြီးသား** (`_ox0/_ox1/_iw0`)
+            #    ⇒ ဒီမှာ ထပ်မတိုင်းရ。 `_ix*` က gsc နဲ့ ချိန်ပြီးသား。
             # ⚠️ ကျယ်လွန်းလျှင် **ချုံ့ပြီး** ဘေးမှာ ချသည် (ပယ်တာထက် ကောင်း)
-            # WARN compare the SCALED ink against the side room, else an
-            #    upscaled card is judged by its unscaled width.
-            if _iw and _sr > 0 and _iw * gsc > _sr and (_sr / float(_iw)) >= 0.70:
-                gsc = _sr / float(_iw)
-                _ix0 = int(_ix0 * gsc); _ix1 = int(_ix1 * gsc)
+            if _iw0 and _sr > 0 and _iw > _sr and (_sr / float(_iw0)) >= 0.70:
+                gsc = _sr / float(_iw0)
+                _ix0 = int(_ox0 * gsc); _ix1 = int(_ox1 * gsc)
                 _iw = _ix1 - _ix0
-                _y0b = int(_y0b * gsc); _y1b = int(_y1b * gsc)
+                _y0b = int(_oy0b * gsc); _y1b = int(_oy1b * gsc)
                 log(f"  ⤡ {g['kind']} — ဘေးနေရာ {_sr}px ထဲ ဝင်အောင် "
                     f"×{gsc:.2f} ချုံ့သည် (မှင် {_iw}px)")
             if _iw and _iw <= _sr:
