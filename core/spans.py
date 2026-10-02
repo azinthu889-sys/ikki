@@ -112,6 +112,23 @@ def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
     os.remove(lst)
     return out
 
+def _solve_ceiling(got_tp, tp, applied, lo=-12.0, hi=-1.0):
+    """နောက်တစ်ကြိမ် သုံးရမည့် limiter ခေါင်း (dBFS)
+
+    ⚠️⚠️ `alimiter` က **နမူနာ အထွတ်** ကိုသာ ကန့်သတ်ပြီး **true peak** က
+       inter-sample နဲ့ AAC ကြောင့် ပိုမြင့်နိုင်သည်。 ၂၀၂၆-၁၀-၀၂ j_s41 —
+       ခေါင်း −၂.၀၀ dBFS မှာ TP **+၁.၀၀** dBTP ထွက်ခဲ့သည် (ကျော်မှု ၃.၀ dB)。
+    ⇒ ခေါင်း `C` နဲ့ TP `T` ရလျှင် ကျော်မှု `O = T − C` ⇒ ပစ်မှတ် `tp`
+      ရဖို့ **`C = tp − O`**。 ချိုးဖြတ်ခြင်း (တစ်လမ်းသာ ချ) က တုန်ခါစေပြီး
+      headroom ကို အမြဲ ဆုံးရှုံးစေသည်。
+    ⚠️ ပထမအကြိမ်မှာ ခေါင်း မသုံးရသေး ⇒ ကျော်မှု မသိ ⇒ −၂.၀ ကနေ စသည်。
+    """
+    if applied is None:
+        return max(lo, min(hi, min(-2.0, tp - max(0.0, got_tp - tp))))
+    over = got_tp - applied
+    return max(lo, min(hi, tp - max(0.0, over)))
+
+
 def loudness(inp, out, lufs=-14.0, tp=-1.0, lra=11.0):
     """⚠️ −14 LUFS · −1.0 dBTP — YouTube/TikTok က ဒီအဆင့်ကို မျှော်သည်。
 
@@ -175,24 +192,50 @@ def loudness(inp, out, lufs=-14.0, tp=-1.0, lra=11.0):
     ITER = 5
     tot = 0.0
     ceil_db = -2.0
+    applied = None          # ⚠️ နောက်ဆုံး တကယ် သုံးခဲ့သော limiter ခေါင်း
+    best = None             # ⚠️ (ဒဏ်မှတ်, ဖိုင်) — အကောင်းဆုံး အခြေအနေ
+    bestp = out + ".best.mp4"
     ok = False
-    for _it in range(ITER):
+    # ⚠️ **ITER + ၁ ပတ်** — နောက်ဆုံး ချိန်ချက်ရဲ့ ရလဒ်ကိုပါ တိုင်းရမည်
+    #    (ယခင်က မတိုင်းဘဲ ထွက်သွားသည်)。
+    for _it in range(ITER + 1):
         got_tp, got_i = _tp(out), _lufs(out)
         if got_tp is None or got_i is None:
             print("  ⚠️ mastering ကိန်း မတိုင်းနိုင် — ဆက်သွားသည်", flush=True); break
         d_tp = got_tp - tp                  # >0 = ပြင်းလွန်း
         d_i  = lufs - got_i                  # >0 = တိတ်လွန်း
+        # ⚠️⚠️ **အကောင်းဆုံးကို မှတ်ထားရမည်**。 loop က `out` ကို နေရာတွင်း
+        #    လဲနေပြီး မပြေလည်လျှင် **နောက်ဆုံး (အဆိုးဆုံး ဖြစ်နိုင်) ဟာကို**
+        #    ပို့ပေးခဲ့သည် (၂၀၂၆-၁၀-၀၂ j_s41)。 TP ကျော်တာက ဂိတ် ပျက်ခြင်း
+        #    ဖြစ်၍ ၂ ဆ ဒဏ်ပေးသည်; TP နိမ့်တာက ဂိတ် မပျက်ပါ。
+        _pen = max(0.0, d_tp) * 2.0 + abs(d_i)
+        if best is None or _pen < best[0] - 1e-9:
+            try:
+                import shutil as _sh
+                _sh.copyfile(out, bestp); best = (_pen, bestp)
+            except OSError:
+                pass
         if d_tp <= 0.0 and abs(d_i) <= 0.4:
             ok = True
             print(f"  mastering · I {got_i:+.1f} LUFS · TP {got_tp:+.2f} dBTP "
                   f"[≤ {tp}] ✓{' · ချိန် '+str(_it)+' ကြိမ်' if _it else ''}", flush=True)
             break
-        # limiter ခေါင်း — TP ကျော်လျှင် ချ · loudness က gain နဲ့ ပြန်တင်
-        if d_tp > 0: ceil_db -= (d_tp + 0.25)     # ပြင်းလျှင် ခေါင်း ချ (တစ်လမ်းသာ)
+        if _it >= ITER:
+            break
+        # ⚠️⚠️ **ခေါင်းကို တစ်လမ်းသာ ချတာ မှား**ခဲ့သည်。 `alimiter` က
+        #    နမူနာ အထွတ်ကိုသာ ကန့်သတ်ပြီး **true peak** က AAC/inter-sample
+        #    ကြောင့် ပိုမြင့်နိုင်သည် ⇒ ခေါင်း −၂.၀၀ မှာ TP **+၁.၀၀** ထွက်ခဲ့ ⇒
+        #    ကုဒ်က ခေါင်းကို ချလိုက်ပြီး **ပြန်မတင်**သဖြင့် −၂.၀၀ → −၄.၂၅ →
+        #    −၅.၂၀ ဆင်းကာ TP က −၂.၆ ⇄ −၀.၃ ⇄ −၃.၆ တုန်ခါပြီး ၅ ကြိမ်လုံး
+        #    မပြေလည်ခဲ့ (j_s41: I −14.70 · TP −3.97 နဲ့ ထွက်သွားသည်)。
+        # ⇒ **ချိုးဖြတ်မယ့်အစား တွက်သည်** — ခေါင်း `C` သုံးပြီး TP `T` ရလျှင်
+        #   ကျော်မှု `O = T − C` ဖြစ်၍ ပစ်မှတ် `tp` ရဖို့ `C = tp − O`。
+        ceil_db = _solve_ceiling(got_tp, tp, applied)
         # ⚠️ တစ်ကြိမ်လျှင် ±၃ dB ထက် မခုန်ရ — တုန်ခါမှု တားရန်
         step = max(-3.0, min(3.0, d_i))
         tot = max(-9.0, min(9.0, tot + step))
         lim = 10 ** (ceil_db / 20.0)
+        applied = ceil_db
         tmp = out + ".fix.mp4"
         subprocess.run(["ffmpeg","-v","error","-y","-i",out,
             "-af", f"volume={step:+.2f}dB,"
@@ -204,6 +247,13 @@ def loudness(inp, out, lufs=-14.0, tp=-1.0, lra=11.0):
               f"· ဒီကြိမ် {step:+.2f} dB (စုစုပေါင်း {tot:+.2f}) · "
               f"ceiling {ceil_db:.2f} dBFS", flush=True)
     if not ok:
+        # ⚠️⚠️ **အကောင်းဆုံးကို ပြန်သုံးရမည်** — နောက်ဆုံး ချိန်ချက်က
+        #    အဆိုးဆုံး ဖြစ်နိုင်သည်。
+        if best:
+            try:
+                os.replace(best[1], out)
+            except OSError:
+                pass
         # ⚠️ မကိုက်ဘဲ ထွက်လျှင် **တကယ့် ကိန်းကို ပြရမည်** — QC က ပိတ်မည်、
         #    ဒါပေမယ့် ဘာလို့ ပိတ်လဲ log ကနေ ချက်ချင်း မြင်ရစေရန်。
         f_tp, f_i = _tp(out), _lufs(out)
