@@ -73,9 +73,22 @@ class RelevanceFirst(unittest.TestCase):
                            "index အစဉ်မှာ မလွတ်လျှင် ဒီ test ဘာမှ မစစ်ပါ")
 
     def test_sorting_brings_them_all_in(self):
-        total = sum(1 for c in self.av if _rel(c))
-        inwin = sum(1 for c in self._sorted()[:120] if _rel(c))
-        self.assertEqual(inwin, min(total, 120), (inwin, total))
+        """⚠️⚠️ ၂၀၂၆-၁၀-၀၂ — `_rel` က **ပုံသေ keyword စာရင်း**နဲ့ စစ်ပြီး
+        `_score` က **ဝါကျ**နဲ့ စစ်သည် ⇒ 「တိုကျို」 tag ပါပြီး ဝါကျထဲ
+        တိုကျို မပါလျှင် `_rel`=True · `_score`=0 ဖြစ်ကာ စစ်ချက်က
+        ကုဒ်ကို အပြစ်တင်မိသည်。 ⇒ **တကယ့် ဂုဏ်သတ္တိ** ကို စစ်ရမည်:
+        **အမှတ်ရသူ (score > 0) အားလုံး window ထဲ ရောက်ရမည်**。
+        (index ၄၃၂ → ၈၃၅ တိုးတော့ အမှတ်ရသူ ၁၃၇ ဖြစ်ပြီး ကန့်သတ် ၁၂၀ ကို
+         ကျော်ခဲ့သည် — ကန့်သတ်ချက် တစ်လမ်းသာ တင်တာ အဖြေ မဟုတ်ကြောင်း
+         ၆၀ → ၁၂၀ မှာ သင်ခန်းစာ ရပြီးသား)。
+        """
+        import broll as _BR
+        scored = [c for c in self.av if self.best.get(c["path"], 0) > 0]
+        win = _BR.window(self.av, self.best)
+        inwin = sum(1 for c in win if self.best.get(c["path"], 0) > 0)
+        self.assertEqual(inwin, min(len(scored), 240), (inwin, len(scored)))
+        # ⚠️ အမှတ် မရသူတွေနဲ့ ၁၂၀ ပြည့်အောင် ဖြည့်ရမည် (ကွဲပြားမှု အတွက်)
+        self.assertGreaterEqual(len(win), min(120, len(self.av)))
 
     def test_top_of_list_is_on_topic(self):
         top = self._sorted()[:5]
@@ -105,11 +118,15 @@ class MatchUsesIt(unittest.TestCase):
         import io
         src = io.open(os.path.join(os.path.dirname(__file__), "..",
                                    "core", "broll.py"), encoding="utf-8").read()
-        ix = src.find("for i, c in enumerate(av[:120]):")
-        self.assertGreater(ix, 0)
+        # ⚠️ ၂၀၂၆-၁၀-၀၂ — ကန့်သတ်ချက်က `av[:120]` မဟုတ်တော့ဘဲ
+        #    `window(av, _best)` ဖြစ်သွားသည် (အမှတ်ရသူ အားလုံး ဝင်ရန်)。
+        ix = src.find("_win = window(av, _best)")
+        self.assertGreater(ix, 0, "window() ကို မသုံးတော့ဘူးလား")
         head = src[max(0, ix - 1800):ix]
         self.assertIn("retrieve-then-rerank", head)
         self.assertIn("av = sorted(av", head)
+        # ⚠️ စီချက်က window ရဲ့ **ရှေ့** မှာ ရှိရမည်
+        self.assertLess(src.find("av = sorted(av"), ix)
 
 
 if __name__ == "__main__":

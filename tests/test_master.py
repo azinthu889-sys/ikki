@@ -31,8 +31,11 @@ class Master(unittest.TestCase):
         self.assertIn("mastering ချိန်", SRC)
         # loop ပြီးမှ ပြန်တိုင်းသည်
         i = SRC.index("if not ok:")
-        self.assertIn("_tp(out)", SRC[i:i + 400])
-        self.assertIn("_lufs(out)", SRC[i:i + 400])
+        # ⚠️ ၂၀၂၆-၁၀-၀၂ — 「အကောင်းဆုံးကို ပြန်သုံး」 အပိုင်း ထည့်သဖြင့်
+        #    `_tp(out)` က ၄၀၀ လုံး ကျော်မှ ရောက်သည် ⇒ ပြတင်းပေါက် ကျယ်စေသည်。
+        #    စစ်ချက်ရဲ့ ရည်ရွယ်ချက် (နောက်ဆုံး ကိန်းကို တိုင်းပြီး ပြရမည်) မပြောင်း。
+        self.assertIn("_tp(out)", SRC[i:i + 900])
+        self.assertIn("_lufs(out)", SRC[i:i + 900])
 
     def test_gate_not_weakened(self):
         """ဂိတ် မလျှော့ရ — လက်ခံချက် ±၀.၄ LUFS · TP ≤ target အတိုင်း"""

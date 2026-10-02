@@ -494,6 +494,28 @@ def _pick_exact(segs, clips, want, used=None, min_score=2):
     return out
 
 
+# ⚠️⚠️ **ကန့်သတ်ချက်ကို တစ်လမ်းသာ တင်တာ အဖြေ မဟုတ်**。 ၆၀ → ၁၂၀ တင်ခဲ့ပြီး
+#    index ကြီးလာတော့ ပြန်ကျပ်ခဲ့သည် (၂၀၂၆-၁၀-၀၂: index ၈၃၅ · အမှတ်ရသူ ၁၃၇
+#    · window ၁၂၀ ⇒ **၁၇ ခု Gemini မမြင်ရ**)。
+# ⇒ **အမှတ်ရသူ အားလုံး** ထည့်ပြီး ကျန်တာကို `WIN_MIN` ပြည့်အောင် ဖြည့်သည်。
+#    `WIN_MAX` က prompt ကြီးလွန်းမှု တားရန်သာ (row တစ်ခု ~၆၀ လုံး ⇒ ၂၄၀ ≈ ၁၄ KB)。
+WIN_MAX, WIN_MIN = 240, 120
+
+
+def window(av, best):
+    """Gemini ဆီ ပို့မည့် clip စာရင်း — အမှတ်ရသူ ဦးစားပေး
+
+    ⚠️ `best` = `{path: အမှတ်}`。 အမှတ်ရသူ အားလုံး (အများဆုံး `WIN_MAX`)
+       ထည့်ပြီး ကျန်တာကို `WIN_MIN` ပြည့်အောင် အမှတ်မရသူနဲ့ ဖြည့်သည်
+       (ကွဲပြားမှု အတွက် — အမှတ်ရသူ နည်းသော ဝါကျမှာ ရွေးစရာ ကုန်မည်)。
+    """
+    hi = [c for c in av if (best or {}).get(c["path"], 0) > 0]
+    lo = [c for c in av if (best or {}).get(c["path"], 0) <= 0]
+    if not hi:
+        return list(av[:WIN_MIN])
+    return hi[:WIN_MAX] + lo[:max(0, WIN_MIN - len(hi))]
+
+
 def match(segs, want, used=None, log=print, strict=False):
     """Gemini ဖြင့် စာကြောင်း↔ရုပ် တွဲသည်。
 
@@ -533,8 +555,8 @@ def match(segs, want, used=None, log=print, strict=False):
     # ⇒ **retrieve-then-rerank**: `_score` (စာလုံး ဆိုင်မှု) နဲ့ အရင် စီပြီး
     #   ထိပ်ပိုင်းကို Gemini ဆီ ပို့သည်。 score ၀ သူများက ယခင် အစဉ်အတိုင်း
     #   နောက်မှာ ကျန်သည် ⇒ ကန့်သတ်ချက် တူတူနဲ့ **သက်ဆိုင်သူ အားလုံး** ဝင်မည်。
+    _best = {}
     try:
-        _best = {}
         for _c in av:
             _m = 0
             for _s in (segs or [])[:80]:
@@ -552,7 +574,25 @@ def match(segs, want, used=None, log=print, strict=False):
         if log:
             log(f"  ⚠️ B-roll ဆိုင်မှု စီချက် မရ ({type(_se).__name__}) — "
                 f"index အစဉ်အတိုင်း")
-    for i, c in enumerate(av[:120]):
+    # ⚠️⚠️ **ကန့်သတ်ချက် ၁၂၀ က ပြန်ကျပ်လာသည်** (၂၀၂၆-၁၀-၀၂)。 အထက်က
+    #    မှတ်ချက်မှာ 「ကန့်သတ်ချက် တူတူနဲ့ သက်ဆိုင်သူ အားလုံး ဝင်မည်」 ဟု
+    #    ရေးထားခဲ့သည် — index က ၄၃၂ → **၈၃၅** တိုးသွားတော့ အဲဒါ မမှန်တော့ပါ:
+    #    အမှတ်ရသူ **၁၃၇** ဖြစ်ပြီး window က ၁၂၀ ⇒ **၁၇ ခု Gemini မမြင်ရ**。
+    # ⇒ ကန့်သတ်ချက်ကို ထပ်တင်တာက **အဖြေ မဟုတ်** (index ကြီးလာပြန်လျှင်
+    #   ထပ်ကျပ်မည် — ၆၀ → ၁၂၀ မှာ သင်ခန်းစာ ရပြီးသား)。
+    #   ⇒ **အမှတ်ရသူ အားလုံး ထည့်**ပြီး ကျန်တာကို ၁၂၀ ပြည့်အောင် ဖြည့်သည်。
+    #   ⚠️ prompt ကြီးလွန်းမှု တားရန် အမှတ်ရသူကို `WIN_MAX` နဲ့ ကန့်သတ်သည်
+    #      (အမှတ် အများဆုံးသူ အရင်)。
+    _win = window(av, _best)
+    if log:
+        _nhi = sum(1 for c in av if _best.get(c["path"], 0) > 0)
+        if _nhi > WIN_MAX:
+            log(f"  ⚠️ B-roll · အမှတ်ရသူ {_nhi} ခု > ကန့်သတ် {WIN_MAX} "
+                f"⇒ အမှတ် နိမ့်သူ {_nhi - WIN_MAX} ခု ဖယ်သည်")
+        elif _nhi > WIN_MIN:
+            log(f"  B-roll · အမှတ်ရသူ {_nhi} ခုလုံး Gemini ဆီ ပို့သည် "
+                f"(ယခင် ကန့်သတ် {WIN_MIN})")
+    for i, c in enumerate(_win):
         cid = "c%02d" % i; ids[cid] = c
         rows.append(f'{cid}: {" · ".join((c.get("my") or [])[:4])}  [{c["dur"]:.0f}s]')
     lines = "\n".join(f"{i+1}. {s['text']}" for i, s in enumerate(segs[:80]))
