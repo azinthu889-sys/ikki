@@ -2407,6 +2407,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
     elif not gfx:
         log("  ⓘ ဂရပ်ဖစ်ကို plan ရဲ့ ဖြတ်ပြောင်း အကိုင်းက ကိုင်သည်")
     gmov = []
+    # sound follows the picture — moves/drops below are noted in `sfxsync` (reset per render)
+    try:
+        import sfxsync as _SYNC; _SYNC.reset()
+    except Exception:
+        _SYNC = None
     if gfx:
         # ⚠️ **ဖြတ်ပြီး timeline သို့ ပြောင်းရမည်** — ဖြုတ်လိုက်သော အပိုင်းထဲ
         #    ကျသွားသော ဂရပ်ဖစ်ကို ဖယ်သည် (အဲဒီစကား ဗီဒီယိုထဲ မရှိတော့)。
@@ -3268,9 +3273,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _od3 = sum(b - a for a, b in spans) or float(m["dur"])
             _cmax3 = min(float(rc.get("card_max_s") or QC.CARD_MAX),
                          float(QC.CARD_MAX))
+            _pre_fit3 = list(slides)
             slides, _why3 = _fit_slides(slides, float(_shb3[0]) * _od3,
                                         float(_shb3[1]) * _od3, _cmax3,
                                         dur=_od3, log=log)
+            if _SYNC: _SYNC.set_cards(_pre_fit3, slides)
             gfx = []          # ⚠️ ထပ်တင် မလုပ်တော့ — ဖြတ်ပြောင်း ဖြစ်သွားပြီ
         except Exception as _e:
             log(f"  ⚠️ ဖြတ်ပြောင်း မရ ({type(_e).__name__}: {_e})")
@@ -3509,10 +3516,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         try: os.remove(_mvp)
                         except OSError: pass
                         _rm += 1
+                        if _SYNC: _SYNC.note_drop(_at)
                         continue
                     log(f"  ↔ slide နဲ့ ထပ်၍ ရွှေ့ — ဂရပ်ဖစ် "
                         f"{_at:.1f}s → {_new:.1f}s")
                     _gc_busy.append((_new, _new + _d))
+                    if _SYNC: _SYNC.note_move(_at, _new)
                     _gc_keep.append((round(_new, 2),) + tuple(_gc_it[1:]))
                     _mv += 1
                 gmov = sorted(_gc_keep, key=lambda x: float(x[0]))
@@ -4169,8 +4178,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _rd = float(probe(cutv).get("dur") or 0)
             except Exception:
                 _rd = 0.0
+            _pm0 = float(rc.get("sfx_per_min") or 1.5)
             if _rd > 0:
-                _pm0 = float(rc.get("sfx_per_min") or 1.5)
                 _old = len(_PLAN.get("sfxEvents") or [])
                 _PLAN["sfxEvents"] = PLN2.sfx_plan(
                     _PLAN.get("templateEvents") or [], float(m["dur"]), _pm0,
@@ -4178,13 +4187,41 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 log(f"  SFX ပြန်တွက် · ဖြတ်ပြီး **တိုင်းထား {_rd:.1f}s** "
                     f"(ခန့်မှန်း {_outdur_guess(spans):.1f}s မဟုတ်) ⇒ "
                     f"ဖြစ်ရပ် {_old} → {len(_PLAN['sfxEvents'])}")
-            _pc = EX2.to_sfx(_PLAN, log=log)
-            for _t, _role, _db in _pc:
-                _ot = omap(float(_t), snap=True)
-                if _ot is None:
-                    REPORT["sfx_skipped"] = REPORT.get("sfx_skipped", 0) + 1
-                    continue
-                _plan_cues.append((round(_ot, 2), _role, int(_db)))
+            # ══ ⚠️⚠️ **sound follows the picture** (2026-10-02 audit, j_948437317aa1) ══
+            #    The cues above come from plan time, but by now `_fit_slides`
+            #    has respread the cards (24.5 → 31.1 s, 40.8 → 62.0 s), the
+            #    slide-clash step moved/dropped side graphics, and the coverage
+            #    cap dropped some entirely ⇒ whooshes over B-roll, a card
+            #    entering in silence, whoosh+latch over an empty frame.
+            #    ⇒ rebuild the events on the cut timeline **from what rendered**
+            #      and run the same `sfx_plan` (roles · budget · gap) on that.
+            #    Falls back to the old plan-time path if anything is missing.
+            _synced = None
+            if _SYNC and _rd > 0:
+                try:
+                    _fev, _fst = _SYNC.final_events(
+                        _PLAN.get("templateEvents") or [], omap, gmov, pmov, log=log)
+                    _sev = PLN2.sfx_plan(_fev, _rd, _pm0, log=None,
+                                         style=rc.get("_id"), out_dur=_rd)
+                    _synced = EX2.to_sfx({"sfxEvents": _sev}, log=log)
+                    REPORT["sfx_sync"] = dict(kept=_fst["kept"], moved=_fst["moved"],
+                                              unrendered=_fst["unrendered"],
+                                              shifts=_fst["shifts"][:12])
+                except Exception as _sye:
+                    _synced = None
+                    log(f"  ⚠️ SFX ↔ ရုပ် ပြန်ချိတ် မရ ({type(_sye).__name__}: {_sye})"
+                        " — plan အချိန်အတိုင်း")
+            if _synced is not None:
+                _plan_cues = [(round(float(_t), 2), _role, int(_db))
+                              for _t, _role, _db in _synced]
+            else:
+                _pc = EX2.to_sfx(_PLAN, log=log)
+                for _t, _role, _db in _pc:
+                    _ot = omap(float(_t), snap=True)
+                    if _ot is None:
+                        REPORT["sfx_skipped"] = REPORT.get("sfx_skipped", 0) + 1
+                        continue
+                    _plan_cues.append((round(_ot, 2), _role, int(_db)))
             REPORT["sfx_plan_n"] = len(_plan_cues)
             # ⚠️ **တစ်ခါတည်း ပေါင်းရမည်** — ထပ်နေသော အချိန်/role ကို ဖယ်。
             #    မဖယ်လျှင် legacy နဲ့ plan က တူသော အခိုက်မှာ နှစ်ထပ် ဖြစ်မည်。
@@ -5017,6 +5054,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
             cues, nsfx, REPORT.get("sfx_audible"), REPORT.get("sfx_silent"),
             _qpol, mo_dur)
         _mchecks.extend(_schecks)
+        # sound↔picture: every SFX moment must start with a rendered visual (or sit
+        # inside one whose entrance already sounded) — 2026-10-02 audit: 4 of 9
+        # moments in j_948437317aa1 played over B-roll or an empty frame, QC green.
+        if _SYNC and cues:
+            try:
+                _vis = ([(float(a_), float(b_)) for _p, a_, b_, _l in (slides or [])]
+                        + [(float(g[0]), float(g[0]) + float(g[2])) for g in (gmov or [])]
+                        + [(float(x[0]), float(x[0]) + float(x[2])) for x in (pmov or [])]
+                        + [(float(x[0]), float(x[0]) + float(x[2])) for x in (bmov or [])])
+                _sok, _stot, _sorph = _SYNC.check(cues, _vis)
+                REPORT["sfx_sync_check"] = dict(ok=_sok, total=_stot,
+                                                orphans=[round(o, 2) for o in _sorph])
+                _mchecks.append(dict(
+                    key="headtop_sfx_sync", ok=not _sorph,
+                    value=f"{_sok}/{_stot} on a visual"
+                          + (f" · orphan {', '.join(f'{o:.1f}s' for o in _sorph[:5])}"
+                             if _sorph else ""),
+                    want="every SFX moment lands on a rendered visual"))
+            except Exception as _sce2:
+                log(f"  ⚠️ SFX ↔ ရုပ် စစ်၍ မရ ({type(_sce2).__name__}: {_sce2})")
         REPORT["sfx_required"] = max(
             1, int(float((_qpol or {}).get("per_min") or 0) *
                    float(mo_dur or 0) / 60.0))

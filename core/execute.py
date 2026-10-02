@@ -25,6 +25,8 @@ except ImportError:
 HOLD_MIN, HOLD_MAX = 1.0, 10.5
 
 _ROLES = None
+# roles that `sfxpool.wav()` resolves although `sfxlib.ROLE` does not list them
+POOL_ONLY_ROLES = {"bed"}
 
 
 def _sfx_roles():
@@ -221,6 +223,13 @@ def to_sfx(plan, log=None):
     ⚠️ role နာမည်ကို `sfxlib.ROLE` နဲ့ စစ်ရမည် — မရှိလျှင် ကျော်သည်。
     """
     known = _sfx_roles()
+    # ⚠️ `bed` is not an `sfxlib.ROLE` — it is a measured subset that only
+    #    `sfxpool` resolves (`pool("bed")`: mask_gap ≥ BED_GAP). planner gives it
+    #    to every hook (`SFX_ROLE["hook"]`), so rejecting it here silently dropped
+    #    the opening card's entrance sound on every headtop render
+    #    (j_948437317aa1: "မရှိသော role 1 ကျော်" → hook card at 0 s had no whoosh).
+    if known is not None:
+        known = set(known) | POOL_ONLY_ROLES
     out, skipped = [], 0
     for ev in sorted(plan.get("sfxEvents") or [],
                      key=lambda x: x.get("startTime") or 0):
