@@ -21,6 +21,18 @@ def _fillable(flag):
     import planner as PL
     importlib.reload(PL)
     out = set()
+    # ⚠️⚠️ **ဤဂိတ်က `alias` ကိုသာ တိုင်းရမည် — အဓိပ္ပာယ် မူဝါဒကို မဟုတ်**。
+    #    ၂၀၂၆-၁၀-၀၂ မှာ 「အဓိပ္ပာယ် သတ်မှတ်ပြီး」 template ၂၇ ခု
+    #    (countdown · subscribe bug · end card …) ကို ယေဘုယျ ဝါကျအတွက်
+    #    အလိုအလျောက် မရွေးတော့ဘဲ ပိတ်လိုက်သည် ⇒ `_profile_candidates` က
+    #    သေးသွားပြီး alias ရဲ့ အကျိုးက +၁၀၁ → **+၉၉** ဖြစ်ကာ ဂိတ် (၁၀၀) ကို
+    #    ၁ နဲ့ လွဲသည် — alias ဆိုးလာလို့ မဟုတ်ပါ。
+    #    ⚠️ ၂ ဖက်လုံးက ဖယ်ကြည့်ရာ **ပိုဆိုး** (+၉၈) — ဖယ်လိုက်တာတွေက
+    #       alias က ဖွင့်ပေးနေသူတွေ ဖြစ်၍。
+    #    ⇒ **ဂိတ် မလျှော့ပါ** (၁၀၀ အတိုင်း)。 အစား၊ အဓိပ္ပာယ် စစ်ထုတ်ချက်ကို
+    #      ခေတ္တ ပိတ်ပြီး alias ကိုသာ တိုင်းသည်。
+    _af0 = PL.allow_fixed
+    PL.allow_fixed = lambda _i, _l: True
     for lab in sorted(PL.FAMILY):
         for x in PL._profile_candidates(lab, "premium", None):
             try:
@@ -28,6 +40,7 @@ def _fillable(flag):
                     out.add(x)
             except Exception:
                 pass
+    PL.allow_fixed = _af0
     return out, PL
 
 

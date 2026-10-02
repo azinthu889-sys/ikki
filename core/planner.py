@@ -311,6 +311,91 @@ _AUTO_RULES = (
 _AUTO = None
 
 
+# ══ 「အဓိပ္ပာယ် သတ်မှတ်ပြီးသား」 template ═══════════════════════════
+# ⚠️⚠️ **ဒါတွေကို ယေဘုယျ ဝါကျအတွက် အလိုအလျောက် မရွေးရ**。
+#    ၂၀၂၆-၁၀-၀၂ short-916 render: ငွေလွှဲ အကြောင်း ဝါကျ (၁၆.၂s) မှာ
+#    `prem3.countdown` (「၃ · ၂ · ၁ စတော့မယ်」) ရွေးမိပြီး ဘောင်အပြည့်
+#    အမှောင်နဲ့ ပြောသူကို ဖုံးခဲ့သည် — ရေတွက်ဆင်းစရာ ဘာမှ မရှိပါ。
+# ⚠️ ဘာကြောင့် ဖြစ်လဲ — `_profile_candidates` က label-specific စာရင်း
+#    နောက်မှာ **ယေဘုယျ `fact` pool တစ်ခုလုံး** ဆက်တွဲသည် (ဂရပ်ဖစ် နည်းတာ
+#    ပြင်ရန် ၂၀၂၆-၀၉-၂၅ မှာ တမင် လုပ်ထားခြင်း) ⇒ label က အစီအစဉ်သာ
+#    ပြောင်းပြီး **ကန့်သတ် မပေးပါ** ⇒ ဘယ် template မဆို ရောက်နိုင်သည်。
+# ⚠️ စာရင်းကို **catalog ရဲ့ ကိုယ်ပိုင် `label_en`** ကနေ ဆောက်သည် —
+#    ငါ့ မှန်းချက် မဟုတ်ပါ (template ဒီဇိုင်နာ ကိုယ်တိုင် ပေးထားသော အမည်)。
+#    နာမည်နဲ့ **arg ပုံစံ** မှန်းလို့ မရပေမယ် **အဓိပ္ပာယ်** က အမည်ထဲမှာ
+#    ရှိသည် ([[motionkit-argshape]] က arg ပုံစံ အကြောင်းသာ)。
+_FIXED_RX = {
+    # ⚠️⚠️ **ကျဉ်းကျဉ်း ရေးရမည်**。 ပထမ ရေးချက်မှာ `phone|rating|poll|comment`
+    #    တို့ကို ထည့်မိရာ `mockups.phone_frame` · `titles2.rating` ·
+    #    `titles3.poll_bar` · `prem6.comment_pop` လို **အကြောင်းအရာ**
+    #    template ၁၀ ခု ပါသွားသည် — အဲဒါတွေက ကြည့်သူကို 「လုပ်ပါ」 ဟု
+    #    မတောင်းပါ、အချက်အလက် ပြတာသာ ⇒ ယေဘုယျ ဝါကျမှာ သုံးလို့ရသည်。
+    #    ⇒ **တကယ့် တောင်းဆိုချက်** (subscribe · follow · save · share · CTA)
+    #      ကိုသာ ဖမ်းသည်。
+    "cta":   r"(cta|subscribe|follow|save.?reminder|share.?row"
+             r"|swipe.?hint|like.?burst|social.?proof)",
+    "open":  r"(intro.?sting|opening.?bar|next.?up)",
+    "close": r"(end.?card|outro)",
+    "brand": r"(logo.?sting|logo.?flip|sponsor)",
+    "time":  r"(countdown|timer|clock)",
+}
+# label → ခွင့်ပြုသော အုပ်စု。 ⚠️ `time` က **ဘယ် label ကမှ မရရ** —
+#    ရေတွက်ဆင်းခြင်းက အချိန် အကြောင်း တကယ် ပြောမှသာ သင့်ပြီး ASR စာသားကနေ
+#    အဲဒါ မသိနိုင်ပါ ⇒ လက်ရေး စာရင်း (`PREFER`) ကနေသာ ရောက်စေသည်。
+# ⚠️ `close` · `brand` · `time` က **ဘယ် label ကမှ မရရ** —
+#    · end card / outro က ဗီဒီယိုအဆုံးမှာသာ · planner က 「အဆုံး」 ကို မမော်ဒယ်
+#    · logo sting / sponsor က **logo ဖိုင် လို**သည် · မရှိလျှင် ဗလာ ထွက်မည်
+#    · countdown / timer က အချိန် အကြောင်း တကယ် ပြောမှသာ သင့်ပြီး ASR
+#      စာသားကနေ အဲဒါ မသိနိုင်ပါ
+#    ⇒ လက်ရေး စာရင်း (`PREFER` · `PROFILE_PREFER`) ကနေသာ ရောက်စေသည်。
+_FIXED_ALLOW = {
+    "cta":   {"cta"},
+    "open":  {"hook", "section", "chapter"},
+    "close": set(),
+    "brand": set(),
+    "time":  set(),
+}
+_FIXSET = None
+
+
+def _fixed_group(tid, lab_en=""):
+    """template ရဲ့ 「အဓိပ္ပာယ် သတ်မှတ်ပြီး」 အုပ်စု — မဟုတ်လျှင် `None`"""
+    import re as _re
+    _t = (tid.split(".", 1)[-1] + " " + (lab_en or "")).lower()
+    for g, rx in _FIXED_RX.items():
+        if _re.search(rx, _t):
+            return g
+    return None
+
+
+def fixed_meaning():
+    """`{id: အုပ်စု}` — catalog ရဲ့ `label_en` ကနေ (တစ်ခါတည်း တွက်)"""
+    global _FIXSET
+    if _FIXSET is not None:
+        return _FIXSET
+    _FIXSET = {}
+    try:
+        try:
+            import gfxcat as _GC
+        except ImportError:
+            from core import gfxcat as _GC
+        for e in _GC.catalog():
+            g = _fixed_group(e.get("id") or "", e.get("label_en") or "")
+            if g:
+                _FIXSET[e["id"]] = g
+    except Exception:
+        _FIXSET = {}
+    return _FIXSET
+
+
+def allow_fixed(tid, label):
+    """`tid` ကို `label` အတွက် **အလိုအလျောက်** ရွေးခွင့် ရှိလား"""
+    g = fixed_meaning().get(tid)
+    if not g:
+        return True
+    return str(label or "") in _FIXED_ALLOW.get(g, set())
+
+
 def _auto_candidates(label):
     """catalog ကနေ **စစ်ပြီးသား** template များကို semantic အညွှန်းအလိုက် ခွဲသည်。"""
     global _AUTO
@@ -408,7 +493,10 @@ def _profile_candidates(label, profile, last_id=None):
         fam = FAMILY.get(label)
         cands = list(PREFER.get(label) or (MF.HEADTOP.get(fam) if fam else []) or [])
     seen = set(cands)
-    cands += [c for c in _auto_candidates(label) if c not in seen]
+    # ⚠️ **လက်ရေး စာရင်း (အပေါ်) ကို မစစ်ထုတ်ရ** — ဒီဇိုင်နာ တမင် ထည့်ထားတာ。
+    #    အလိုအလျောက် တွဲချက်ကိုသာ စစ်သည်。
+    cands += [c for c in _auto_candidates(label)
+              if c not in seen and allow_fixed(c, label)]
     # ⚠️ **ဗလာ အညွှန်းကို ယေဘုယျ pool နဲ့ ဖြည့်ရမည်** (၂၀၂၆-၀၉-၂၅ တိုင်းချက်) —
     #    `plain` · `quote` · `list` ၃ ခုမှာ candidate **၀** ဖြစ်နေသည်。
     #    တကယ့် job (`j_c42e5c142058`) ရဲ့ အညွှန်း ဖြန့်ကျက်မှုက
@@ -429,7 +517,8 @@ def _profile_candidates(label, profile, last_id=None):
     #    catalog နဲ့ ဆက်တွဲသလိုပင်)。
     if label != "fact":
         _seen2 = set(cands)
-        cands += [c for c in _auto_candidates("fact") if c not in _seen2]
+        cands += [c for c in _auto_candidates("fact")
+                  if c not in _seen2 and allow_fixed(c, label)]
     return [c for c in cands if c != last_id]
 
 # ── စွမ်းအင် အဆင့် ──────────────────────────────────────────

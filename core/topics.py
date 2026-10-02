@@ -280,16 +280,28 @@ def pool_ids(role):
         i = _id_of(fn)
         if i and i not in seen:
             seen.add(i); out.append(i)
+    # ⚠️⚠️ **「အဓိပ္ပာယ် သတ်မှတ်ပြီး」 template ကို အလိုအလျောက် မတွဲရ** —
+    #    countdown · subscribe bug · sponsor card စသည် (`planner.allow_fixed`)。
+    #    ⚠️ လမ်းကြောင်း **၂ ခုလုံး** ပြင်ရမည် — `planner` ဘက်ပဲ ပြင်လျှင်
+    #       `topics` လမ်းက ဆက်ရွေးနေမည် (ဤ session မှာ ၄ ကြိမ် ဖြစ်ခဲ့သော အမှား)。
+    #    ⚠️ လက်ရေး `POOLS` (အပေါ်) ကို **မစစ်ထုတ်ပါ** — တမင် ထည့်ထားတာ。
+    try:
+        from planner import allow_fixed as _af
+    except ImportError:
+        try:
+            from core.planner import allow_fixed as _af
+        except ImportError:
+            _af = lambda _i, _r: True
     rx = _ROLE_RX.get(role)
     if rx:
         r = _re.compile(rx, _re.I)
         for i in _eligible():
-            if i not in seen and r.search(i.split(".", 1)[1]):
+            if i not in seen and r.search(i.split(".", 1)[1]) and _af(i, role):
                 seen.add(i); out.append(i)
     # ⚠️ **ကျန်သမျှ ဆက်တွဲရမည်** — role regex က ၁၃၃ ခု လွတ်သည် ⇒
     #    ဗလာ အခါမှသာ မဟုတ်、အမြဲ ဆက်တွဲသည် (plan လမ်း နဲ့ တူ)。
     for i in _eligible():
-        if i not in seen:
+        if i not in seen and _af(i, role):
             seen.add(i); out.append(i)
     _POOLIDS[role] = out
     return out
