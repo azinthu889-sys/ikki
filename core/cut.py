@@ -611,3 +611,91 @@ def unlisted(spans, segs, dur, meas=None, min_d=UNL_MIN, pad=UNL_PAD,
         else:
             mrg.append(dict(r))
     return [r for r in mrg if r["dur"] >= min_d]
+
+
+# ══ ဖြတ်ချက် စစ်ဆေးမှု — **mask ကို မယုံဘဲ** ════════════════════
+# ⚠️⚠️ **ဘာကြောင့် လိုလဲ** — `in_speech` စစ်ချက်က `measure.speech()` ရဲ့
+#    mask နဲ့ စစ်ပြီး、ဖြတ်မှတ် ချတဲ့ engine ကလည်း **အဲဒီ mask အတိုင်းပဲ**
+#    ဖြတ်သည်。 ⇒ mask က စကားကို လွတ်သွားလျှင် engine က ဖြတ်မိပြီး
+#    စစ်ချက်ကလည်း 「တိတ်ဆိတ်မှုပဲ」 ဟု အတည်ပြုမည် —
+#    **ဘယ်တော့မှ မကျနိုင်သော စစ်ချက်** (ikki-measure-the-real-path)。
+#    s6 မှာ `cut_in_speech=0` · `စကားထဲ 0/86` ဟု ပြပါလျက် ဖြုတ်ချက်တွေကို
+#    သီးခြား တိုင်းကြည့်ဖို့ လမ်း မရှိခဲ့。
+#
+# ⚠️ ဒီနည်းက **ဆုံးဖြတ်နည်း မတူ**: mask မသုံး · voice ratio မသုံး ·
+#    smoothing မသုံး。 「စကားအဆင့်」 ကို **ချန်ထားသော** အပိုင်းတွေရဲ့
+#    p90 ကနေ ယူသည် (mask ကနေ မဟုတ်)。 decode ကတော့ ffmpeg အတူတူ —
+#    အမှားက decode မှာ မဟုတ်ဘဲ threshold/voice/smoothing မှာ ဖြစ်၍。
+#
+# ⚠️ **ဂိတ် မလုပ်သေး** — ဖိုင် ၁ ခုကနေ ဘောင် မချရ
+#    (measure-distribution-rule)。 ကိန်း တင်ပြရုံသာ。 ဖိုင် အများနဲ့
+#    တိုင်းပြီးမှ ဘောင် ချရမည် — ဘယ်သူ ဘယ်ဟာကို ပိတ်မလဲ Zin ဆုံးဖြတ်ရန်。
+LOUD_NEAR_DB = 14.0     # စကားအဆင့် (p90) ကနေ အောက် ဘယ်လောက်ထိ 「ကျယ်」
+LOUD_FRAC = 0.50        # တိုင်းချက်: စကား p5 ၀.၆၈ · တိတ် p95 ၀.၁၁ ⇒ ကြားထဲ
+LOUD_MIN = 0.12         # ဒီထက် တိုလျှင် ကလစ်သံ · စကား မဟုတ်
+
+
+def loud_removed(wav, spans, dur, near=LOUD_NEAR_DB,
+                 frac=LOUD_FRAC, mind=LOUD_MIN):
+    """ဖြုတ်လိုက်သော အသံထဲ **ကျယ်သော အသံ** ဘယ်လောက် ပါလဲ
+
+    (total_s, pct, regions) ပြန်သည်。 `regions` = ဂိတ် ကျော်သော
+    (start, end, frac, loud_s, max_db) စာရင်း。
+
+    ⚠️ `spans` က **နောက်ဆုံး** ချန်ထားချက် ဖြစ်ရမည် — engine ဖြတ်ချက် ·
+       auto-clean · သုံးစွဲသူ ဖျက်ချက် အားလုံး ပြီးမှ。 engine ဖြတ်ချက်
+       တစ်ခုတည်းကို စစ်လျှင် auto-clean လမ်းကြောင်း လွတ်သွားမည် —
+       အဲဒါက `in_speech` စစ်ချက် လွတ်ခဲ့သော လမ်းကြောင်း အတိအကျ
+       (worker/run.py ရဲ့ ZJL စည်းမျဉ်း ⑧ မှတ်ချက်)。
+    ⚠️ ကျဆုံးလျှင် **အလုပ် မရပ်ရ** — တိုင်းချက် မရတာက render မထွက်ရ
+       လောက်အောင် မဟုတ်。 `None` ပြန်သည်。
+    """
+    import subprocess as _sp
+    try:
+        import numpy as _np
+        raw = _sp.run(["ffmpeg", "-v", "error", "-i", wav, "-ac", "1",
+                       "-ar", "16000", "-f", "f32le", "-"],
+                      capture_output=True).stdout
+        x = _np.frombuffer(raw, _np.float32)
+        h = int(16000 * M.FRAME)
+        n = len(x) // h
+        if n < 10:
+            return None
+        fr = x[:n * h].reshape(n, h)
+        db = 20 * _np.log10(_np.sqrt((fr ** 2).mean(1) + 1e-12) + 1e-12)
+        kept = _np.zeros(n, bool)
+        for a, b in (spans or []):
+            kept[int(float(a) / M.FRAME):int(float(b) / M.FRAME)] = True
+        if not kept.any():
+            return None
+        floor = float(_np.percentile(db[kept], 90)) - float(near)
+        # ── ဖြုတ်လိုက်သော အပိုင်းများ = ချန်ထားချက်ရဲ့ ဖြည့်စွက် ──
+        gone, p = [], 0.0
+        for a, b in sorted((float(a), float(b)) for a, b in (spans or [])):
+            if a - p > 1e-6:
+                gone.append((p, a))
+            p = max(p, b)
+        if float(dur) - p > 1e-6:
+            gone.append((p, float(dur)))
+        tot = sum(b - a for a, b in gone) or 1e-9
+        loud, regions = 0.0, []
+        for a, b in gone:
+            i0 = int(a / M.FRAME)
+            i1 = max(i0 + 1, int(b / M.FRAME))
+            seg = db[i0:i1]
+            if not len(seg):
+                continue
+            hot = seg >= floor
+            d = float(hot.sum()) * M.FRAME
+            loud += d
+            f = float(hot.mean())
+            if f >= frac and d >= mind:
+                regions.append((round(a, 2), round(b, 2), round(f, 2),
+                                round(d, 2), round(float(seg.max()), 1)))
+        return dict(loud_s=round(loud, 2),
+                    pct=round(100.0 * loud / tot, 1),
+                    floor_db=round(floor, 1),
+                    removed_s=round(tot, 2),
+                    n=len(regions), regions=regions[:20])
+    except Exception:
+        return None
