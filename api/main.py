@@ -570,6 +570,10 @@ def job_list(authorization: str = Header(None)):
     for r in rows:
         hit = _SRC_CACHE.get(r.get("upload_id"))
         r["src_gone"] = bool(hit and hit[0])
+        # 2026-10-02: the list carried every transcript, plan and report --
+        # 1.2 MB for 83 jobs, ~3.5 s per open of the Videos page. The list view
+        # never reads them; /api/jobs/{id} still returns the full job.
+        for k in _LIST_HEAVY: r.pop(k, None)
     return {"jobs": rows}
 
 
@@ -578,6 +582,8 @@ def job_list(authorization: str = Header(None)):
 # and every attempt died later with a bare "HTTP Error 404" (j_aec7757ad1dd).
 # Ask storage once per upload and remember the answer for a while.
 _SRC_CACHE = {}
+_LIST_HEAVY = ("segs", "segs_all", "edit_plan", "plan", "report", "vplan",
+               "flag_list", "cut_spans", "sync", "over", "keep_n")
 def _refuse_src_gone(uid):
     """Refuse a render whose source is known to be gone -- before any free
     preview or minute is counted (the job could only fail later with a 404)."""
