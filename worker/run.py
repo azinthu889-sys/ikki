@@ -327,11 +327,15 @@ def _fit_gfx(keep, share, dur, log=None):
     return out, why
 
 
-def _fit_slides(slides, lo, hi, cmax, dur=0.0, log=None):
+def _fit_slides(slides, lo, hi, cmax, dur=0.0, log=None, max_shift=None):
     """slide များကို `[lo, hi]` ဘောင်ရဲ့ **အလယ်** ဆီ ချိန်သည်。
 
     slides — `[(path, at, end, layout)]` · `at` က ဖြတ်ပြီး timeline ပေါ်。
     ပြန်ပေးသည် — `(slides, [မှတ်ချက်])`
+    max_shift — a card may not start further than this (s) from its own sentence.
+      Zin 2026-10-02 「ကတ်ကို ဝါကျနားမှာပဲ ထားပါ」: the even-spread candidate put
+      j_948437317aa1's KBZPay card 21 s after its sentence (40.8 → 62.0 s). Coverage
+      is then met by holding the card longer (`_lay` grows towards `lo`), not by moving it.
 
     ⚠️ ဖုံးအုပ်မှု မပြည့်တာက **အရှည်** ပြဿနာ မဟုတ်、**နေရာ** ပြဿနာ ဖြစ်တတ်သည်。
        ၂၀၂၆-၀၉-၂၀: Gemini က ၆၂s ဗီဒီယိုရဲ့ ပထမ ၁၅s ထဲမှာ slide ၃ ခုလုံး
@@ -419,6 +423,15 @@ def _fit_slides(slides, lo, hi, cmax, dur=0.0, log=None):
         inb = 0 if (lo - 1e-9 <= tot <= hi + 1e-9) else 1
         return (inb, abs(tot - mid), -len(out))
 
+    if max_shift is not None:
+        _anc = {p: a for p, a, _e, _l in sl0}
+        def _disp(out):
+            return max([abs(x - _anc.get(p, x)) for p, x, _y, _l in out] or [0.0])
+        _near = [c for c in cands if _disp(c[1]) <= max_shift + 1e-6]
+        if len(_near) < len(cands):
+            why.append(f"ကတ် ဝါကျနား ±{max_shift:.0f}s — နေရာ ရွေးစရာ {len(cands)} ⇒ {len(_near) or 1}")
+        # nothing within reach (cards pushed by each other) ⇒ the least-moved candidate
+        cands = _near or [min(cands, key=lambda c: _disp(c[1]))]
     name, best = min(cands, key=lambda c: _score(c[1]))
     moved = sum(1 for (p, x, _y, _l) in best
                 for (p2, a2, _e2, _l2) in sl0 if p2 == p and abs(x - a2) > 0.01)
@@ -440,6 +453,8 @@ def _fit_slides(slides, lo, hi, cmax, dur=0.0, log=None):
 #    တန်ဖိုးများက house စံ (`motionkit/fade.py`) — panel/card ၀.၂၂ ဝင် ၀.၁၈ ထွက် ·
 #    အနည်းဆုံး ၀.၀၈ (ဘယ်တော့မှ မပေါက်ကွဲရ) · layer ကြာချိန်ရဲ့ ၄၅% ထက် မပိုရ。
 FADE_IN, FADE_OUT, FADE_MIN, FADE_CAP = 0.22, 0.18, 0.08, 0.45
+# a plan card stays within this many seconds of its own sentence (Zin 2026-10-02)
+CARD_NEAR = 3.0
 
 
 # ⚠️ **ဘောင်အပြည့် slide ကို မငြိမ်စေရ**。 ၂၀၂၆-၀၉-၂၀ တိုင်းချက်: ထွက်ဗီဒီယိုရဲ့
@@ -3276,7 +3291,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _pre_fit3 = list(slides)
             slides, _why3 = _fit_slides(slides, float(_shb3[0]) * _od3,
                                         float(_shb3[1]) * _od3, _cmax3,
-                                        dur=_od3, log=log)
+                                        dur=_od3, log=log, max_shift=CARD_NEAR)
             if _SYNC: _SYNC.set_cards(_pre_fit3, slides)
             gfx = []          # ⚠️ ထပ်တင် မလုပ်တော့ — ဖြတ်ပြောင်း ဖြစ်သွားပြီ
         except Exception as _e:
@@ -3859,6 +3874,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
             elif spent < BUD * 0.85 and rc.get("broll_strict"):
                 log("  B-roll · strict semantic mode — budget ဖြည့်ရန် မဆိုင်သော clip မထည့်")
             if bmov: log(f"  B-roll စုစုပေါင်း {spent:.1f}s / ခွင့်ပြု {BUD:.1f}s")
+            # ⚠️ headtop: a full-frame card now sits on its own sentence (CARD_NEAR) —
+            #    the same sentence B-roll picked. The card is composited on top, so the
+            #    clip is hidden and only flashes through the card's 0.22 s fade-in.
+            #    ⇒ the card wins; drop B-roll that overlaps a card by > 0.2 s.
+            if (job.get("recipe") or rc.get("_id")) == "headtop" and slides and bmov:
+                _cw = [(float(a_), float(b_)) for _p, a_, b_, _l in slides]
+                _bk = [x for x in bmov
+                       if not any(min(float(x[0]) + float(x[2]), b_) - max(float(x[0]), a_) > 0.2
+                                  for a_, b_ in _cw)]
+                if len(_bk) < len(bmov):
+                    log(f"  B-roll · ကတ်အောက် ဖုံးနေ၍ ဖယ် {len(bmov) - len(_bk)} ခု "
+                        + " · ".join(f"{float(x[0]):.1f}s" for x in bmov if x not in _bk))
+                    REPORT["broll_under_card"] = len(bmov) - len(_bk)
+                    bmov = _bk
             for at,_,d,tag in bmov: log(f"  B-roll {at:6.2f}s · {d:.1f}s · {tag}")
             log(f"  B-roll {len(bmov)} ခု တပ်ပြီး")
             # ══ တွဲမှု မှတ်တမ်းကို **နောက်ဆုံးမှာ** ရေးသည် ═══════════════
