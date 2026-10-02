@@ -915,6 +915,32 @@ def _pop_size(size0, h_got, h_want, H, tol=0.15):
     return s1, s1 != int(size0)
 
 
+def _pop_fit(cur, ww, W, clip, wmin):
+    """pop စာသား ဘောင်ထဲ ဝင်ရန် **နောက်တစ်ခါ သုံးရမည့် အရွယ်** — မရလျှင် None
+
+    `cur`  — ယခု အရွယ် · `ww` — တိုင်းရသော မှင် အကျယ် (px)
+    `clip` — ၂ ဘက်စွန်း ထိနေလား (ထိလျှင် `ww` က **ဘောင်အတိုင်း** ဖြစ်၍ မယုံရ)
+    `wmin` — အရွယ် ကြမ်းခင်း (ဒီအောက် ဆင်းလျှင် စာလုံး ဖြုတ်ရမည်)
+
+    ⚠️⚠️ ပြတ်နေချိန်မှာ **တကယ့် အကျယ် မသိရ** ⇒ ၀.၈၂ စီ ချုံ့ရသည်。
+       မပြတ်တော့လျှင် မှင်က အရွယ်နဲ့ မျဉ်းဖြောင့် ဖြစ်၍ **တစ်ခါတည်း** တွက်ရသည် —
+       ယခင် ကုဒ်က ၂ ကြိမ်သာ ချုံ့ပြီး ၃ ကြိမ်မြောက်မှာ စာလုံး ဖြုတ်ခဲ့ရာ
+       「Western Union」က ၁၀၁၃px (ကန့်သတ် ၉၉၃ ကို ၂% ကျော်) မှာ
+       「Western」ဖြစ်သွားခဲ့သည် (၂၀၂၆-၁၀-၀၂ short-916)。
+    """
+    cur = float(cur or 0)
+    if cur <= 0:
+        return None
+    if clip:
+        ns = int(cur * 0.82)
+    else:
+        ns = int(cur * (float(W) * 0.86) / max(1.0, float(ww)))
+    if ns >= int(cur):
+        ns = int(cur * 0.90)
+    ns = max(24, ns)
+    return ns if ns >= wmin else None
+
+
 def _pop_ink(mov, work, idx):
     """pop clip ရဲ့ **တကယ့် နယ်နိမိတ်** `(x0, x1, y0, y1)` — မရလျှင် None
 
@@ -3142,7 +3168,23 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         #    တစ်ခါတည်း မမီနိုင်。 ၂ ခါ ကြိုးစားပြီး မရလျှင်
                         #    **ပထမ စကားလုံး တစ်လုံးသာ** ကျန်စေသည် —
                         #    ပြတ်နေသော စာထက် တိုသော စာ က သာသည်。
-                        for _wtry in (1, 2, 3):
+                        # ⚠️⚠️ **ပြတ်နေချိန်မှာသာ မှန်းရသည် — ပြတ်မနေလျှင်
+                        #    တစ်ခါတည်း တွက်လို့ရသည်**。 တိုင်းချက်
+                        #    (၂၀၂၆-၁၀-၀၂ · short-916 ·「Western Union」):
+                        #      size 233 ⇒ x 0–1079 (ပြတ်) · အမြင့် 193
+                        #      size 200 ⇒ x 0–1079 (ပြတ်) · အမြင့် 193
+                        #      size 164 ⇒ x 0–1079 (ပြတ်) · အမြင့် 158
+                        #      size 134 ⇒ x **31–1044** (မပြတ်) · အမြင့် 128
+                        #    နောက်ဆုံးမှာ အကျယ် ၁၀၁၃ ဖြစ်ပြီး ကန့်သတ် ၉၉၃ ကို
+                        #    **၂% ပဲ ကျော်**သည် — ဒါပေမယ့် ယခင် ကုဒ်က
+                        #    ၃ ကြိမ်မြောက်မှာ **စကားလုံး ဖြုတ်**ပစ်သဖြင့်
+                        #    「Western Union」⇒「Western」ဖြစ်ခဲ့သည်
+                        #    (「Cashback Mobile」⇒「Cashback」လည်း အတူတူ)。
+                        #    ⇒ ① ပြတ်နေလျှင် ၀.၈၂ စီ ချုံ့ (တကယ့် အကျယ် မသိ)
+                        #      ② မပြတ်တော့လျှင် **တစ်ခါတည်း တိကျစွာ** တွက်
+                        #      ③ အရွယ် ကြမ်းခင်း ရောက်မှသာ စာလုံး ဖြုတ်သည်
+                        _wmin = max(24, int(float(_pr.get("size") or 100) * 0.42))
+                        for _wtry in (1, 2, 3, 4, 5):
                             try:
                                 _ikw = _pop_ink(_pv, work_s, _i)
                             except Exception:
@@ -3150,19 +3192,27 @@ def render(job, brand, src, out, stage, log=print, over=None):
                             if not _ikw:
                                 break
                             _ww = float(_ikw[1] - _ikw[0])
-                            if _ww <= float(TH["W"]) * 0.92:
+                            _lim = float(TH["W"]) * 0.92
+                            if _ww <= _lim:
                                 break
+                            # ပြတ်နေလား — ၂ ဘက်စွန်း ထိနေလျှင် အကျယ် မယုံရ
+                            _clip = (_ikw[0] <= 1 and _ikw[1] >= int(TH["W"]) - 2)
+                            _ns = _pop_fit(_pr.get("size"), _ww, TH["W"],
+                                           _clip, _wmin)
                             _pr3 = dict(_pr)
-                            if _wtry < 3:
-                                _pr3["size"] = max(24, int(float(_pr["size"]) * 0.82))
+                            if _ns is not None:
+                                _pr3["size"] = _ns
                             else:
                                 _t1 = str(_pr.get("text") or "").split()
                                 if len(_t1) <= 1:
                                     break
-                                _pr3["text"] = _t1[0]
+                                _pr3["text"] = " ".join(_t1[:-1])
                             log(f"  ↔ pop「{str(_pr.get('text'))[:12]}」ကျယ် "
-                                f"{_ww:.0f}px ⇒ " + (f"size {_pr3['size']}"
-                                if _wtry < 3 else f"စာသား「{_pr3['text']}」သာ"))
+                                f"{_ww:.0f}px"
+                                + ("(ပြတ်)" if _clip else "")
+                                + " ⇒ " + (f"size {_pr3['size']}"
+                                           if _pr3.get("size") != _pr.get("size")
+                                           else f"စာသား「{_pr3['text']}」"))
                             try:
                                 _pv3 = _DR.slide_clip(
                                     "statement", str(_pr3.get("text") or "")[:24],
