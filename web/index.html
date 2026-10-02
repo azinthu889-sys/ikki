@@ -321,7 +321,7 @@
         </div>
         <div id="txbox" hidden style="max-width:680px;margin:22px auto 0;text-align:left">
           <div class="sech"><h3 data-my="စာသား ပြင်ရန်" data-en="Edit the transcript">စာသား ပြင်ရန်</h3>
-            <button class="more" id="txre" data-my="ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →" data-en="Re-render with edits →">ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →</button></div>
+            <button class="more" id="txpv" hidden data-my="👁 အခမဲ့ preview ကြည့်မယ် →" data-en="👁 Free preview →">👁 အခမဲ့ preview ကြည့်မယ် →</button><button class="more" id="txre" data-my="ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →" data-en="Re-render with edits →">ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →</button></div>
           <p style="font-size:13px;color:var(--tx2);margin-bottom:10px"
             data-my="<b>ဖျက်ရင်</b> ဗီဒီယိုပါ ဖြတ်ပါမယ် — အသံပါ ပါသွားမယ်။ <b>စာလုံး ပြင်ရင်</b> စာတန်းပဲ ပြောင်းပါမယ် — အသံနဲ့ ဖြတ်မှတ် မထိပါဘူး (ASR မှားဖတ်တာ ပြင်ဖို့)။ ဘယ်ဟာက ဘာဖြစ်မလဲ စာကြောင်းဘေးမှာ ပြပါမယ်။"
             data-en="<b>Delete</b> and the video is cut there — the audio goes too. <b>Edit a word</b> and only the caption changes — the audio and the cut are untouched (for fixing what the transcriber misheard). Each line tells you which it will be.">
@@ -407,8 +407,15 @@
              padding:14px 16px;border:1px solid var(--ac);border-radius:14px;
              display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap">
           <span id="rrsum" class="lede" style="font-size:13px;margin:0;text-align:left"></span>
+          <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <!-- ⚠️⚠️ **အခမဲ့ styled preview** (Zin ၂၀၂၆-၁၀-၀၂: 「preview က မိနစ်
+               မစားပါစေနဲ့」·「၃ ခါနဲ့ လုပ်ပေးပါ」)。 ပြင်တိုင်း မိနစ် ကုန်လျှင်
+               သုံးစွဲသူက 「ကြည့် → ပြင် → ကြည့်」 မလုပ်ရဲဘဲ အကန်းစမ်း ရွေးရသည်。 -->
+          <button class="btn" id="rrpv" hidden style="padding:11px 20px;white-space:nowrap"
+            data-my="👁 အခမဲ့ preview →" data-en="👁 Free preview →">👁 အခမဲ့ preview →</button>
           <button class="cta" id="rrgo" style="padding:11px 24px;white-space:nowrap"
             data-my="ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →" data-en="Re-render with changes →">ပြင်ချက်နဲ့ ပြန်ထုတ်မယ် →</button>
+          </span>
         </div>
         <div class="acts" style="margin-top:24px">
           <a class="cta" id="dl" style="padding:12px 28px;text-decoration:none;display:inline-block" data-my="ဒေါင်းလုပ်" data-en="Download">ဒေါင်းလုပ်</a>
@@ -628,6 +635,6 @@
     <span class="tr"><i id="dkbar" style="width:0%"></i></span></div>
 </div>
 
-<script src="/app.js?v=1790405000"></script>
+<script src="/app.js?v=1790861719"></script>
 </body>
 </html>

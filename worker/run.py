@@ -3995,8 +3995,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
         except Exception as _reframe_e:
             log(f"  ⚠️ plan punch မချနိုင် ({type(_reframe_e).__name__}) — cut framing သာ")
             _render_spans = spans
+    # ⚠️⚠️ `log=` ကို **မဖြစ်မနေ ပေးရမည်** — မပေးလျှင် ဆက်ဖြတ် crossfade
+    #    (`xfade_audio`) က အောင်လား ကျလား **တိတ်တဆိတ်** ဖြစ်ပြီး render s6
+    #    မှာ မှတ်တမ်း တစ်လုံးမှ မရခဲ့。 fallback (fade+concat) ကျော်သွားလျှင်
+    #    ဖြတ်ဆက်မှာ ကလစ်သံ ပြန်ပါလာမည် — မသိရ。 (ikki-measure-the-real-path)
     SP.spans(src, _render_spans, cutv, os.path.join(work,"sp"), fps=rc["fps"], zooms=_zooms,
-             **({"fade": _fd/2.0} if _fd > 0 else {}))
+             log=log, **({"fade": _fd/2.0} if _fd > 0 else {}))
     # ⚠️ ဖြတ်ချက် မရှိသော ဗီဒီယိုမှာ `_zooms` က ဘာမှ မလုပ်နိုင် ⇒ ရုပ်က
     #    လုံးဝ မလှုပ်ဘဲ ဖြစ်သည်。 ⇒ ဆက်တိုက် ချောမွေ့သော zoom ထည့်သည်。
     _za = float(rc.get("zoom_amt") or 0.0)
@@ -5269,6 +5273,41 @@ def post_meta(jid, meta):
     r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
     with urllib.request.urlopen(r, timeout=600) as f: return json.loads(f.read())
 
+def prev_shrink(job, out, log=print, h=540):
+    """**အခမဲ့ styled preview** — နောက်ဆုံး ဗီဒီယိုကို ၅၄၀p ချုံ့သည်
+
+    ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၂: 「preview က မိနစ် မစားပါစေနဲ့」·「၃ ခါနဲ့ လုပ်ပေးပါ」。
+       clean-cut preview က ဖြတ်ချက်ပဲ ပြသဖြင့် သုံးစွဲသူက style ရွေးချယ်ချက်
+       ၉ ခုကို **မမြင်ဘဲ** ခန့်မှန်းပြီး ပိုက်ဆံပေးမှ ရလဒ် မြင်ရသည်。
+    ⚠️⚠️ **layout ကို မပြောင်းရ** — theme W/H ကို ပြောင်းလျှင် ဂရပ်ဖစ်
+       နေရာချချက် · စာတန်း အရွယ် အားလုံး ပြောင်းပြီး preview က တကယ်ထွက်မည့်
+       ဗီဒီယိုကို **မဟုတ်တော့**。 ⇒ နောက်ဆုံး ဖိုင်ကိုသာ ချုံ့သည်。
+    ⚠️ အသံကို **ပြန် မ encode ရ** (`-c:a copy`) — mastering ပြီးသား LUFS/TP
+       ကို ထိစေမည် (ikki-mastering-converge)。
+    ⚠️ ချုံ့မရလျှင် **အလုပ် မကျရ** — အရွယ်အတိုင်း ပြသသည်。
+    ⚠️ render လမ်း **၂ ခုလုံး** (ပုံမှန် · cinematic) က ခေါ်ရမည် — လမ်းတစ်ခု
+       ကျန်လျှင် အဲဒီလမ်းက အခမဲ့ **အရွယ်အပြည့်** render ပေးမိမည်
+       (API က `mode='prev'` ကို မိနစ် ၀ ကောက်သဖြင့်)。
+    """
+    if (job.get("mode") or "") != "prev":
+        return out
+    pv = os.path.join(os.path.dirname(out), "prev%dp.mp4" % h)
+    try:
+        ff(["ffmpeg", "-v", "error", "-y", "-i", out,
+            "-vf", f"scale=-2:{h}:flags=lanczos",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            "-c:a", "copy", pv])
+        pm = probe(pv)
+        log(f"  👁 preview · {h}p · {os.path.getsize(pv)/1e6:.1f} MB "
+            f"(မူရင်း {os.path.getsize(out)/1e6:.1f} MB) · "
+            f"{float((pm or {}).get('dur') or 0):.2f}s · **မိနစ် ၀**")
+        return pv
+    except Exception as e:
+        log(f"  ⚠️ preview မချုံ့နိုင် ({type(e).__name__}) — အရွယ်အတိုင်း ပြသမည်")
+        return out
+
+
 def post_thumb(jid, out, log=print):
     """ပုံငယ် ထုတ်ပြီး API ကို တင်သည်。
 
@@ -6168,6 +6207,7 @@ def handle(d):
                                        "src_dur": rs.plan.get("src_dur")})
             print(f"⏸  စာတမ်း တင်ပြီး · {time.time()-t0:.1f}s\n", flush=True)
             return
+        out = prev_shrink(job, out, log=lambda x: print(x, flush=True))
         post_thumb(jid, out, log=lambda x: print(x, flush=True))
         post_result(jid, out, dict(src_dur=m["dur"], out_dur=mo["dur"],
                                    cuts=st.get("cuts",0)+st.get("auto_extra",0),
@@ -6386,6 +6426,7 @@ def cine_handle(d, t0):
             lines.append(f"{i + 1:3d} {s_['o0']:7.2f}–{s_['o1']:7.2f}  {s_['kind']:<6} "
                          f"{s_['src']} {s_['a']:.2f}–{s_['b']:.2f}"
                          + (f"  EV{s_['ev']:+.1f}" if s_.get('ev') else ""))
+        out = prev_shrink(job, out, log=log)
         post_thumb(jid, out, log=log)
         post_result(jid, out, dict(
             src_dur=res["src_dur"], out_dur=res["dur"], cuts=len(res["shots"]),

@@ -119,6 +119,21 @@ def xfade_audio(src, spans, out, d=XFADE, log=None):
         last = lab
     cmd += ["-filter_complex", ";".join(fc), "-map", "[%s]" % last, out]
     subprocess.run(cmd, check=True)
+    # ⚠️ **အောင်ကြောင့်လည်း ရေးရမည်** — ကျဆုံးချက် မပေါ်တာကို 「အောင်」 ဟု
+    #    ကောက်ချက်ချရခြင်းက သက်သေ မဟုတ် (render s6 မှာ တကယ် ဖြစ်ခဲ့)。
+    #    ကြာချိန်ကိုပါ တိုင်းပြရမည် — handle က ကြာချိန် မရွေ့ဖို့ အာမခံထားသည်。
+    if log:
+        _want = sum(max(0.0, float(b) - float(a)) for a, b in spans)
+        try:
+            _got = float(subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", out],
+                capture_output=True, text=True).stdout.strip() or 0)
+        except (ValueError, OSError):
+            _got = 0.0
+        log(f"  🔗 အသံ ဆက်ဖြတ် crossfade {d*1000:.0f}ms × {n-1} ဆက်မှတ် · "
+            f"ကြာချိန် {_got:.3f}s (ပစ်မှတ် {_want:.3f}s · ကွာ "
+            f"{_got-_want:+.3f}s)")
     for q in parts:
         try:
             os.remove(q)
@@ -128,7 +143,7 @@ def xfade_audio(src, spans, out, d=XFADE, log=None):
 
 
 def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
-          fade=FADE, zooms=None, scale=None):
+          fade=FADE, zooms=None, scale=None, log=None):
     """ဖြတ်မှတ်အတိုင်း ဖြတ်ပြီး ပြန်ဆက်သည်。
 
     `scale` = အမြင့် (px)。 ပေးလျှင် အရွယ် ချုံ့သည် — **clean-cut preview**
@@ -179,15 +194,19 @@ def spans(src, spans, out, work, fps=30, vcodec=None, vb="10M",
     # ⚠️ ကြာချိန် မရွေ့ကြောင်း `xfade_audio` မှာ handle နဲ့ အာမခံထားသည်。
     #    ⚠️ ကျဆုံးလျှင် **တိတ်တဆိတ် မကျော်ရ** — ယခင် နည်း (အသံပါ concat)
     #      ကို ပြန်သုံးပြီး အကြောင်း ပြရမည်。
+    # ⚠️ `log` မပေးလျှင် stdout — worker က မပေးခဲ့သဖြင့် crossfade က
+    #    **အောင်လား ကျလား မှတ်တမ်း မရ**ခဲ့ (render s6: ကျဆုံးချက် မပေါ်တာကို
+    #    「အောင်」 ဟု ကောက်ချက်ချရသည် — သက်သေ မဟုတ်)。 ⇒ အောင်လည်း ရေးသည်。
+    _lg = log or (lambda x: print(x, flush=True))
     _a = os.path.join(work, "_axf.wav")
     try:
-        xfade_audio(src, spans, _a)
+        xfade_audio(src, spans, _a, log=_lg)
         subprocess.run(["ffmpeg","-v","error","-y","-i",_v,"-i",_a,
                         "-map","0:v:0","-map","1:a:0","-c:v","copy",
                         "-c:a","aac","-b:a","192k","-shortest",out], check=True)
     except Exception as _xe:
-        print(f"  ⚠️ အသံ crossfade မရ ({type(_xe).__name__}: {_xe}) — "
-              f"ယခင်နည်း (fade+concat) သို့ ပြန်သွားသည်", flush=True)
+        _lg(f"  ⚠️ အသံ crossfade မရ ({type(_xe).__name__}: {_xe}) — "
+            f"ယခင်နည်း (fade+concat) သို့ ပြန်သွားသည်")
         _p2 = []
         for i, (a, b) in enumerate(spans):
             d = b - a

@@ -1285,6 +1285,11 @@ function watchJob(jid, el){
           ⚠️ Zin ၂၀၂၆-၀၉-၂၁: ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း **မထည့်ခင်** ဖြတ်ချက်ကို
              အရင် ကြည့်ခိုင်းသည် — မှားလျှင် အဲဒီအလုပ်အားလုံး အလဟဿ ဖြစ်မည်。 */
        if(st==="cut_review"){
+         /* ⚠️ `prev_free`/`prev_used` က `/api/jobs/{id}` ကနေ လာသည်。
+            API အဟောင်းနဲ့ ဆိုလျှင် `undefined` ⇒ ၀ ဟု ယူပြီး preview
+            ခလုတ်ကို **မပြ**ရမည် (မရှိတဲ့ feature ကို မကတိပေးရ)。 */
+         var _pvfree=+(j.prev_free||0), _pvused=+(j.prev_used||0);
+         var _pvleft=Math.max(0,_pvfree-_pvused);
          var cu="/api/jobs/"+jid+"/cut?t="+encodeURIComponent(localStorage.getItem("ikki_token")||"");
          function _ms(x){x=Math.round(x||0);return Math.floor(x/60)+":"+("0"+(x%60)).slice(-2)}
          var _rm=Math.max(0,(j.cut_src||0)-(j.cut_dur||0));
@@ -1323,10 +1328,31 @@ function watchJob(jid, el){
            +'<button class="btn ghost" id="ftsave">ချိန်ညှိချက် သိမ်း</button>'
            +'<span class="vpn" id="ftmsg"></span>'
            +'</div></details>'
+           /* ⚠️⚠️ **အခမဲ့ styled preview** (Zin ၂၀၂၆-၁၀-၀၂: 「preview က
+              မိနစ် မစားပါစေနဲ့」·「၃ ခါနဲ့ လုပ်ပေးပါ」) ───────────────
+              ဒီ panel က **ဖြတ်ချက်ပဲ** ပြသည် — စာတန်း · ဂရပ်ဖစ် · တီးလုံး ·
+              အလှအပ အဆင့် မပါ。 ဒါကြောင့် အပေါ်က ရွေးချယ်ချက်တွေကို
+              သုံးစွဲသူက **မမြင်ဘဲ** ရွေးရပြီး မိနစ် ကုန်မှ ရလဒ် မြင်ရသည်。
+              ⇒ ၅၄၀p အခမဲ့ preview ⇒ ကြည့် ⇒ ပြင် ⇒ ပြန်ကြည့် ⇒ ထုတ်。
+              ⚠️ ကျန်အရေအတွက်ကို **ခလုတ်ပေါ်မှာ** ပြရမည် — မပြလျှင်
+                 နှိပ်ပြီးမှ ၄၀၂ နဲ့ သိရမည်。 */
            +'<div class="acts2">'
-           +'<button class="btn primary" id="cok">ဖြတ်ချက် အိုကေ — အလှအပ ထည့် →</button>'
-           +'<button class="btn ghost" id="crc">↩ ဖြတ်ချက် ပြန်ပြင်</button></div>';
+           +((_pvleft>0)
+             ? ('<button class="btn primary" id="cpv">👁 အခမဲ့ preview ကြည့် ('
+                +_pvleft+' ခါ ကျန်) →</button>')
+             : '')
+           +'<button class="btn '+(_pvleft>0?'ghost':'primary')+'" id="cok">'
+           +(_pvleft>0 ? 'မိနစ်နဲ့ တကယ် ထုတ် →' : 'ဖြတ်ချက် အိုကေ — အလှအပ ထည့် →')
+           +'</button>'
+           +'<button class="btn ghost" id="crc">↩ ဖြတ်ချက် ပြန်ပြင်</button></div>'
+           +'<p class="vpn">'+((_pvleft>0)
+             ? ('preview က <b>မိနစ် မကုန်ပါ</b> — ၅၄၀p နဲ့ အပြည့်အစုံ (စာတန်း · '
+                +'ဂရပ်ဖစ် · တီးလုံး · SFX ပါ) ပြပါမယ်။ ဗီဒီယိုတစ်ခုလျှင် '
+                +_pvfree+' ခါ။')
+             : ('အခမဲ့ preview '+_pvfree+' ခါ ကုန်သွားပါပြီ — '
+                +'ထုတ်ရင် မိနစ် ကောက်ပါမယ်။'))+'</p>';
          var _bok=document.getElementById("cok"), _brc=document.getElementById("crc");
+         var _bpv=document.getElementById("cpv");
          var _lv="auto";
          /* ── Fine tune ── */
          (function(){
@@ -1374,27 +1400,42 @@ function watchJob(jid, el){
              if(window._ftresum) window._ftresum();
            };
          });
-         _bok.onclick=function(){
-           _bok.disabled=true; _brc.disabled=true; _bok.textContent="ဆက်လုပ်နေသည်…";
+         /* ⚠️ preview နဲ့ တကယ်ထုတ် **လမ်းတူ** — `preview` အလံတစ်ချက်ပဲ ကွာ。
+            ၂ လမ်း ခွဲရေးလျှင် တစ်လမ်းကို ပြင်ပြီး တစ်လမ်း ကျန်မိမည်
+            (ဒီ codebase မှာ ၄ ခါ တကယ် ဖြစ်ခဲ့ — planner/topics)。 */
+         var _oklbl=_bok.textContent, _pvlbl=_bpv?_bpv.textContent:"";
+         function _rearm(){
+           _bok.disabled=false; _brc.disabled=false; _bok.textContent=_oklbl;
+           if(_bpv){ _bpv.disabled=false; _bpv.textContent=_pvlbl; }
+         }
+         function _go(prev){
+           _bok.disabled=true; _brc.disabled=true;
+           if(_bpv) _bpv.disabled=true;
+           (prev?_bpv:_bok).textContent="ဆက်လုပ်နေသည်…";
            fetch("/api/jobs/"+jid+"/cutok",{method:"POST",
              headers:{"Content-Type":"application/json",
                       Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
-             body:JSON.stringify({motion:_lv})})
+             body:JSON.stringify({motion:_lv, preview:!!prev})})
             .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
             .then(function(y){
-              if(!y.ok){ _bok.disabled=false; _brc.disabled=false;
-                _bok.textContent="ဖြတ်ချက် အိုကေ — အလှအပ ထည့် →";
+              if(!y.ok){ _rearm();
                 var why=y.d.detail||"";
                 if(/Premium export ကို ရပ်ထားသည်/.test(why)){
                   showCutGate(el, why, jid); return;
                 }
                 tip("ဆက်လုပ်၍ မရပါ — "+why); return }
-              el.innerHTML='<b>✅ အလှအပ ထည့်နေပါပြီ</b>'; watchJob(jid, el);
+              el.innerHTML = prev
+                ? ('<b>✅ အခမဲ့ preview ထုတ်နေပါပြီ</b>'
+                   +'<p class="vpn">မိနစ် မကုန်ပါ · ကျန် '
+                   +(+(y.d.left||0))+' ခါ</p>')
+                : '<b>✅ အလှအပ ထည့်နေပါပြီ</b>';
+              watchJob(jid, el);
             })
-            .catch(function(e){ _bok.disabled=false; _brc.disabled=false;
-              _bok.textContent="ဖြတ်ချက် အိုကေ — အလှအပ ထည့် →";
+            .catch(function(e){ _rearm();
               tip("ဆက်လုပ်၍ မရပါ — "+(e.message||e)) });
-         };
+         }
+         _bok.onclick=function(){ _go(false) };
+         if(_bpv) _bpv.onclick=function(){ _go(true) };
          /* ⚠️ ပြန်ပြင်လျှင် **စာတမ်း ဆုံးဖြတ်ချက်များ မပျက်ရ** — proxy သာ ပျက်သည် */
          _brc.onclick=function(){
            _brc.disabled=true; _bok.disabled=true; _brc.textContent="ပြန်သွားနေသည်…";

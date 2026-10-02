@@ -575,6 +575,10 @@ def job_get(jid: str, authorization: str = Header(None)):
     try: j["flag_list"] = json.loads(j.get("flag_list") or "[]")
     except Exception: j["flag_list"] = []
     j["versions"] = db.rows("SELECT * FROM versions WHERE job_id=? ORDER BY n DESC", jid)
+    # ⚠️ UI က 「ကျန် ၂ ခါ」 ပြရန် — မပါလျှင် သုံးစွဲသူက အကန့်အသတ်ကို
+    #    ၄၀၂ ပြန်လာမှ သိရမည် (ခလုပ် နှိပ်ပြီးမှ)。
+    j["prev_free"] = PREVIEW_FREE
+    j["prev_used"] = prev_used(j.get("upload_id"), j.get("acct"))
     return j
 
 @app.post("/api/jobs/{jid}/cancel")
@@ -799,6 +803,17 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
     capz = (b.get("cap") or par.get("cap") or "").strip()
     if capz and capz not in _RC.CAPSIZE:
         raise HTTPException(400, f"စာတန်း အရွယ် မရှိ: {capz}")
+    # ── ⚠️⚠️ **အခမဲ့ styled preview** (Zin ၂၀၂၆-၁၀-၀၂) ────────────
+    #    preview ကြည့်ပြီး ပြင်ပြီး **ထပ် preview** ဖို့ လမ်း လိုသည် —
+    #    မရှိလျှင် ပြင်တိုင်း မိနစ် ကုန်ပြီး 「ကြည့် → ပြင် → ကြည့်」
+    #    ကွင်းဆက် ပျက်မည် (ဒါက ဒီ feature ရဲ့ အဓိက ရည်ရွယ်ချက်)。
+    # ⚠️ ရေတွက်ချက်က **upload** အတွက် ⇒ ကွင်းဆက် ဘယ်လောက် ရှည်လည်း ၃ ခါပဲ。
+    _want_prev = bool(b.get("preview"))
+    _pused = prev_used(par.get("upload_id"), par.get("acct") or aid(authorization))
+    if _want_prev and _pused >= PREVIEW_FREE:
+        raise HTTPException(
+            402, f"ဒီဗီဒီယိုအတွက် အခမဲ့ preview {PREVIEW_FREE} ခါ ကုန်သွားပါပြီ — "
+                 f"「ပြင်ချက်နဲ့ ပြန်ထုတ်」 နဲ့ ထုတ်ပါ (မိနစ် ကောက်ပါမည်)")
     nid = db.nid("j_")
     # ⚠️ **`acct` ကို မဖြစ်မနေ ထည့်ရမည်**。 ထည့်ရန် ကျန်ခဲ့သဖြင့် ပြန်ပြင်ထားသော
     #    job တိုင်း `acct=NULL` ဖြစ်ပြီး `/api/jobs` ရဲ့ `WHERE acct=?` က
@@ -813,9 +828,10 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
         HOUSE = {"ikki", "zjl", "zae"}
         _ok = (_nbrand in HOUSE) or db.one("SELECT id FROM brands WHERE id=?", _nbrand)
         if not _ok: _nbrand = par["brand_id"]
+    _pcol = "'prev',1" if _want_prev else "NULL,0"
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
-           "segs,segs_all,keep_n,plan,src_dur,parent,over,acct,created)"
-           " VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?,?,?,?,?)",
+           "segs,segs_all,keep_n,plan,src_dur,parent,over,acct,created,mode,prev_n)"
+           f" VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?,?,?,?,?,{_pcol})",
            # ⚠️ brand ကို ပြင်ခွင့် ပေးသည် — မဟုတ်လျှင် အဟောင်း job ရဲ့ brand
            #    (များသောအားဖြင့် `zjl`) က ထာဝရ ကပ်နေမည်。 မသိသော brand ကို
            #    လက်မခံဘဲ မူရင်းကို ဆက်သုံးသည်。
@@ -832,7 +848,9 @@ async def job_reedit(jid: str, req: Request, authorization: str = Header(None)):
            par.get("acct") or aid(authorization), time.time())
     return {"job_id": nid, "kept": len(clean), "removed": len(orig)-len(clean),
             "fixed": sum(1 for c in clean if c.get("fix")), "over": over,
-            "cut_s": round(sum(b - a for a, b in drop), 1)}
+            "cut_s": round(sum(b - a for a, b in drop), 1),
+            "preview": _want_prev, "free": PREVIEW_FREE,
+            "left": max(0, PREVIEW_FREE - _pused - (1 if _want_prev else 0))}
 
 @app.get("/api/retake_review")
 def retake_review(authorization: str = Header(None), job: str = ""):
@@ -1540,6 +1558,33 @@ def _cuthash(spans):
 # exact spans that must be restored or merged in Cut Review.
 CUT_FINAL_MIN_SHOT = 0.60
 
+# ⚠️⚠️ **styled preview** (၂၀၂၆-၁၀-၀၂ Zin: 「preview က မိနစ် မစားပါစေနဲ့」·
+#    「၃ ခါနဲ့ လုပ်ပေးပါ」)。 clean-cut preview က ဖြတ်ချက်ပဲ ပြသဖြင့်
+#    သုံးစွဲသူက **style ကို ပိုက်ဆံပေးပြီးမှ** မြင်ရသည် ⇒ မမြင်ခင်
+#    ရွေးချယ်ချက် ၉ ခု ခန့်မှန်းရသည် (UI ရှုပ်ထွေးမှုရဲ့ အကြောင်းရင်း)。
+# ⚠️ preview က compute **တကယ် ကုန်**သည် (၅၄၀p ဖြစ်ပေမယ့် ဂရပ်ဖစ် PNG ·
+#    SFX · B-roll က အရွယ်နဲ့ သိပ် မဆိုင်) ⇒ **job တစ်ခုလျှင် ကန့်သတ်** ရမည်、
+#    မဟုတ်လျှင် တစ်ယောက်တည်းက queue ပိတ်နိုင်သည်。
+PREVIEW_FREE = 3
+
+
+def prev_used(upload_id, acct):
+    """ဒီ **upload** အတွက် အခမဲ့ preview ဘယ်နှစ်ခါ သုံးပြီးလဲ
+
+    ⚠️ **job တစ်ခုလျှင် မရေတွက်ရ** — `/reedit` က job အသစ် ဆောက်သဖြင့်
+       job နဲ့ ရေတွက်လျှင် ပြင်တိုင်း ၃ ခါ ပြန်ရပြီး ကန့်သတ်ချက်က
+       အလုပ် မလုပ်။ ⇒ မူရင်း ဗီဒီယို (upload) နဲ့ ရေတွက်သည်。
+    """
+    if not upload_id: return 0
+    # ⚠️ **`mode='prev'` ကို ရေတွက်လို့ မရ** — `/cutok` က job **အတူတူ**ကို
+    #    ပြန်ပြန် queue လုပ်သဖြင့် ဘယ်နှစ်ခါ လုပ်လည်း အတန်း ၁ တန်းသာ ရှိပြီး
+    #    ရေတွက်ချက်က ၁ မှာ တင်နေမည် (ကန့်သတ်ချက် ထိရောက်မှု ဆုံးရှုံး)。
+    #    ⇒ job တစ်ခုချင်းက `prev_n` နဲ့ ကိုယ်တိုင် ရေတွက်ပြီး upload ရဲ့
+    #      ကွင်းဆက် တလျှောက် **စုစုပေါင်း** ယူသည်。
+    r = db.one("SELECT COALESCE(SUM(prev_n),0) AS n FROM jobs "
+               "WHERE upload_id=? AND acct=?", upload_id, acct or "a_default")
+    return int((r or {}).get("n") or 0)
+
 
 def _short_cut_spans(spans, minimum=CUT_FINAL_MIN_SHOT):
     bad = []
@@ -2034,7 +2079,11 @@ async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(
     """
     auth(authorization, UTOKEN)
     j = mine(authorization, jid)
-    if j.get("status") != "cut_review":
+    # ⚠️ `done` + `mode='prev'` ကိုပါ လက်ခံရမည် — preview ကြည့်ပြီး
+    #    ပြင်ပြီး **ထပ် preview / တကယ် ထုတ်** ဖို့ ဝင်လမ်း လိုသည်。
+    #    မရှိလျှင် preview တစ်ခါပြီးတာနဲ့ ပိတ်မိမည်。
+    _was_prev = (j.get("mode") or "") == "prev"
+    if j.get("status") != "cut_review" and not (j.get("status") == "done" and _was_prev):
         raise HTTPException(409, f"ဖြတ်ချက် ကြည့်ရန် အဆင့်မှာ မရှိပါ ({j.get('status')})")
     try: cn = json.loads(j.get("cut_spans") or "[]")
     except Exception: cn = []
@@ -2072,10 +2121,32 @@ async def job_cut_ok(jid: str, req: Request = None, authorization: str = Header(
     # ⚠️ `auto` = AI ရွေး ⇒ recipe ရဲ့ တိုင်းထားသော ပုံသေအတိုင်း ⇒ မသိမ်း
     over.pop("_motion", None)
     if mv != "auto": over["_motion"] = mv
-    db.run("UPDATE jobs SET status='queued',mode='go',stage=0,stage_name=NULL,"
-           "over=?,cut_ok=?,report=NULL,report_at=NULL WHERE id=?",
-           json.dumps(over, ensure_ascii=False), time.time(), jid)
-    return {"ok": True, "hash": h, "spans": len(cn), "motion": mv}
+    # ── ⚠️⚠️ **အခမဲ့ styled preview** (၂၀၂၆-၁၀-၀၂ Zin: 「preview က မိနစ်
+    #    မစားပါစေနဲ့」·「၃ ခါနဲ့ လုပ်ပေးပါ」) ───────────────────────
+    #    clean-cut preview က ဖြတ်ချက်ပဲ ပြသည် ⇒ သုံးစွဲသူက style ကို
+    #    **ပိုက်ဆံပေးပြီးမှ** မြင်ရသည် — ရွေးချယ်ချက် ၉ ခုကို အကန်းစမ်း
+    #    ရွေးရာ ကျသည် (UI ရှုပ်ထွေးမှုရဲ့ အကြောင်းရင်း)。
+    #    ⇒ ၅၄၀p · မိနစ် ၀ · upload တစ်ခုလျှင် ၃ ခါ。
+    # ⚠️ preview က compute **တကယ် ကုန်**သည် — ဂရပ်ဖစ် PNG · SFX · B-roll ·
+    #    ASR က အရွယ်နဲ့ မဆိုင်。 ကန့်သတ်ချက် မရှိလျှင် တစ်ယောက်တည်းက
+    #    queue ပိတ်နိုင်သည် ⇒ ကန့်သတ်က **မဖြစ်မနေ** လိုသည်。
+    _want_prev = bool((b or {}).get("preview")) if req is not None else False
+    _used = prev_used(j.get("upload_id"), j.get("acct"))
+    if _want_prev and _used >= PREVIEW_FREE:
+        raise HTTPException(
+            402, f"ဒီဗီဒီယိုအတွက် အခမဲ့ preview {PREVIEW_FREE} ခါ ကုန်သွားပါပြီ — "
+                 f"「အလှအပ ထည့်မယ်」 နဲ့ တကယ် ထုတ်ပါ (မိနစ် ကောက်ပါမည်)")
+    _mode = "prev" if _want_prev else "go"
+    # ⚠️ `prev_n` ကို **စချိန်မှာ** တိုးသည် — ပြီးမှ တိုးလျှင် ဖြတ်ပြီး
+    #    ပြန်စတာနဲ့ အကန့်အသတ် ကျော်နိုင်သည်。
+    db.run(f"UPDATE jobs SET status='queued',mode='{_mode}',stage=0,stage_name=NULL,"
+           "over=?,cut_ok=?,minutes=0,err=NULL,report=NULL,report_at=NULL,"
+           "prev_n=COALESCE(prev_n,0)+? WHERE id=?",
+           json.dumps(over, ensure_ascii=False), time.time(),
+           1 if _want_prev else 0, jid)
+    return {"ok": True, "hash": h, "spans": len(cn), "motion": mv,
+            "preview": _want_prev, "free": PREVIEW_FREE,
+            "left": max(0, PREVIEW_FREE - _used - (1 if _want_prev else 0))}
 
 
 @app.post("/api/jobs/{jid}/recut")
@@ -2233,8 +2304,15 @@ async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}
     if m.get("vplan") is not None:
         db.run("UPDATE jobs SET vplan=? WHERE id=?",
                json.dumps(m.get("vplan"), ensure_ascii=False), jid)
-    db.run("UPDATE usage SET minutes=minutes+? WHERE ym=?",
-           float(m.get("minutes",0)), time.strftime("%Y-%m"))
+    # ⚠️⚠️ **styled preview က မိနစ် မကောက်ရ** (Zin ၂၀၂၆-၁၀-၀၂)。
+    #    `mode='prev'` ဆိုလျှင် ၀ — ကန့်သတ်က `prev_n` နဲ့ ထိန်းပြီးသား。
+    _jm = (db.one("SELECT mode FROM jobs WHERE id=?", jid) or {}).get("mode")
+    _chg = 0.0 if (_jm or "") == "prev" else float(m.get("minutes", 0))
+    if _chg:
+        db.run("UPDATE usage SET minutes=minutes+? WHERE ym=?",
+               _chg, time.strftime("%Y-%m"))
+    if (_jm or "") == "prev":
+        db.run("UPDATE jobs SET minutes=0,prev_at=? WHERE id=?", time.time(), jid)
     _notify(jid, m)
     return {"ok": True, "version": n}
 

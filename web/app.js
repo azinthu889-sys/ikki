@@ -1208,6 +1208,9 @@ function done(j){
   var segs=j.segs||[];
   if(typeof segs==='string'){ try{segs=JSON.parse(segs)}catch(e){segs=[]} }
   state.segs=segs; state.jobid=j.id; state.recipe=j.recipe;
+  // ⚠️ အခမဲ့ preview ကျန်အရေအတွက် — `rrSum()` က ခလုတ်ပေါ် ပြသည်。
+  //    **ဒီမှာ မထည့်လျှင်** ခလုတ်က ဘယ်တော့မှ မပေါ် (တိတ်တဆိတ် ပျောက်)。
+  state.prev_free=+(j.prev_free||0); state.prev_used=+(j.prev_used||0);
   // ── ပြင်ကွက် ──
   ADJ={};
   var ab=$('adjbox');
@@ -1573,14 +1576,50 @@ if(tr) tr.onclick=function(){
     if(t===o.trim()){ out.push({i:i, text:o}); return; }
     out.push({i:i, text:o, fix:t}); nfix++;
   });
-  tr.disabled=true;
+  reedit(out, false);
+};
+
+// ⚠️⚠️ **အခမဲ့ styled preview** (Zin ၂၀၂၆-၁၀-၀၂: 「preview က မိနစ် မစားပါစေနဲ့」·
+//    「၃ ခါနဲ့ လုပ်ပေးပါ」)。 ပြင်တိုင်း မိနစ် ကုန်လျှင် သုံးစွဲသူက
+//    「ကြည့် → ပြင် → ကြည့်」 မလုပ်ရဲဘဲ ရွေးချယ်ချက် ၉ ခုကို အကန်းစမ်း ရွေးရသည်。
+// ⚠️ preview နဲ့ တကယ်ထုတ် **လမ်းတူ** ဖြစ်ရမည် — `preview` အလံတစ်ချက်ပဲ ကွာ。
+//    ၂ လမ်း ခွဲရေးလျှင် တစ်လမ်း ပြင်ပြီး တစ်လမ်း ကျန်မိမည် (ဒီ codebase မှာ
+//    planner/topics နဲ့ ၄ ခါ တကယ် ဖြစ်ခဲ့)。
+function reedit(out, prev){
+  var bs=[$('txre'),$('txpv'),$('rrgo'),$('rrpv')].filter(Boolean);
+  var lbl=bs.map(function(b){return b.textContent});
+  bs.forEach(function(b){ b.disabled=true });
   api('/jobs/'+state.jobid+'/reedit',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({segs:out, recipe:state.recipe,
-                           over:ADJ, font:(ADJ.mmf||undefined)})})
-   .then(function(d){ tr.disabled=false; watch(d.job_id); })
-   .catch(function(e){ tr.disabled=false; alert(String(e.message||e).slice(0,300)); });
-};
+                           over:ADJ, font:(ADJ.mmf||undefined),
+                           preview:!!prev})})
+   .then(function(d){
+     bs.forEach(function(b,i){ b.disabled=false; b.textContent=lbl[i] });
+     watch(d.job_id); })
+   .catch(function(e){
+     bs.forEach(function(b,i){ b.disabled=false; b.textContent=lbl[i] });
+     alert(String(e.message||e).slice(0,300)); });
+}
+
+// ⚠️ ဖျက်/ပြင်ချက် စုစည်းချက်က ခလုတ် ၂ ခုလုံးအတွက် **တူတူ** ဖြစ်ရမည်
+function txpayload(){
+  var out=[];
+  [].forEach.call(document.querySelectorAll('#tx .row'),function(r){
+    var i=parseInt(r.getAttribute('data-i'),10);
+    if(r.classList.contains('gone')) { out.push({i:i,text:''}); return; }
+    var o=((state.segs[i]||{}).text||'');
+    var t=(r.querySelector('[data-ed]').textContent||'').trim();
+    if(t===o.trim()){ out.push({i:i, text:o}); return; }
+    out.push({i:i, text:o, fix:t});
+  });
+  return out;
+}
+
+var tp=$('txpv');
+if(tp) tp.onclick=function(){ reedit(txpayload(), true) };
+var rp=$('rrpv');
+if(rp) rp.onclick=function(){ var t=$('txpv'); if(t) t.click(); };
 
 
 // ══ စာတမ်း အတည်ပြုခြင်း (Edit မလုပ်ခင်) ═══════════════════
@@ -2386,6 +2425,16 @@ function rrSum(){
   });
   var n=nset+ncut+nfix;
   bar.hidden = n===0;
+  // ⚠️ `prev_free` မပါသော API အဟောင်းနဲ့ ဆိုလျှင် `undefined` ⇒ ၀ ⇒ **မပြ**。
+  //    မရှိတဲ့ feature ကို ခလုတ်နဲ့ ကတိ မပေးရ。
+  var pl=Math.max(0, (+(state.prev_free||0)) - (+(state.prev_used||0)));
+  [$('txpv'),$('rrpv')].forEach(function(b){
+    if(!b) return;
+    b.hidden = pl<=0;
+    var my=(cur==='my');
+    b.textContent = my ? ('👁 အခမဲ့ preview ('+pl+' ခါ ကျန်) →')
+                       : ('👁 Free preview ('+pl+' left) →');
+  });
   if(!sm) return;
   var my=(cur==='my'), p=[];
   if(nset) p.push(my? nset+' ခု ပြင်ထား' : nset+' setting changed');

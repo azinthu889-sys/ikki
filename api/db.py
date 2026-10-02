@@ -134,6 +134,18 @@ def init():
                        ("cut_note","TEXT")):
         if extra not in cols:
             c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
+    # ⚠️⚠️ **styled preview** (၂၀၂၆-၁၀-၀၂ Zin: 「preview က မိနစ် မစားပါစေနဲ့」)。
+    #    clean-cut preview က ဖြတ်ချက်ပဲ ပြသည် ⇒ သုံးစွဲသူက **style ကို
+    #    ပိုက်ဆံပေးပြီးမှ** မြင်ရသည် ⇒ မမြင်ခင် ရွေးချယ်ချက် ၉ ခု ခန့်မှန်းရသည်
+    #    (UI ရှုပ်ထွေးမှုရဲ့ အကြောင်းရင်း)。
+    #    ⇒ `prev_n` = job တစ်ခုလျှင် သုံးပြီးသော **အခမဲ့ styled preview**
+    #      အရေအတွက် (ကန့်သတ် ၃ — `PREVIEW_FREE`)。 ကျော်လျှင် မိနစ် ကောက်သည်。
+    #    ⚠️ ရေတွက်မထားလျှင် အကန့်အသတ် မရှိ ဖြစ်ကာ VPS ကို တစ်ယောက်တည်းက
+    #      ပိတ်နိုင်သည် ⇒ **job တစ်ခုချင်း** ရေတွက်ရမည်。
+    for extra, ddl in (("prev_n", "INTEGER"), ("prev_key", "TEXT"),
+                       ("prev_at", "REAL")):
+        if extra not in cols:
+            c.execute(f"ALTER TABLE jobs ADD COLUMN {extra} {ddl}")
     # ⚠️ brand ရဲ့ logo — ဖိုင်နာမည်သာ သိမ်းသည် (ဖိုင်က DATA/logos/ ထဲ)
     bcols = [r[1] for r in c.execute("PRAGMA table_info(brands)")]
     if "logo" not in bcols:
