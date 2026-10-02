@@ -84,11 +84,25 @@ def main():
         # ⚠️ catalog မှာ **ဘယ်ရှာစာနဲ့ တွေ့လဲ မမှတ်ထား** ⇒ style ရဲ့ ရှာစာ
         #    အားလုံးကို en tag အဖြစ် သုံးသည် (clip တွေက အဲဒီ ၆ ခုထဲက တစ်ခုမှ ဖြစ်သည်)。
         en = list(dict.fromkeys(w for q in QOF.get(st, []) for w in q.split()))
+        # ⚠️⚠️ **clip တစ်ခုချင်း tag ရှိလျှင် အဲဒါ ပိုကောင်း**。 style tag က
+        #    style တစ်ခုလုံးကို မြန်မာ ၄ လုံး ပေးသဖြင့် clip ၂၈ ခု **အတူတူ**
+        #    ဖြစ်ပြီး `broll._score()` (စာသား ရှစ်ထပ်) က ခွဲခြား၍ မရပါ —
+        #    ၂၀၂၆-၁၀-၀၁ မှာ 「tag တူညီသူ ၆၆ ခု အစု」 သတိပေးချက် ရခဲ့သည်。
+        #    `tools/mixkitvid.py` က clip ရဲ့ ခေါင်းစဉ်ကနေ တိကျသော tag ပေးသည်
+        #    ⇒ ရှိလျှင် **ရှေ့တန်း တင်**ပြီး style tag ကို နောက်က ပေါင်းသည်
+        #    (ဖယ်မထားရ — အထွေထွေ ရှာမှုအတွက် လိုသေး)。
+        if r.get("my"):
+            my = list(dict.fromkeys(list(r["my"]) + list(my)))
+        if r.get("tags"):
+            en = list(dict.fromkeys(list(r["tags"]) + en))
+        if r.get("title"):
+            en = list(dict.fromkeys(str(r["title"]).split() + en))
         c = dict(path=p, src=r.get("page") or r.get("url"), size=os.path.getsize(p),
                  dur=round(dur, 2), w=r.get("w"), h=r.get("h"),
                  my=list(my), en=list(dict.fromkeys(en + st.split("_"))),
                  kind=kind, lum=lum, det=det, style=st,
-                 lic="stock-noship", by=r.get("by"))
+                 lic=r.get("lic") or "stock-noship", by=r.get("by"),
+                 title=r.get("title"), group=r.get("group"))
         seen[p] = c; add += 1
         print(f"  ✓ {st:16s} {os.path.basename(p):26s} {r.get('w')}x{r.get('h'):<5} "
               f"{dur:5.1f}s lum {lum:5.1f} det {det:5.1f}", flush=True)

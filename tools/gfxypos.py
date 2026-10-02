@@ -56,14 +56,51 @@ except Exception as _e:
 e = [x for x in G.catalog() if x["id"] == eid]
 if not e: print(json.dumps({"ok":0,"why":"id မတွေ့"})); raise SystemExit
 e = e[0]
-args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62)
-if not args: print(json.dumps({"ok":0,"why":"fill ဗလာ"})); raise SystemExit
+# ⚠️⚠️ **arg ပုံစံရဲ့ အစစ် ရင်းမြစ်က `demoargs`** ([[motionkit-argshape]])。
+#    `G.fill` က signature ကနေ မှန်းသဖြင့် ပုံစံ မှားပြီး template ကျသည် —
+#    ပထမ ပြေးချက်မှာ `maps.*` ၅ ခု「str + float မရ」·`charts.gantt`
+#    「too many values to unpack」·`prem7.step_badge`「int('ဂျပန်မှ…')」。
+#    `demoargs` က ၆၁၆/၆၁၇ အတွက် ပုံစံ မှန် ပေးသည်。
+#    ⚠️ demo စာသားက အင်္ဂလိပ်/အမှတ်တံဆိပ် ဖြစ်သည် — **ဒေါင်လိုက် နေရာ**
+#       တိုင်းရန် လုံလောက်သည် (ပုံစံ မှန်တာ အရေးကြီးသည်)。
+args = None
+try:
+    import demoargs as _DA
+    _tt = TH.t()
+    args = _DA.resolve(e["module"], e["fn"], int(_tt["W"]), int(_tt["H"]))
+except BaseException:
+    args = None
+if not args:
+    args = G.fill(e, "ဂျပန်မှာ အလုပ်", "ZAE", 62)
+# ⚠️⚠️ **`fill` ဗလာ ဆိုလျှင် ရပ်မရ** — ပထမ ပြေးချက်မှာ ၈၃/၆၁၇ (၁၃%%) က
+#    「fill ဗလာ」 နဲ့ မတိုင်းခဲ့。 `tools/gfx_cutaway.py` မှာ `DR._tf_args`
+#    fallback (dict → kwargs လမ်း) ရှိပြီးသား ဖြစ်ပြီး ကူးမိမှ မကူးမိ。
+#    ⇒ ခေါ်နည်း **၂ လမ်းလုံး** ကြိုးရမည်、မဟုတ်လျှင် template ၈၃ ခုရဲ့
+#      နေရာ ဘယ်တော့မှ မသိရ。
+kw = None
+if not args:
+    try:
+        kw = DR._tf_args(dict(kind=eid, text="ဂျပန်မှာ အလုပ်ရှာဖွေခြင်း",
+                              items=["ဂျပန်မှာ အလုပ်", "ပညာသင်", "ဗီဇာ"],
+                              num="62"),
+                         accent="#FFE000", ink="#FFFFFF", dim="#8B8B8B")
+    except Exception:
+        kw = None
+    if not kw:
+        print(json.dumps({"ok":0,"why":"fill ဗလာ (kwargs လမ်းလည် မရ)"}))
+        raise SystemExit
 # ⚠⚠ **tag ကို ကိုယ်ပိုင် ရေးရမည်** — `"g0"` က `dress` ရဲ့ tag နဲ့ ထပ်ပြီး
 # ရှင်းချက် ရှင်းပြီး render နဲ့ အပြိုင် ပြေးလျှင် frame အချင်း ဖျက်မိမည်。
 import hashlib as _hh
 TAG = "yp" + _hh.sha1(eid.encode()).hexdigest()[:8]
-if DR._wants_tag(e["fn"]): args = (TAG,) + tuple(args)
-el = G.call(e, args, 2.0)
+if kw is not None:
+    # ⚠️ `BUILDERS` ထဲက factory closure ကိုသာ ခေါ်ရသည် (module attr မဟုတ်)
+    _m = __import__(e["module"])
+    _fn = getattr(_m, "BUILDERS", {}).get(e["fn"]) or getattr(_m, e["fn"])
+    el = DR._call_template(_fn, eid, TAG, kw)
+else:
+    if DR._wants_tag(e["fn"]): args = (TAG,) + tuple(args)
+    el = G.call(e, args, 2.0)
 if not isinstance(el, dict):
     print(json.dumps({"ok":0,"why":"dict မဟုတ်"})); raise SystemExit
 def rp(q): return q if os.path.isabs(q) else os.path.join(G.MK, q)
@@ -85,9 +122,17 @@ for it in seq:
     oy = it[2] if isinstance(it,(list,tuple)) and len(it) > 2 else 0
     ox = it[1] if isinstance(it,(list,tuple)) and len(it) > 1 else 0
     cv = np.zeros((H, W), dtype="float32")
-    y1c = min(H, oy + a.shape[0]); x1c = min(W, ox + a.shape[1])
-    if y1c <= oy or x1c <= ox: continue
-    cv[oy:y1c, ox:x1c] = a[:y1c-oy, :x1c-ox]
+    # ⚠️⚠️ **offset က အနုတ် ဖြစ်နိုင်သည်** — `cv[oy:y1c, ox:x1c]` မှာ
+    #    အနုတ် ထည့်လျှင် numpy က အဆုံးကနေ ရေတွက်ပြီး
+    #    「could not broadcast input array」 ဖြစ်သည် (`thm.type_*` ၅ ခု ·
+    #    `kinetic.zoom_out` · `infogfx.timeline` ကျခဲ့သည် — template
+    #    ချွတ်ယွင်းချက် မဟုတ်、**ငါ့ တိုင်းချက်** ချွတ်ယွင်းချက်)。
+    _sy = max(0, -oy); _sx = max(0, -ox)
+    _dy0 = max(0, oy); _dx0 = max(0, ox)
+    _dy1 = min(H, oy + a.shape[0]); _dx1 = min(W, ox + a.shape[1])
+    if _dy1 <= _dy0 or _dx1 <= _dx0: continue
+    cv[_dy0:_dy1, _dx0:_dx1] = a[_sy:_sy + (_dy1 - _dy0),
+                                 _sx:_sx + (_dx1 - _dx0)]
     m = float(cv.sum())
     if m > best:
         best = m
@@ -137,7 +182,10 @@ def main(argv):
     except (OSError, ValueError, AttributeError):
         cache = {}
     force = "--force" in argv
-    todo = [i for i in ids if force or i not in cache]
+    # ⚠️ **မရသူကို ပြန်ကြိုးရမည်** — cache ထဲ ရှိရုံနဲ့ ကျော်လျှင်
+    #    ကုဒ် ပြင်ပြီးလည် ဘယ်တော့မှ ပြန်မတိုင်းပါ。
+    todo = [i for i in ids if force or i not in cache
+            or not cache[i].get("ok")]
     print("── %s · တိုင်းမည် %d/%d (cache %d) ──"
           % (fmt, len(todo), len(ids), len(cache)), flush=True)
     t0 = time.time()

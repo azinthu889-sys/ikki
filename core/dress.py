@@ -523,9 +523,34 @@ ARGS = {
  "topic_bar":    lambda b,r: (b,),
 }
 
+# ⚠️ veil စစ်ချက် ကိန်းများ — တိုင်းချက်ကနေ (အောက် မှတ်ချက် ကြည့်)
+_VEIL_SPAN = 0.90       # box က ဘောင်ရဲ့ ဒီထက် ကျယ်လျှင်
+_VEIL_MASS = 0.50       # ဖုံးအုပ်မှု ဒီထက် သေးလျှင် ⇒ veil
+_VEIL_PEAK = 0.20       # row ရဲ့ mass က အမြင့်ဆုံးရဲ့ ဒီထက် မြင့်မှ 「မှင်」
+
+
 def _ybox(el, H):
-    """element ရဲ့ ဒေါင်လိုက် အကွာအဝေး (alpha bbox)。"""
+    """element ရဲ့ ဒေါင်လိုက် အကွာအဝေး (alpha bbox)。
+
+    ⚠️⚠️ **`alpha > 8` က မှိန်သော နောက်ခံလွှာကိုပါ 「မှင်」 ဟု မှတ်သည်**。
+       တိုင်းချက် (၂၀၂၆-၁၀-၀၂ · `tools/gfxypos.py` · template ၅၀၅ ခု):
+       `retro.*` ၉ ခုက alpha>8 box က ဘောင်ရဲ့ **၉၁–၁၀၀%** ဖြစ်ပါလျက်
+       ဖုံးအုပ်မှု (alpha ပျမ်းမျှ) က **၀.၀၁၀–၀.၂၃၃** သာ —
+         `retro.count_tape`  box ၉၃% · mass ၀.၀၁၀
+         `retro.frame_box`   box ၉၅% · mass ၀.၀၃၁
+         `retro.tape_wipe`   box ၁၀၀% · mass ၀.၂၃၃
+       ⇒ `ih` က ဘောင်အမြင့် ဖြစ်သွားပြီး `track()` က 「နေရာ မတည့်」 နဲ့
+         **ပယ်**သည် — တကယ့် မှင်က ဘောင်ရဲ့ ၉–၃၆% သာ ဖြစ်သည်。
+    ⇒ box က ဘောင်ရဲ့ ၉၀% ကျော် **ပြီး** mass ၀.၅ အောက် ဖြစ်လျှင်
+      row တစ်ခုချင်းရဲ့ alpha အလေးချိန်ကို **အမြင့်ဆုံး row ရဲ့ ၂၀%**
+      နဲ့ နှိုင်းပြီး မှင် ဘန်း ရှာသည် (အောက် မှတ်ချက် ကြည့် — percentile က မရ)。
+      ကျန် template အားလုံး **အတိအကျ မပြောင်း**ပါ (စစ်ချက် ရှိသည်)。
+    ⚠️ mass ကို strip ရဲ့ အကျယ်နဲ့ သာ စားသည် (`_ybox` က ဘောင်အကျယ်
+       မသိ) ⇒ strip ကျဉ်းလျှင် mass **ပိုမြင့်** ပြမည် ⇒ veil စစ်ချက်က
+       **ပိုသတိထား**ပြီး မလိုဘဲ မလှုပ်ပါ (လုံခြုံသော ဘက်)。
+    """
     y0, y1 = H, 0
+    _bm, _br = 0.0, None
     try:
         import numpy as _np
         from PIL import Image as _Im
@@ -536,9 +561,32 @@ def _ybox(el, H):
             _ys = _np.nonzero(_a.max(axis=1) > 8)[0]
             if len(_ys):
                 y0 = min(y0, _y + int(_ys.min())); y1 = max(y1, _y + int(_ys.max()))
+            _af = _a.astype("float32") / 255.0
+            _m = float(_af.sum()) / max(1.0, float(H) * float(_af.shape[1]))
+            if _m > _bm:
+                _bm = _m
+                _rr = _np.zeros(int(H), dtype="float64")
+                _hi = min(int(H), int(_y) + _af.shape[0])
+                if _hi > int(_y):
+                    _rr[int(_y):_hi] = _af[:_hi - int(_y)].sum(axis=1)
+                _br = _rr
     except Exception:
         return 0, int(H*0.32)
     if y1 <= y0: return 0, int(H*0.32)
+    if (y1 - y0) >= _VEIL_SPAN * H and _bm < _VEIL_MASS \
+            and _br is not None and _br.max() > 0:
+        # ⚠️⚠️ **alpha အလေးချိန် ၂–၉၈% ဘန်းနဲ့ မရ** (ပထမ ရေးချက် ⇒ စစ်ချက် ကျ)。
+        #    ၇% veil က ဘောင်တစ်ခုလုံး ဖုံးသဖြင့် သူ့ mass က
+        #    ၁၉၂၀×၁၀၈၀×၀.၀၇ = ၁၄၅,၁၅၂ ဖြစ်ပြီး တကယ့် စာတုံး (၂၀၀×၈၀၀)
+        #    က ၁၆၀,၀၀၀ — **veil က စုစုပေါင်း ရဲ့ ၄၈%** ⇒ percentile က
+        #    ဘယ်တော့မှ မခွဲနိုင် (ရလဒ် ၇၇–၁၈၄၂ = ဘောင်နီးပါး)。
+        #    ⇒ **အမြင့်ဆုံး row နဲ့ နှိုင်း**သည်: veil row ၇၅.၆ ·
+        #      စာတုံး row ၈၀၀ ⇒ အမြင့်ဆုံးရဲ့ ၂၀% ကန့်သတ်က ခွဲပေးသည်。
+        import numpy as _np3
+        _th = _VEIL_PEAK * float(_br.max())
+        _ix = _np3.nonzero(_br >= _th)[0]
+        if len(_ix) and int(_ix[-1]) > int(_ix[0]):
+            y0, y1 = int(_ix[0]), int(_ix[-1])
     return max(0, int(y0)), min(int(H), int(y1))
 
 
