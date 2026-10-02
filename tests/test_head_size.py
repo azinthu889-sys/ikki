@@ -81,11 +81,20 @@ class SizeFloor(unittest.TestCase):
                 self.assertEqual(f.get("tok_kept"), f.get("tok_all"),
                                  (t[:20], sz, f))
 
-    def test_long_headline_unchanged(self):
-        # panel အကျယ်က ကန့်သတ်ထားပြီးသား ⇒ စာတန်း ကြမ်းခင်းက မထိနိုင်
+    def test_long_headline_grows_with_lines(self):
+        """⚠️ ၂၀၂၆-၁၀-၀၂ — ဤစစ်ချက်က အရင်「မပြောင်းရ」ဟု ဆိုခဲ့သည်。
+
+        အဲဒါက **ကန့်သတ်ချက်ကို စစ်ချက် အဖြစ် ရေးထားခြင်း** ဖြစ်သည် —
+        panel အကျယ်က ကန့်သတ်သဖြင့် ၁ ကြောင်းနဲ့ မတက်နိုင်ခဲ့。
+        ကြောင်း ခွဲခြင်း ထည့်ပြီးနောက် **တက်သည်** (၆၇ → ၈၀) ⇒
+        စစ်ချက်က မှားနေသည်、ကုဒ်က မမှား。
+        """
         a = _fit(self.LONG)
         b = _fit(self.LONG, 182)
-        self.assertLessEqual(abs(b.get("size", 0) - a.get("size", 0)), 4, (a, b))
+        self.assertGreater(b.get("size", 0), a.get("size", 0), (a, b))
+        self.assertGreaterEqual(b.get("lines", 1), 2, b)
+        # ⚠️ အရေးကြီးဆုံး — စကားလုံး မပျောက်ရ
+        self.assertEqual(b.get("tok_kept"), b.get("tok_all"), b)
 
     def test_none_keeps_old_behaviour(self):
         a = _fit(self.MID)
