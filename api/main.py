@@ -1716,12 +1716,33 @@ async def w_cut(jid: str, file: UploadFile = File(None), meta: str = Form("{}"),
     stable = m.get("stabilized") if isinstance(m.get("stabilized"), list) else []
     blocked = m.get("blocked") if isinstance(m.get("blocked"), list) else []
     note = None
+    # ⚠️⚠️ **ဖျက်ချက် တစ်ခုချင်း ပြီးမပြီး အရင် ပြရမည်** (Zin ၂၀၂၆-၁၀-၀၃:
+    #    「တိကျအောင်လုပ်ပေးဖိ့」)。 ဒါက သုံးစွဲသူ အရေးအကြီးဆုံး မေးခွန်း —
+    #    「ငါ ဖျက်ခိုင်းတာ တကယ် ပြီးပြီလား」。 **အောင်မြင်မှုကိုပါ ပြရမည်** —
+    #    မပြလျှင် 「တိတ်တဆိတ် ကျော်သွားတာလား」 ဆိုတာ မသိရ。
+    _nd = int(m.get("drops") or 0)
+    _dl = m.get("drop_left") if isinstance(m.get("drop_left"), list) else []
+    _do = m.get("drop_over") if isinstance(m.get("drop_over"), list) else []
+    if _nd:
+        if _dl or _do:
+            _bits = []
+            if _dl:
+                _bits.append(f"{len(_dl)} ခု အပြည့် မပျောက်သေး")
+            if _do:
+                _bits.append(f"{len(_do)} ခုမှာ ဘေးစကားလုံး ပါသွားနိုင်")
+            note = (f"⚠️ သင် ဖျက်ထားတဲ့ {_nd} ခုထဲ " + " · ".join(_bits)
+                    + " — အောက်မှာ ပြန်စစ်ပါ")
+        else:
+            note = f"✓ သင် ဖျက်ထားတဲ့ {_nd} ခုလုံး အတိအကျ ဖြတ်ပြီးပါပြီ"
     if stable:
         note = (f"အသံမဖျက်ဘဲ micro clip {len(stable)} ခုကို surrounding source "
                 f"padding ဖြင့် 0.80s အထိ ထိန်းထားပါတယ်")
     if blocked:
         tail = f"visible cut {len(blocked)} ခုက သင်ဖြတ်ထားသော နယ်နိမိတ်ကြောင့် တိုနေဆဲပါ"
         note = f"{note} · {tail}" if note else tail
+    # ⚠️ `cut_note` က UI မှာ စာကြောင်းတစ်ကြောင်း — ရှည်လွန်းလျှင် ဖတ်မရ
+    if note and len(note) > 400:
+        note = note[:397] + "…"
     db.run("UPDATE jobs SET status='cut_review',stage=3,stage_name='ဖြတ်ချက် ကြည့်ရန်',"
            "cut_path=?,cut_key=?,cut_dur=?,cut_src=?,cut_hash=?,cut_spans=?,"
            "cut_n=?,cut_note=?,minutes=0 WHERE id=?",

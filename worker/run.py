@@ -1929,10 +1929,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
         log(f"  ✂ ဖြတ်ချက် preview · {len(spans)} span · {_od:.1f}s "
             f"(မူရင်း {float(m['dur']):.1f}s · ဖြုတ် {float(m['dur'])-_od:.1f}s) · "
             f"{CUTPREV_H}p · **ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း မပါ**")
+        # ⚠️⚠️ **ဖျက်ချက် အတည်ပြုချက်ကို ပို့ရမည်**。 မပို့လျှင် Cut Review မှာ
+        #    သုံးစွဲသူက 「ငါ ဖျက်ခိုင်းတာ တကယ် ပြီးပြီလား」 ကို **ဘယ်တော့မှ
+        #    မမြင်ရ** — log ထဲမှာပဲ ကျန်မည် (Zin: 「တိကျအောင်လုပ်ပေးဖိ့」)。
         post_cut(job["id"], _cpv,
                  dict(spans=[[round(a, 3), round(b, 3)] for a, b in spans],
                       out_dur=round(_od, 2), src_dur=round(float(m["dur"]), 2),
                       cuts=int(st.get("cuts", 0)),
+                      drops=int(st.get("user_cuts") or 0),
+                      drop_left=st.get("drop_left") or [],
+                      drop_over=st.get("drop_over") or [],
                       stabilized=visual_stabilized,
                       blocked=visual_blocked), log=log)
         raise CutStop()
