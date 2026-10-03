@@ -79,6 +79,18 @@ ck("items ဗလာ ⇒ 400",
 ck("user token နဲ့ တင်လို့ မရ",
    raises(run, M.w_catalog(Req(SNAP), authorization=H)) == 401)
 
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ — ဤ test က `u_x` uploads row ကို **မဆောက်**ခဲ့ပါ。
+#    ၂၀၂၆-၁၀-၀၂ ကတည်းက `job_cut_ok` က `_refuse_src_gone()` ခေါ်ပြီး
+#    「uploads row မရှိ ⇒ ပျောက်ပြီ」 ဟု မှန်ကန်စွာ ဆုံးဖြတ်သည် ⇒ 410。
+#    ကုဒ် မှန်ပြီး **fixture က မပြည့်စုံ**ခဲ့ခြင်း ⇒ ဂိတ် မလျှော့ဘဲ
+#    fixture ကို ပြည့်စုံအောင် လုပ်သည်。 (venv နဲ့ မပြေးမချင်း ဖုံးနေခဲ့သည်။)
+SRC = os.path.join(_T, "src.mp4")
+with open(SRC, "wb") as _f: _f.write(b"\0" * 4096)
+db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
+       "VALUES(?,?,?,?,?,?,?,?)", "u_x", "raw.mp4", 4096, 4096, SRC,
+       1, "a_default", time.time())
+M._SRC_CACHE.pop("u_x", None)
+
 # ── job တစ်ခု (ပြီးဆုံးပြီး · အေးခဲသော ဖြတ်မှတ် ရှိ) ──
 JID = "j_vptest"
 SP = [[0.0, 2.1], [2.35, 5.05]]

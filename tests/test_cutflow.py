@@ -55,6 +55,35 @@ SEGS = [dict(text="မင်္ဂလာပါ", start=0.0, end=2.0),
         dict(text="ဒီနေ့ ပြောမယ်", start=2.4, end=5.0),
         dict(text="ဖျက်မယ့် ဝါကျ", start=5.4, end=7.0)]
 JID = "j_cuttest"
+
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ — ဤ test က `u_x` ကို **လုံးဝ မဆောက်**ခဲ့ပါ。 ၂၀၂၆-၁၀-၀၂
+#    UI audit ကတည်းက `job_cut_ok` က `_refuse_src_gone()` ခေါ်ပြီး
+#    「uploads row မရှိ ⇒ ပျောက်ပြီ」 ဟု မှန်ကန်စွာ ဆုံးဖြတ်သည် ⇒ 410。
+#    ⇒ **ကုဒ် မှန်ပြီး fixture က မပြည့်စုံ**ခဲ့ခြင်း。 မူရင်းဖိုင် တကယ် ရှိမှ
+#    ဖြတ်လို့ ရသည် ဆိုတဲ့ ဂိတ်ကို **မလျှော့ပါ** — fixture ကို ပြည့်စုံအောင်
+#    လုပ်သည်。
+#
+# ⚠️ ဒီ test က venv (fastapi ပါ) နဲ့ မပြေးမချင်း **ကျော်ခံ**နေခဲ့သဖြင့်
+#    ၂ ရက်ကြာ ဖုံးနေခဲ့သည် — `sys.exit(0)` က 「အောင်」 အဖြစ် ရေတွက်ခံရသည်。
+SRC = os.path.join(_T, "src.mp4")
+with open(SRC, "wb") as _f: _f.write(b"\0" * 4096)
+AUD = os.path.join(_T, "rec.m4a")
+with open(AUD, "wb") as _f: _f.write(b"\0" * 512)
+
+
+def mkupload(uid="u_x", path=None):
+    db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
+           "VALUES(?,?,?,?,?,?,?,?)", uid, "raw.mp4", 4096, 4096,
+           path or SRC, 1, "a_default", time.time())
+    # ⚠️ `_SRC_CACHE` က ၆ နာရီ မှတ်ထားသည် — row မရှိခင် မေးမိလျှင်
+    #    「ပျောက်ပြီ」 ဆိုတာ ကပ်နေမည်。
+    M._SRC_CACHE.pop(uid, None)
+
+
+mkupload("u_x")
+mkupload("u_audio", AUD)
+
+
 def mkjob(status="review", mode="review"):
     db.run("DELETE FROM jobs WHERE id=?", JID)
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,status,stage,created) "
@@ -192,12 +221,10 @@ ck("revis short cut ⇒ 422",
 print("\n── ⑩ အဟောင်း output ကို quality recheck ⇒ raw ASR review ကနေ ပြန်စ ──")
 # Historical output ရဲ့ timeline က မယုံရ။ child job မှာ source/style input ပဲ
 # ကျန်ပြီး အဟောင်း drop/span/event တွေ လုံးဝ မပါရ။
-db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
-       "VALUES(?,?,?,?,?,?,?,?)", "u_x", "raw.mp4", 100, 100, "/tmp/raw.mp4",
-       1, "a_default", time.time())
-db.run("INSERT OR REPLACE INTO uploads(id,name,size,received,path,done,acct,created) "
-       "VALUES(?,?,?,?,?,?,?,?)", "u_audio", "rec.m4a", 20, 20, "/tmp/rec.m4a",
-       1, "a_default", time.time())
+# ⚠️ `/tmp/raw.mp4` က မရှိသော ဖိုင် — `_src_gone` က 「ပျောက်ပြီ」 ဟု
+#    မှတ်ပြီး နောက်က ခေါ်ချက်တိုင်း 410 ဖြစ်မည်。 တကယ့် ဖိုင် သုံးသည်。
+mkupload("u_x")
+mkupload("u_audio", AUD)
 old = {"_audio": "u_audio", "custom_style": "calm", "_script": "hello",
        "_drop": [[1, 2]], "_drop_exact": [[3, 4]], "_spans": BAD_SP,
        "_cuthash": "old", "_keep": [[5, 6]], "_take_map": [], "_ev": {"g1": {}},

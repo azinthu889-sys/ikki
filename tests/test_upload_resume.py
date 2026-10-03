@@ -46,20 +46,39 @@ class FakeStore:
     def mpu_create(key, content_type): return "mpu_new"
     @staticmethod
     def mpu_list_parts(key, mpu):
-        return [{"n": 1, "etag": '"one"', "size": 32},
-                {"n": 2, "etag": '"two"', "size": 16}]
+        return [{"n": 1, "etag": '"one"', "size": P1},
+                {"n": 2, "etag": '"two"', "size": P2}]
+
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ — ဤ fixture က `size=96` **byte** ဖြစ်ပြီး part ၂ ခု
+#    ပြန်ပေးခဲ့သည်。 `_r2_resume` က part size (ပုံသေ ၃၂ MiB) နဲ့
+#    `max_part = ceil(size/part_size) = 1` တွက်ပြီး ဒုတိယ part ကို
+#    **မှန်ကန်စွာ** ပယ်သည် (ဟောင်းနွမ်းသော/အခြားဖိုင်ရဲ့ part မပါစေရန်
+#    ကာကွယ်ချက်)。 ၉၆ byte ဖိုင်မှာ ၃၂ MiB part ၂ ခု **ရုပ်ပိုင်းအရ
+#    မဖြစ်နိုင်**ပါ ⇒ ကုဒ် မှန်ပြီး fixture က မဖြစ်နိုင်ခဲ့ခြင်း。
+#    ⇒ ကာကွယ်ချက်ကို **မဖျက်ပါ** — ကိန်းတွေကို ဖြစ်နိုင်အောင် ပြင်သည်。
+PSZ = 32 * 1024 * 1024          # ပုံသေ part size
+P1, P2 = PSZ, PSZ // 2          # ၃၂ MiB + ၁၆ MiB
+SZ = 3 * PSZ                    # ၉၆ MiB (part ၃ ခု ဆံ့သည်)
+GOT = P1 + P2                   # ၄၈ MiB
 
 M.ST = FakeStore
 tok = db.one("SELECT token FROM accounts WHERE id='a_default'")["token"]
 H = "Bearer " + tok
 db.run("INSERT INTO uploads(id,name,size,received,path,done,created,key,mpu,acct) "
-       "VALUES(?,?,?,?,?,?,?,?,?,?)", "u_resume", "same.mp4", 96, 0, "", 0,
+       "VALUES(?,?,?,?,?,?,?,?,?,?)", "u_resume", "same.mp4", SZ, 0, "", 0,
        time.time(), "uploads/u_resume.mp4", "mpu_resume", "a_default")
-r = M.up_resumable("same.mp4", 96, authorization=H)["upload"]
+r = M.up_resumable("same.mp4", SZ, authorization=H)["upload"]
 ck("same account finds interrupted upload", r["upload_id"] == "u_resume", r)
-ck("only R2-confirmed bytes counted", r["received"] == 48, r)
+ck("only R2-confirmed bytes counted", r["received"] == GOT, r)
 ck("part list returned to browser", len(r["parts"]) == 2, r)
-ck("DB receives measured count", db.one("SELECT received FROM uploads WHERE id=?", "u_resume")["received"] == 48)
+ck("DB receives measured count", db.one("SELECT received FROM uploads WHERE id=?", "u_resume")["received"] == GOT)
+# ⚠️ ကာကွယ်ချက် တကယ် အလုပ်လုပ်မလုပ် **သီးသန့် စစ်ရမည်** — အထက်က ပြင်ချက်က
+#    အဲဒါကို ဖုံးမထားကြောင်း သေချာစေရန်。
+db.run("UPDATE uploads SET size=? WHERE id=?", PSZ, "u_resume")
+_small = M._r2_resume(db.one("SELECT * FROM uploads WHERE id=?", "u_resume"))
+ck("ဖိုင်အရွယ်ထက် ပိုသော part ⇒ ပယ်သည်",
+   len(_small["parts"]) == 1 and _small["received"] == P1, _small)
+db.run("UPDATE uploads SET size=?,received=? WHERE id=?", SZ, GOT, "u_resume")
 
 class Req:
     async def json(self): return {"name": "Other"}
@@ -122,10 +141,24 @@ def _boom(key, mpu):
     raise type("E", (Exception,), {"code": 404})()
 
 
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ — ဤနေရာက `store` ကို patch လုပ်ခဲ့သည်。 ဒါပေမယ့်
+#    အထက်မှာ `M.ST = FakeStore` လုပ်ပြီးသားမို့ `_r2_resume` က `ST`
+#    (= FakeStore) ကိုသာ ခေါ်သည် ⇒ `_boom` **ဘယ်တော့မှ မပြေး**ခဲ့ပါ。
+#    exception မတက်သဖြင့် `_r2_resume` က dict ပြန်ပြီး 「၄၀၄ ⇒ None」 နဲ့
+#    「mpu ရှင်းသည်」 နှစ်ခုလုံး ကျခဲ့သည် — **ကုဒ် မှားလို့ မဟုတ်**。
+#    ⇒ `M.ST` ကိုယ်တိုင် ကို လဲရမည်。
+class DeadStore:
+    @staticmethod
+    def on(): return True
+    @staticmethod
+    def mpu_list_parts(key, mpu): return _boom(key, mpu)
+
 _real = store.mpu_list_parts
 store.mpu_list_parts = _boom
 _on = store.on
 store.on = lambda: True
+_prevST = M.ST
+M.ST = DeadStore
 try:
     db.run("INSERT INTO uploads(id,name,size,received,path,done,created,key,mpu,"
            "part_size,acct) VALUES(?,?,?,0,'',0,?,?,?,?,?)",
@@ -141,6 +174,7 @@ try:
     ck("record ကို မဖျက်ပါ", db.one("SELECT id FROM uploads WHERE id=?",
                                     "u_dead") is not None)
 finally:
+    M.ST = _prevST
     store.mpu_list_parts = _real
     store.on = _on
 
