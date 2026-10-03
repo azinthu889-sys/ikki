@@ -898,3 +898,14 @@ textarea.app-dialog-input{min-height:104px;resize:vertical}.app-dialog-actions{d
 .refbody .rbar{flex-basis:100%;height:6px;border-radius:99px;background:var(--ln);overflow:hidden}
 .refbody .rbar i{display:block;height:100%;background:var(--ac);transition:width .3s}
 @media(max-width:620px){.refbody .dnab{grid-template-columns:1fr}}
+
+/* ⚠️⚠️ ပုံစံ မရွေးမချင်း upload ကို **မြင်သာအောင် ပိတ်** (၂၀၂၆-၁၀-၀၃ Zin)。
+   `start()` က alert ထုတ်ပြီး ရပ်သည် — alert တစ်ခါပေါ်ပြီး ပျောက်သွားတာက
+   「upload မရဘူး」 ဟု ထင်စေသည် (တကယ် ဖြစ်ခဲ့)。 နှိပ်ပြီးမှ ပြောတာထက်
+   နှိပ်လို့ မရကြောင်း **ကြိုပြ**တာ ကောင်းသည်。 */
+.dropbig.locked{ opacity:.45; cursor:not-allowed; filter:grayscale(.6) }
+.dropbig.locked:hover{ transform:none; box-shadow:none }
+/* ⚠️⚠️ `var(--ac)` ထားမိခဲ့ရာ နောက်ခံနဲ့ **အတိအကျ တူ**နေပြီး
+   (rgb(245,208,0) ပေါ် rgb(245,208,0) ⇒ contrast ၁.၀) — စာသားက လုံးဝ
+   မမြင်ရ。 browser မှာ တိုင်းမှ တွေ့သည်。 ⇒ အမှောင်နဲ့ ပြရမည်。 */
+.dropbig.locked #dropnote{ color:#1A1500; font-weight:700 }

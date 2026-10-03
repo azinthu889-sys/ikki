@@ -150,6 +150,31 @@ function savePrefs(){
    recorder audio.  The server enforces the same split (api/main.py). */
 var CINE_MAX=60;
 function isCine(){ return state.style==='cinematic-vlog' }
+
+// ⚠️⚠️ **ပိတ်ထားတာကို ခလုတ်ပေါ်မှာကို ပြရမည်** (၂၀၂၆-၁၀-၀၃ Zin)。
+//    `start()` က ပုံစံ မရွေးရင် alert ထုတ်ပြီး ရပ်သည် — ဒါပေမယ့် alert တစ်ခါ
+//    ပေါ်ပြီး ပျောက်သွားတာက 「upload မရဘူ」 ဟု ထင်စေသည် — Zin ကိုယ်တိုင်
+//    အဲဒီလို ထင်ခဲ့သည်。 ⇒ **နှိပ်ပြီးမှ မပြောဘဲ ခလုတ်ပေါ်မှာကို ပြရမည်**。
+function uplock(){
+  var d=$('drop'); if(!d) return;
+  var my=(cur==='my');
+  // ⚠️ cinematic မှာ `vfmt` မလို — `start()` နဲ့ **တူညီရမည်**。
+  var need = !isCine() && !state.vfmt;
+  d.disabled = need;
+  d.classList.toggle('locked', need);
+  d.setAttribute('aria-disabled', need ? 'true' : 'false');
+  var n=$('dropnote');
+  if(n){
+    if(need){
+      if(n.getAttribute('data-was')===null||n.getAttribute('data-was')===undefined)
+        n.setAttribute('data-was', n.textContent);
+      n.textContent = my ? '↑ အပေါ်မှာ 「ဒီဗီဒီယိုက ဘယ်ပုံစံလဲ」 အရင် ရွေးပါ'
+                       : '↑ First choose what kind of video this is';
+    } else if(n.getAttribute('data-was')){
+      n.textContent = n.getAttribute('data-was');
+    }
+  }
+}
 function paintCine(){
   var on=isCine();
   var box=$('cinebox'); if(box) box.hidden=!on;
@@ -182,6 +207,7 @@ function paintCine(){
     put(ul,'တင်ပြီးရင် AI အကြံပြုတဲ့ ဖြတ်ချက်တွေကို Transcript Editor မှာပြန်စစ်နိုင်ပါတယ်။',
         'After upload, review every AI edit suggestion in the Transcript Editor.');
   }
+  uplock();   // ⚠️ cinematic ⇄ အခြား ကူးလျှင် လိုအပ်ချက် ပြောင်းသည်
 }
 /* ကိုယ်ပိုင် kit များသာ — `is_system` (IKKI Smart Edit) ကို ဖယ်သည် */
 function ownKits(){ return (BRANDS||[]).filter(function(b){ return !b.is_system }) }
@@ -516,7 +542,7 @@ function paintStyles(){
    + ' · '+esc(state.fmt||pick[5])+'</p>';
   el.innerHTML=h;
   paintAdv();
-  paintCine();
+  paintCine(); uplock();
 
   var cards=[].slice.call(el.querySelectorAll('.scard'));
   var playing=null;
@@ -1984,7 +2010,7 @@ document.addEventListener('click',function(e){
   if(sb){
     if(sb.hasAttribute('data-sub')) state.sub=sb.getAttribute('data-sub');
     else state.pace=sb.getAttribute('data-pace');
-    savePrefs(); paintCine();
+    savePrefs(); paintCine(); uplock();
     return;
   }
   var vf=t && t.closest && t.closest('[data-vfmt]');
@@ -1992,6 +2018,7 @@ document.addEventListener('click',function(e){
     state.vfmt=vf.getAttribute('data-vfmt');
     [].forEach.call(document.querySelectorAll('[data-vfmt]'),function(b){
       b.setAttribute('aria-pressed', b===vf ? 'true':'false'); });
+    uplock();          // ⚠️ ရွေးလိုက်တာနဲ့ upload ပြန်ဖွင့်ရမည်
     return;
   }
   if(t && t.id==='scrgo'){ scrMatch(); return; }
