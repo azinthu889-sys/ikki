@@ -1830,6 +1830,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             kept=round(_kept, 2),
             cuts=int(st.get("cuts", 0)),
             removed=round(float(m["dur"]) - _kept, 2),
+            # ⚠️⚠️ **ဖြတ်ချက်ရဲ့ ကိန်း ၂ လုံးကို ပို့ရမည်** (၂၀၂၆-၁၀-၀၃)。
+            #    Script Editor က 「ဘယ်လောက် တိုသွားမလဲ」 ပြသော်လည်း
+            #    **ဘာကြောင့်လဲ မပြ**နိုင်ခဲ့ ⇒ သုံးစွဲသူက ဖြုတ်မှု များလျှင်
+            #    ဘယ်ခလုတ် ရွှေ့ရမှန်း မသိ (Descript ရဲ့ 「Shorten all」 နည်း)。
+            min_sil=rc.get("min_sil"),
+            keep_pause=rc.get("keep_pause"),
             spans=[[round(a, 2), round(b, 2)] for a, b in spans],
             # ⚠️ **ချန်ထားပြီး ဝါကျ မရှိသော ပိုင်းများ** (၂၀၂၆-၀၉-၂၂ Zin)。
             #    Script Editor က ဝါကျနှင့် **ဖြတ်ပစ်သော** တိတ်ဆိတ်မှုကိုသာ

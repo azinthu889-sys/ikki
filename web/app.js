@@ -1700,15 +1700,36 @@ function revSum(){
     }
   });
   var p=state.plan||{}, src=+p.src_dur||0;
-  var left = src ? Math.max(0, src - sec) : 0;
+  // ⚠️⚠️ **အလိုအလျောက် ဖြတ်ချက်ကိုပါ ထည့်တွက်ရမည်** (၂၀၂၆-၁၀-၀၃)。
+  //    ယခင်က `src - sec` ဖြစ်ပြီး **သုံးစွဲသူ ဖျက်ချက်ပဲ** နုတ်ခဲ့သည် —
+  //    engine ရဲ့ တိတ်ဆိတ်မှု ဖြတ်ချက် (မြီးမြီး ၁၀၀င်း) ကို မထည့်ခဲ့。
+  //    ဖိုင် ၁၇၉s · engine က ၁၀၄s အထိ ဖြတ်ပြီးသား ဖြစ်ပေမယ့်
+  //    UI က ၁၅၀s ပြနိုင်ခဲ့သည် ⇒ **သုံးစွဲသူ အစီအစဥ် မှား**。
+  //    `p.kept` = engine ဖြတ်ပြီး ကျန်တာ ⇒ အဲဒီကနေ နုတ်ရမည်。
+  var eng = (p.kept!==undefined && +p.kept>0) ? +p.kept : src;
+  var left = Math.max(0, eng - sec);
   function mmss(x){ var m=Math.floor(x/60),ss=('0'+Math.round(x%60)).slice(-2); return m+':'+ss; }
+  // ⚠️ **ဘာကြောင့် တိုသွားလဲ ပြရမည်** — ဖြုတ်မှု များလွန်းရင်
+  //    ဘယ်ခလုတ် ရွှေ့ရမှန်း သိရမည် (Descript ရဲ့ 「Shorten all」 နည်း)。
+  var why = (p.min_sil!==undefined && p.keep_pause!==undefined)
+    ? (cur==='my'
+        ? (' — '+(+p.min_sil).toFixed(2)+'s ထက် ရှည်တဲ့ ခဏရပ်ကို '
+           +(+p.keep_pause).toFixed(2)+'s ဖြစ်အောင်')
+        : (' — pauses over '+(+p.min_sil).toFixed(2)+'s shortened to '
+           +(+p.keep_pause).toFixed(2)+'s'))
+    : '';
   el.innerHTML = cur==='my'
     ? ('စာကြောင်း <b>'+tot+'</b> · ဖျက်ထား <b>'+gone+'</b>'
-       + (src? ' · မူရင်း '+mmss(src)+' → ခန့်မှန်း <b>'+mmss(left)+'</b>' : '')
-       + (p.cuts? '<br>တိတ်ဆိတ်မှု ဖြတ်ချက် '+p.cuts+' ခု ကို အလိုအလျောက် ထည့်ပေးပါမယ်' : ''))
+       + (src? '<br>မူရင်း '+mmss(src)
+             + (p.cuts? ' → အလိုအလျောက် ဖြတ်ပြီး '+mmss(eng) : '')
+             + ' → ခန့်မှန်း <b>'+mmss(left)+'</b>' : '')
+       + (p.cuts? '<br>ခဏရပ် <b>'+p.cuts+'</b> ခု ဖြတ်မယ် · '
+             +(src-eng).toFixed(0)+'s တိုမယ်'+why : ''))
     : ('<b>'+tot+'</b> lines · <b>'+gone+'</b> marked for cutting'
-       + (src? ' · '+mmss(src)+' → about <b>'+mmss(left)+'</b>' : '')
-       + (p.cuts? '<br>'+p.cuts+' silence cuts will also be applied' : ''));
+       + (src? '<br>'+mmss(src)
+             + (p.cuts? ' → '+mmss(eng)+' after auto-cutting' : '')
+             + ' → about <b>'+mmss(left)+'</b>' : '')
+       + (p.cuts? '<br><b>'+p.cuts+'</b> pauses cut · '+(src-eng).toFixed(0)+'s shorter'+why : ''));
 }
 
 // ⚠️ Script ကိုက်ညှိခြင်း — **ဖျက်ရုံသာ**。 script ထဲ ပါတဲ့ စာပိုဒ်နဲ့
