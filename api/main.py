@@ -2860,10 +2860,14 @@ def _purge_job(j):
             if os.path.exists(p): os.unlink(p); gone.append(os.path.basename(p))
         except OSError as e:
             print(f"⚠️ ဖိုင် ဖျက်မရ {p}: {e}", flush=True)
-    t = os.path.join(THUMB, jid + ".jpg")
-    if os.path.exists(t):
-        try: os.unlink(t)
-        except OSError: pass
+    # ⚠️ proxy တွေကိုပါ ရှင်းရမည် — အရင်က ပုံငယ်ပဲ ရှင်းပြီး အသံ proxy က
+    #    ကျန်ခဲ့သည် (job ဖျက်ပြီးသားလည်း ဖိုင် ကျန်နေ — disk ယိုစိမ့်မှု)。
+    for t in (os.path.join(THUMB, jid + ".jpg"),
+              os.path.join(DATA, "aud", jid + ".m4a"),
+              os.path.join(DATA, "vprox", jid + ".mp4")):
+        if os.path.exists(t):
+            try: os.unlink(t)
+            except OSError: pass
     db.run("DELETE FROM versions WHERE job_id=?", jid)
     db.run("DELETE FROM jobs WHERE id=?", jid)
     return {"ok": True, "deleted": len(gone)}
@@ -2971,6 +2975,47 @@ def job_audio(jid: str, authorization: str = Header(None), t: str = ""):
     p = os.path.join(DATA, "aud", f"{jid}.m4a")
     if not os.path.exists(p): raise HTTPException(404, "အသံ မရှိ")
     return FileResponse(p, media_type="audio/mp4")
+
+
+@app.post("/api/w/{jid}/vprox")
+async def w_vprox(jid: str, file: UploadFile = File(...),
+                  authorization: str = Header(None)):
+    """worker က ထုတ်လိုက်သော **ဗီဒီယို proxy** — Script Editor မှာ ကြည့်ရန်。
+
+    ⚠️ Zin ၂၀၂၆-၁၀-၀၄ (Descript ပြပြီး): 「IKKI UI ကို ဒီလို preview နဲ့
+       မြင်ရအောင် လုပ်ပေးပြီး လက်ရှိ ဖြတ်ချက်ပုံစံမျိုးနဲ့ ဖြတ်လို့ရအောင်」。
+       အသံတစ်ခုတည်းနဲ့ ဘယ်ဟာ ဖြတ်ရမလဲ မဆုံးဖြတ်နိုင် — **မြင်ရမည်**。
+    ⚠️ မူရင်း ဗီဒီယို (GB ချီ) ကို မပို့ရ — အရှည်ဆုံး အနား ၆၄၀px · CRF ၂၆ သာ
+       (တိုင်းထား: ၃ မိနစ် ≈ ၄.၄ MB · ထုတ်ချိန် ၁၂.၀s)。
+    """
+    auth(authorization, WTOKEN)
+    if not db.one("SELECT id FROM jobs WHERE id=?", jid):
+        raise HTTPException(404, "job မတွေ့")
+    raw = await file.read()
+    if not raw: raise HTTPException(400, "ဗလာ")
+    # ⚠️ ၁.၅ MB/မိနစ် ⇒ ၁၅၀ MB က ၁၀၀ မိနစ်。 ဒီထက် ရှည်လျှင် proxy မထား —
+    #    review က အသံနဲ့ ဆက်သွားနိုင်သည် (မရှိလည်း မပျက်)。
+    if len(raw) > 150 * 1024 * 1024: raise HTTPException(413, "၁၅၀ MB ထက် မကြီးရ")
+    d = os.path.join(DATA, "vprox"); os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, f"{jid}.mp4"), "wb") as f:
+        f.write(raw)
+    return {"ok": True, "bytes": len(raw)}
+
+
+@app.get("/api/jobs/{jid}/vprox")
+def job_vprox(jid: str, authorization: str = Header(None), t: str = ""):
+    """Script Editor အတွက် ဗီဒီယို proxy。
+
+    ⚠️ `<video>` က Authorization header မပို့နိုင်၍ token ကို `?t=` နဲ့ ပေးရသည်
+       (အသံ proxy နဲ့ တူညီသော ပုံစံ)。
+    ⚠️ `FileResponse` က `accept-ranges: bytes` ပေးသဖြင့် browser က ခုန်နိုင်သည် —
+       ဒါက **မရှိမဖြစ်**。 မပါလျှင် စာကြောင်း နှိပ်တိုင်း အစကနေ ပြန်စမည်。
+    """
+    auth(authorization or (f"Bearer {t}" if t else None), UTOKEN)
+    mine(authorization, jid, t)
+    p = os.path.join(DATA, "vprox", f"{jid}.mp4")
+    if not os.path.exists(p): raise HTTPException(404, "ဗီဒီယို proxy မရှိ")
+    return FileResponse(p, media_type="video/mp4")
 
 
 @app.get("/api/jobs/{jid}/thumb")
@@ -3286,6 +3331,11 @@ def script_get(jid: str, authorization: str = Header(None)):
             "status": j.get("status"),
             "script": (dict(chars=len(stext), **smark) if stext else None),
             "src_gone": _src_gone(j.get("upload_id")),
+            # ⚠️ ဗီဒီယို proxy ရှိမှ player ကို ပြရမည် — မရှိဘဲ `<video>` ထည့်လျှင်
+            #    မည်းနေသော ဘောင်သာ မြင်ရပြီး 「ပျက်နေတယ်」 ဟု ထင်မည်。
+            #    အသံ proxy က အရန် (အရင် job တွေမှာ ဗီဒီယို မရှိ)。
+            "vprox": os.path.exists(os.path.join(DATA, "vprox", f"{jid}.mp4")),
+            "aud": os.path.exists(os.path.join(DATA, "aud", f"{jid}.m4a")),
             "sentences": sents, "events": events,
             "stat": {"n": len(sents), "groups": ng,
                      "silence": len(events),

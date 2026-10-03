@@ -60,7 +60,25 @@ body{background:var(--bg);color:var(--ink);
 .row:hover{background:#FCFCFB;transform:translateY(-1px);
      box-shadow:0 2px 6px rgba(0,0,0,.06),0 10px 24px rgba(0,0,0,.06)}
 .row.sel{outline:2px solid #0F172A22;outline-offset:2px}
-.row .no{color:var(--mute);font-size:13px;min-width:76px;line-height:2.0;
+/* ⚠️ Zin ၂၀၂၆-၁၀-၀၄ (Descript ပြပြီး): 「preview နဲ့ မြင်ရအောင်」。
+      player က **ကပ်နေရမည်** — စာရင်း ဆွဲချတိုင်း ပျောက်သွားလျှင်
+      ဘယ်ဟာ ပြောနေလဲ လိုက်လို့ မရ。 */
+.vbar{position:sticky;top:0;z-index:30;background:#fff;margin:-6px -6px 14px;
+  padding:10px 6px 12px;border-bottom:1px solid #E7E5E4;
+  box-shadow:0 6px 18px rgba(0,0,0,.05);display:flex;gap:14px;align-items:flex-start}
+.vbar video{width:248px;max-width:42vw;border-radius:10px;background:#000;display:block}
+.vbar .vside{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.vbar .vbtns{display:flex;gap:8px;flex-wrap:wrap}
+.vbar button{font:inherit;font-size:13px;padding:7px 13px;border-radius:999px;
+  border:1px solid #E7E5E4;background:#fff;cursor:pointer}
+.vbar button.pri{background:#0F172A;color:#fff;border-color:#0F172A}
+.vbar .vnote{font-size:12.5px;color:#57534E;line-height:1.6}
+@media(max-width:620px){ .vbar{flex-direction:column} .vbar video{width:100%;max-width:none} }
+/* ⚠️ **ဖတ်နေတဲ့ စာကြောင်း** — ဖျက်ထားတဲ့ အနီ နဲ့ မရောရ ⇒ ဘယ်ဘက် အစွန်းနဲ့
+      နောက်ခံ အဝါဖျော့ သုံးသည် (ဖျက်ချက်က ခြစ်ထားသော စာလုံး ဖြစ်သည်)。 */
+.row.now{background:#FFFBEB;border-left-color:#F5D000}
+.row.now .no{color:#0F172A;font-weight:700}
+.row .no{color:var(--mute);font-size:13px;min-width:76px;line-height:2.0;cursor:pointer;
          font-family:"Inter",sans-serif;white-space:nowrap}
 .row .body{flex:1;min-width:0}
 .row .tx{min-width:0}
@@ -406,6 +424,18 @@ body.rv #bsec,body.rv #bonly{display:none}
   </div>
 </div></div>
 <main class="wrap editor">
+<div class="vbar" id="vbar" hidden>
+  <video id="vid" playsinline preload="metadata"></video>
+  <div class="vside">
+    <div class="vbtns">
+      <button type="button" class="pri" id="vplay">▶ အစအဆုံး ဖွင့်</button>
+      <button type="button" id="vstop">■ ရပ်</button>
+      <span class="vnote" id="vpos" style="align-self:center"></span>
+    </div>
+    <div class="vnote" id="vnote">ဖွင့်လိုက်ရင် <b>ဖျက်ထားတဲ့ အပိုင်းတွေကို ခုန်ကျော်</b>ပြီး
+      ပြပါမယ် — ထွက်လာမယ့် ဗီဒီယိုအတိုင်း။ စာကြောင်းရဲ့ အချိန်ကို နှိပ်ရင် အဲဒီနေရာ ခုန်သွားမယ်။</div>
+  </div>
+</div>
 <div class="editnote" aria-live="polite">
   <b>စာသားနဲ့တွဲထားတဲ့ အသံလှိုင်းမှာပဲ စစ်ပါ</b>
   <span>အောက်က စာကြောင်း၊ အသံဖြစ်ရပ်ကို နှိပ်ပြီး ဖြတ်/ပြန်ချန်ပါ။ စာကြောင်းအသစ် ရေးရန် မလိုပါ။</span>
@@ -432,6 +462,9 @@ body.rv #bsec,body.rv #bonly{display:none}
 var mm=function(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2)};
 var esc=function(t){return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")};
 var D=null, DEL={}, PDEL={}, UNDO=[], SEL=-1, SECS=[], AUDIO=null, JOB=null;
+// ⚠️ VPROX = ဗီဒီယို proxy URL (၆၄၀px · CRF၂၆ · ၁.၅ MB/မိနစ်)。 မရှိလျှင်
+//    အသံ proxy ကို ဆက်သုံးသည် — အရင် job တွေမှာ ဗီဒီယို မရှိ。
+var VPROX=null, PLAYALL=false, _NOW=null, _RAF=null;
 // FIX = script spellings the user accepted (n → caption text) · SUG = suggestions on screen
 var FIX={}, SUG=[];
 // ⚠️ SDEL = ဖျက်မည့် အသံ ဖြစ်ရပ် (ချောင်းဆိုး…) · TRIM = ဝါကျ အတွင်း နားနဲ့ ရွေးထားသော အပိုင်း
@@ -596,11 +629,133 @@ function head(a){
     _HD=requestAnimationFrame(step);
   })();
 }
-function playRange(t0,t1,label){
-  if(!AUDIO){tip("အသံ မရှိ — ဗီဒီယို ပြန်တင်ပါ");return}
+/* ⚠️ player တစ်ခုတည်း — ဗီဒီယို ရှိလျှင် ဗီဒီယို၊ မရှိလျှင် အသံ。
+      နှစ်ခုလုံး တစ်ပြိုင်နက် ဖွင့်မိလျှင် echo ထွက်မည်。 */
+function med(){
+  if(VPROX){
+    var v=document.getElementById("vid");
+    if(v && !v.src) v.src=VPROX;
+    if(v) return v;
+  }
   var a=document.getElementById("au");
-  if(!a.src) a.src=AUDIO;
-  try{ a.currentTime=t0; a.play(); }catch(e){ tip("အသံ ဖွင့်၍ မရ"); return }
+  if(a && !a.src && AUDIO) a.src=AUDIO;
+  return a;
+}
+function medOK(){ return !!(VPROX||AUDIO) }
+/* ဖျက်ထားတဲ့ အပိုင်းတွေကို ပေါင်းပြီး စီသည် (ခုန်ကျော်ရန်) */
+function skipList(){
+  var d=[]; try{ d=tlDrops()||[] }catch(e){ d=[] }
+  d=d.filter(function(r){ return r && r[1]>r[0] }).sort(function(x,y){return x[0]-y[0]});
+  var o=[];
+  d.forEach(function(r){
+    var L=o[o.length-1];
+    // ⚠️ ထပ်နေတာတွေ ပေါင်းရမည် — မပေါင်းလျှင် ခုန်ပြီးမှ နောက်တစ်ခုထဲ
+    //    ပြန်ဝင်ကာ 「တုန်နေသလို」 ဖြစ်သည်。
+    if(L && r[0]<=L[1]+0.02) L[1]=Math.max(L[1], r[1]);
+    else o.push([r[0], r[1]]);
+  });
+  return o;
+}
+function rowNow(t){
+  var S=(D&&D.sentences)||[], hit=null;
+  // ⚠️ ဝါကျ ကြားက တိတ်ဆိတ်ချိန်မှာ **မီးမောင်း မပျောက်စေရ** — ပျောက်လျှင်
+  //    စာကြောင်းတိုင်းကြား မှိတ်တုတ်မှိတ်တုတ် ဖြစ်ပြီး လိုက်ဖတ်လို့ မရ。
+  //    ⇒ စပြီးသား ဝါကျထဲ **နောက်ဆုံး**ကို ကိုင်ထားသည် (Descript ပုံစံ)。
+  // ⚠️ **ဖျက်ထားတဲ့ ဝါကျကို မီးမောင်း မထိုးရ** — ခုန်ကျော်ပြီးသား ဖြစ်၍
+  //    「ဒါ ပြနေတယ်」 ဟု ထင်မှားစေသည် (စမ်းပြီး တွေ့: ၃၁.၈၇s မှာ ဖျက်ထားတဲ့
+  //    ဝါကျ ၃ ကို မီးမောင်း ထိုးနေခဲ့)。 ကျန်မယ့် ဝါကျထဲ နောက်ဆုံးကို ကိုင်သည်。
+  for(var i=0;i<S.length;i++){
+    if(S[i].start-0.05>t) break;
+    if(!DEL[S[i].n]) hit=S[i].n;
+  }
+  if(hit===_NOW) return;
+  if(_NOW!==null){ var p=document.querySelector('.row[data-n="'+_NOW+'"]');
+                   if(p) p.classList.remove("now") }
+  _NOW=hit;
+  if(hit!==null){
+    var r=document.querySelector('.row[data-n="'+hit+'"]');
+    if(r){ r.classList.add("now");
+      // ⚠️ `block:"nearest"` — "center" ဆိုလျှင် စာကြောင်းတိုင်း ခုန်ပြီး
+      //    ဖတ်လို့ မရတော့ပါ (စမ်းပြီး တွေ့)。
+      if(r.scrollIntoView) r.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+  }
+}
+function vpos(a){
+  var e=document.getElementById("vpos"); if(!e||!a) return;
+  e.textContent=mm(a.currentTime)+" / "+mm(a.duration||(D&&D.src_dur)||0);
+}
+function playAll(from){
+  if(!medOK()){ tip("ကြည့်စရာ မရှိ — ဗီဒီယို ပြန်တင်ပါ"); return }
+  var a=med(); if(!a) return;
+  clearTimeout(a._t);
+  PLAYALL=true;
+  var S=(D&&D.sentences)||[];
+  var t0=(from!==undefined&&from!==null)?from:(S.length?Math.max(0,S[0].start-0.12):0);
+  try{ a.currentTime=t0; a.play() }catch(e){ tip("ဖွင့်၍ မရ"); PLAYALL=false; return }
+  var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
+  head(a); loopAll(a);
+}
+/* ⚠️⚠️ ခုန်ကျော်မှုကို **`requestAnimationFrame` တစ်ခုတည်းနဲ့ မထားရ** —
+      tab ကို ဖျောက်ထားလျှင် rAF က လုံးဝ မခေါ်ပါ (တိုင်းထား ၂၀၂၆-၁၀-၀၄:
+      `document.hidden=true` မှာ ၆၀၀ms အတွင်း **၀ ကြိမ်**)。 အဲဒီအခါ
+      ခုန်ကျော်မှု ရပ်ပြီး **ဖျက်ထားတဲ့ စကား ပြန်ကြားရ**မည်。
+      ⇒ လမ်းကြောင်း ၃ ခု: rAF (မြင်နေချိန် ချောမွေ့ရန်) · setInterval ၄၀ms
+      (အသံ ဖွင့်နေသော tab က throttle မခံရ) · `timeupdate` (အာမခံ ကြမ်းပြင်)。 */
+var _SK=[], _SKT=0;
+function skipCached(){
+  var now=Date.now();
+  // ⚠️ frame တိုင်း ပြန်မတွက်ရ — `tlDrops()` က ဝါကျ · အသံ · ✂ အားလုံး
+  //    ဖြတ်သန်းသည်。 ၂၀၀ms တစ်ခါ လုံလောက် (ဖျက်တာက သုံးစွဲသူ လက်ချက်)。
+  if(now-_SKT>200){ _SK=skipList(); _SKT=now }
+  return _SK;
+}
+function tickAll(a){
+  if(!PLAYALL) return;
+  var t=a.currentTime, sk=skipCached();
+  for(var i=0;i<sk.length;i++){
+    // ⚠️ `-0.05` — ခုန်မှတ်ကို အနည်းငယ် စောရမည်。 မစောလျှင် ဖျက်ထားတဲ့
+    //    စကားရဲ့ ပထမ frame လေး ကြားရသည် (Zin: 「ဖျက်ထားတာ ကြားနေရတယ်」)。
+    if(t>=sk[i][0]-0.05 && t<sk[i][1]-0.05){ a.currentTime=sk[i][1]; break }
+  }
+  rowNow(a.currentTime); vpos(a);
+}
+function loopAll(a){
+  cancelAnimationFrame(_RAF); clearInterval(a._iv);
+  _SKT=0;                                   // ⚠️ ချက်ချင်း ပြန်တွက် (ဖျက်ပြီးမှ ဖွင့်တတ်)
+  if(!a._skipw){
+    a._skipw=true;
+    a.addEventListener("timeupdate", function(){ tickAll(a) });
+  }
+  a._iv=setInterval(function(){ tickAll(a) }, 40);
+  (function step(){ if(!PLAYALL) return; tickAll(a); _RAF=requestAnimationFrame(step) })();
+}
+function stopAll(){
+  PLAYALL=false; cancelAnimationFrame(_RAF);
+  var a=med();
+  // ⚠️ interval ကို မရပ်လျှင် ရပ်ပြီးသားမှာလည်း ၄၀ms တိုင်း ဆက်ပြေးနေမည်
+  if(a){ clearInterval(a._iv); try{a.pause()}catch(e){} }
+  var pb=document.getElementById("vplay"); if(pb) pb.textContent="▶ အစအဆုံး ဖွင့်";
+  if(_NOW!==null){ var p=document.querySelector('.row[data-n="'+_NOW+'"]');
+                   if(p) p.classList.remove("now"); _NOW=null }
+  head(null);
+}
+/* စာကြောင်းရဲ့ အချိန်ကို နှိပ်ရင် အဲဒီနေရာ ခုန် (Descript ပုံစံ) */
+function seekTo(t){
+  if(!medOK()){ tip("ကြည့်စရာ မရှိ"); return }
+  var a=med(); if(!a) return;
+  clearTimeout(a._t);
+  try{ a.currentTime=Math.max(0,t-0.12) }catch(e){ return }
+  if(!PLAYALL){ PLAYALL=true; try{a.play()}catch(e){}
+    var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
+    head(a); loopAll(a); }
+}
+function playRange(t0,t1,label){
+  if(!medOK()){tip("အသံ မရှိ — ဗီဒီယို ပြန်တင်ပါ");return}
+  // ⚠️ တစ်ကြောင်းချင်း နားထောင်တာက **အစအဆုံး ဖွင့်မှုကို ရပ်**ရမည် —
+  //    မရပ်လျှင် နှစ်ခု ပြိုင်ပြီး ခုန်နေမည်。
+  stopAll();
+  var a=med(); if(!a) return;
+  try{ a.currentTime=t0; a.play(); }catch(e){ tip("ဖွင့်၍ မရ"); return }
   clearTimeout(a._t); a._t=setTimeout(function(){a.pause(); head(null)},(t1-t0)*1000+150);
   // ⚠️ **ဘယ်နေရာ ရောက်နေလဲ မြင်ရမည်** — မမြင်ရလျှင် နားထောင်ရုံနဲ့ မလုံလောက်
   head(a);
@@ -680,6 +835,41 @@ document.addEventListener("click",function(ev){
 
 function render(d){
   D=d; var S=d.sentences||[], E=(d.events||[]).slice(), out=[], ei=0;
+  // ⚠️ ဗီဒီယို proxy ရှိမှ player ကို ပြရမည် — မရှိဘဲ ပြလျှင် မည်းနေသော
+  //    ဘောင်သာ မြင်ရပြီး 「ပျက်နေတယ်」 ဟု ထင်မည် (အသံပဲ ရှိတဲ့ အရင် job တွေ
+  //    အတွက် အသံနဲ့ပဲ ဆက်သွားသည် — ခုန်ကျော်မှု အတူတူ အလုပ်လုပ်သည်)。
+  if(JOB && d.vprox){
+    VPROX="/api/jobs/"+JOB+"/vprox?t="
+          +encodeURIComponent(localStorage.getItem("ikki_token")||"");
+  }
+  var _vb=document.getElementById("vbar");
+  if(_vb){
+    _vb.hidden = !medOK();
+    var _vd=document.getElementById("vid");
+    if(_vd) _vd.hidden = !VPROX;
+    if(!VPROX && AUDIO){
+      var _vn=document.getElementById("vnote");
+      if(_vn) _vn.innerHTML="ဒီ ဗီဒီယိုမှာ <b>အသံပဲ</b> ရှိပါတယ် (အရင် ထုတ်ထားတာ) — "
+        +"ဖွင့်ရင် ဖျက်ထားတဲ့ အပိုင်းတွေကို ခုန်ကျော်ပြီး နားထောင်နိုင်ပါတယ်။";
+    }
+    var _pb=document.getElementById("vplay");
+    if(_pb) _pb.onclick=function(){
+      if(PLAYALL) stopAll(); else playAll(_NOW===null?undefined:undefined);
+    };
+    var _sb=document.getElementById("vstop");
+    if(_sb) _sb.onclick=function(){ stopAll() };
+    var _m=med();
+    if(_m && !_m._wired){
+      _m._wired=true;
+      // ⚠️ အဆုံးရောက်လျှင် **ခလုတ်ကို ပြန်ပြင်**ရမည် — မပြင်လျှင်
+      //    「⏸ ခဏရပ်」 ဟု ပြနေပြီး နှိပ်လည်း ဘာမှ မဖြစ်。
+      _m.addEventListener("ended", function(){ stopAll() });
+      _m.addEventListener("pause", function(){
+        if(PLAYALL && !_m.ended){ PLAYALL=false; cancelAnimationFrame(_RAF);
+          var b=document.getElementById("vplay"); if(b) b.textContent="▶ အစအဆုံး ဖွင့်"; }
+      });
+    }
+  }
   setTimeout(placeSug,0);                 // rows are rebuilt below -- re-attach suggestions
   var _ai=0;
   S.forEach(function(s){ if(s.suggest==="delete"){ DEL[s.n]=1; _ai++ } });
@@ -845,6 +1035,15 @@ document.addEventListener("click",function(e){
   // ⚠️ ✂ — နားထောင်ပြီး **ကိုယ်တိုင် ရွေးဖျက်**ရန် (စကားလုံး အချိန်မှတ် မသုံး)
   var rp=e.target.closest("[data-rplay]");
   if(rp){ e.stopPropagation(); play(+rp.getAttribute("data-rplay")); return }
+  // ⚠️ Descript ပုံစံ — အချိန်ကို နှိပ်ရင် အဲဒီနေရာ ခုန်。 စာသားကို နှိပ်တာက
+  //    **ဖျက်/ပြန်ချန်** ဖြစ်နေသဖြင့် အချိန် (`.no`) တစ်ခုတည်းမှာပဲ ထားသည် —
+  //    မဟုတ်လျှင် ဖျက်ချင်တိုင်း ဗီဒီယို ခုန်မည်。
+  var sk=e.target.closest(".row .no");
+  if(sk){
+    var _r=sk.closest(".row[data-n]");
+    var _s=_r&&(D&&D.sentences||[]).find(function(z){return z.n===+_r.getAttribute("data-n")});
+    if(_s){ e.stopPropagation(); seekTo(_s.start); return }
+  }
   var tb=e.target.closest("[data-trim]");
   if(tb){ e.stopPropagation(); trimOpen(+tb.getAttribute("data-trim")); return }
   // ⚠️ အသံ ဖြစ်ရပ် (ချောင်းဆိုး…) — နားထောင် / ဖျက်

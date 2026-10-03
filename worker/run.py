@@ -1866,6 +1866,26 @@ def render(job, brand, src, out, stage, log=print, over=None):
             post_audio(job["id"], _ap, log=log)
         except Exception as _e:
             log(f"  ⚠️ အသံ proxy မရ: {type(_e).__name__}: {_e}")
+        # ⚠️ **ဗီဒီယို proxy** — Script Editor မှာ ကြည့်ရန် (Zin ၂၀၂၆-၁၀-၀၄:
+        #    「Descript လို preview နဲ့ မြင်ရအောင်」)。 အသံတစ်ခုတည်းနဲ့
+        #    ဘယ်ဟာ ဖြတ်ရမလဲ မဆုံးဖြတ်နိုင်。
+        # ⚠️ အရှည်ဆုံး အနား ၆၄၀px — ထောင်လိုက် (၉:၁၆) ဖိုင်မှာ `640:-2` က
+        #    ၆၄၀×၁၁၃၈ ဖြစ်ပြီး proxy က မူရင်းလောက် ကြီးသွားမည်。
+        # ⚠️ `+faststart` မပါလျှင် moov က အဆုံးမှာ ကျန်ပြီး browser က
+        #    အကုန် ဆွဲပြီးမှ ပြမည် (၂၀၂၆ ikki-faststart)。
+        try:
+            _vp = os.path.join(work, "vprox.mp4")
+            _t0 = time.time()
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src,
+                            "-vf", "scale=w=640:h=640:force_original_aspect_ratio="
+                                   "decrease:force_divisible_by=2",
+                            "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+                            "-g", "48", "-movflags", "+faststart",
+                            "-c:a", "aac", "-b:a", "48k", "-ac", "1", _vp], check=True)
+            log(f"  ဗီဒီယို proxy ထုတ်ပြီး · {time.time()-_t0:.0f}s")
+            post_vprox(job["id"], _vp, log=log)
+        except Exception as _e:
+            log(f"  ⚠️ ဗီဒီယို proxy မရ: {type(_e).__name__}: {_e}")
         raise ReviewStop(segs, dict(
             src_dur=round(float(m["dur"]), 2),
             sounds=[[a, b, d] for a, b, d in _snd],
@@ -5531,21 +5551,35 @@ def post_thumb(jid, out, log=print):
         log(f"  ⚠️ ပုံငယ် မရ: {e}")
 
 
-def post_audio(jid, path, log=print):
-    """အသံ proxy ကို API ကို တင်သည် (Script Editor မှာ နားထောင်ရန်)。"""
+def _post_proxy(jid, path, route, fn, mime, label, log=print):
+    """Script Editor အတွက် proxy ဖိုင်ကို API ကို တင်သည်。
+
+    ⚠️ မရလည်း review **မပျက်စေရ** — proxy က အဆင်ပြေစေရန်သာ、
+       ဖြတ်ချက် ဆုံးဖြတ်မှုက segs ပေါ်မှာ မူတည်သည်。
+    """
     try:
         raw = open(path, "rb").read()
         bnd = "----ikki" + os.urandom(8).hex()
         body = (f"--{bnd}\r\nContent-Disposition: form-data; name=\"file\"; "
-                f"filename=\"a.m4a\"\r\nContent-Type: audio/mp4\r\n\r\n").encode() \
+                f"filename=\"{fn}\"\r\nContent-Type: {mime}\r\n\r\n").encode() \
                + raw + f"\r\n--{bnd}--\r\n".encode()
-        r = urllib.request.Request(API + f"/api/w/{jid}/audio", data=body, method="POST")
+        r = urllib.request.Request(API + f"/api/w/{jid}/{route}", data=body, method="POST")
         r.add_header("Authorization", "Bearer " + TOKEN)
         r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
-        with urllib.request.urlopen(r, timeout=180) as f: f.read()
-        log(f"  အသံ proxy တင်ပြီး · {len(raw)/1e6:.1f} MB")
+        with urllib.request.urlopen(r, timeout=600) as f: f.read()
+        log(f"  {label} တင်ပြီး · {len(raw)/1e6:.1f} MB")
     except Exception as e:
-        log(f"  ⚠️ အသံ proxy မတင်နိုင်: {e}")
+        log(f"  ⚠️ {label} မတင်နိုင်: {e}")
+
+
+def post_audio(jid, path, log=print):
+    """အသံ proxy ကို API ကို တင်သည် (Script Editor မှာ နားထောင်ရန်)。"""
+    _post_proxy(jid, path, "audio", "a.m4a", "audio/mp4", "အသံ proxy", log)
+
+
+def post_vprox(jid, path, log=print):
+    """ဗီဒီယို proxy ကို API ကို တင်သည် (Script Editor မှာ ကြည့်ရန်)。"""
+    _post_proxy(jid, path, "vprox", "v.mp4", "video/mp4", "ဗီဒီယို proxy", log)
 
 
 def post_cut(jid, out, meta, log=print):
