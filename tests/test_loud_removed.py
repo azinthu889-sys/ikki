@@ -100,6 +100,48 @@ class Fires(unittest.TestCase):
         self.assertEqual(r["loud_s"], 0.0, r)
 
 
+class Breath(unittest.TestCase):
+    """⚠️⚠️ **အဆင့်တစ်ခုတည်းနဲ့ မရ** (၂၀၂၆-၁၀-၀၃)。 render s7 မှာ
+       ၁၆၆.၁၉–၁၆၆.၆၁s ကို 「ကျယ်သံ ဖြုတ်မိ」 ဟု သတိပေးခဲ့ရာ တကယ်က
+       **အသက်ရှူသံ** — voice ratio med **၀.၁၂၃** ဖြစ်ပြီး ဘေးက တကယ့်
+       စကားက ၀.၅၁–၀.၆၈。 mask က မှန်ကန်စွာ ဖြတ်ခဲ့ပြီး စစ်ချက်က
+       **မှားစွပ်စွဲ**ခဲ့သည် (သုံးစွဲသူကို 「စကားလုံး ပြတ်」 ဟု အချက်ပြမိမည်)。
+
+    ⚠️ mask ရဲ့ ကိန်းသေ ၀.၂၅ ကို **ပြန်မသုံးရ** — သုံးလျှင် စစ်ချက်က
+       mask နဲ့ တူသွားပြီး ပြန်ကန်းမည် (ikki-cut-check-blind)。 ⇒ ဖိုင်ရဲ့
+       ကိုယ်ပိုင် စကား voice median နဲ့ **အချိုး** (၅၀%) ကြည့်သည်。
+    """
+
+    def test_the_gate_is_relative_not_absolute(self):
+        import io as _io
+        import cut as CUT
+        self.assertAlmostEqual(CUT.VERIFY_VOICE_REL, 0.50)
+        src = _io.open(os.path.join(HERE, "..", "core", "cut.py"),
+                       encoding="utf-8").read()
+        i = src.find("def loud_removed(")
+        w = src[i:i + 3000]
+        self.assertIn("vmed * float(vrel)", w)
+        # ⚠️ mask ရဲ့ ကိန်းသေ ပြန်မဝင်ရ
+        self.assertNotIn("vo > 0.25", w)
+
+    def test_the_voice_numbers_are_reported(self):
+        """⚠️ ဂိတ်ကို မပြလျှင် ဘာကြောင့် ပယ်လိုက်လဲ မသိရ"""
+        import io as _io
+        src = _io.open(os.path.join(HERE, "..", "core", "cut.py"),
+                       encoding="utf-8").read()
+        self.assertIn("voice_med=round(vmed, 3)", src)
+        self.assertIn("voice_min=round(vmin, 3)", src)
+
+    def test_the_region_carries_its_voice_ratio(self):
+        """⚠️ သတိပေးချက် တစ်ခုချင်းက ကိုယ့်ကိန်းကို သယ်ရမည်"""
+        import io as _io
+        src = _io.open(os.path.join(HERE, "..", "core", "cut.py"),
+                       encoding="utf-8").read()
+        i = src.find("regions.append((round(a, 2)")
+        self.assertGreater(i, 0)
+        self.assertIn("round(_v, 3)", src[i:i + 300])
+
+
 class Shape(unittest.TestCase):
     def test_a_missing_file_does_not_raise(self):
         """⚠️ တိုင်းချက် မရတာက render မထွက်ရလောက်အောင် မဟုတ်"""

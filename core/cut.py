@@ -735,10 +735,21 @@ def unlisted(spans, segs, dur, meas=None, min_d=UNL_MIN, pad=UNL_PAD,
 LOUD_NEAR_DB = 14.0     # စကားအဆင့် (p90) ကနေ အောက် ဘယ်လောက်ထိ 「ကျယ်」
 LOUD_FRAC = 0.50        # တိုင်းချက်: စကား p5 ၀.၆၈ · တိတ် p95 ၀.၁၁ ⇒ ကြားထဲ
 LOUD_MIN = 0.12         # ဒီထက် တိုလျှင် ကလစ်သံ · စကား မဟုတ်
+# ⚠️⚠️ **အဆင့်တစ်ခုတည်းနဲ့ မရ** (၂၀၂၆-၁၀-၀၃)。 s7 မှာ ၁၆၆.၁၉–၁၆၆.၆၁s ကို
+#    「ကျယ်သံ ဖြုတ်မိ」 ဟု သတိပေးခဲ့ရာ တကယ်က **အသက်ရှူသံ** ဖြစ်သည် —
+#    voice ratio (၃၀၀–၃၄၀၀Hz အချိုး) med **၀.၁၂၃** ဖြစ်ပြီး ဘေးက တကယ့်
+#    စကားက ၀.၅၁–၀.၆၈。 mask က မှန်ကန်စွာ ဖြတ်ခဲ့ပြီး ကျွန်တော့် စစ်ချက်က
+#    မှားစွပ်စွဲခဲ့သည် (သုံးစွဲသူကို 「စကားလုံး ပြတ်」 ဟု အချက်ပြမိမည်)。
+# ⚠️ ဒါပေမယ့် mask ရဲ့ **ကိန်းသေ ၀.၂၅ ကို ပြန်မသုံးရ** — သုံးလျှင်
+#    စစ်ချက်က mask နဲ့ တူသွားပြီး ပြန်ကန်းမည် (ikki-cut-check-blind)。
+#    ⇒ **အချိုးနဲ့** ကြည့်သည်: ဒီဖိုင်ရဲ့ စကား voice median နဲ့ နှိုင်းပြီး
+#      ထက်ဝက် မမီလျှင် စကား မဟုတ် (၀.၁၂၃/၀.၆၅၄ = ၀.၁၉ ⇒ မဟုတ်)。
+VERIFY_VOICE_REL = 0.50
+
 
 
 def loud_removed(wav, spans, dur, near=LOUD_NEAR_DB,
-                 frac=LOUD_FRAC, mind=LOUD_MIN):
+                 frac=LOUD_FRAC, mind=LOUD_MIN, vrel=VERIFY_VOICE_REL):
     """ဖြုတ်လိုက်သော အသံထဲ **ကျယ်သော အသံ** ဘယ်လောက် ပါလဲ
 
     (total_s, pct, regions) ပြန်သည်。 `regions` = ဂိတ် ကျော်သော
@@ -765,12 +776,25 @@ def loud_removed(wav, spans, dur, near=LOUD_NEAR_DB,
             return None
         fr = x[:n * h].reshape(n, h)
         db = 20 * _np.log10(_np.sqrt((fr ** 2).mean(1) + 1e-12) + 1e-12)
+        # ⚠️⚠️ **အသံရဲ့ သဘာဝကိုပါ ကြည့်ရမည်** — အဆင့်တစ်ခုတည်းနဲ့ ဆိုလျှင်
+        #    အသက်ရှူသံကို 「စကားလုံး ပြတ်」 ဟု မှားစွပ်စွဲမည် (s7 ၁၆၆.၂s)。
+        #    ၃၀၀–၃၄၀၀Hz အချိုး — `measure.analyse` နဲ့ တူညီသော တွက်နည်း
+        #    ဖြစ်သော်လည် **ဂိတ်က မတူ** (mask က ကိန်းသေ ၀.၂၅ · ဒီမှာ
+        #    ဖိုင်ရဲ့ ကိုယ်ပိုင် စကား median နဲ့ **အချိုး**)。
+        _F = _np.abs(_np.fft.rfft(fr * _np.hanning(h), axis=1))
+        _f = _np.fft.rfftfreq(h, 1.0 / 16000)
+        vo = _F[:, (_f >= 300) & (_f <= 3400)].sum(1) / (_F.sum(1) + 1e-9)
         kept = _np.zeros(n, bool)
         for a, b in (spans or []):
             kept[int(float(a) / M.FRAME):int(float(b) / M.FRAME)] = True
         if not kept.any():
             return None
         floor = float(_np.percentile(db[kept], 90)) - float(near)
+        # ⚠️ 「စကား」 ရဲ့ voice median — **ဒီဖိုင်ကနေ** ယူသည် (ကိန်းသေ မဟုတ်)。
+        #    ချန်ထားချက်ထဲ အဆင့် မြင့်သော frame တွေကို စကား ဟု ယူသည်。
+        _spk = kept & (db >= floor)
+        vmed = float(_np.median(vo[_spk])) if _spk.any() else 0.0
+        vmin = vmed * float(vrel)
         # ── ဖြုတ်လိုက်သော အပိုင်းများ = ချန်ထားချက်ရဲ့ ဖြည့်စွက် ──
         gone, p = [], 0.0
         for a, b in sorted((float(a), float(b)) for a, b in (spans or [])):
@@ -791,12 +815,18 @@ def loud_removed(wav, spans, dur, near=LOUD_NEAR_DB,
             d = float(hot.sum()) * M.FRAME
             loud += d
             f = float(hot.mean())
-            if f >= frac and d >= mind:
+            # ⚠️ ကျယ်ရုံနဲ့ မလုံလောက် — **စကားနဲ့ တူမှ** သတိပေးရမည်。
+            #    s7 ၁၆၆.၂s: ကျယ် ၀.၂၂s ဒါပေမယ့် voice ၀.၁၂၃ (စကား ၀.၆၅)
+            #    ⇒ အသက်ရှူသံ ⇒ mask က မှန်ကန်စွာ ဖြတ်ခဲ့သည်。
+            _v = float(_np.median(vo[i0:i1][hot])) if hot.any() else 0.0
+            if f >= frac and d >= mind and _v >= vmin:
                 regions.append((round(a, 2), round(b, 2), round(f, 2),
-                                round(d, 2), round(float(seg.max()), 1)))
+                                round(d, 2), round(float(seg.max()), 1),
+                                round(_v, 3)))
         return dict(loud_s=round(loud, 2),
                     pct=round(100.0 * loud / tot, 1),
                     floor_db=round(floor, 1),
+                    voice_med=round(vmed, 3), voice_min=round(vmin, 3),
                     removed_s=round(tot, 2),
                     n=len(regions), regions=regions[:20])
     except Exception:
