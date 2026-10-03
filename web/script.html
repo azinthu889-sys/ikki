@@ -97,8 +97,21 @@ body{background:var(--bg);color:var(--ink);
 .tlg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#57534E;margin-top:6px}
 .tlg span{display:flex;gap:5px;align-items:center}
 .tlg i{width:11px;height:11px;border-radius:3px;display:inline-block}
-@media(max-width:620px){ .vbar{flex-direction:column} .vbar video{width:100%;max-width:none}
-  #tlc{height:36px} .tlg{gap:8px} }
+/* ⚠️⚠️ ကျဉ်းတဲ့ မျက်နှာပြင်မှာ player က **၆၂၃px** ယူနေပြီး စာတမ်းက
+   ၁,၁၄၀px အောက်ကျ ⇒ ပထမ စာကြောင်း မမြင်ရ (တိုင်းထား ၂၀၂၆-၁၀-၀၄)。
+   ⇒ ဘေးချင်း ကပ်ပြီး ပုံငယ် · မြေပုံ ပါးပါး · အညွှန်းက `title` ထဲ。 */
+@media(max-width:1099px){
+  .vbar{align-items:center;gap:10px;padding:8px 6px 10px}
+  .vbar video{width:132px;max-width:34vw}
+  .vbar .vnote{display:none}
+  .vbar .vbtns{gap:6px}
+  .vbar button{padding:6px 11px;font-size:12.5px}
+  .vbar #tl{margin-top:2px;padding-top:6px}
+  .tlh span{display:none}
+  #tlc{height:30px}
+  .tlg{display:none}
+}
+@media(max-width:620px){ .vbar video{width:112px} }
 /* ⚠️ ကျယ်တဲ့ မျက်နှာပြင်မှာ ဗီဒီယိုကို **ဘေးချင်း ကပ်** (Descript ပုံစံ) —
       အပေါ်မှာ ထားလျှင် စာတမ်းအတွက် အမြင့် ၂၀၀px ကုန်သည်。 DOM မပြောင်းဘဲ
       grid နဲ့ ညာဘက် ကော်လံ ချသည်。 */
@@ -258,9 +271,28 @@ body.rv .grp{background:transparent;box-shadow:none;border-left-color:transparen
 body.rv #bsec,body.rv #bonly{display:none}
 body.rv #bsimple{display:none}
 #rvnote{display:none}
-#pzbox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;
-  padding:11px 14px;border:1px solid #E7E5E4;border-radius:12px;background:#fff}
-#pzbox b{font-size:13.5px}
+/* ⚙ — ချိန်ညှိချက် အားလုံး တစ်နေရာထဲ */
+.setd{position:relative}
+.setd>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center}
+.setd>summary::-webkit-details-marker{display:none}
+.setd[open]>summary{background:#0F172A;color:#fff}
+/* ⚠️⚠️ `position:absolute` ထည့်လိုက်လျှင် browser ရဲ့
+   `details:not([open])>*:not(summary){display:none}` က **မကိုင်တော့**ပါ ⇒
+   ပိတ်ထားလည်း panel ပေါ်နေသည် (စမ်းစဉ် တွေ့)。 ကိုယ်တိုင် ဖျောက်ရသည်。 */
+.setd:not([open]) .setb{display:none}
+.setb{position:absolute;right:0;top:calc(100% + 8px);z-index:40;
+  width:300px;max-width:min(300px, 92vw);
+  background:#fff;border:1px solid #E7E5E4;border-radius:14px;padding:12px;
+  box-shadow:0 12px 32px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:8px}
+/* ⚠️ ကျဉ်းတဲ့ မျက်နှာပြင်မှာ `right:0` က ဘယ်ဘက် ကျော်ထွက်သည် ⇒ အောက်မှာ
+   အပြည့် ချသည် (စမ်းစဉ် ဖရိမ်းမှာ တွေ့)。 */
+@media(max-width:760px){
+  .setb{position:fixed;left:10px;right:10px;top:auto;width:auto;max-width:none}
+}
+.setb>.btn{width:100%}
+#pzbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px 0 0;border-top:1px solid #F5F5F4}
+#pzbox b{font-size:13px;flex:0 0 100%}
 #pzbox span{font-size:13px;color:#57534E}
 #pzbox input[type=range]{flex:1;min-width:140px}
 #pzbox s{text-decoration:none;font-family:"Inter",sans-serif;font-size:13px;
@@ -506,8 +538,25 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
     <!-- ⚠️ ပြန်ထွက်လမ်း — မရှိလျှင် သုံးစွဲသူ ဒီစာမျက်နှာမှာ ပိတ်မိသည် -->
     <a class="btn ghost" href="/" style="text-decoration:none">← IKKI</a>
     <button class="btn warn" id="bsec">🔴 <span id="nsec">0</span> ခု စစ်ရန် ↓</button>
-    <button class="btn ghost" id="bsimple">⚙ အသေးစိတ်</button>
-    <button class="btn ghost" id="bonly">ဖျက်တာပဲ ပြ</button>
+    <!-- ⚠️⚠️ **ချိန်ညှိချက် အားလုံး တစ်နေရာထဲ** (၂၀၂၆-၁၀-၀၄ Zin:
+         「မင်းလုပ်ပေးတဲ့ပုံစံက user ကို ပိုပြီး ရှုပ်ထွေးသွားစေတယ်」)。
+         တိုင်းထားချက်: စာတမ်း မစခင် **၁,၁၄၀px** ကြိုရှိနေပြီး ဖန်သားပြင်က
+         ၈၁၄px ⇒ **ပထမ စာကြောင်းကို မမြင်ရ**ပါ。
+         ⇒ ချိန်ညှိတာတိုင်း ဒီထဲ。 အပေါ်တန်းမှာ **ထွက်လမ်း + ဆက်သွား** သာ。 -->
+    <details class="setd" id="setbox"><summary class="btn ghost">⚙</summary>
+      <div class="setb">
+        <button class="btn ghost" id="bsimple">⚙ အသေးစိတ်</button>
+        <button class="btn ghost" id="bonly">ဖျက်တာပဲ ပြ</button>
+        <div id="pzbox">
+  <b>ကြားထဲ ခဏရပ်</b>
+  <span>ဒီထက် ရှည်တဲ့ ခဏရပ်ကို ဖြတ်မယ် —</span>
+  <input type="range" id="pzr" min="0.25" max="1.20" step="0.05" value="0.55">
+  <s id="pzv">—</s>
+  <button type="button" class="btn ghost" id="pzsave">သိမ်းမယ်</button>
+  <i id="pzmsg"></i>
+</div>
+      </div>
+    </details>
     <button class="btn primary" id="bok">ဖြတ်ချက် စစ်မယ် →</button>
   </div>
   <!-- 2026-10-02 UI audit: nine legend entries in one line; the three that matter
@@ -564,10 +613,7 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
   </div>
 </div>
 <div class="editnote" aria-live="polite">
-  <b>ဖြတ်နည်း ၂ မျိုးပဲ ရှိပါတယ်</b>
-  <span><b>① စာကြောင်းကို နှိပ်</b> ⇒ အဲဒီစာကြောင်း တစ်ခုလုံး ပျောက်မယ်။
-        <b>② စာလုံးတွေကို ဆွဲရွေး</b> ⇒ ရွေးထားတဲ့ စာလုံးတွေပဲ ပျောက်မယ်။
-        <b>▶</b> နဲ့ နားထောင်နိုင်ပါတယ်။ စာအသစ် ရေးစရာ မလိုပါ။</span>
+  <span><b>စာကြောင်းကို နှိပ်</b> ⇒ ဖျက် · <b>စာလုံးတွေ ဆွဲရွေး</b> ⇒ အဲဒီစာလုံးပဲ ဖျက် · <b>▶</b> နားထောင်</span>
   <span id="editstate"></span>
 </div>
 <!-- ⚠️ Script စာလုံးပေါင်း (Zin 2026-09-28) — **အကြံပြုရုံ** · ✓ နှိပ်မှ စာတန်း ပြောင်း。
@@ -589,14 +635,6 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
 <!-- ⚠️ 「ကြားထဲမှာ တိတ်နေတဲ့ space တွေကို ဘယ်လို ဖြတ်ရမှာလဲ」 (Zin ၂၀၂၆-၁၀-၀၄)。
      engine က ဖြတ်ပြီးသား ဖြစ်ပေမယ့် သုံးစွဲသူက **မမြင်ရ · ချိန်လို့ မရ**ခဲ့ပါ —
      ကိန်းက upload စာမျက်နှာမှာ ရှိပြီး ဒီမှာ မရှိခဲ့。 ကိန်း **တစ်ခုတည်း** ပြသည်。 -->
-<div id="pzbox">
-  <b>ကြားထဲ ခဏရပ်</b>
-  <span>ဒီထက် ရှည်တဲ့ ခဏရပ်ကို ဖြတ်မယ် —</span>
-  <input type="range" id="pzr" min="0.25" max="1.20" step="0.05" value="0.55">
-  <s id="pzv">—</s>
-  <button type="button" class="btn ghost" id="pzsave">သိမ်းမယ်</button>
-  <i id="pzmsg"></i>
-</div>
 <div id="rvnote">
   <b>ဒါက ဖြတ်ပြီးသား ရလဒ်ပါ</b>
   <span>စာကြောင်း နှိပ်ရင် အဲဒီနေရာ ခုန်ပြီး ပြပါမယ်။ ဖျက်/ပြန်ချန် ပြင်ချင်ရင် —</span>
