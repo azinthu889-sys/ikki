@@ -71,6 +71,13 @@ MAX_REMOVED  = 0.80      # SKILL F1 — ဒီထက် ဖြတ်လျှင
 #    ⚠️ recipe ကိန်းတွေကို **ဖြုတ်မှု ပမာဏ မပြောင်းအောင်** ပြန်ချိန်ထားသည်
 #      (preset တိုင်း ±၀.၁ မှတ် · ဖြတ်ချက်က လျော့သွား — no-op ဖြတ်ချက်
 #      ပျောက်၍: ref-fast ၅၃→၃၁ · short-916 ၄၃→၂၇)。
+# ── ခေါင်းဖြတ်ခြင်း ───────────────────────────────────────────────
+# ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「စကားစပြောတဲ့ နေရာကနေ စထည့်ပေးလို့ ရမလား」。
+#    ပထမ စကား ဘယ်မှာလဲ ဆိုတာ `measure.first_speech` က ဆုံးဖြတ်သည်
+#    (ev["speech_t0"]) — ဒီမှာ ဘယ်လောက် ချန်မလဲ ပဲ ဆုံးဖြတ်သည်。
+HEAD_LEAD = 0.12        # စကား မစမီ ချန်မည့် အသက်ရှုခွင့်
+HEAD_MIN  = 0.25        # ဒီထက် တိုလျှင် ဖြတ်ရကျိုး မနပ် (ဖိုင်က အစကတည်းက ကောင်း)
+
 def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None):
     """(spans, cuts, stats) — SKILL `ikki-cut-engine` အတိုင်း。
 
@@ -103,8 +110,23 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
     # ⚠️ F1 ကန့်သတ်ချက်ကို **calib ကနေ** ယူသည် (R5) — မရှိလျှင် module default
     max_removed = float((cal or {}).get("max_removed_ratio", MAX_REMOVED))
 
-    spans=[]; cuts=[]; pos=0.0
+    # ── ခေါင်း — ပထမ စကား မတိုင်မီ အပိုင်းကို ဖယ်သည် ──
+    # ⚠️⚠️ ဒီဖြတ်ချက်က `sp` ထဲက run တချို့ကို **တမင်** ကျော်သည် — မိုက်ကို
+    #    လက်နဲ့ ထိသံတွေက `mask` ကို ဖြတ်ပြီး 「စကား」 ဖြစ်နေတတ်သည်
+    #    (တိုင်းထား: ကြာ ၀.၁၀s · Δp95 −၁၉ dB)。 `first_speech` က အဲဒါတွေကို
+    #    ပယ်ပြီးမှ ပြန်ပေးသည် ⇒ F2 (စကားပေါ် ဖြတ်) စစ်ချက်နဲ့ မဆန့်ကျင်。
+    head = 0.0
+    _t0 = ev.get("speech_t0")
+    if _t0 is not None:
+        _h0 = max(0.0, float(_t0) - HEAD_LEAD)
+        if _h0 >= HEAD_MIN: head = round(_h0, 3)
+
+    spans=[]; cuts=[]; pos=head
+    if head > 0:
+        cuts.append(dict(at=0.0, to=head, removed=head, kind="head"))
     for a, b in sil:
+        if b <= head: continue                      # ⚠️ ခေါင်းထဲ — ဖယ်ပြီးသား
+        a = max(a, head)                            # ⚠️ ခေါင်းကို ခွနေလျှင် ညှိ
         if b-a <= min_sil: continue                 # တိုသော အနားယူချိန် — မထိ
         # ⚠️ ချန်ရမည့် အရှည် = `keep_pause` **ကိန်းသေ** (အထက် မှတ်ချက်)。
         #    「min_sil ထက် ရှည်တဲ့ ကွက်လပ်ကို keep_pause ဖြစ်အောင် လျှော့」。
@@ -151,6 +173,7 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None)
               src_dur=round(dur,2), silences=len(sil), thr=ev.get("thr_db"),
               cls=cls, ev=ev, calibrated=bool(cal),
               calib_src=(cal or {}).get("calibrated_against"),
+              head_trim=round(head,3), speech_t0=ev.get("speech_t0"),
               cut_threshold=round(min_sil,3), pad=round(pad,3),
               max_removed=max_removed,
 

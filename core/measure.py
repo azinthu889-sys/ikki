@@ -195,6 +195,42 @@ def sounds(path, sp=None, min_ms=80, pad=0.02):
     return out
 
 
+# ── ပထမ စကား ရှာခြင်း (ခေါင်းဖြတ်ရန်) ──────────────────────────────
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ Zin: 「အစဦးဆုံး တစ်စက္ကန့်က မလိုတဲ့ အရုပ်တွေ ထည့်ထားတယ်။
+#    စကားစပြောတဲ့ နေရာကနေ စထည့်ပေးလို့ ရမလား」。 မှတ်တမ်းတင်ခါစမှာ
+#    မိုက်/ကင်မရာကို လက်နဲ့ ချိန်နေသံက `mask` ကို ဖြတ်သွားသဖြင့် ဖြတ်စနစ်က
+#    **စကား** ဟု ထင်ပြီး ခေါင်းကို မဖြတ်ဖြစ်ခဲ့ပါ。
+#
+# ဖိုင် ၈ ခု တိုင်းထားချက် (peak ကို ဖိုင်ကိုယ်တိုင်ရဲ့ စကား p95 နဲ့ နှိုင်း):
+#   လက်ထိသံ ၄ ခု   ကြာ ၀.၀၈–၀.၁၂s · Δp95 −၁၈.၈ … −၂၁.၀ · voice/med ၀.၅၁–၀.၇၅
+#   တကယ့် စကား ၆ ခု ကြာ ၀.၃၄–၃.၃၈s · Δp95  −၈.၈ …   ၀.၀ · voice/med ၀.၉၃–၁.၃၅
+# ⇒ ကြားထဲ ၁၀ dB ကွာ。 ကိန်းသေကို အလယ်မှာ ထားသည်。
+#
+# ⚠️ **ဆွေမျိုးတွက်ချက်မှု** ဖြစ်ရမည် — C0088 ဖိုင်က peak −၅၃ dB (အရမ်းတိုး)
+#    ဖြစ်ပြီး ပုံသေ dB ဂိတ်က အဲဒီဖိုင်တစ်ခုလုံးကို ဖြတ်ပစ်မည်。
+HEAD_NEAR_DB = 14.0     # ဖိုင်ရဲ့ စကား p95 နဲ့ ဒီထက် ကွာလျှင် စကား မဟုတ်
+HEAD_RUN_MIN = 0.20     # ဒီထက် တိုသော run ကို ပထမ စကား ဟု မယူ (တံခါးပိတ်သံ)
+
+
+def first_speech(db, voice, sp, frame=FRAME):
+    """တကယ့် ပထမ စကား run ရဲ့ အစ (စက္ကန့်) — လက်ထိသံ/ခုတ်သံ မဟုတ်。
+
+    ⚠️ ဘာမှ မကိုက်လျှင် `sp[0][0]` ပြန်ပေးသည် — **ဖြတ်မည် မဟုတ်** ဟု
+       ဆိုလိုသည်。 မသေချာလျှင် မဖြတ်တာက စကားလုံး ဖြတ်မိတာထက် သက်သာသည်。
+    """
+    import numpy as np
+    if not sp or len(db) == 0: return None
+    pk = []
+    for a, b in sp:
+        i0 = int(a / frame); i1 = max(i0 + 1, int(b / frame))
+        seg = db[i0:i1]
+        pk.append(float(seg.max()) if len(seg) else -120.0)
+    p95 = float(np.percentile(pk, 95))
+    for (a, b), p in zip(sp, pk):
+        if (b - a) >= HEAD_RUN_MIN and p >= p95 - HEAD_NEAR_DB:
+            return float(a)
+    return float(sp[0][0])
+
 def speech(path):
     """(sp, sil, dur, ev, cls) — SKILL အတိုင်း တစ်ကြိမ်တည်း တွက်သည်。"""
     db, voice, dur = analyse(path)
@@ -202,4 +238,10 @@ def speech(path):
     cls, ev = classify(db, voice)
     thr = thr_of(db)
     m = mask(db, voice, thr)
-    return runs(m, True), runs(m, False), dur, dict(ev, thr_db=round(thr,1)), cls
+    _sp = runs(m, True)
+    # ⚠️ ဒီနေရာမှာ တွက်ရသည် — `db`/`voice` လက်ထဲ ရှိနေပြီ。 `plan()` က
+    #    `ev` ကနေ ယူသည် ⇒ တိတ်ဆိတ်မှု မြေပုံ **တစ်ခုတည်း** သုံးမှုက မပျက်。
+    _t0 = first_speech(db, voice, _sp)
+    _ev = dict(ev, thr_db=round(thr, 1))
+    if _t0 is not None: _ev["speech_t0"] = round(_t0, 3)
+    return _sp, runs(m, False), dur, _ev, cls
