@@ -1112,6 +1112,13 @@ def styles(authorization: str = Header(None)):
             "motionkit_profiles": [dict(id=k, **v)
                                    for k, v in RC.MOTIONKIT_PROFILES.items()],
             "cuts": [{"id": k, "my": v[0], "en": v[1]} for k, v in RC.CUT_LABEL.items()],
+            # ⚠️⚠️ **「ဘယ်လောက် ဖြုတ်မလဲ」 က `cut` နဲ့ သီးခြား ဝင်ရိုး**。
+            #    တိုင်းချက် (ဖိုင် ၁၇၈.၇s · တိတ် ၆၁%) — `cut` က ဖြုတ်မှုကို
+            #    ၃၉→၄၆% (၇ မှတ်) ပဲ ပြောင်းပြီး ဖြတ်ချက်ကို ၁၇→၄၃ (၂.၅ ဆ)
+            #    ပြောင်းသည် ⇒ 「များလွန်းတယ်」 ဆိုသူကို မဖြေနိုင်ခဲ့。
+            #    `pause` က ၄၅→၁၈% ပြောင်းပြီး **ဖြတ်ချက် မပြောင်း**。
+            "pauses": [{"id": k, "my": v[0], "en": v[1]}
+                       for k, v in RC.PAUSE_LABEL.items()],
             # ⚠️⚠️ **slider ရဲ့ အနိမ့်/အမြင့်ကို UI ထဲ ကိန်းသေ မရေးရ**。
             #    app.js က `rng('cap_pct',0.035,0.110,…)` ဟု ရေးထားခဲ့ရာ
             #    BOUNDS က ၀.၀၂၂ သို့ ကျယ်လာသော်လည် slider က ၀.၀၃၅ မှာ ကျန်ပြီး
