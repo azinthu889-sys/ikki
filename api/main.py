@@ -3512,7 +3512,15 @@ def _script_of(segs, plan):
     """(sentences, events) — UI အတွက် ပုံစံ。 plan မရှိလည်း အလုပ်ဖြစ်ရမည်。"""
     sents = [dict(n=i + 1, start=round(float(s.get("start") or 0), 2),
                   end=round(float(s.get("end") or 0), 2),
-                  text=s.get("text") or "", suggest="keep", cat=None, group_id=None)
+                  text=s.get("text") or "", suggest="keep", cat=None, group_id=None,
+                  # ⚠️ Script Editor က စာလုံး ဆွဲရွေးပြီး ဖြတ်ရန် သုံးသည်
+                  #    (Descript ပုံစံ)。 **ဖြတ်မှတ် အဖြစ် တိုက်ရိုက် မသုံးရ** —
+                  #    တိုင်းထား: စကားလုံး နယ်နိမိတ် ၈၄% က စကားသံ အထဲမှာ ကျသည်
+                  #    ⇒ UI က အသံအလိုက် ပြန်ရွှေ့ပြီးမှ ဖြတ်သည်。
+                  words=[dict(w=(w.get("w") or ""),
+                              s=round(float(w.get("s") or 0), 3),
+                              e=round(float(w.get("e") or 0), 3))
+                         for w in (s.get("words") or [])] or None)
              for i, s in enumerate(segs or [])]
     plan = plan or {}
     # ⚠️ `parts` — ဝါကျ အတွင်း ဖြတ်လို့ရသော အပိုင်းများ (တိတ်ဆိတ်မှု အလယ်မှာ ခွဲ)。

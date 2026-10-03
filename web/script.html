@@ -77,6 +77,17 @@ body{background:var(--bg);color:var(--ink);
 /* ⚠️ **ဖတ်နေတဲ့ စာကြောင်း** — ဖျက်ထားတဲ့ အနီ နဲ့ မရောရ ⇒ ဘယ်ဘက် အစွန်းနဲ့
       နောက်ခံ အဝါဖျော့ သုံးသည် (ဖျက်ချက်က ခြစ်ထားသော စာလုံး ဖြစ်သည်)。 */
 .row.now{background:#FFFBEB;border-left-color:#F5D000}
+/* ⚠️ စာလုံး ဆွဲရွေးလို့ရကြောင်း **မြင်ရမည်** — မမြင်ရလျှင် ဘယ်သူမှ မစမ်းကြည့်。 */
+.row .tx .w{border-radius:3px;padding:0 .5px}
+.row .tx .w:hover{background:#F5F5F4}
+.row.del .tx .w:hover{background:transparent}
+.wsel{position:fixed;z-index:60;background:#0F172A;color:#fff;border-radius:999px;
+  padding:7px 8px 7px 14px;display:flex;gap:8px;align-items:center;font-size:13px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap}
+.wsel button{font:inherit;font-size:13px;border:0;border-radius:999px;padding:5px 12px;
+  cursor:pointer;background:#F5D000;color:#1A1500;font-weight:700}
+.wsel .x{background:transparent;color:#fff;padding:5px 8px;font-weight:400}
+.wsel small{opacity:.78;font-size:11.5px}
 .row.now .no{color:#0F172A;font-weight:700}
 .row .no{color:var(--mute);font-size:13px;min-width:76px;line-height:2.0;cursor:pointer;
          font-family:"Inter",sans-serif;white-space:nowrap}
@@ -610,7 +621,13 @@ function toggle(n,push){
 }
 function undo(){
   if(!UNDO.length){tip("ပြန်ပြင်စရာ မရှိ");return}
-  DEL=UNDO.pop(); paint(); tip("ပြန်ပြင်ပြီး");
+  // ⚠️⚠️ UNDO ထဲမှာ ပုံစံ **၂ မျိုး** ရှိသည် — အရင်က `DEL` ကူးယူချက်
+  //    သက်သက် · စာလုံး ဖြတ်ချက်က `{DEL,TRIM}` (✂ အပိုင်းပါ ပြန်ရရန်)。
+  //    မခွဲဘဲ `DEL=UNDO.pop()` လုပ်လျှင် DEL က wrapper object ဖြစ်သွားပြီး
+  //    ဝါကျတိုင်း ဖျက်ထားသလို ဖြစ်မည် (၂၀၂၆-၁၀-၀၄ စမ်းစဉ် တွေ့)。
+  var _u=UNDO.pop();
+  if(_u && _u.__both){ DEL=_u.DEL; TRIM=_u.TRIM } else { DEL=_u||{} }
+  _SKT=0; paint(); counts(); tip("ပြန်ပြင်ပြီး");
 }
 var _HD=null;
 function head(a){
@@ -749,6 +766,143 @@ function seekTo(t){
     var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
     head(a); loopAll(a); }
 }
+/* ══ စာလုံး ဆွဲရွေးပြီး ဖြတ်ခြင်း (Descript ပုံစံ) ════════════════════
+   ⚠️⚠️ **ASR ရဲ့ စကားလုံး အချိန်အတိုင်း တည့်တည့် မဖြတ်ရ** — တိုင်းထား
+      (Zin ရဲ့ ဖိုင် · စကားလုံး နယ်နိမိတ် ၁၀၀ ခု): **၈၄ ခု (၈၄%)** က
+      စကားသံ **အထဲမှာ** ကျသည် ⇒ တည့်တည့် ဖြတ်လျှင် ၁၀ ခါမှာ ၈ ခါ
+      စကားလုံး ပြတ်မည်。 `words_conf` ကိန်းဖြန့်လည်း min ၀.၀၀ · med ၀.၈၃。
+      ⇒ **ရွေးချယ်မှုက စာလုံးအလိုက် · ဖြတ်မှတ်က အသံအလိုက်**。
+   ⚠️ threshold ကို server (`measure.thr_of`) နဲ့ **တူညီသော ပုံသေနည်း**
+      max(p95−20, p10+7) နဲ့ တွက်သည်。 မတူလျှင် UI ပြောတာနဲ့ တကယ်
+      ဖြတ်တာ ကွဲမည်。 */
+var SNAP_WIN=0.30, _THR=null;
+function waveThr(){
+  if(_THR!==null) return _THR;
+  if(WAVE.state!=="ok"||!WAVE.db) return null;
+  var a=Array.prototype.slice.call(WAVE.db);
+  if(!a.length) return null;
+  a.sort(function(x,y){return x-y});
+  var q=function(f){ return a[Math.min(a.length-1, Math.floor(f*a.length))] };
+  _THR=Math.max(q(0.95)-20, q(0.10)+7);
+  return _THR;
+}
+function wdb(t){
+  if(!WAVE.db) return 0;
+  var i=Math.max(0, Math.min(WAVE.db.length-1, Math.round(t*WAVE.dbhz)));
+  return WAVE.db[i];
+}
+/* dir=-1 ⇒ စောစေသည်သာ · dir=+1 ⇒ နောက်ကျစေသည်သာ。
+   ⚠️ **ရွေးထားတာထက် မကျုံ့ရ** — ကျုံ့လျှင် ဖျက်ခိုင်းထားတဲ့ စကားလုံး
+      ပြန်ကြားရမည် (၂၀၂၆-၁၀-၀၃ တိုင်းချက်: ဒါက အဓိက အမှား ဖြစ်ခဲ့)。 */
+function snapQuiet(t, dir, lo, hi){
+  var thr=waveThr(); if(thr===null) return t;
+  var step=1/WAVE.dbhz, n=Math.round(SNAP_WIN/step), best=null, bestdb=Infinity;
+  for(var k=0;k<=n;k++){
+    var u=t+dir*k*step;
+    if(u<lo||u>hi) break;
+    var d=wdb(u);
+    if(d<thr) return +u.toFixed(3);      // ⚠️ တိတ်ဆိတ်မှု တွေ့တာနဲ့ ချက်ချင်း ရပ်
+    if(d<bestdb){ bestdb=d; best=u }
+  }
+  return best===null ? t : +best.toFixed(3);
+}
+/* ရွေးထားသော စာလုံးများ → ဝါကျအလိုက် အပိုင်း (snap ပြီးသား) */
+function selWords(){
+  var sel=window.getSelection();
+  if(!sel||sel.isCollapsed||!sel.rangeCount) return null;
+  var all=[].slice.call(document.querySelectorAll(".row .tx .w"));
+  var hit=all.filter(function(e){ try{ return sel.containsNode(e,true) }catch(x){ return false } });
+  if(!hit.length) return null;
+  var by={};
+  hit.forEach(function(e){
+    var n=+e.getAttribute("data-wn");
+    (by[n]=by[n]||[]).push(e);
+  });
+  var out=[];
+  Object.keys(by).forEach(function(k){
+    var n=+k, es=by[k], S=(D&&D.sentences||[]).find(function(z){return z.n===n});
+    if(!S) return;
+    var idx=es.map(function(e){return +e.getAttribute("data-wi")}).sort(function(a,b){return a-b});
+    var raw0=+es[0].getAttribute("data-ws"), raw1=+es[es.length-1].getAttribute("data-we");
+    es.forEach(function(e){ raw0=Math.min(raw0,+e.getAttribute("data-ws"));
+                            raw1=Math.max(raw1,+e.getAttribute("data-we")) });
+    var whole = (S.words && idx.length===S.words.length);
+    // ⚠️ ဝါကျတစ်ခုလုံး ရွေးလျှင် **ဝါကျ ဖျက်ချက်** အဖြစ် သတ်မှတ်ရမည် —
+    //    ✂ အပိုင်းနဲ့ ဖုံးလျှင် ရေတွက်မှု · အစီရင်ခံစာ နှစ်ခု ကွဲမည်。
+    var a=raw0, b=raw1;
+    if(!whole){
+      a=snapQuiet(raw0,-1, Math.max(0,S.start-SNAP_WIN), raw1);
+      b=snapQuiet(raw1,+1, raw0, S.end+SNAP_WIN);
+    }
+    // ⚠️⚠️ **နှစ်ဖက်လုံး တိတ်ဆိတ်မှုထဲ ကျမကျ ပြောရမည်** — ဆက်တိုက်
+    //    ပြောနေတဲ့ စကားကြားမှာ တိတ်ဆိတ်မှု **မရှိ**သည့်အခါ ရှိသည်
+    //    (ရုပ်ပိုင်းဆိုင်ရာ ကန့်သတ်ချက် — ပုံသေနည်းနဲ့ ဖြေလို့ မရ)。
+    //    တိုင်းထား (Zin ရဲ့ ဖိုင် · ၂၆ ဝါကျ): ဝါကျ အစ/အဆုံး ပါလျှင် **၈၀%**
+    //    နှစ်ဖက်လုံး တိတ် · အလယ်ထဲဆို **၆၀%** · ရွှေ့ချက် med ၀.၁၂s。
+    //    ⇒ ဖုံးမထားရ。 သုံးစွဲသူက ရွေးထားတာမို့ ဖြတ်ခွင့် ပေးပြီး **သတိပေး**သည်。
+    var thr=waveThr();
+    var clean = whole || (thr===null) || (wdb(a)<thr && wdb(b)<thr);
+    out.push({n:n, whole:whole, a:a, b:b, raw0:raw0, raw1:raw1, clean:clean,
+              nw:idx.length, text:es.map(function(e){return e.textContent}).join(" ")});
+  });
+  return out.length?out:null;
+}
+function selBarHide(){ var b=document.getElementById("wselbar"); if(b) b.remove() }
+function selBarShow(){
+  selBarHide();
+  var g=selWords(); if(!g) return;
+  var sel=window.getSelection(), r;
+  try{ r=sel.getRangeAt(0).getBoundingClientRect() }catch(e){ return }
+  if(!r||(!r.width&&!r.height)) return;
+  var nw=g.reduce(function(a,x){return a+x.nw},0);
+  var dur=g.reduce(function(a,x){return a+(x.b-x.a)},0);
+  var mv=g.reduce(function(a,x){return a+Math.abs(x.a-x.raw0)+Math.abs(x.b-x.raw1)},0);
+  var el=document.createElement("div");
+  el.className="wsel"; el.id="wselbar";
+  var dirty=g.filter(function(x){return !x.clean}).length;
+  el.innerHTML='<span>စာလုံး '+nw+' လုံး · '+dur.toFixed(2)+'s</span>'
+    +'<small>'+(dirty
+        ? '⚠️ စကားသံထဲ ဖြတ်ရမည် — အသံ ပြတ်နိုင်'
+        : (mv>0.005 ? '✓ တိတ်ဆိတ်မှုထဲ ('+mv.toFixed(2)+'s ရွှေ့)' : '✓ တိတ်ဆိတ်မှုထဲ'))
+    +'</small>'
+    +'<button type="button" id="wseldo">✕ ဖြတ်မယ်</button>'
+    +'<button type="button" class="x" id="wselno">✗</button>';
+  document.body.appendChild(el);
+  var w=el.offsetWidth, h=el.offsetHeight;
+  el.style.left=Math.max(8, Math.min(innerWidth-w-8, r.left+r.width/2-w/2))+"px";
+  // ⚠️ အပေါ်မှာ နေရာ မလောက်လျှင် အောက်ဘက် ချရမည် (ပထမ စာကြောင်းမှာ ဖြစ်တတ်)
+  el.style.top=(r.top-h-10>8 ? r.top-h-10 : r.bottom+10)+"px";
+  document.getElementById("wselno").onclick=function(){
+    try{ window.getSelection().removeAllRanges() }catch(e){}; selBarHide(); };
+  document.getElementById("wseldo").onclick=function(){ selCut(g) };
+}
+function selCut(g){
+  // ⚠️ `__both` အမှတ်အသား — `undo()` က ပုံစံ ၂ မျိုး ခွဲနိုင်ရန်
+  UNDO.push(JSON.parse(JSON.stringify({__both:1, DEL:DEL, TRIM:TRIM})));
+  var nw=0, tot=0;
+  g.forEach(function(x){
+    nw+=x.nw; tot+=(x.b-x.a);
+    if(x.whole){ DEL[x.n]=1; return }
+    (TRIM[x.n]=TRIM[x.n]||[]).push([+x.a.toFixed(2), +x.b.toFixed(2)]);
+    TRIM[x.n].sort(function(p,q){return p[0]-q[0]});
+  });
+  try{ window.getSelection().removeAllRanges() }catch(e){}
+  selBarHide(); _SKT=0;
+  paint(); counts();
+  g.forEach(function(x){ if(!x.whole) paintTrim(x.n) });
+  var bad=g.filter(function(x){return !x.clean}).length;
+  tip("✂ စာလုံး "+nw+" လုံး ဖြတ်ပြီး · "+tot.toFixed(2)+"s"
+      +(bad?" · ⚠️ "+bad+" ခုက စကားသံထဲ":""));
+}
+document.addEventListener("mouseup", function(){ setTimeout(selBarShow, 0) });
+document.addEventListener("keyup", function(e){
+  if(e.key==="Shift"||e.key&&e.key.indexOf("Arrow")===0) setTimeout(selBarShow,0); });
+// ⚠️ ဆွဲရွေးမှု ပျောက်သွားလျှင် bar လည်း ပျောက်ရမည် — မပျောက်လျှင်
+//    ဘာကို ဖြတ်မှာလဲ မသိဘဲ ခလုတ် ကျန်နေမည်。
+document.addEventListener("selectionchange", function(){
+  var s2=window.getSelection();
+  if(!s2||s2.isCollapsed) selBarHide();
+});
 function playRange(t0,t1,label){
   if(!medOK()){tip("အသံ မရှိ — ဗီဒီယို ပြန်တင်ပါ");return}
   // ⚠️ တစ်ကြောင်းချင်း နားထောင်တာက **အစအဆုံး ဖွင့်မှုကို ရပ်**ရမည် —
@@ -953,11 +1107,26 @@ function render(d){
     }
     flush(); return o;
   }
+  /* ⚠️ စကားလုံးတိုင်းကို span နဲ့ ထုတ်သည် — Descript ပုံစံ 「စာလုံး ဆွဲရွေးပြီး ဖြတ်」。
+     ⚠️ `FIX[n]` (စာလုံးပေါင်း ပြင်ထားတာ) ရှိလျှင် **span မထုတ်ပါ** — စာသားက
+        ပြောင်းသွားပြီဖြစ်၍ `words` အချိန်နဲ့ မကိုက်တော့。 အတင်း တွဲလျှင်
+        မှားတဲ့ နေရာ ဖြတ်မည်。
+     ⚠️ `white-space` မပျက်စေရန် စကားလုံးကြားမှာ ရိုးရိုး space ထားသည်。 */
+  function txHtml(s){
+    var t=FIX[s.n]||s.text;
+    if(FIX[s.n] || !s.words || !s.words.length) return esc(t);
+    var o='';
+    s.words.forEach(function(w,i){
+      o+='<span class="w" data-wn="'+s.n+'" data-wi="'+i+'" data-ws="'+(+w.s).toFixed(3)
+        +'" data-we="'+(+w.e).toFixed(3)+'">'+esc(w.w)+'</span>'+(i<s.words.length-1?' ':'');
+    });
+    return o;
+  }
   // ⚠️ cat ကို class အဖြစ် မထည့်တော့ပါ — အုပ်စုကို အရောင်နဲ့ မပြရ (Zin ၂၀၂၆-၀၉-၁၈)
   function rowHtml(s,longest){
     return '<div class="row'+(s.script_mark?' sm':'')+'" data-n="'+s.n+'">'
       +'<div class="no">['+s.n+'] '+mm(s.start)+'</div>'
-      +'<div class="body"><div class="tx">'+esc(FIX[s.n]||s.text)+(s===longest?'<span class="pill">ပြည့်စုံဆုံး</span>':'')+'</div>'
+      +'<div class="body"><div class="tx">'+txHtml(s)+(s===longest?'<span class="pill">ပြည့်စုံဆုံး</span>':'')+'</div>'
       +'<canvas class="rowwave" data-w data-w0="'+Math.max(0,s.start-0.12).toFixed(2)
       +'" data-w1="'+(s.end+0.12).toFixed(2)+'" data-ha="'+s.start.toFixed(2)
       +'" data-hb="'+s.end.toFixed(2)+'" title="အသံလှိုင်း · ▶ နဲ့နားထောင်၊ ✂ နဲ့အတွင်းပိုင်းရွေးဖြတ်"></canvas></div>'
@@ -1708,7 +1877,14 @@ function watchJob(jid, el){
       ချောင်းဆိုးသံက ချွန်ထွက်နေသော အစွန်း အဖြစ် **မျက်စိနဲ့ မြင်ရ**မည်。
    ⚠️ အသံဖိုင် တစ်ခါပဲ ဆွဲပြီး **peak array** အဖြစ် ချုံ့သိမ်းသည် —
       AudioBuffer အပြည့် ချန်ထားလျှင် ၆ မိနစ်အတွက် ~၆၃ MB ဖြစ်မည်。 */
-var WAVE={peaks:null, hz:200, dur:0, state:"—"};
+/* ⚠️⚠️ `peaks` က **အမြင့်ဆုံး လှိုင်းအမြင့်** (၅ms) — ပုံဆွဲဖို့ ကောင်းသည်。
+   ဖြတ်မှတ် ရွှေ့ဖို့တော့ **မသုံးရ**: server (`core/measure.py`) က ၂၀ms
+   **RMS dB** ကို သုံးပြီး `thr_of = max(p95−20, p10+7)` တွက်သည်。 တူညီတဲ့
+   ပုံသေနည်းကို peak ပေါ် တင်လျှင် ရလဒ် ကွဲသည် — တိုင်းထား ၂၀၂၆-၁၀-၀၄
+   (Zin ရဲ့ ဖိုင်): peak အခြေခံ **−၃၁.၈၅ dB** vs server **−၃၈.၉၂ dB** =
+   **၇ dB** ကွာ ⇒ တိတ်ဆိတ်မှုကို စောပြီး 「တွေ့ပြီ」 ထင်ကာ စကားသံထဲ
+   ဖြတ်မိမည်。 ⇒ `db` track ကို သီးသန့် တွက်သည် (ကိန်းသေ တူ · ၂၀ms RMS)。 */
+var WAVE={peaks:null, db:null, dbhz:50, hz:200, dur:0, state:"—"};
 /* ══════════════════════════════════════════════════════════════════
    အသံလိုင်း အကုန် — **ပြရုံသာ · engine မဆုံးဖြတ်**
    ⚠️ Zin ၂၀၂၆-၀၉-၂၂: 「မဖြတ်ခိုင်းဘူး ပြပဲပြပေး · user ကိုယ်တိုင် ဆုံးဖြတ်」
@@ -1870,6 +2046,15 @@ function waveLoad(){
         for(var j=a;j<b2;j++){ var v=ch[j]<0?-ch[j]:ch[j]; if(v>m) m=v }
         pk[i]=m;
       }
+      // ── server နဲ့ တူညီသော ၂၀ms RMS dB track ──
+      var dn=Math.ceil(buf.duration*WAVE.dbhz), dstep=Math.floor(ch.length/dn)||1;
+      var dbt=new Float32Array(dn);
+      for(var p2=0;p2<dn;p2++){
+        var a2=p2*dstep, e2=Math.min(ch.length,a2+dstep), sum=0, cnt=0;
+        for(var q2=a2;q2<e2;q2++){ sum+=ch[q2]*ch[q2]; cnt++ }
+        dbt[p2]=20*Math.log10(Math.sqrt(cnt?sum/cnt:0)+1e-6);
+      }
+      WAVE.db=dbt;
       WAVE.peaks=pk; WAVE.dur=buf.duration; WAVE.state="ok";
       document.querySelectorAll("canvas[data-w]").forEach(function(c){ waveDraw(c) });
     })
