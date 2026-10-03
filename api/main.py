@@ -1539,6 +1539,54 @@ async def w_claim(req: Request, authorization: str = Header(None)):
     return {"job": chk, "upload": u, "sources": source_uploads,
             "brand": b, "stages": STAGES, "over": over}
 
+def _srv_up(u, what="source"):
+    """local storage ထဲက upload ကို ပြန်ပေးသည် — မရလျှင် `None` (ဆက်ရှာရန်)。
+
+    ⚠️⚠️ `FileResponse` က **header ပို့ပြီးမှ** ဖိုင်ကို ဖွင့်သည် — ဖွင့်လို့ မရလျှင်
+       client က `200 OK` + `Content-Length` အတိ ရပြီး body **၀ byte** ရသည် —
+       status က အောင်မြင်ဟု ပြနေသည်。
+
+       ၂၀၂၆-၁၀-၀၄ Zin ရဲ့ upload ၃ ခု ဒီလို ပျက်ခဲ့သည်: API process က macOS
+       ခွင့်ပြုချက် မရသဖြင့် `~/Downloads` ထဲက ဖိုင်ကို `stat` လို့ ရပြီး `open`
+       လို့ မရခဲ့ခြင်း。 `os.path.isfile` တစ်ခုတည်း စစ်တာက ဒီအမှားကို **မမြင်** —
+       ဖွင့်ကြည့်မှ သိသည်。
+    """
+    _p = u.get("path")
+    if not _p or not os.path.isfile(_p):
+        return None
+    try:
+        with open(_p, "rb") as _f:
+            _f.read(1)
+    except OSError:
+        return None
+    if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
+        return {"local": _p, "size": u["size"]}
+    return FileResponse(_p)
+
+
+def _no_up(u, what="source"):
+    """အရှုံး — ဖိုင်က ရှိပြီး **ဖတ်လို့ မရ**လျှင် အကြောင်းရင်း ပြောရမည်。
+
+    ⚠️ exception ကို **ပြန်ပေး**သည် (မပစ်) ⇒ ခေါ်သူက `raise` ရမည်。 ခေါ်သူက
+       မေ့လျှင် endpoint က `None` ပြန်ပြီး `200 null` ဖြစ်မည် — ဒါကို
+       မဖြစ်စေရန် ဒီပုံစံ သုံးသည်。
+
+    ⚠️ `404 no source` က 「မရှိ」 ဟု ဆိုလိုပြီး ဖတ်ခွင့် မရတာနဲ့ မတူ —
+       လုပ်ရမယ့်အရာ လုံးဝ ကွဲသည် (ပြန်တင် vs folder ပြောင်း)。
+    """
+    _p = (u or {}).get("path")
+    if _p and os.path.isfile(_p):
+        try:
+            with open(_p, "rb") as _f:
+                _f.read(1)
+        except OSError as e:
+            return HTTPException(503,
+                f"မူရင်းဖိုင်ကို ဖတ်ခွင့် မရပါ ({what}) — ဖိုင် ရှိသည်၊ ဒါပေမယ့် "
+                f"ဖတ်လို့ မရပါ: {_p} ({e.__class__.__name__}: {e.strerror or e}) — "
+                f"ဖိုင်ကို အခြား folder ထဲ ပြောင်းပြီး ပြန် upload လုပ်ပါ")
+    return HTTPException(404, f"no {what}")
+
+
 @app.get("/api/w/src2/{jid}")
 def w_src2(jid: str, authorization: str = Header(None)):
     """dual-system အသံ ဖိုင် — မရှိလျှင် 404。"""
@@ -1553,17 +1601,15 @@ def w_src2(jid: str, authorization: str = Header(None)):
     # API storage and the renderer do not necessarily share a filesystem.
     # Stream any file that the API can really read; returning `/data/...` as a
     # worker-local pathname made otherwise valid fallback uploads fail on VPS.
-    if u.get("path") and os.path.isfile(u["path"]):
-        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
-            return {"local": u["path"], "size": u["size"]}
-        return FileResponse(u["path"])
+    _r = _srv_up(u, "audio")
+    if _r is not None: return _r
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
     # The old zero-byte Mac-worker path optimisation is disabled by default:
     # the worker that later claims this job may be the VPS, not that Mac.
     if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
         return {"local": u["path"], "size": u["size"]}
-    raise HTTPException(404, "no audio")
+    raise _no_up(u, "audio")
 
 
 @app.get("/api/w/src/{jid}")
@@ -1583,15 +1629,13 @@ def w_src(jid: str, authorization: str = Header(None), url: int = 0):
     # worker container.  Serve it through the private API instead; the worker
     # downloads over the Docker network and never receives a bogus Mac/VPS
     # pathname.  R2 remains the normal zero-VPS-hop upload path.
-    if u.get("path") and os.path.isfile(u["path"]):
-        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
-            return {"local": u["path"], "size": u["size"]}
-        return FileResponse(u["path"])
+    _r = _srv_up(u, "source")
+    if _r is not None: return _r
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
     if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
         return {"local": u["path"], "size": u["size"]}
-    raise HTTPException(404, "no source")
+    raise _no_up(u, "source")
 
 
 @app.get("/api/w/src/{jid}/take/{n}")
@@ -1606,15 +1650,13 @@ def w_src_take(jid: str, n: int, authorization: str = Header(None)):
     if n > len(ids): raise HTTPException(404, "no take")
     u = db.one("SELECT * FROM uploads WHERE id=?", ids[n - 1])
     if not u: raise HTTPException(404, "no take")
-    if u.get("path") and os.path.isfile(u["path"]):
-        if u.get("local") and os.environ.get("IKKI_SHARED_UPLOADS") == "1":
-            return {"local": u["path"], "size": u["size"]}
-        return FileResponse(u["path"])
+    _r = _srv_up(u, "take")
+    if _r is not None: return _r
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
     if u.get("local") and os.environ.get("IKKI_ALLOW_WORKER_LOCAL") == "1":
         return {"local": u["path"], "size": u["size"]}
-    raise HTTPException(404, "no take")
+    raise _no_up(u, "take")
 
 @app.post("/api/w/{jid}/puturl")
 def w_puturl(jid: str, authorization: str = Header(None)):
@@ -1963,9 +2005,9 @@ def w_ref_src(rid: str, authorization: str = Header(None)):
         return {"local": u["path"], "size": u["size"]}
     if u.get("key") and ST.on():
         return {"url": ST.get_url(u["key"], 7200), "size": u["received"]}
-    if u.get("path") and os.path.exists(u["path"]):
-        return FileResponse(u["path"])
-    raise HTTPException(404, "ဖိုင် မရှိ")
+    _r = _srv_up(u, "reference")
+    if _r is not None: return _r
+    raise _no_up(u, "reference")
 
 
 @app.post("/api/w/refs/{rid}/result")

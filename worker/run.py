@@ -5589,6 +5589,32 @@ def post_result(jid, out, meta):
     r.add_header("Content-Type", f"multipart/form-data; boundary={bnd}")
     with urllib.request.urlopen(r, timeout=1800) as f: return json.loads(f.read())
 
+def _dl_done(dest, got, total, t0, what="မူရင်းဗီဒီယို"):
+    """ဆွဲချမှု **ပြည့်မပြည့်** စစ်သည် — မပြည့်လျှင် ဖိုင် ဖျက်ပြီး အမှား ပြသည်。
+
+    ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ Zin ရဲ့ upload ၃ ခု ဒီနေရာမှာ ပျက်ခဲ့သည်。 API က
+       `200 OK` + `Content-Length` ၁၈၃,၃၄၅,၉၃၉ ပြန်ပေးပြီး body က **၀ byte**
+       ဖြစ်ခဲ့သည် (API process က `~/Downloads` ဖတ်ခွင့် မရသဖြင့် FileResponse က
+       header ပို့ပြီးမှ ပျက်ခြင်း)。 ဆွဲချ loop က `b` ဗလာ ဖြစ်တာနဲ့
+       **「ပြီးပြီ」** ဟု ထင်ပြီး `dest` ကို ပြန်ပေးသဖြင့် အမှားက `probe()`
+       အထိ ရောက်ပြီး 「ဗီဒီယို ဖတ်လို့ မရပါ (0.0 MB)」 ဟု **လွဲမှားစွာ**
+       ပြခဲ့သည် — တကယ့် အကြောင်းရင်းက ဆွဲချမှု ပျက်ခြင်း。
+
+    ⚠️ မပြည့်တဲ့ ဖိုင် ကျန်ခဲ့လျှင် `_local_by_size` က ယူမှားနိုင်သည် ⇒ ဖျက်သည်。
+    """
+    if got and (not total or got == total):
+        return dest
+    try: os.remove(dest)
+    except OSError: pass
+    _g = f"{got/1e6:.1f} MB"
+    _t = f"{total/1e6:.1f} MB" if total else "အရွယ် မသိ"
+    raise RuntimeError(
+        f"{what} ဆွဲချမှု မပြီးပါ — {_g} / {_t} ရရှိသည် "
+        f"({time.time()-t0:.1f}s)。 ကွန်နက်ရှင် ပြတ်သွားတာ (သို့) မူရင်းဖိုင်ကို "
+        f"server က ဖတ်ခွင့် မရတာ ဖြစ်နိုင်သည် — ပြန်ထုတ်ကြည့်ပါ၊ မရလျှင် "
+        f"ဗီဒီယိုကို ပြန် upload လုပ်ပါ")
+
+
 def fetch_src(jid, dest, on_progress=None, path="src", expect_dur=None):
     """source ကို chunk အလိုက် disk ပေါ် တိုက်ရိုက် ရေးသည် · ၁၀% တိုင်း အစီရင်ခံသည်。
 
@@ -5643,7 +5669,7 @@ def fetch_src(jid, dest, on_progress=None, path="src", expect_dur=None):
                         try: on_progress(pc, got/1e6, sp)
                         except Exception: pass
                     nxt = pc - pc % 10 + 10
-    return dest
+    return _dl_done(dest, got, total, t0)
 
 
 def _local_by_size(size, expect_dur=None):
@@ -5718,7 +5744,7 @@ def fetch_take(jid, n, dest, on_progress=None):
                     if on_progress:
                         on_progress(pc, got / 1e6, got / 1e6 / max(0.1, time.time() - t0))
                     nxt = pc - pc % 10 + 10
-    return dest
+    return _dl_done(dest, got, total, t0, f"take {int(n) + 1}")
 
 
 def _take_map_read(path):
