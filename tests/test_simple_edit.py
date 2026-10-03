@@ -109,6 +109,84 @@ class SimpleDefault(unittest.TestCase):
         self.assertIn('"⚙ အသေးစိတ်"', self.s[i:i + 160])
 
 
+class ResultViewIsNotAnEditor(unittest.TestCase):
+    """⚠️⚠️ **「ဖျက်လို့ မရ」 ရဲ့ တကယ့် အကြောင်းရင်း** (၂၀၂၆-၁၀-၀၄)
+
+    စာမျက်နှာ **၂ ခု** ရှိသည် — တူညီသော `script.html` ပေမယ့် အခြေအနေ မတူ:
+      `review`      → တည်းဖြတ်。 `cursor:pointer` · 「✕ ဖျက်」 မြင်ရ
+      `cut_review`  → **ရလဒ်** (`body.rv`)。 `cursor:default` · `.act` ဖျောက်
+
+    `body.rv` မှာ **နှိပ်လို့ ရနေသေးသည်** ⇒ နှိပ်လိုက်တာနဲ့ `DEL[n]=1` ဖြစ်ပြီး
+    `body.rv .row.del{display:none}` က စာကြောင်းကို **လုံးဝ ဖျောက်**သည်
+    (တိုင်းထား: အမြင့် ၄၆px → ၀ · မမြင်ရ) ⇒ ပြန်ယူလို့ မရ。 ပိုဆိုးတာက
+    ဖြတ်မှတ်က အေးခဲပြီးသားမို့ **ထွက်လာမယ့် ဗီဒီယိုကို မပြောင်း** —
+    ဟာလာဟင်းလင်းထဲ ဖျက်နေခြင်း。
+
+    ⇒ ဒီအဆင့်မှာ နှိပ်ခြင်းက **ခုန်ခြင်း** ဖြစ်ရမည်、ဖျက်ခြင်း မဟုတ်。
+      ပြင်ချင်လျှင် `/recut` နဲ့ `review` ကို ပြန်သွားရသည်。
+    """
+
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_clicking_a_row_in_result_view_does_not_delete(self):
+        i = self.s.find('if(r && document.body.classList.contains("rv")){')
+        self.assertGreater(i, 0, "rv guard မတွေ့")
+        w = self.s[i:i + 420]
+        self.assertIn("seekTo(", w)
+        self.assertIn("return;", w)
+
+    def test_the_guard_comes_before_the_toggle(self):
+        """⚠️ အောက်မှာ ထားလျှင် `toggle()` က ရှေ့ကနေ ပြေးသွားမည်"""
+        g = self.s.find('if(r && document.body.classList.contains("rv")){')
+        t = self.s.find('if(r){ toggle(+r.getAttribute("data-n")); return }')
+        self.assertGreater(g, 0)
+        self.assertGreater(t, g)
+
+    def test_the_keyboard_shortcut_is_blocked_too(self):
+        """⚠️ `x` ခလုတ်က နှိပ်ချက်နဲ့ အတူတူ လမ်းကြောင်း"""
+        i = self.s.find('e.key.toLowerCase()==="x"')
+        w = self.s[i:i + 400]
+        self.assertIn('classList.contains("rv")', w)
+
+    def test_the_way_back_is_above_the_list(self):
+        """⚠️ အောက်က panel ထဲက 「↩ ဖြတ်ချက် ပြန်ပြင်」 ကို သုံးစွဲသူ မတွေ့ပါ"""
+        i = self.s.find('<div id="rvnote">')
+        j = self.s.find('<div id="list">')
+        self.assertGreater(i, 0, "rvnote မတွေ့")
+        self.assertGreater(j, i, "rvnote က စာရင်းအပေါ်မှာ ရှိရမည်")
+        self.assertIn("✏️ ပြန်ပြင်မယ်", self.s)
+
+    def test_it_reuses_the_existing_recut_path(self):
+        """⚠️ လမ်းကြောင်း ၂ ခု ဆောက်လျှင် တစ်ခုက နောက်ကျကျန်မည်"""
+        i = self.s.find('_rve.onclick=function(){')
+        w = self.s[i:i + 400]
+        self.assertIn('getElementById("crc")', w)
+
+    def test_the_banner_is_not_hidden_by_the_important_rule(self):
+        """⚠️ `[hidden]{display:none !important}` စာရင်းထဲ `#rvnote` ပါသွားလျှင်
+           ဘယ်တော့မှ မပေါ်တော့ပါ (ရေးပြီး ချက်ချင်း တွေ့ခဲ့)。"""
+        self.assertNotIn("#rvnote[hidden]", self.s)
+        self.assertIn('<div id="rvnote">', self.s)
+
+
+class SmallThings(unittest.TestCase):
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_the_video_shows_a_frame_not_black(self):
+        """⚠️ `preload="metadata"` က ဖရိမ်း မဆွဲ ⇒ မည်းနေပြီး
+           「ပျက်နေတယ်」 ဟု ထင်စေသည် (ဖရိမ်း ကြည့်မှ တွေ့)。"""
+        i = self.s.find("_vd2._poster=true")
+        self.assertGreater(i, 0)
+        self.assertIn('addEventListener("loadedmetadata"', self.s[i:i + 420])
+
+    def test_a_zero_count_button_is_hidden(self):
+        """⚠️ 「🔴 ၀ ခု စစ်ရန်」 က အဓိပ္ပာယ် မရှိ"""
+        i = self.s.find('document.getElementById("nsec").textContent=SECS.length;')
+        self.assertIn("_bs.hidden = !SECS.length", self.s[i:i + 420])
+
+
 class Instructions(unittest.TestCase):
     def test_the_two_methods_are_stated_plainly(self):
         """⚠️ 「ဘယ်လို ဖြတ်ရမလဲ」 ကို ခန့်မှန်းခိုင်းလို့ မရ"""

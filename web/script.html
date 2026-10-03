@@ -72,6 +72,9 @@ body{background:var(--bg);color:var(--ink);
       ပေါ်နေပြီး 「ပျက်နေတယ်」 ဟု ထင်စေသည် — ကိုယ်တိုင် သတိပေးထားပြီး
       ကိုယ်တိုင် ကျခဲ့သည် (၂၀၂၆-၁၀-၀၄ ဖရိမ်း ကြည့်မှ တွေ့)。 */
 .vbar video[hidden]{display:none}
+/* ⚠️ `[hidden]` ကို အာမခံရန် — class တစ်ခုက `display` သတ်မှတ်လိုက်လျှင်
+   UA ရဲ့ `[hidden]{display:none}` ကို လွှမ်းသည် (ဗီဒီယိုမှာ တကယ် ဖြစ်ခဲ့)。 */
+.btn[hidden],.row[hidden]{display:none !important}
 .vbar .vside{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .vbar .vbtns{display:flex;gap:8px;flex-wrap:wrap}
 .vbar button{font:inherit;font-size:13px;padding:7px 13px;border-radius:999px;
@@ -253,6 +256,13 @@ body.rv .row{cursor:default;box-shadow:none;background:transparent;padding:2px 1
 body.rv .grp{background:transparent;box-shadow:none;border-left-color:transparent;
              padding:0;margin:0}
 body.rv #bsec,body.rv #bonly{display:none}
+body.rv #bsimple{display:none}
+#rvnote{display:none}
+body.rv #rvnote{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  margin:0 0 14px;padding:12px 14px;border-radius:12px;
+  background:#FFFBEB;border:1px solid #FDE68A}
+#rvnote b{font-size:14px}
+#rvnote span{flex:1;min-width:200px;font-size:13px;color:#57534E}
 /* ⚠️⚠️ **ရိုးရှင်းစနစ် — ပုံမှန်** (၂၀၂၆-၁၀-၀၄ Zin: 「UI design က နားလည်ရခက်
       ပြီး ... အရိုးရှင်းဆုံးနဲ့ ဖြတ်ရလွယ်အောင် လုပ်ပေးပါ」)。
       တိုင်းထားချက်: ဝါကျ ၃၀ အတွက် **နှိပ်လို့ရတဲ့ အရာ ၁၉၂ ခု** ရှိခဲ့သည် —
@@ -563,6 +573,14 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
     <span id="scrs" style="font-size:12.5px;color:#57534E"></span>
   </div>
 </details>
+<!-- ⚠️ ဖြတ်ပြီးသား အဆင့်မှာ စာတမ်းက **ရလဒ်** ဖြစ်သည် — တည်းဖြတ်လို့
+     မရကြောင်းနဲ့ ပြင်ချင်ရင် ဘာလုပ်ရမလဲ **စာရင်းအပေါ်မှာပဲ** ပြောရမည်
+     (အောက်က panel ထဲက ခလုတ်ကို သုံးစွဲသူ မတွေ့ပါ — ၂၀၂၆-၁၀-၀၄)。 -->
+<div id="rvnote">
+  <b>ဒါက ဖြတ်ပြီးသား ရလဒ်ပါ</b>
+  <span>စာကြောင်း နှိပ်ရင် အဲဒီနေရာ ခုန်ပြီး ပြပါမယ်။ ဖျက်/ပြန်ချန် ပြင်ချင်ရင် —</span>
+  <button type="button" class="btn primary" id="rvedit">✏️ ပြန်ပြင်မယ်</button>
+</div>
 <div id="list"></div>
 </main>
 <div class="tip" id="tip"></div>
@@ -1260,6 +1278,25 @@ function render(d){
     // ⚠️ `tlBind()` နဲ့ `tlDraw()` ကို ခေါ်ရမည် — ဒီ ၂ ကြောင်းက
     //    ၂၀၂၆-၀၉-၂၄ မှာ ဖျက်ခံရပြီး feature တစ်ခုလုံး လက်လှမ်းမမီ ဖြစ်ခဲ့သည်。
     try{ tlBind(); tlDraw() }catch(e){}
+    // ⚠️ 「✏️ ပြန်ပြင်မယ်」 — အောက်က panel ထဲက `crc` ကို ပဲ ပစ်သည်
+    //    (လမ်းကြောင်း ၂ ခု မဆောက်ရ — `/recut` လုပ်ပြီး စာမျက်နှာ ပြန်ဖွင့်သည်)
+    var _rve=document.getElementById("rvedit");
+    if(_rve) _rve.onclick=function(){
+      var b=document.getElementById("crc");
+      if(b){ _rve.disabled=true; _rve.textContent="ပြန်သွားနေသည်…"; b.click() }
+      else tip("အောက်က 「↩ ဖြတ်ချက် ပြန်ပြင်」 ကို နှိပ်ပါ");
+    };
+    // ⚠️ `preload="metadata"` က ဖရိမ်း မဆွဲသေးသဖြင့် **မည်းနေ**သည် ⇒
+    //    「ပျက်နေတယ်」 ဟု ထင်စေသည် (၂၀၂၆-၁၀-၀၄ ဖရိမ်း ကြည့်မှ တွေ့)。
+    //    ပထမ ဝါကျဆီ တစ်ချက် ခုန်လိုက်ရုံနဲ့ ပုံ ပေါ်လာသည်。
+    var _vd2=document.getElementById("vid");
+    if(VPROX && _vd2 && !_vd2._poster){
+      _vd2._poster=true;
+      _vd2.addEventListener("loadedmetadata", function(){
+        var _s0=(d.sentences||[])[0];
+        try{ _vd2.currentTime=Math.max(0.1, (_s0?_s0.start:0.5)) }catch(e){}
+      });
+    }
     var _m=med();
     if(_m && !_m._wired){
       _m._wired=true;
@@ -1430,6 +1467,10 @@ function render(d){
     +'Space နားထောင် · '
     +'နှစ်ချက်နှိပ် = နားထောင် · ⌘Z ပြန်ပြင်</span></div>';
   document.getElementById("nsec").textContent=SECS.length;
+  // ⚠️ 「🔴 ၀ ခု စစ်ရန်」 ဆိုတာ အဓိပ္ပာယ် မရှိ — ရှိမှ ပြရမည်
+  //    (၂၀၂၆-၁၀-၀၄: အပေါ်တန်းမှာ ခလုတ် ၅ ခု ရှိပြီး တစ်ခုက ၀ ပြနေခဲ့)
+  var _bs=document.getElementById("bsec");
+  if(_bs) _bs.hidden = !SECS.length;
   paint();
 }
 
@@ -1516,6 +1557,19 @@ document.addEventListener("click",function(e){
   // ⚠️ ဆွဲရွေးပြီးမှ ရောက်လာတဲ့ click ကို **လက်မခံရ** — မဟုတ်လျှင်
   //    စာလုံး ရွေးတိုင်း ဝါကျတစ်ခုလုံး ပျောက်မည်。
   if(r && wasDrag(e)) return;
+  // ⚠️⚠️ **ဖြတ်ပြီးသား အဆင့် (`body.rv`) မှာ တည်းဖြတ်လို့ မရရ**
+  //    (၂၀၂၆-၁၀-၀၄ Zin: 「ဖြတ်ချက်အားလုံး ဖျက်လို့ မရဖြစ်နေတယ်」)。
+  //    အရင်က ဒီအဆင့်မှာ နှိပ်လျှင် `DEL[n]=1` ဖြစ်ပြီး `body.rv .row.del`
+  //    က **လုံးဝ ဖျောက်**သည် ⇒ စာကြောင်းက ပျောက်သွားပြီး ပြန်ယူလို့ မရ၊
+  //    ပြီးတော့ ဖြတ်မှတ်က အေးခဲပြီးသားမို့ **ထွက်လာမယ့် ဗီဒီယိုကိုလည်း
+  //    မပြောင်း** — ဟာလာဟင်းလင်းထဲ ဖျက်နေခြင်း。
+  //    ⇒ ဒီအဆင့်မှာ စာတမ်းက **ရလဒ်** ဖြစ်သည် ⇒ နှိပ်ရင် အဲဒီနေရာ ခုန်。
+  //       ပြင်ချင်လျှင် အပေါ်က 「✏️ ပြန်ပြင်မယ်」 ကနေ ပြန်သွားရသည်。
+  if(r && document.body.classList.contains("rv")){
+    var _rs=(D&&D.sentences||[]).find(function(z){return z.n===+r.getAttribute("data-n")});
+    if(_rs) seekTo(_rs.start);
+    return;
+  }
   if(r){ toggle(+r.getAttribute("data-n")); return }
 });
 
@@ -2493,6 +2547,8 @@ document.addEventListener("keydown",function(e){
   if(e.key==="ArrowDown"){e.preventDefault();select(SEL+1)}
   else if(e.key==="ArrowUp"){e.preventDefault();select(SEL-1)}
   else if(e.key.toLowerCase()==="x"&&SEL>=0){e.preventDefault();
+    // ⚠️ rv မှာ ပိတ်ရမည် — နှိပ်ချက်နဲ့ အတူတူ (ဟာလာဟင်းလင်းထဲ ဖျက်မိမည်)
+    if(document.body.classList.contains("rv")){ tip("ပြင်ဖို့ 「✏️ ပြန်ပြင်မယ်」 နှိပ်ပါ"); return }
     toggle(+rows[SEL].getAttribute("data-n"))}
   else if(e.key===" "&&SEL>=0){e.preventDefault();play(+rows[SEL].getAttribute("data-n"))}
 });
