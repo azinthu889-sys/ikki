@@ -72,9 +72,13 @@ body{background:var(--bg);color:var(--ink);
       ပေါ်နေပြီး 「ပျက်နေတယ်」 ဟု ထင်စေသည် — ကိုယ်တိုင် သတိပေးထားပြီး
       ကိုယ်တိုင် ကျခဲ့သည် (၂၀၂၆-၁၀-၀၄ ဖရိမ်း ကြည့်မှ တွေ့)。 */
 .vbar video[hidden]{display:none}
-/* ⚠️ `[hidden]` ကို အာမခံရန် — class တစ်ခုက `display` သတ်မှတ်လိုက်လျှင်
-   UA ရဲ့ `[hidden]{display:none}` ကို လွှမ်းသည် (ဗီဒီယိုမှာ တကယ် ဖြစ်ခဲ့)。 */
-.btn[hidden],.row[hidden]{display:none !important}
+/* ⚠️⚠️ **`[hidden]` ကို အာမခံရသည်**。 selector တစ်ခုက `display` သတ်မှတ်လိုက်လျှင်
+   UA ရဲ့ `[hidden]{display:none}` ကို လွှမ်းသည် — ဒီနေ့ **၂ ကြိမ်** ဖြစ်ခဲ့:
+   ဗီဒီယို proxy မရှိတဲ့ job မှာ မည်းနေသော ဘောင် · `.setb` မှာ `position`
+   ထည့်လိုက်လို့ ⚙ ပိတ်ထားလည်း panel ပေါ်နေခြင်း。
+   စစ်ထား: ဤဖိုင်မှာ display ပေးထားသော selector **၃၁** ခု · `hidden` ပါသော
+   element **၃** ခု · CSS က ပြဖို့ ရည်ရွယ်ထားတာ **၀** ⇒ ဘေးထွက်ဆိုးကျိုး မရှိ。 */
+[hidden]{display:none !important}
 .vbar .vside{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .vbar .vbtns{display:flex;gap:8px;flex-wrap:wrap}
 .vbar button{font:inherit;font-size:13px;padding:7px 13px;border-radius:999px;

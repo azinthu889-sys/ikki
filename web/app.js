@@ -315,6 +315,52 @@ function askToken(invalid){
       });
     });
 }
+/* ⚠️⚠️ **တိတ်တဆိတ် ရပ်သွားတာကို ပိတ်ရန်** (၂၀၂၆-၁၀-၀၄ အစအဆုံး စစ်ဆေးမှု)。
+   `api()` က promise ကို **ပစ်**သည် (ခေါ်သူက ဆုံးဖြတ်ရန်)。 ဒါပေမယ့်
+   ခေါ်ချက် ၅၈ ခုမှာ **၁၂ ခု** `.catch` မပါပါ — အထဲမှာ `/jobs` (job ဆောက်) ·
+   `/uploads/resumable` · `/upload/…/parts` · `/upload/…/complete` ·
+   `/pay` · `/plan/topup` ပါသည်。 ကွန်ရက် ပြတ်လျှင် **ဘာမှ မပြဘဲ ရပ်သွား**ပြီး
+   သုံးစွဲသူက 「ရပ်သွားပါတယ်」 ဟု တွေ့ရသည် (Zin ထပ်ခါထပ်ခါ တွေ့ခဲ့သော အရာ)。
+   ⇒ ခေါ်ချက် ၁၂ ခု တစ်ခုချင်း ပြင်မယ့်အစား **ကမ်းကုန် ဖမ်းကွက်** တစ်ခု。
+   ⚠️ `auth`/`quota` က `api()` ထဲမှာ ကိုင်ပြီးသား ⇒ မပြရ (နှစ်ထပ် ဖြစ်မည်)。 */
+(function(){
+  var LAST=0;
+  /* ⚠️ `alert()` **မသုံးရ** — upload/render လုပ်နေစဉ် စာမျက်နှာ တစ်ခုလုံး
+     ပိတ်ဆို့သည်。 ⇒ အောက်ခြေမှာ ပေါ်ပြီး ပျောက်သော အကြောင်းကြားချက်。
+     `window.__ikki_err` မှာ နောက်ဆုံး အမှားကို ထားသည် (စမ်းသပ်ရန်)。 */
+  function toast(msg){
+    window.__ikki_err=msg;
+    var e=document.getElementById("errtoast");
+    if(!e){
+      e=document.createElement("div"); e.id="errtoast";
+      e.setAttribute("role","status");
+      e.style.cssText="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);"
+        +"z-index:9999;max-width:min(560px,92vw);background:#1C1917;color:#fff;"
+        +"padding:12px 16px;border-radius:12px;font-size:13.5px;line-height:1.7;"
+        +"box-shadow:0 12px 32px rgba(0,0,0,.3)";
+      document.body.appendChild(e);
+    }
+    e.textContent=msg;
+    e.hidden=false;
+    clearTimeout(e._t); e._t=setTimeout(function(){ e.hidden=true }, 9000);
+  }
+  // ⚠️ ရေတွက်ချက် — ဖမ်းကွက် တကယ် သက်ရောက်မသက်ရောက် စမ်းလို့ရရန်
+  //    (၂၀၂၆-၁၀-၀၄: `alert()` နဲ့ စမ်းလို့ မရခဲ့ — ဘယ်မှာ ပျက်နေလဲ မသိ)
+  window.__ikki_rej=0;
+  addEventListener("unhandledrejection", function(e){
+    window.__ikki_rej++;
+    var r=e.reason, m=(r&&r.message)||String(r||"");
+    if(m==="auth"||m==="quota"){ e.preventDefault(); return }
+    // ⚠️ AbortError က ဖွင့်/ရပ် ပြိုင်တာ — ပြောစရာ မလို
+    if(r&&r.name==="AbortError"){ e.preventDefault(); return }
+    var now=Date.now(); if(now-LAST<4000){ e.preventDefault(); return }
+    LAST=now; e.preventDefault();
+    var my=(typeof cur!=="undefined"&&cur==="my");
+    toast((my?"ပြဿနာ ဖြစ်သွားပါတယ် — ပြန်ကြိုးစားပေးပါ။ "
+             :"Something went wrong — please try again. ")+m.slice(0,160));
+  });
+})();
+
 function api(path,opt){
   /* Production Traefik drops Authorization on its HTTPS hop. The API turns
      this same-origin IKKI-only header back into Bearer inside the container. */
