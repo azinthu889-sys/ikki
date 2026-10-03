@@ -190,10 +190,16 @@ class SmallThings(unittest.TestCase):
 class Instructions(unittest.TestCase):
     def test_the_two_methods_are_stated_plainly(self):
         """⚠️ 「ဘယ်လို ဖြတ်ရမလဲ」 ကို ခန့်မှန်းခိုင်းလို့ မရ"""
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — လမ်းညွှန်က ၁၂၁px (၃ ကြောင်း) ယူနေသဖြင့်
+        #    တစ်ကြောင်းတည်း ဖြစ်အောင် တိုလိုက်သည် ([[test_one_screen]])。
+        #    ဖြတ်နည်း ၂ ခုလုံး **ပြောထားဆဲ** ဖြစ်ရမည် — အဲဒါက ရည်ရွယ်ချက်。
         s = _src("web", "script.html")
-        self.assertIn("ဖြတ်နည်း ၂ မျိုးပဲ ရှိပါတယ်", s)
-        self.assertIn("စာကြောင်းကို နှိပ်", s)
-        self.assertIn("စာလုံးတွေကို ဆွဲရွေး", s)
+        i = s.find('<div class="editnote"')
+        j = s.find("</div>", i)
+        w = s[i:j]
+        self.assertIn("စာကြောင်းကို နှိပ်", w)
+        self.assertIn("ဆွဲရွေး", w)
+        self.assertIn("▶", w)
 
     def test_nothing_is_lost_by_hiding(self):
         """⚠️⚠️ ဖျောက်ထားတာက **ရလဒ်ကို မပြောင်းစေရ** — ဖျောက်တာက
