@@ -843,12 +843,56 @@ def ff(args, what="ffmpeg"):
 
 
 def probe(p):
-    o = subprocess.run(["ffprobe","-v","error","-select_streams","v:0",
+    """ဗီဒီယိုရဲ့ အရွယ်/fps/ကြာချိန် — ⚠️ **ဖတ်လို့မရလျှင် ဖတ်လို့ရသော
+    အမှားစာသား** ပြန်ရမည်。
+
+    ⚠️⚠️ ၂၀၂၆-၁၀-၀၃ — ဖတ်မရသော ဖိုင်တစ်ခုက `KeyError: 'streams'` ဖြစ်ပြီး
+       သုံးစွဲသူက UI မှာ **「'streams'」** ဆိုတာ မြင်ရသည် — ဘာမှ မဆိုလို。
+       ဖိုင် ပျက်နေလား · ဗီဒီယို မဟုတ်လား · codec မရလား မခွဲနိုင်。
+       ⇒ ffprobe ရဲ့ **ကိုယ်ပိုင် အမှားစာသား**ကို ပါအောင် ယူပြီး
+         သုံးစွဲသူ လုပ်စရာ ပါသော စာကြောင်း ပြန်သည်。
+    """
+    r = subprocess.run(["ffprobe","-v","error","-select_streams","v:0",
         "-show_entries","stream=width,height,r_frame_rate","-show_entries","format=duration",
-        "-of","json",p], capture_output=True, text=True).stdout
-    j = json.loads(o); s = j["streams"][0]; n,d = s["r_frame_rate"].split("/")
-    return dict(w=s["width"], h=s["height"], fps=float(n)/float(d),
-                dur=float(j["format"]["duration"]))
+        "-of","json",p], capture_output=True, text=True)
+    o = r.stdout
+    try:
+        j = json.loads(o)
+    except ValueError:
+        j = {}
+    _st = (j.get("streams") or [])
+    if not _st:
+        # ⚠️ ffprobe ရဲ့ စာသားက အကြောင်းရင်း ပြောတတ်သည် (moov မရှိ ·
+        #    codec မသိ · ဖိုင် ပျက်)。 မပါလျှင် အရွယ်နဲ့ ခန့်မှန်းပြောသည်。
+        _err = (r.stderr or "").strip().splitlines()
+        _tail = _err[-1][:160] if _err else ""
+        try:
+            _sz = os.path.getsize(p) / 1e6
+        except OSError:
+            _sz = 0.0
+        raise RuntimeError(
+            f"ဗီဒီယို ဖတ်လို့ မရပါ — ရုပ်လိုင်း မတွေ့ပါ ({_sz:.1f} MB)。 "
+            f"ဖိုင် ပျက်နေခြင်း · တင်တာ မပြီးခြင်း · ဗီဒီယို မဟုတ်ခြင်း "
+            f"ဖြစ်နိုင်သည် — MP4 သို့မဟုတ် MOV နဲ့ ပြန်တင်ကြည့်ပါ"
+            + (f" [ffprobe: {_tail}]" if _tail else ""))
+    s = _st[0]
+    try:
+        n, d = str(s.get("r_frame_rate") or "0/0").split("/")
+        fps = float(n) / float(d)
+    except (ValueError, ZeroDivisionError):
+        fps = 0.0
+    try:
+        dur = float((j.get("format") or {}).get("duration"))
+    except (TypeError, ValueError):
+        dur = 0.0
+    # ⚠️ **၀ ကို ဆက်မသွားရ** — အောက်က တွက်ချက်မှုတိုင်း ပျက်ပြီး
+    #    အမှားစာသားက ဒီနေရာကနေ ဝေးသွားမည်。
+    if not s.get("width") or not s.get("height") or fps <= 0 or dur <= 0:
+        raise RuntimeError(
+            f"ဗီဒီယို ဖတ်လို့ မရပါ — အရွယ် {s.get('width')}×{s.get('height')} · "
+            f"fps {fps:.2f} · ကြာချိန် {dur:.2f}s。 ဖိုင် ပျက်နေခြင်း "
+            f"သို့မဟုတ် တင်တာ မပြီးခြင်း ဖြစ်နိုင်သည် — ပြန်တင်ကြည့်ပါ")
+    return dict(w=s["width"], h=s["height"], fps=fps, dur=dur)
 
 def faceband(src, W, H, log=print, n=6):
     """ရုပ်ထဲက **မျက်နှာ/အသား ဇုန်** (output pixel y0,y1) — မရလျှင် None。
