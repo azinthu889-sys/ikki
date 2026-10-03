@@ -253,6 +253,19 @@ body.rv .row{cursor:default;box-shadow:none;background:transparent;padding:2px 1
 body.rv .grp{background:transparent;box-shadow:none;border-left-color:transparent;
              padding:0;margin:0}
 body.rv #bsec,body.rv #bonly{display:none}
+/* ⚠️⚠️ **ရိုးရှင်းစနစ် — ပုံမှန်** (၂၀၂၆-၁၀-၀၄ Zin: 「UI design က နားလည်ရခက်
+      ပြီး ... အရိုးရှင်းဆုံးနဲ့ ဖြတ်ရလွယ်အောင် လုပ်ပေးပါ」)。
+      တိုင်းထားချက်: ဝါကျ ၃၀ အတွက် **နှိပ်လို့ရတဲ့ အရာ ၁၉၂ ခု** ရှိခဲ့သည် —
+      engine chip ၃၂ ခု (အနားယူ ၂၀ · အသံ ၈ · ❓ ၄) ကြားညပ်နေပြီး
+      ဝါကျတိုင်းမှာ ခလုတ် ၃ ခု (▶ ✂ ⋯)。 ဝါကျ ဖျက်ဖို့ အဲဒီကြားက ရှာရသည်。
+   ⇒ ပုံမှန်မှာ **ဝါကျ + ▶** သာ ပြသည်。 engine ရဲ့ ဆုံးဖြတ်ပြီးသားတွေက
+      「⚙ အသေးစိတ်」 နှိပ်မှ ပေါ်သည် (ပုံသေက **ချန်** ဖြစ်၍ ဖျောက်ထားလည်း
+      ဘာမှ မပျောက်ပါ)。 */
+body.simple .snd,body.simple .unl,body.simple .pau,
+body.simple .row [data-trim],body.simple .row [data-spl],
+body.simple .rowwave,body.simple .sil{display:none}
+body.simple .row{padding:8px 14px}
+body.simple .row .tx{font-size:15.5px;line-height:1.75}
 .done{background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:18px;
       margin:26px 0;font-size:14px;line-height:1.9}
 .done b{font-size:16px}
@@ -473,6 +486,7 @@ body.rv #bsec,body.rv #bonly{display:none}
     <!-- ⚠️ ပြန်ထွက်လမ်း — မရှိလျှင် သုံးစွဲသူ ဒီစာမျက်နှာမှာ ပိတ်မိသည် -->
     <a class="btn ghost" href="/" style="text-decoration:none">← IKKI</a>
     <button class="btn warn" id="bsec">🔴 <span id="nsec">0</span> ခု စစ်ရန် ↓</button>
+    <button class="btn ghost" id="bsimple">⚙ အသေးစိတ်</button>
     <button class="btn ghost" id="bonly">ဖျက်တာပဲ ပြ</button>
     <button class="btn primary" id="bok">ဖြတ်ချက် စစ်မယ် →</button>
   </div>
@@ -530,8 +544,10 @@ body.rv #bsec,body.rv #bonly{display:none}
   </div>
 </div>
 <div class="editnote" aria-live="polite">
-  <b>စာသားနဲ့တွဲထားတဲ့ အသံလှိုင်းမှာပဲ စစ်ပါ</b>
-  <span>အောက်က စာကြောင်း၊ အသံဖြစ်ရပ်ကို နှိပ်ပြီး ဖြတ်/ပြန်ချန်ပါ။ စာကြောင်းအသစ် ရေးရန် မလိုပါ။</span>
+  <b>ဖြတ်နည်း ၂ မျိုးပဲ ရှိပါတယ်</b>
+  <span><b>① စာကြောင်းကို နှိပ်</b> ⇒ အဲဒီစာကြောင်း တစ်ခုလုံး ပျောက်မယ်။
+        <b>② စာလုံးတွေကို ဆွဲရွေး</b> ⇒ ရွေးထားတဲ့ စာလုံးတွေပဲ ပျောက်မယ်။
+        <b>▶</b> နဲ့ နားထောင်နိုင်ပါတယ်။ စာအသစ် ရေးစရာ မလိုပါ။</span>
   <span id="editstate"></span>
 </div>
 <!-- ⚠️ Script စာလုံးပေါင်း (Zin 2026-09-28) — **အကြံပြုရုံ** · ✓ နှိပ်မှ စာတန်း ပြောင်း。
@@ -1110,6 +1126,19 @@ function selCut(g){
   tip("✂ စာလုံး "+nw+" လုံး ဖြတ်ပြီး · "+tot.toFixed(2)+"s"
       +(bad?" · ⚠️ "+bad+" ခုက စကားသံထဲ":""));
 }
+/* ⚠️⚠️ **ဆွဲရွေးတာနဲ့ နှိပ်တာ ခွဲရမည်** (၂၀၂၆-၁၀-၀၄ Zin: 「ဖြတ်ချက်အားလုံး
+      ဖျက်လို့ မရဖြစ်နေတယ်」)。 browser က mousedown/mouseup တူညီသော
+      ancestor ပေါ် `click` ပစ်သည် ⇒ စာလုံး ဆွဲရွေးတိုင်း ဝါကျတစ်ခုလုံး
+      ဖျက်ခံရပြီး `paint()` က DOM ပြန်ဆောက်သဖြင့် ရွေးထားတာ ပျောက်သည်
+      ⇒ စာလုံး ဖြတ်ချက် **လုံးဝ မရ**。 စမ်းပြီး အတည်ပြုထား。
+   ⇒ ၄px ထက် ပို ရွေ့လျှင် (သို့) ရွေးထားမှု ရှိလျှင် **နှိပ်ချက် မဟုတ်**。 */
+var _DN=null;
+document.addEventListener("mousedown", function(e){ _DN=[e.clientX, e.clientY] }, true);
+function wasDrag(e){
+  if(_DN && (Math.abs(e.clientX-_DN[0])>4 || Math.abs(e.clientY-_DN[1])>4)) return true;
+  var s2=window.getSelection();
+  return !!(s2 && !s2.isCollapsed && String(s2).trim());
+}
 document.addEventListener("mouseup", function(){ setTimeout(selBarShow, 0) });
 document.addEventListener("keyup", function(e){
   if(e.key==="Shift"||e.key&&e.key.indexOf("Arrow")===0) setTimeout(selBarShow,0); });
@@ -1484,6 +1513,9 @@ document.addEventListener("click",function(e){
     if(PDEL[key]) delete PDEL[key]; else PDEL[key]=1;
     paint(); return }
   var r=e.target.closest(".row[data-n]");
+  // ⚠️ ဆွဲရွေးပြီးမှ ရောက်လာတဲ့ click ကို **လက်မခံရ** — မဟုတ်လျှင်
+  //    စာလုံး ရွေးတိုင်း ဝါကျတစ်ခုလုံး ပျောက်မည်。
+  if(r && wasDrag(e)) return;
   if(r){ toggle(+r.getAttribute("data-n")); return }
 });
 
@@ -1512,6 +1544,22 @@ document.addEventListener("dblclick",function(e){
     return }
   var r=e.target.closest(".row[data-n]"); if(r) play(+r.getAttribute("data-n"));
 });
+/* ⚠️ ပုံမှန်က **ရိုးရှင်းစနစ်** — localStorage မှာ မှတ်သည် (ဖွင့်တိုင်း
+   ပြန်ရွေးစရာ မလို)。 「⚙ အသေးစိတ်」 နှိပ်မှ engine chip တွေ ပေါ်သည်。 */
+(function(){
+  var b=document.getElementById("bsimple"); if(!b) return;
+  function put(on){
+    document.body.classList.toggle("simple", on);
+    b.classList.toggle("on", !on);
+    b.textContent = on ? "⚙ အသေးစိတ်" : "✓ ရိုးရှင်းစနစ်";
+    try{ localStorage.setItem("ikki_simple", on?"1":"0") }catch(e){}
+    try{ tlDraw() }catch(e){}
+  }
+  var saved=null;
+  try{ saved=localStorage.getItem("ikki_simple") }catch(e){}
+  put(saved!=="0");                       // ⚠️ ပုံသေ = ရိုးရှင်း
+  b.onclick=function(){ put(!document.body.classList.contains("simple")) };
+})();
 document.getElementById("bonly").onclick=function(){
   document.body.classList.toggle("only"); this.classList.toggle("on");
 };

@@ -1,0 +1,141 @@
+# -*- coding: utf-8 -*-
+"""ဖြတ်နည်း **၂ မျိုးပဲ** · ပုံမှန်က ရိုးရှင်းစနစ်
+
+⚠️⚠️ ၂၀၂၆-၁၀-၀၄ Zin (UI မှာ တကယ် စမ်းပြီး): 「မင်း UI design က နားလည်ရခက်ပြီး
+   **ဖြတ်ချက်အားလုံး ဖျက်လို့ မရ** ဖြစ်နေတယ်။ user တွေအတွက် အရိုးရှင်းဆုံးနဲ့
+   ဖြတ်ရလွယ်အောင် လုပ်ပေးပါ」。
+
+ပြဿနာ ၂ ခု — နှစ်ခုလုံး တိုင်းပြီး အတည်ပြုထားသည်:
+
+① **ဆွဲရွေးတိုင်း ဝါကျတစ်ခုလုံး ဖျက်ခံရသည်**。 browser က mousedown/mouseup
+   တူညီသော ancestor ပေါ် `click` ပစ်သည် ⇒ စာလုံး ဆွဲရွေးတာနဲ့ row ရဲ့
+   「နှိပ် = ဖျက်」 handler က ပါ ပစ်သည်。 ပြီးတော့ `paint()` က DOM ပြန်ဆောက်
+   သဖြင့် ရွေးထားတာ ပျောက်ပြီး cut bar **ဘယ်တော့မှ မပေါ်**。
+   ⇒ စာလုံး ဖြတ်ချက် လုံးဝ မရ (「ဖျက်လို့ မရ」 ဆိုတာ ဒါ)。
+   ပြင်: ၄px ထက် ပို ရွေ့လျှင် (သို့) ရွေးထားမှု ရှိလျှင် **နှိပ်ချက် မဟုတ်**。
+
+② **မျက်နှာပြင်က ရှုပ်လွန်းသည်**。 တိုင်းထားချက် (ဝါကျ ၃၀ ရှိသော job):
+
+       နှိပ်လို့ရတဲ့ အရာ   **၁၉၂** ခု
+       engine chip        ၃၂ (အနားယူ ၂၀ · အသံ ၈ · ❓ ၄) — ဝါကျကြား ညပ်နေ
+       ဝါကျတိုင်း ခလုတ်    ၃ (▶ ✂ ⋯) + လှိုင်းပုံ
+
+   ဝါကျ ၃၀ ဖျက်ဖို့ ခလုတ် ၁၉၂ ခု ကြားက ရှာရသည်。
+   ⇒ **ရိုးရှင်းစနစ် ပုံမှန်** — ဝါကျ + ▶ သာ。 engine ရဲ့ ဆုံးဖြတ်ပြီးသားက
+     「⚙ အသေးစိတ်」 နှိပ်မှ。 တိုင်းထား ပြင်ပြီး: **၁၉၂ → ၅၆ (၇၁% လျှော့)** ·
+     row အမြင့် ၆၈px → ၄၆px。
+
+⚠️ ဖျောက်ထားတာက **ဆုံးဖြတ်ချက် မပြောင်းစေပါ** — အသံ/❓/အနားယူ တို့ရဲ့
+   ပုံသေက 「ချန်」 ဖြစ်ပြီး engine က အလိုအလျောက် မဖျက်ပါ ⇒ မမြင်ရလည်း
+   ဘာမှ မပျောက်。 ပြင်ချင်သူက ⚙ နဲ့ ဖွင့်ရသည်。
+"""
+import io
+import os
+import unittest
+
+_R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _src(*p):
+    return io.open(os.path.join(_R, *p), encoding="utf-8").read()
+
+
+class DragVsClick(unittest.TestCase):
+    """⚠️⚠️ **အဓိက bug** — ဆွဲရွေးတာနဲ့ နှိပ်တာ ခွဲရမည်"""
+
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_the_separator_exists(self):
+        self.assertIn("function wasDrag(", self.s)
+
+    def test_the_row_click_refuses_a_drag(self):
+        """⚠️ ဒီစာကြောင်း မပါလျှင် စာလုံး ရွေးတိုင်း ဝါကျတစ်ခုလုံး ပျောက်မည်"""
+        self.assertIn("if(r && wasDrag(e)) return;", self.s)
+
+    def test_it_checks_both_movement_and_selection(self):
+        """⚠️ ရွေးထားမှု တစ်ခုတည်း စစ်လျှင် ဆွဲပြီး လွှတ်မိတာကို မဖမ်းနိုင် ·
+           ရွေ့ချက် တစ်ခုတည်းဆိုလည်း touch မှာ လွဲနိုင်သည်。"""
+        i = self.s.find("function wasDrag(")
+        w = self.s[i:i + 420]
+        self.assertIn("e.clientX-_DN[0])>4", w)
+        self.assertIn("isCollapsed", w)
+
+    def test_the_mousedown_point_is_captured_in_the_capture_phase(self):
+        """⚠️ bubble မှာ ထားလျှင် `stopPropagation` လုပ်တဲ့ handler တွေက
+           ရှေ့ကနေ ဖြတ်သွားပြီး အမှတ် မရတော့ပါ。"""
+        self.assertIn('document.addEventListener("mousedown", function(e){ _DN=', self.s)
+        i = self.s.find('document.addEventListener("mousedown", function(e){ _DN=')
+        self.assertIn("}, true)", self.s[i:i + 160])
+
+
+class SimpleDefault(unittest.TestCase):
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_simple_is_the_default(self):
+        """⚠️ ပုံသေက အသေးစိတ် ဖြစ်နေလျှင် ဘာမှ မပြောင်းသလို ဖြစ်မည်"""
+        i = self.s.find('saved=localStorage.getItem("ikki_simple")')
+        self.assertGreater(i, 0)
+        self.assertIn('put(saved!=="0")', self.s[i:i + 300])
+
+    def test_the_noisy_parts_are_hidden(self):
+        """⚠️ ဝါကျ ၃၀ အတွက် engine chip ၃၂ ခု ကြားညပ်နေခဲ့သည်"""
+        i = self.s.find("body.simple .snd")
+        self.assertGreater(i, 0)
+        w = self.s[i:i + 420]
+        for k in (".snd", ".unl", ".pau", "[data-trim]", "[data-spl]", ".rowwave"):
+            self.assertIn(k, w, k)
+
+    def test_the_play_button_stays(self):
+        """⚠️⚠️ နားမထောင်ဘဲ ဖြတ်လို့ မရ — ▶ ကို ဘယ်တော့မှ မဖျောက်ရ"""
+        i = self.s.find("body.simple .snd")
+        self.assertNotIn("rplay", self.s[i:i + 420])
+
+    def test_the_text_stays_clickable_in_simple_mode(self):
+        """⚠️ `.row` ကို ဖျောက်မိလျှင် ဖျက်လို့ မရတော့"""
+        i = self.s.find("body.simple .snd")
+        w = self.s[i:i + 420]
+        self.assertNotIn("body.simple .row{display:none", w)
+        self.assertIn("body.simple .row{padding", self.s)
+
+    def test_the_choice_is_remembered(self):
+        self.assertIn('localStorage.setItem("ikki_simple"', self.s)
+
+    def test_the_toggle_says_which_state_it_goes_to(self):
+        """⚠️ ခလုတ်စာက လက်ရှိ အခြေအနေ ပြလျှင် နှိပ်ရင် ဘာဖြစ်မလဲ မသိရ"""
+        i = self.s.find('b.textContent = on ?')
+        self.assertGreater(i, 0)
+        self.assertIn('"⚙ အသေးစိတ်"', self.s[i:i + 160])
+
+
+class Instructions(unittest.TestCase):
+    def test_the_two_methods_are_stated_plainly(self):
+        """⚠️ 「ဘယ်လို ဖြတ်ရမလဲ」 ကို ခန့်မှန်းခိုင်းလို့ မရ"""
+        s = _src("web", "script.html")
+        self.assertIn("ဖြတ်နည်း ၂ မျိုးပဲ ရှိပါတယ်", s)
+        self.assertIn("စာကြောင်းကို နှိပ်", s)
+        self.assertIn("စာလုံးတွေကို ဆွဲရွေး", s)
+
+    def test_nothing_is_lost_by_hiding(self):
+        """⚠️⚠️ ဖျောက်ထားတာက **ရလဒ်ကို မပြောင်းစေရ** — ဖျောက်တာက
+           「ပြင်ခွင့်」 ပဲ ဖြစ်ရမည်、「ဆုံးဖြတ်ချက်」 မဟုတ်。
+
+           ပုံသေ ၃ မျိုးက မတူသည်:
+             `SDEL` (အသံ) · `UDEL` (❓) — ဗလာ = **ချန်** (engine မဖျက်)
+             `SKEEP` (အနားယူ)         — ဗလာ = **engine ဖြတ်မည်** (ပုံသေ)
+           သုံးခုလုံး ဗလာ ဖြစ်နေသရွေ့ ဖျောက်လိုက်တာက ရလဒ် မပြောင်းပါ —
+           ⚙ နဲ့ ဖွင့်မှ ပြင်လို့ ရသည်。 ဗလာ မဟုတ်တော့လျှင် (တစ်ယောက်က
+           ပုံသေ ပြောင်းလျှင်) ဖျောက်ထားတာက တိတ်တဆိတ် ပြောင်းရာ ကျမည်。"""
+        s = _src("web", "script.html")
+        self.assertIn("var SDEL={}, TRIM={};", s)
+        i = s.find("var UDEL")
+        self.assertGreater(i, 0)
+        self.assertIn("UDEL={}", s[i:i + 60])
+        j = s.find("var SKEEP")
+        self.assertGreater(j, 0)
+        self.assertIn("SKEEP={}", s[j:j + 60])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
