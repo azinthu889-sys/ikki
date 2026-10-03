@@ -26,7 +26,7 @@ R = {
  #    review.  The talking-head keys below still serve re-renders of jobs made
  #    before the engine existed.  `music` is read by both.
  "cinematic-vlog": dict(label="Cinematic Vlog", theme="zjl", fps=24, engine="cine",
-    keep_pause=0.55, min_sil=1.20, captions="light", gfx=3, music="folk",
+    keep_pause=0.90, min_sil=1.20, captions="light", gfx=3, music="folk",
     mmf="MasterpieceUniRound", latin="Figtree",
     cap_pct=0.0426, cap_base=0.680, stroke=None, stroke_w=0.0,
     lufs=-15.0, cap_max=0.833, scrim=False, broll=4,
@@ -41,7 +41,7 @@ R = {
     #    ၀.၂၀→၁၀၀ · ၀.၃၀→၉၅ · ၀.၄၅→၈၆ · ၀.၆၅→၇၂  ⇒ ၀.၂၀ က မူရင်းနဲ့ တိတိကျကျ။
     sat=1.02, vign=0.20, sfx_per_min=1.0),
  "vlog": dict(label="Vlog", theme="zjl", fps=30,
-    keep_pause=0.40, min_sil=0.75, captions="karaoke", gfx=6, music="upbeat",
+    keep_pause=0.70, min_sil=0.85, captions="karaoke", gfx=6, music="upbeat",
     mmf="MasterpieceUniRound", latin="Figtree-Black",
     cap_pct=0.0481, cap_base=0.680, lufs=-14.5, cap_max=0.833, scrim=False,
     broll=5, broll_pct=0.30, cap_cover=0.85,
@@ -53,7 +53,7 @@ R = {
     #    ၁၄% ⇒ **burned-in စာတန်း မသုံး**。 keyword pop နဲ့ ဘောင်အပြည့် ကတ်သာ。
     #    accent #E5BC32 (frame ၃ ခုမှ တိုင်း — ZJL ရဲ့ #FFE000 နဲ့ RGB ၁၁၂ ကွာ)。
     cap_typo=0.22, accent="#E5BC32", insert_per_min=2.5,
-    keep_pause=0.26, min_sil=0.45, captions="karaoke", gfx=2, music=None,
+    keep_pause=0.50, min_sil=0.70, captions="karaoke", gfx=2, music=None,
     mmf="MasterpieceUniRound", latin="Figtree",
     cap_pct=0.0444, cap_base=0.680, lufs=-14.0, cap_max=0.833, scrim=False,
     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
@@ -112,7 +112,7 @@ R = {
     broll_strict=True,
     cap_typo=0.22, accent="#22D3C5", insert_per_min=2.5, zoom_amt=0.055,
      label="Talking Head Motion Edit", theme="ikki", fps=30,
-     keep_pause=0.20, min_sil=0.32,
+     keep_pause=0.30, min_sil=0.55,
      # ⚠️ **reference ဖိုင်ကိုယ်တိုင် frame ၁၉၆ ခု တိုင်းထားသည်**
      #    (KCN4-2hyUBM 1080p · ၂၀၂၆-၀၉-၂၀)。 အရင်က JSON calib ရဲ့
      #    ပျမ်းမျှနဲ့ ချထားရာ Zin က 「၃/၁၀ · premium မဆန်」ဟု ပြောခဲ့သည်。
@@ -138,7 +138,7 @@ R = {
  #      (slide တစ်ခု ၁၇s အထိ ဆန့်၍ share မြင့်နိုင်)。
  "ref-slides": dict(
      label="Slide Heavy", theme="zjl", fps=30,
-     keep_pause=0.22, min_sil=0.35,
+     keep_pause=0.35, min_sil=0.50,
      captions="accent", cap_pct=0.024, cap_base=0.78, cap_max=0.87,
      cap_cover=0.08,
      gfx=14, gfx_share=(0.30, 0.42),
@@ -180,7 +180,7 @@ R = {
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
      motionkit_profile="premium", broll_strict=True,
-     keep_pause=0.20, min_sil=0.32,
+     keep_pause=0.30, min_sil=0.55,
      captions="accent", cap_pct=0.050, cap_base=0.92, cap_max=0.93,
      cap_cover=0.85, cap_typo=0.0,
      mmf="MasterpieceUniRound", latin="Figtree-Black",
@@ -195,7 +195,7 @@ R = {
 
  "ref-fast": dict(
      label="Fast Cut", theme="zjl", fps=30,
-     keep_pause=0.12, min_sil=0.22,
+     keep_pause=0.20, min_sil=0.40,
      captions="accent", cap_pct=0.026, cap_base=0.78, cap_max=0.87,
      cap_cover=0.12,
      gfx=20, gfx_share=(0.20, 0.30),
@@ -219,7 +219,7 @@ R = {
     cap_typo=0.22, accent="#E5BC32", insert_per_min=2.5,
     # ⚠️ REF-A 14.0% · REF-B 13.4% (တိုင်းထားသည်) — skill P1
     gfx_share=(0.10, 0.17), label="Knowledge Sharing", theme="zjl", fps=30,
-    keep_pause=0.26, min_sil=0.45, captions="accent", gfx=10, music="calm",
+    keep_pause=0.50, min_sil=0.70, captions="accent", gfx=10, music="calm",
     mmf="MasterpieceUniRound", latin="Figtree-Black",
     #    ⚠️ ဒုတိယအကြိမ် တိုင်းချက် (frame ၃၀၀) — ဖွဲ့စည်းပုံ:
     #         ပြောသူ      ၈၃% / ၈၀%
@@ -286,7 +286,7 @@ R = {
  "short-video": dict(label="ZAE Short", theme="zae", fps=30,
                      gfx_scale=1.15, gfx_cutaway=0.0,
     # ⚠️ reference မှာ ဂရပ်ဖစ် ကတ်ကြီး **မရှိသလောက်** — စာတန်းနဲ့ B-roll ချည်းပဲ。
-    keep_pause=0.18, min_sil=0.34, captions="zae", gfx=2, music="zae",
+    keep_pause=0.30, min_sil=0.45, captions="zae", gfx=2, music="zae",
     mmf="MyanmarHeadOne", latin="Figtree-Black",
     # ⚠️ Zin ရွေးချယ်ချက် (၂၀၂၆-၀၉-၁၃) — နမူနာ ၄ မျိုး (77/93/115/136px)
     #    ကို မြင်ပြီး **136px = 0.095** ကို ရွေးသည်。 N5 project ရဲ့ 0.0535
@@ -387,7 +387,7 @@ R = {
  # WARN SFX stays at the house ceiling 1.5/min: no SFX measurement exists
  #    for these refs, and sfxpol only lets a *measured* style exceed it.
  "short-916": dict(label="Short Video", theme="ikki", fps=30, fmt="9:16",
-    keep_pause=0.18, min_sil=0.34,          # "snappy"
+    keep_pause=0.30, min_sil=0.45,          # "snappy"
     # refs use a heavy display face; MyanmarBlack was the closest of three
     # compared side by side (Pyidaungsu-Bold / MyanmarHeadOne / MyanmarBlack)
     captions="big", mmf="MyanmarBlack", latin="Figtree-Black",
@@ -444,7 +444,7 @@ R = {
     music="inspiration", lufs=-14.0, sfx=True, sfx_per_min=1.5,   # Zin 2026-09-28
     natural=True),
  "promotional": dict(label="Promotional", theme="zae", fps=30,
-    keep_pause=0.22, min_sil=0.40, captions="big", gfx=8, music="corporate",
+    keep_pause=0.35, min_sil=0.70, captions="big", gfx=8, music="corporate",
     mmf="NotoSansMyanmar", latin="Manrope",
     cap_pct=0.0481, cap_base=0.680, cap_cover=0.45, lufs=-13.5, broll=0,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=1.2,
@@ -454,13 +454,13 @@ R = {
     #    အလယ်တန်း ၂၄၇ မပြောင်း — contrast က အဖြူနံရံကနေ ရနေပြီးသား。
     lv_imin=0.03, lv_imax=1.0, lv_omin=0.02, curve="none"),
  "brand-review": dict(label="Brand Review", theme="zjl", fps=30,
-    keep_pause=0.40, min_sil=0.75, captions="plain", gfx=9, music="calm",
+    keep_pause=0.70, min_sil=0.85, captions="plain", gfx=9, music="calm",
     mmf="Padauk", latin="Manrope",
     cap_pct=0.0481, cap_base=0.680, cap_cover=0.80, lufs=-14.5, broll=0,
     natural=True,   # သဘာဝ grade (၂၀၂၆-၀၉-၂၀)
     sat=1.00, vign=0.50, cbal=False, sfx_per_min=0.8),
  "short-biz": dict(label="Short Video", theme="zae", fps=30,
-    keep_pause=0.20, min_sil=0.38, captions="big", gfx=6, music="corporate",
+    keep_pause=0.35, min_sil=0.45, captions="big", gfx=6, music="corporate",
     mmf="NotoSansMyanmar-Bold", latin="ArchivoBlack",
     cap_pct=0.0333, cap_base=0.620, lufs=-13.5, broll=0,
     sat=1.00, vign=0.0, cbal=False, sfx_per_min=1.1,
@@ -557,9 +557,9 @@ SLIDE_AMT = {
 #    ⚠️ **ဂိတ်ကို မထိပါ** (「ဂိတ် မလျှော့ရ」) — ဂိတ်ကိုယ်တိုင် တင်ဖို့က
 #    Zin ရဲ့ အတည်ပြုချက် လိုသည် (`core/qc.py` ရဲ့ sfx_density)。
 PACE = {
-    "normal": dict(keep_pause=0.20, min_sil=0.32, gfx=16, gfx_share=(0.17, 0.25),
+    "normal": dict(keep_pause=0.30, min_sil=0.55, gfx=16, gfx_share=(0.17, 0.25),
                    broll=6, sfx_per_min=1.5),
-    "fast":   dict(keep_pause=0.12, min_sil=0.22, gfx=20, gfx_share=(0.20, 0.30),
+    "fast":   dict(keep_pause=0.20, min_sil=0.40, gfx=20, gfx_share=(0.20, 0.30),
                    broll=8, sfx_per_min=1.5),
 }
 
@@ -595,17 +595,6 @@ def _expand(r):
     # ⚠️⚠️ ယခင်က တိတ်ဆိတ်မှု **အရှည် ဘယ်လောက်ပဲဖြစ်ဖြစ်** `2×pad` ပဲ ချန်ခဲ့
     #    ⇒ ၁၄.၉s နဲ့ ၀.၅s အနားယူချိန် **ရလဒ် တူတူ** ⇒ စည်းချက် ပြားသွားသည်
     #    (short-916 ထွက်ဖိုင်: အရှည်ဆုံး ၀.၈၈s · p90 ၀.၄၂s)。
-    # ⚠️ Zin ရဲ့ ကိုယ်ပိုင် ZJL ဗီဒီယို ၁၀ ခု တိုင်းချက် —
-    #      p50 ၀.၁၆ · p75 ၀.၃၆ · **p90 ၀.၅၆** · အရှည်ဆုံး ၁.၄–၁၃.၀
-    #    တိုတဲ့အနားတွေ ကိုက်နေပြီး **အရှည်ပဲ ကွာ**သည်。
-    # ⇒ `cut.pause_keep()` က မူရင်း အရှည်အလိုက် အချိုးကျ ချန်သည်。
-    #   ကိန်းကို ညှိပြီး ရွေးထား: ratio ၀.၁၀ · အများဆုံး ၁.၅s ⇒ p90 ၀.၅၈
-    #   (ပစ်မှတ် ၀.၅၆) · ဗီဒီယို +၉.၆%。
-    # ⚠️ `pause_ratio=0` ⇒ ယခင် အပြုအမူ အတိအကျ (ပြန်ပိတ်နိုင်)。
-    if r.get("pause_ratio") is None:
-        r["pause_ratio"] = 0.10
-    if r.get("pause_max") is None:
-        r["pause_max"] = 1.5
 
     sa = SLIDE_AMT.get(r.get("slide_amt") or "")
     if sa: r.update({k: v for k, v in sa.items() if v is not None})
@@ -678,12 +667,43 @@ def get(name):
 # ဖြတ်မှု — (keep_pause, min_sil)。 အမည်ဖြင့် ရွေးရသည် —
 # ⚠️ စက္ကန့် အစိတ်အပိုင်းကို သုံးစွဲသူ ကိုယ်တိုင် ထည့်ခိုင်းလျှင် အဓိပ္ပာယ်
 #    မရှိ။ "၀.၁၈s" ဆိုတာ ဘာကို ဆိုလိုလဲ သုံးစွဲသူ မသိ。
+# ⚠️⚠️ ၂၀၂၆-၁၀-၀၃ — **ကိန်း ၂ လုံးက ပြောတဲ့အတိုင်း ဖြစ်ရမည်**
+#    (Zin: Descript ရဲ့ 「Shorten word gaps」 ကို ကြည့်ပြီး)。
+#    ဖတ်နည်း: **「min_sil ထက် ရှည်တဲ့ ခဏရပ်ကို keep_pause ဖြစ်အောင် လျှော့」**
+#
+#    ယခင် ကိန်းတွေမှာ `tight` က (၀.၂၆ ချန် · ၀.၄၅ ဂိတ်) ဖြစ်ပြီး အပေါ်က
+#    `pause_ratio ၀.၁၀ / max ၁.၅` နဲ့ တွဲထားသဖြင့် **ကိန်းက ပြောတာနဲ့
+#    တကယ် ဖြစ်တာ မတူ**ခဲ့ — ကွက်လပ် ရှည်လေ ပိုချန်လေ (၁.၅s အထိ)。
+#    ratio ကို ဖြုတ်ပြီး ကိန်းသေ ဖြစ်အောင် လုပ်တော့ `tight`/`snappy` မှာ
+#    **ချန်ချက် > ဂိတ်** ဖြစ်သွားသည် (၀.၅၀ > ၀.၄၅) ⇒ ဂိတ်နဲ့ ချန်ချက်
+#    ကြားက ကွက်လပ်တွေက ဖြတ်မှတ် ရေတွက်ထဲ ပါပေမယ့် **ဘာမှ မဖြစ်**
+#    (no-op cut)。 ⇒ ကိန်း ၂ လုံးလုံး ပြန်ရှာရသည်。
+#
+# ⚠️ ကိန်းအသစ်တွေကို **ဖြုတ်မှု ပမာဏ မပြောင်းအောင်** ရွေးထားသည်
+#    (ဖိုင် ၁၇၈.၇s · ကွက်လပ် ၉၅ ခု · med ၀.၅၂ · max ၁၄.၉s):
+#      gentle  ၃၉.၀% → ၃၉.၀%  (ဖြတ်ချက် ၁၇ → ၁၇)
+#      normal  ၄၁.၉% → ၄၁.၈%  (၂၃ → ၂၁)
+#      tight   ၄၄.၉% → ၄၄.၉%  (၃၂ → ၂၆)
+#      snappy  ၄၇.၃% → ၄၇.၄%  (၄၃ → ၃၂)
+#    **ဖြတ်ချက် လျော့သွားတာက အပိုအမြတ်** — no-op ဖြတ်ချက်တွေ ပျောက်၍。
+# ⚠️⚠️ ကိန်းတွေကို **တကယ့် `cut.plan()` နဲ့** ချိန်ရသည် — ကိုယ်ပိုင်
+#    မော်ဒယ်နဲ့ ချိန်ခဲ့ရာ ၁၃ ခုထဲ ၈ ခု **၁.၂ မှတ် လွဲ**ခဲ့သည်
+#    (planner မှာ `MIN_KEEP_RUN` ပေါင်းခြင်း · ၀.၀၈s အောက် ကျော်ခြင်း ရှိ)。
+#    ယခု ၁၃ ခုလုံး ±၀.၂ မှတ် အတွင်း (ikki-measure-the-real-path)。
+#
+# ⚠️ ချန်လိုက်တဲ့ ကွက်လပ်ရဲ့ **p90 က ယခု `keep_pause` ကိုယ်တိုင်** ဖြစ်သည်
+#    (ကိန်းသေ ဖြစ်၍)。 reference ပစ်မှတ် ၀.၅၆s နဲ့ နှိုင်းလျှင် —
+#      normal ယခင် ၀.၇၅ → အသစ် ၀.၇၀ (ပစ်မှတ်နဲ့ **ပိုနီး**)
+#      tight  ၀.၅၉ → ၀.၅၀ · snappy ၀.၅၂ → ၀.၄၀ (နည်းနည်း ဝေး)
+#    အများဆုံး ချန်ချက်က ၁.၅၀ → ၀.၈၆ (ရှည်လျားသော ချန်ကွက်လပ် မရှိတော့)。
+#    ⇒ နောင် reference နဲ့ ကိုက်ချင်လျှင် **`keep_pause` ကို ၀.၅၆ ထား**ရုံပဲ。
+# ⚠️ ဖိုင် ၁ ခုကနေ (measure-distribution-rule) — အစဉ်လိုက်ကတော့ တူမည်。
 CUTS = {
  "off":    (None,  None),   # လုံးဝ မဖြတ် — Course
- "gentle": (0.55, 1.20),    # Cinematic — အသက်ရှုသံ ချန်
- "normal": (0.40, 0.75),    # Vlog · Knowledge
- "tight":  (0.26, 0.45),    # Podcast
- "snappy": (0.18, 0.34),    # ZAE Short Video
+ "gentle": (0.90, 1.20),    # Cinematic — အသက်ရှုသံ ချန်
+ "normal": (0.70, 0.90),    # Vlog · Knowledge
+ "tight":  (0.50, 0.70),    # Podcast — Descript ရဲ့ အကြံပြုချက် ၀.၇s
+ "snappy": (0.30, 0.45),    # ZAE Short Video
 }
 CUT_LABEL = {
  "off":    ("မဖြတ်ပါ",      "No cutting"),
@@ -693,55 +713,16 @@ CUT_LABEL = {
  "snappy": ("ပြတ်သား",      "Snappy"),
 }
 
-# ══ ဘယ်လောက် ဖြုတ်မလဲ — (pause_ratio, pause_max) ═══════════════════
-# ⚠️⚠️ ၂၀၂၆-၁၀-၀၃ Zin: 「ဖြုတ်တာ များလွန်း/နည်းလွန်း」。 တိုင်းကြည့်တော့
-#    **`CUTS` က ဖြုတ်မှု ပမာဏကို မထိန်းချုပ်ပါ** (ဖိုင် ၁၇၈.၇s · တိတ် ၆၁%):
-#      ညင်သာ ၃၉% ဖြုတ် · ဖြတ်ချက် ၁၇ (၉.၄/မိနစ်)
-#      ပုံမှန် ၄၂% · ၂၃ (၁၃.၃)
-#      တင်းတင်း ၄၄% · ၃၂ (၁၉.၁)
-#      ပြတ်သား ၄၆% · ၄၃ (၂၆.၇)
-#    ⇒ ဖြုတ်မှုက **၇ မှတ်** ပဲ ကွာပြီး ဖြတ်ချက်က **၂.၅ ဆ** ကွာသည် ⇒
-#      `CUTS` က 「ဘယ်လောက် ဖြတ်ဖြတ်ပြတ်ပြတ် ဖြစ်မလဲ」 ကို ထိန်းတာ ဖြစ်ပြီး
-#      「ဘယ်လောက် ဖြုတ်မလဲ」 ကို **မထိန်း**。 သုံးစွဲသူ 「များလွန်းတယ်」
-#      ဆိုလျှင် ဖြေပေးမယ့် ခလုတ် မရှိခဲ့。
-#
-# ⚠️ `pause_ratio`/`pause_max` က **မှန်ကန်သော ဝင်ရိုး** — keep/min_sil
-#    မပြောင်းဘဲ ဖြုတ်မှုကို ပြောင်းပြီး **ဖြတ်ချက် အရေအတွက် မပြောင်း**
-#    (ဖိုင်တည်း · keep ၀.၄၀ · min_sil ၀.၇၅ · ဖြတ်ချက် ၂၃ အမြဲ):
-#      ၀.၀၀/၀.၀  ⇒ ဖြုတ် ၄၅%    (တိတ်ဆိတ်မှု အကုန် ဖြုတ်)
-#      ၀.၁၀/၁.၅  ⇒ ဖြုတ် ၄၂%    ← ယခင် ပုံသေ
-#      ၀.၂၀/၂.၅  ⇒ ဖြုတ် ၃၈%
-#      ၀.၃၅/၄.၀  ⇒ ဖြုတ် ၃၂%
-#      ၀.၅၀/၆.၀  ⇒ ဖြုတ် ၂၆%
-#      ၀.၇၀/၉.၀  ⇒ ဖြုတ် ၁၈%
-# ⚠️ ဖိုင် ၁ ခုကနေ တိုင်းထားသည် (measure-distribution-rule)。 ပမာဏက
-#    မူရင်းရဲ့ တိတ်ဆိတ်မှု အချိုးပေါ် မူတည်၍ ဖိုင်တိုင်း မတူ —
-#    **အစဉ်လိုက်** ကတော့ တူမည် (ratio တက် ⇒ ဖြုတ်မှု ကျ)。
-PAUSES = {
- "max":    (0.00, 0.00),    # တိတ်ဆိတ်မှု အကုန် ဖြုတ်
- "more":   (0.10, 1.50),    # ← ယခင် ပုံသေ
- "normal": (0.20, 2.50),
- "less":   (0.35, 4.00),
- "keep":   (0.50, 6.00),    # အသက်ရှုခွင့် အများကြီး ချန်
-}
-PAUSE_LABEL = {
- "max":    ("အများဆုံး ဖြုတ်",  "Remove the most"),
- "more":   ("ပိုဖြုတ်",          "Remove more"),
- "normal": ("ပုံမှန်",           "Normal"),
- "less":   ("နည်းနည်းပဲ ဖြုတ်",  "Remove less"),
- "keep":   ("အသက်ရှုခွင့် ချန်", "Keep the pauses"),
-}
-
-
-def pause_name(r):
-    """recipe ရဲ့ ယခု အဆင့် — မကိုက်လျှင် `None` (ကိန်းသေ ထည့်ထားသည်)"""
-    pr = r.get("pause_ratio")
-    pm = r.get("pause_max")
-    for k, (a, b) in PAUSES.items():
-        if pr is not None and abs(float(pr) - a) < 1e-6 \
-                and pm is not None and abs(float(pm) - b) < 1e-6:
-            return k
-    return None
+# ⚠️⚠️ **`PAUSES` (pause_ratio/pause_max) ကို ဖယ်လိုက်သည်** (၂၀၂၆-၁၀-၀၃)。
+#    အဲဒါက `CUTS` အပေါ် **ဒုတိယ ယန္တရား** ဖြစ်ပြီး — ကွက်လပ် ရှည်လေ
+#    ပိုချန်လေ ဆိုတဲ့ အချိုးကျ နည်း。 ချို့ယွင်းချက် ၂ ခု:
+#      · **အချိုး** ဖြစ်၍ မူရင်းရဲ့ တိတ်ဆိတ်မှုပေါ် မူတည်ကာ **ဖိုင်တိုင်း
+#        အဓိပ္ပာယ် မတူ** — ချိန်ဖို့ ဗီဒီယို အများကြီး လိုခဲ့
+#      · `CUTS` ရဲ့ ကိန်း ၂ လုံးက **ပြောတာနဲ့ တကယ် ဖြစ်တာ မတူ**စေခဲ့
+#    ⇒ `CUTS` ကိုယ်တိုင်က Descript ရဲ့ 「X ထက် ရှည်ရင် Y ဖြစ်အောင်」 နည်းနဲ့
+#      **အတူတူ ဖြစ်နေပြီးသား** ⇒ ကိန်း ၂ လုံးကိုသာ ဖွင့်ပြသည်。
+#    `cut.pause_keep()` ကိုပါ ဖယ်ပြီးပြီ — ပိတ်ထားတဲ့ ကုဒ် ကျန်နေတာက
+#    နောက်တစ်ယောက်ကို လမ်းလွဲစေသည် (dead config)。
 LUFS = {
  -13.5:  ("ကျယ် (−13.5)",            "Loud (−13.5)"),
  -14.0:  ("YouTube · Podcast (−14)", "YouTube · Podcast (−14)"),
@@ -813,11 +794,13 @@ BOUNDS = dict(
  # ⚠️ ရုပ်ကြမ်း ဘယ်လောက် စားမလဲ — ZAE က ၀.၆၂ (တိုင်းထားသည်)
  broll_pct= ("float", 0.0, 0.85),
  # ⚠️ အနားယူချိန် ပြန်ပေးချက် — ၀ ⇒ ယခင်အတိုင်း တင်းတင်း
- # ⚠️⚠️ ဘောင်က **`PAUSES` ဇယားကို လွှမ်းရမည်**。 မလွှမ်းလျှင် `pause="keep"`
- #    (၀.၅၀/၆.၀) က ဇယားလမ်းက ရပြီး ကိန်းသေ လမ်းက ၀.၄၀/၄.၀ သို့ ချခံရကာ
- #    **လမ်း ၂ ခု မတူ**ဘဲ ဖြစ်မည် (တိတ်တဆိတ် ကွဲခြင်း)。
- pause_ratio = ("float", 0.0, 0.70),
- pause_max   = ("float", 0.0, 9.0),
+ # ⚠️⚠️ **ဖြတ်ချက်ရဲ့ ကိန်း ၂ လုံး** — သုံးစွဲသူ တိုက်ရိုက် ထည့်နိုင်သည်
+ #    (`cut` preset က ဖြတ်လမ်းသာ)。 ဖတ်နည်း: 「min_sil ထက် ရှည်တဲ့
+ #    ခဏရပ်ကို keep_pause ဖြစ်အောင် လျှော့」。
+ # ⚠️ `keep_pause` ≤ `min_sil` ဖြစ်ရမည် — မဟုတ်လျှင် ကြားထဲက ကွက်လပ်တွေက
+ #    ဖြတ်မှတ် ရေတွက်ထဲ ပါပေမယ့် ဘာမှ မဖြစ် (no-op)。 `_expand()` က ညှိသည်。
+ keep_pause = ("float", 0.05, 3.00),
+ min_sil    = ("float", 0.10, 4.00),
  # ⚠️ clip တစ်ခုရဲ့ အများဆုံး အရှည် — ၃.၂s ကန့်သတ်က segment (~၆.၅s)
  #    ထက် တိုသဖြင့် ခွင့်ပြုချက် ကုန်အောင် မသုံးနိုင်ခဲ့。
  broll_max= ("float", 1.0, 8.0),
@@ -915,10 +898,7 @@ BOUNDS = dict(
  sfx      = ("bool",),
  cap_typo = ("float", 0.0, 0.6),
  cut      = ("choice", list(CUTS)),
- # ⚠️⚠️ **「ဘယ်လောက် ဖြုတ်မလဲ」 — `cut` နဲ့ သီးခြား ဝင်ရိုး**。 `cut` က
- #    ဖြတ်ချက် အရေအတွက်ကို ထိန်းပြီး ဖြုတ်မှု ပမာဏကို ၇ မှတ်ပဲ ပြောင်းသည်
- #    (၃၉→၄၆%)。 ဒါက ၄၅→၁၈% ပြောင်းပြီး **ဖြတ်ချက် မပြောင်း** (တိုင်းထား)。
- pause    = ("choice", list(PAUSES)),
+
  slide_amt= ("choice", list(SLIDE_AMT)),
  pace     = ("choice", list(PACE)),
  zoom_amt = ("float", 0.0, 0.12),
@@ -1026,18 +1006,24 @@ def apply(name, over):
     cn = o.pop("cut", None)
     if cn in CUTS:
         r["keep_pause"], r["min_sil"] = CUTS[cn]
-    # ⚠️⚠️ **「ဘယ်လောက် ဖြုတ်မလဲ」 က သီးခြား ဝင်ရိုး**。 `cut` က
-    #    ဖြတ်ချက် အရေအတွက် (ဖြတ်ဖြတ်ပြတ်ပြတ်မှု) ကို ထိန်းပြီး ဖြုတ်မှု
-    #    ပမာဏကို ၇ မှတ်ပဲ ပြောင်းသည် — တိုင်းထားသည် (PAUSES မှတ်ချက် ကြည့်)。
-    pn = o.pop("pause", None)
-    if pn in PAUSES:
-        r["pause_ratio"], r["pause_max"] = PAUSES[pn]
+    # ⚠️ ယခင် `pause` dial ကို ဖယ်လိုက်သည် — လာလျှင် တိတ်တဆိတ် ကျော်
+    o.pop("pause", None)
     # ⚠️ UI က ms နဲ့ ပို့သည် — engine က စက္ကန့်。 **ဒီမှာ ပြောင်းရမည်**
     #    (`_expand()` က `min_sil` ကနေ တစ်လမ်းသွားသာ တွက်သဖြင့်)。
     _sm = o.pop("silence_ms", None)
     if _sm:
         r["min_sil"] = round(float(_sm) / 1000.0, 3)
     r.update(o)
+    # ⚠️⚠️ **`keep_pause` ≤ `min_sil` ဖြစ်ရမည်** — `r.update(o)` **ပြီးမှ**
+    #    စစ်ရသည် (သုံးစွဲသူ ကိန်းတွေ ဝင်ပြီးမှ)。 ပြောင်းပြန် ထည့်မိလျှင်
+    #    ဂိတ်နဲ့ ချန်ချက် ကြားက ကွက်လပ်တွေက ဖြတ်မှတ် ရေတွက်ထဲ ပါပေမယ့်
+    #    **ဘာမှ မဖြစ်** (no-op cut) ⇒ ချန်ချက်ကို ဂိတ်အောက် ဆွဲချသည်。
+    try:
+        _kp, _ms = r.get("keep_pause"), r.get("min_sil")
+        if _kp is not None and _ms is not None and float(_kp) > float(_ms):
+            r["keep_pause"] = round(float(_ms) * 0.85, 3)
+    except (TypeError, ValueError):
+        pass
     _expand(r)                 # ⚠️ ပြင်ချက် ပေါင်းပြီးမှ ပြန်ဖြန့်ရမည်
     return r
 
@@ -1049,8 +1035,9 @@ def listing():
         r = get(k)
         out.append(dict(id=k, label=r["label"], theme=r["theme"], fps=r["fps"],
                         cut=cut_name(r), captions=r["captions"], gfx=r["gfx"],
-                        # ⚠️ 「ဘယ်လောက် ဖြုတ်မလဲ」 — မပါလျှင် UI မှာ မပေါ်
-                        pause=pause_name(r),
+                        # ⚠️ ဖြတ်ချက်ရဲ့ **ကိန်း ၂ လုံး** — UI က ပြရန်
+                        keep_pause=r.get("keep_pause"),
+                        min_sil=r.get("min_sil"),
                         broll=r.get("broll") or 0,
                         broll_pct=r.get("broll_pct"),
                         broll_max=r.get("broll_max"), music=r.get("music"),

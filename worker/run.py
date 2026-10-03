@@ -1465,11 +1465,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
         spans=[(0.0, m["dur"])]; cuts=[]; st={"cuts":0,"in_speech":0,"removed":0.0}
         log("  ⚠️ ဤ recipe က ဖြတ်တောက် မလုပ် (အနားယူချိန် ချန်ထားသည်)")
     else:
+        # ⚠️⚠️ **ကိန်း ၂ လုံးပဲ** (၂၀၂၆-၁၀-၀၃ · Zin: Descript ရဲ့
+        #    「Shorten word gaps」 နည်း)。 ဖတ်နည်း —
+        #    「`min_sil` ထက် ရှည်တဲ့ ခဏရပ်ကို `keep_pause` ဖြစ်အောင် လျှော့」。
+        #    ယခင်က အပေါ်မှာ `pause_ratio`/`pause_max` တွဲထားခဲ့ရာ
+        #    **ကိန်းက ပြောတာနဲ့ တကယ် ဖြစ်တာ မတူ**ခဲ့ ⇒ ဖယ်လိုက်သည်。
         spans, cuts, st = CUT.plan(wav, meas=MEAS, keep_pause=rc["keep_pause"],
-                                   min_sil=rc["min_sil"], brand=_bid,
-                                   # ⚠️ အနားယူချိန် ပြန်ပေးချက် — recipe ကနေ
-                                   pause_ratio=rc.get("pause_ratio"),
-                                   pause_max=rc.get("pause_max"))
+                                   min_sil=rc["min_sil"], brand=_bid)
         log(f"  ဖြတ် {st['cuts']} · ဖြုတ် {st['removed']:.1f}s "
             f"({st.get('removed_ratio',0):.1%}) · စကားထဲ {st['in_speech']}/{st.get('points',0)}"
             f" · တိတ်ဆိတ်မှု {st.get('silences',0)} · thr {st.get('thr')}dB")
@@ -1479,12 +1481,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
             f" · ဖြတ်မှတ် {st.get('cut_threshold')}s pad {st.get('pad')}s "
             + (f"[ချိန်ညှိပြီး · {st.get('calib_src')}]" if st.get("calibrated")
                else "[**မချိန်ညှိရသေး** — recipe ကိန်း]"))
-        # ⚠️ အနားယူချိန် ပြန်ပေးချက်ကို **ပြရမည်** — ဗီဒီယို ရှည်လာမှုရဲ့
-        #    အကြောင်းရင်း ဖြစ်၍ (ratio ၀ ဆိုလျှင် ယခင်အတိုင်း)。
-        if st.get("pause_ratio"):
-            log(f"  အနားယူချိန် ပြန်ပေး — အချိုး {st['pause_ratio']:.2f} · "
-                f"အများဆုံး {st['pause_max']:.1f}s "
-                f"(ZJL ref ၁၀ ခု: p90 ၀.၅၆s)")
+        # ⚠️ **ကိန်း ၂ လုံးကို ပြရမည်** — သုံးစွဲသူက log မှာ မြင်မှ
+        #    「ဘာကြောင့် ဒီလောက် ဖြုတ်လဲ」 ကို ရှင်းနိုင်သည်。
+        log(f"  ခဏရပ် — {rc['min_sil']:.2f}s ထက် ရှည်ရင် "
+            f"{rc['keep_pause']:.2f}s ဖြစ်အောင် လျှော့ "
+            f"(ချန်ကွက်လပ် p90 ≈ {rc['keep_pause']:.2f}s · ZJL ref ၀.၅၆s)")
         # ── သုံးစွဲသူ **ချန်ခိုင်းသော** အနားယူချက်ကို ပြန်ပေါင်း ──
         # ⚠️ **ဖျက်ချက် မတိုင်ခင် လုပ်ရမည်** — အောက်က `user_drop` /
         #    `_drop_exact` က ဒီထဲကို ပြန်ဖြတ်နိုင်ရမည် (သုံးစွဲသူ ဖြတ်ခိုင်းတာက

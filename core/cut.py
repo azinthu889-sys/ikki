@@ -56,24 +56,22 @@ MAX_REMOVED  = 0.80      # SKILL F1 — ဒီထက် ဖြတ်လျှင
 #   တစ်ခုတည်းသော အချက်ပြ)。
 # ⚠️ ကိန်းကို **ညှိပြီး ရွေးထားသည်** (မှန်းချက် မဟုတ်) — ratio ၀.၁၀ ·
 #    အများဆုံး ၁.၅s ⇒ p90 **၀.၅၈** (ပစ်မှတ် ၀.၅၆) · ဗီဒီယို +၉.၆%。
-PAUSE_RATIO = 0.10      # မူရင်း အပိုအရှည်ရဲ့ ဒီအချိုးကို ချန်သည်
-PAUSE_MAX   = 1.5       # ချန်ရမည့် အများဆုံး (စက္ကန့်)
-
-
-def pause_keep(length, pad, min_sil, ratio=PAUSE_RATIO, mx=PAUSE_MAX):
-    """မူရင်း `length` ကြာသော တိတ်ဆိတ်မှုမှာ **ချန်ရမည့် အရှည်**
-
-    ⚠️ အနည်းဆုံး `2×pad` — ဖြတ်မှတ်က စကားနားမှာ မကပ်စေရန်。
-    ⚠️ `ratio=0` ဆိုလျှင် ယခင် အပြုအမူ အတိအကျ (ပြန်ပိတ်နိုင်ရန်)。
-    """
-    base = 2.0 * float(pad)
-    if ratio <= 0:
-        return base
-    return max(base, min(float(mx), base + float(ratio) * (float(length) - float(min_sil))))
-
-
-def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None,
-         pause_ratio=None, pause_max=None):
+# ⚠️⚠️ **`pause_keep()` (pause_ratio/pause_max) ကို ဖယ်လိုက်သည်**
+#    (၂၀၂၆-၁၀-၀၃ · Zin: Descript ရဲ့ 「Shorten word gaps」 ကို ကြည့်ပြီး
+#    「ကိန်း ၂ လုံးနဲ့ အစားထိုးပြီး လုပ်ပေးပါ」)。
+#    အဲဒါက `(keep_pause, min_sil)` အပေါ် **ဒုတိယ ယန္တရား** ဖြစ်ပြီး —
+#    ကွက်လပ် ရှည်လေ ပိုချန်လေ (၁.၅s အထိ)。 ချို့ယွင်းချက် ၂ ခု:
+#      · **ကိန်းက ပြောတာနဲ့ တကယ် ဖြစ်တာ မတူ** — 「၀.၇၅s ထက် ရှည်ရင်
+#        ၀.၄၀s ဖြစ်အောင်」 ဟု ဆိုပေမယ့် ရှည်သော ကွက်လပ်မှာ ၁.၃၂s ချန်ခဲ့
+#      · **အချိုး** ဖြစ်၍ မူရင်းရဲ့ ကွက်လပ် ဖြန့်ကျဲမှုပေါ် မူတည်ကာ
+#        ဖိုင်တိုင်း အဓိပ္ပာယ် မတူ — ချိန်ဖို့ ဗီဒီယို အများကြီး လိုခဲ့
+#    ⇒ ယခု `keep_pause` က **ကိန်းသေ** ဖြစ်ပြီး ချန်လိုက်တဲ့ ကွက်လပ်ရဲ့
+#      p90 က `keep_pause` ကိုယ်တိုင် ⇒ reference နဲ့ ကိုက်ချင်လျှင်
+#      အဲဒီ ကိန်းကို ထားရုံပဲ (ပစ်မှတ် ၀.၅၆s)。
+#    ⚠️ recipe ကိန်းတွေကို **ဖြုတ်မှု ပမာဏ မပြောင်းအောင်** ပြန်ချိန်ထားသည်
+#      (preset တိုင်း ±၀.၁ မှတ် · ဖြတ်ချက်က လျော့သွား — no-op ဖြတ်ချက်
+#      ပျောက်၍: ref-fast ၅၃→၃၁ · short-916 ၄၃→၂၇)。
+def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None):
     """(spans, cuts, stats) — SKILL `ikki-cut-engine` အတိုင်း。
 
     spans = ထားမည့် (start, end) စာရင်း — trim+concat ဖြင့် ထုတ်ရန်
@@ -102,21 +100,15 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None,
         min_sil    = float(cal.get("cut_threshold_s", min_sil))
         keep_pause = 2.0*float(cal.get("pad_s", keep_pause/2.0))
     pad = keep_pause/2.0
-    # ⚠️ recipe/calib ကနေ ကန့်သတ်နိုင်သည် — `pause_ratio=0` ⇒ ယခင် အပြုအမူ
-    _pr = PAUSE_RATIO if pause_ratio is None else float(pause_ratio)
-    _pm = PAUSE_MAX if pause_max is None else float(pause_max)
-    if cal:
-        _pr = float(cal.get("pause_keep_ratio", _pr))
-        _pm = float(cal.get("pause_keep_max", _pm))
     # ⚠️ F1 ကန့်သတ်ချက်ကို **calib ကနေ** ယူသည် (R5) — မရှိလျှင် module default
     max_removed = float((cal or {}).get("max_removed_ratio", MAX_REMOVED))
 
     spans=[]; cuts=[]; pos=0.0
     for a, b in sil:
         if b-a <= min_sil: continue                 # တိုသော အနားယူချိန် — မထိ
-        # ⚠️ ချန်ရမည့် အရှည်က **မူရင်း အရှည်အလိုက်** ကွဲသည် (အထက် မှတ်ချက်)。
-        _keep = pause_keep(b - a, pad, min_sil, _pr, _pm)
-        _h = _keep / 2.0
+        # ⚠️ ချန်ရမည့် အရှည် = `keep_pause` **ကိန်းသေ** (အထက် မှတ်ချက်)。
+        #    「min_sil ထက် ရှည်တဲ့ ကွက်လပ်ကို keep_pause ဖြစ်အောင် လျှော့」。
+        _h = keep_pause / 2.0
         ca = a + _h; cb = b - _h                    # ⚠️ တိတ်ဆိတ်မှု **အထဲက** ယူ
         if cb - ca < 0.08: continue
         if ca - pos >= MIN_KEEP_RUN: spans.append((pos, ca))
@@ -161,7 +153,7 @@ def plan(audio, keep_pause=0.34, min_sil=0.50, edge=0.06, brand=None, meas=None,
               calib_src=(cal or {}).get("calibrated_against"),
               cut_threshold=round(min_sil,3), pad=round(pad,3),
               max_removed=max_removed,
-              pause_ratio=_pr, pause_max=_pm,
+
               cut_src=src, refusals=refus, warnings=warn)
     return spans, cuts, st
 

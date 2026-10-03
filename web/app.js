@@ -1259,7 +1259,6 @@ function done(j){
       var row=(sd.styles||[]).filter(function(x){return x.id===j.recipe})[0];
       STYDEF = row ? Object.assign({}, row) : {};
       CUTOPT = sd.cuts || [];
-      PAUSEOPT = sd.pauses || [];
       if(sd.over && sd.over[j.recipe]) STYDEF=Object.assign({},STYDEF,sd.over[j.recipe]);
       // ⚠️ အရောင် မသတ်မှတ်ထားလျှင် theme ရဲ့ ပုံသေကို ပြရမည် — ဗလာပြလျှင်
       //    သုံးစွဲသူက "အရောင် မရှိဘူး" ထင်မည်。
@@ -2474,13 +2473,8 @@ function livePreview(){
 //    မူရင်း upload ကနေ ပြန်စသည်、ရှေ့ထုတ်ထားတာကနေ ဆက်မလုပ်ဘူး。
 //    (တိုင်းထားသည် — encode တစ်ကြိမ် ထပ်လျှင်ပင် SSIM 0.9988 · PSNR 55dB)
 var ADJ = {};                       // သုံးစွဲသူ ပြောင်းထားတာသာ
-var CUTOPT = [];                    // ဖြတ်ပုံ ရွေးစရာ (ဖြတ်ဖြတ်ပြတ်ပြတ်မှု)
-// ⚠️⚠️ **「ဘယ်လောက် ဖြုတ်မလဲ」 က သီးခြား** — တိုင်းချက် (ဖိုင် ၁၇၈.၇s ·
-//    တိတ် ၆၁%): `cut` က ဖြုတ်မှုကို ၃၉→၄၆% (၇ မှတ်) ပဲ ပြောင်းပြီး
-//    ဖြတ်ချက်ကို ၁၇→၄၃ (၂.၅ ဆ) ပြောင်းသည် ⇒ 「ဖြုတ်တာ များလွန်းတယ်」
-//    ဆိုသူက `cut` ကို ရွှေ့လည်း မိနစ် ၃ ဗီဒီယိုမှာ ၆ စက္ကန့်ပဲ ကွာမည်。
-//    `pause` က ၄၅→၁၈% ပြောင်းပြီး **ဖြတ်ချက် အရေအတွက် မပြောင်း**。
-var PAUSEOPT = [];
+var CUTOPT = [];                    // ဖြတ်ပုံ ရွေးစရာ (preset ဖြတ်လမ်း)
+
 var STYDEF = {};                    // ပုံစံရဲ့ ပုံသေ
 
 function rrSum(){
@@ -2530,6 +2524,12 @@ function adjPaint(){
   var el=$('adjrows'); if(!el) return;
   var d=STYDEF||{}, my=(cur==='my');
   function num(k,label,hint,min,max,step){
+    // ⚠️⚠️ **ဘောင်ကို API ကနေ ယူရမည်** — ကိန်းသေ ရေးထားလျှင် server ဘက်
+    //    `BOUNDS` ပြောင်းသွားချိန် UI က လိုက်မပြောင်းဘဲ ပုံစံတချို့ရဲ့ ပုံသေကို
+    //    **ပြလို့ မရ**တော့ (၂၀၂၆-၁၀-၀၁ မှာ `cap_pct` နဲ့ တကယ် ဖြစ်ခဲ့ —
+    //    ပုံစံ ၄ ခုရဲ့ ပုံသေ မပြနိုင်)。 ပါလာလျှင် အဲဒါကိုသာ သုံးသည်。
+    var _R=(typeof SMETA!=='undefined' && SMETA && SMETA.ranges)?SMETA.ranges[k]:null;
+    if(_R){ if(_R.min!==undefined) min=_R.min; if(_R.max!==undefined) max=_R.max; }
     var v=(ADJ[k]!==undefined)?ADJ[k]:(d[k]!==undefined?d[k]:'');
     return '<div class="row"><div class="lname"><b>'+label+'</b><span>'+hint+'</span></div>'+
       '<span class="rt"><input class="inp adjn" data-k="'+k+'" type="number" min="'+min+
@@ -2548,9 +2548,6 @@ function adjPaint(){
   var copt=(CUTOPT||[]).map(function(c){
     var sel=((ADJ.cut||d.cut)===c.id)?' selected':'';
     return '<option value="'+c.id+'"'+sel+'>'+(my?c.my:c.en)+'</option>'; }).join('');
-  var popt=(PAUSEOPT||[]).map(function(c){
-    var sel=((ADJ.pause||d.pause)===c.id)?' selected':'';
-    return '<option value="'+c.id+'"'+sel+'>'+(my?c.my:c.en)+'</option>'; }).join('');
   var fopt=(FONTS||[]).map(function(f){
     var sel=((ADJ.mmf||d.mmf)===f.id)?' selected':'';
     return '<option value="'+f.id+'"'+sel+'>'+f.name+'</option>'; }).join('');
@@ -2562,18 +2559,19 @@ function adjPaint(){
       '<span class="rt"><select class="inp" id="adjcut" style="min-width:150px">'+copt+'</select>'+
       (ADJ.cut!==undefined?'<span class="pill p-ac" style="margin-left:8px">'+(my?'ပြင်ထား':'changed')+'</span>':'')+
       '</span></div>'+
-    // ⚠️⚠️ **「ဖြုတ်တာ များလွန်း/နည်းလွန်း」 ကို ဖြေပေးတဲ့ ခလုတ်**。
-    //    အပေါ်က 「အလိုအလျောက် ဖြတ်ပုံ」 က ဖြုတ်မှုကို ၇ မှတ်ပဲ ပြောင်းပြီး
-    //    ဖြတ်ချက်ကို ၂.၅ ဆ ပြောင်းသည် ⇒ **မေးခွန်း ၂ ခု · ခလုတ် ၂ ခု**。
-    //    ရောထားလျှင် သုံးစွဲသူက မှားတဲ့ ခလုတ်ကို ရွှေ့နေမည် (တကယ် ဖြစ်ခဲ့)。
-    (popt ? ('<div class="row"><div class="lname"><b>'
-      +(my?'ဘယ်လောက် ဖြုတ်မလဲ':'How much to remove')+'</b>'
-      +'<span>'+(my?'အသက်ရှုခွင့် ဘယ်လောက် ချန်မလဲ — ဖြတ်ချက် အရေအတွက် မပြောင်းပါ'
-                   :'how much breathing room to keep — the number of cuts does not change')
-      +'</span></div>'
-      +'<span class="rt"><select class="inp" id="adjpause" style="min-width:170px">'+popt+'</select>'
-      +(ADJ.pause!==undefined?'<span class="pill p-ac" style="margin-left:8px">'+(my?'ပြင်ထား':'changed')+'</span>':'')
-      +'</span></div>') : '')+
+    // ⚠️⚠️ **ဖြတ်ချက်ရဲ့ ကိန်း ၂ လုံး** (၂၀၂၆-၁၀-၀၃ · Descript ရဲ့
+    //    「Shorten word gaps」 နည်း)。 အပေါ်က preset က ဒီ ၂ လုံးကို
+    //    ဖုံးထားတာ ဖြစ်ပြီး — ဖွင့်ပြလိုက်မှ သုံးစွဲသူက 「ဖြုတ်တာ များလွန်း」
+    //    ကို **ကိုယ်တိုင် ဖြေနိုင်**သည်。 ဖတ်နည်း:
+    //      「<ဂိတ်> ထက် ရှည်တဲ့ ခဏရပ်ကို <ချန်ချက်> ဖြစ်အောင် လျှော့」
+    // ⚠️ ချန်ချက် ≤ ဂိတ် ဖြစ်ရမည် — မဟုတ်လျှင် server က ညှိပေးသည်。
+    num('min_sil', my?'ဘယ်လောက်ထက် ရှည်ရင် ဖြတ်မလဲ':'Cut pauses longer than',
+        my?'စက္ကန့် — ဒီအောက် ခဏရပ်ကို လုံးဝ မထိပါ':'seconds — shorter pauses are left alone',
+        0.10, 4.00, 0.05)+
+    num('keep_pause', my?'ဘယ်လောက် ချန်မလဲ':'Shorten them to',
+        my?'စက္ကန့် — ဖြတ်ပြီး ကျန်မယ့် ခဏရပ် (ဂိတ်ထက် မကြီးရ)':'seconds — the pause the viewer hears',
+        0.05, 3.00, 0.05)+
+
     '<div class="row"><div class="lname"><b>'+(my?'စာတန်း ဖောင့်':'Subtitle font')+'</b>'+
       '<span>'+(my?'ရွေးလိုက်တဲ့ ဖောင့်အတိုင်း ထွက်မယ်':'the font you pick is the font you get')+'</span></div>'+
       '<span class="rt"><select class="inp" id="adjfont" style="min-width:170px">'+fopt+'</select></span></div>'+
@@ -2607,7 +2605,6 @@ document.addEventListener('input', function(e){
 document.addEventListener('change', function(e){
   if(e.target && e.target.id==='adjfont'){ ADJ.mmf=e.target.value; rrSum(); }
   if(e.target && e.target.id==='adjcut'){ ADJ.cut=e.target.value; adjPaint(); rrSum(); }
-  if(e.target && e.target.id==='adjpause'){ ADJ.pause=e.target.value; adjPaint(); rrSum(); }
 });
 document.addEventListener('click', function(e){
   if(e.target && e.target.id==='adjreset'){
