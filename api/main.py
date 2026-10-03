@@ -2106,6 +2106,38 @@ MOTION_LEVELS = ("auto", "minimal", "balanced", "high")
 EV_MODES = ("auto", "tpl", "none")
 
 
+# ⚠️ 「အလှအပ · SFX · Motion」 မျက်နှာပြင်က ထိခွင့်ရှိသော key များ。
+#    BOUNDS မှာ ၅၆ key ရှိသည် — ဒီမျက်နှာပြင်က **မပြတဲ့** ကိန်းတွေ
+#    (ဖြတ်ချက် · စာတန်း အရွယ် · အရောင်) ကို ဖြတ်မသွားစေရန် ကန့်သတ်သည်。
+# ⚠️ `sfx_per_min_off` ကို **မထည့်ပါ** — မျက်နှာပြင်မှာ မပြသဖြင့်
+#    whitelist ထဲ ပါနေလျှင် သိမ်းတိုင်း တိတ်တဆိတ် ဖြုတ်ခံရမည်
+#    (ဒီ endpoint က ပို့မလာသော key ကို ရှင်းသည်)。
+LOOK_KEYS = ("gfx", "broll_pct", "sfx_per_min", "sfx_trim",
+             "music", "music_lufs", "cam_moves", "broll_whip", "kin_title")
+
+
+@app.get("/api/jobs/{jid}/look")
+def job_look(jid: str, authorization: str = Header(None)):
+    """「အလှအပ · SFX · Motion」 မျက်နှာပြင်အတွက် **တကယ့် တန်ဖိုးများ**。
+
+    ⚠️⚠️ UI က ကိန်းသေ **မရေးရ** — ၂၀၂၆-၁၀-၀၁ မှာ hard-code လုပ်ထားသော
+       UI ဘောင်က style ၄ ခုရဲ့ **ကိုယ်ပိုင် ပုံသေကို ပြလို့ မရ**ခဲ့ပါ
+       (`cap_pct`)。 ⇒ ပုံသေ · ဘောင် · သုံးစွဲသူ ပြင်ချက် သုံးခုလုံးကို
+       server ကနေ ပေးသည်。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    import recipes as _RC
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    base = _RC.apply(j.get("recipe"), {})          # ⚠️ style ရဲ့ ပုံသေ သက်သက်
+    return {"job": jid, "recipe": j.get("recipe"),
+            "keys": list(LOOK_KEYS),
+            "base": {k: base.get(k) for k in LOOK_KEYS},
+            "over": {k: over[k] for k in LOOK_KEYS if k in over},
+            "bounds": {k: list(_RC.BOUNDS[k]) for k in LOOK_KEYS if k in _RC.BOUNDS}}
+
+
 @app.post("/api/jobs/{jid}/finetune")
 async def job_finetune(jid: str, req: Request, authorization: str = Header(None)):
     """**Fine tune** — ဗီဒီယို တစ်ပုဒ်ချင်း အလှအပ ချိန်ညှိချက် (Zin ရဲ့ §5)。
@@ -2140,6 +2172,29 @@ async def job_finetune(jid: str, req: Request, authorization: str = Header(None)
         db.run("UPDATE jobs SET over=? WHERE id=?",
                json.dumps(over, ensure_ascii=False) if over else None, jid)
         out["music_off"] = mo
+    # ── အလှအပ · SFX · Motion (Zin ၂၀၂၆-၁၀-၀၄: 「SFX, Motion ဆီကို
+    #    ဆက်သွားတဲ့ ခလုတ်ပါ ထည့်ပေးတာ ပိုကောင်းမယ်」) ──────────────
+    # ⚠️ စစ်ဆေးမှု အသစ် **မဆောက်ရ** — `recipes.clean()` က BOUNDS နဲ့
+    #    စစ်ပြီးသား (မသိသော key · ဘောင်ပြင် တန်ဖိုး ဖြုတ်ပစ်သည်)。
+    # ⚠️ whitelist ထားရသည် — `clean()` က BOUNDS ထဲက **၅၆ key လုံး** လက်ခံပြီး
+    #    ဒီမျက်နှာပြင်က ဖြတ်ချက် · စာတန်း ကိန်းတွေကို မပြပါ。 ပါသွားလျှင်
+    #    သုံးစွဲသူ မမြင်ရဘဲ ပြောင်းသွားမည်。
+    if "look" in (b or {}):
+        import recipes as _RC
+        lk = b.get("look") or {}
+        if not isinstance(lk, dict): raise HTTPException(400, "look က object ဖြစ်ရမည်")
+        lk = {k: v for k, v in lk.items() if k in LOOK_KEYS}
+        # ⚠️ `None` က တန်ဖိုး တစ်ခု (တီးလုံး ပိတ်) — `clean()` က မကိုင်နိုင်
+        _mu = ("music" in lk and lk.get("music") in (None, "", "none"))
+        if _mu: lk.pop("music", None)
+        lk = _RC.clean(lk)
+        if _mu: lk["music"] = None
+        # ⚠️ ပို့မလာသော key ကို **ဖြုတ်ရမည်** — ချန်ထားလျှင် ပြန်ဖွင့်လို့ မရ
+        for k in LOOK_KEYS: over.pop(k, None)
+        over.update(lk)
+        db.run("UPDATE jobs SET over=? WHERE id=?",
+               json.dumps(over, ensure_ascii=False) if over else None, jid)
+        out["look"] = lk
     return {"ok": True, **out}
 
 

@@ -88,6 +88,25 @@ body{background:var(--bg);color:var(--ink);
   cursor:pointer;background:#F5D000;color:#1A1500;font-weight:700}
 .wsel .x{background:transparent;color:#fff;padding:5px 8px;font-weight:400}
 .wsel small{opacity:.78;font-size:11.5px}
+/* ── အလှအပ · SFX · Motion ──────────────────────────────────────── */
+.lk{margin-top:12px;border:1px solid #E7E5E4;border-radius:12px;background:#fff;overflow:hidden}
+.lk>summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:14px;
+  list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.lk>summary::-webkit-details-marker{display:none}
+.lk>summary s{text-decoration:none;font-weight:400;font-size:12.5px;color:#57534E}
+.lkb{padding:4px 14px 14px;border-top:1px solid #F5F5F4}
+.lkr{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #FAFAF9}
+.lkr:last-child{border-bottom:0}
+.lkr>b{flex:0 0 150px;font-size:13px;font-weight:600}
+.lkr>span.v{flex:0 0 96px;font-size:12.5px;color:#57534E;text-align:right;
+  font-family:"Inter",sans-serif}
+.lkr input[type=range]{flex:1;min-width:90px}
+.lkr select{flex:1;font:inherit;font-size:13px;padding:5px 8px;border:1px solid #E7E5E4;border-radius:8px}
+.lkr .dflt{color:#A8A29E;font-size:11.5px}
+.lkr.on>b{color:#1A1500}
+.lkr.on>b::after{content:" ●";color:#F5D000}
+.lkacts{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+@media(max-width:620px){ .lkr{flex-wrap:wrap} .lkr>b{flex:0 0 100%} }
 .row.now .no{color:#0F172A;font-weight:700}
 .row .no{color:var(--mute);font-size:13px;min-width:76px;line-height:2.0;cursor:pointer;
          font-family:"Inter",sans-serif;white-space:nowrap}
@@ -766,6 +785,137 @@ function seekTo(t){
     var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
     head(a); loopAll(a); }
 }
+/* ══ အလှအပ · SFX · Motion ═══════════════════════════════════════════
+   ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「SFX, Motion ဆီကို ဆက်သွားတဲ့ ခလုတ်」。
+   ⚠️⚠️ ပုံသေ · ဘောင် ကို **server ကနေသာ** ယူသည် — UI မှာ ကိန်းသေ ရေးလျှင်
+      style ရဲ့ ကိုယ်ပိုင် ပုံသေကို ပြလို့ မရတော့ပါ (၂၀၂၆-၁၀-၀၁ `cap_pct`)。
+   ⚠️ **ထိထားတဲ့ ကိန်းကိုသာ** ပို့သည် — မထိတာတွေပါ ပို့လျှင် style ပြောင်းလျှင်
+      လိုက်မပြောင်းတော့ဘဲ အေးခဲသွားမည်。 */
+var LOOK=null, LOOKD={};
+var LOOKL={
+  gfx:["ဂရပ်ဖစ် ဘယ်လောက်","ကတ် · စာတန်း · ဂရပ် အရေအတွက်"],
+  broll_pct:["B-roll ဘယ်လောက်","ရုပ်ကြမ်းက ဗီဒီယိုရဲ့ ဘယ်လောက် စားမလဲ"],
+  sfx_per_min:["SFX ဘယ်လောက်","တစ်မိနစ်ကို အသံထူး ဘယ်နှစ်ခု"],
+  sfx_trim:["SFX အသံ","ကျယ်/တိုး (dB)"],
+  music:["တီးလုံး","နောက်ခံ သီချင်း"],
+  music_lufs:["တီးလုံး အသံ","တိုးလေ စကား ကြားလေ (LUFS)"],
+  cam_moves:["ကင်မရာ လှုပ်ရှားမှု","ပုံကို တဖြည်းဖြည်း ရွေ့/ချဲ့"],
+  broll_whip:["အကူး whip","B-roll ဝင်/ထွက်မှာ လွှဲချက်"],
+  kin_title:["စာလုံး လှုပ်ရှားမှု","အဓိက စကားလုံးကို ကြီးကြီး ပြ"]
+};
+var MUSL={"":"မထည့်ပါ",trending:"ခေတ်စား",upbeat:"တက်ကြွ",calm:"အေးဆေး",
+          folk:"ရိုးရာ",corporate:"တရားဝင်",inspiration:"စိတ်အားတက်",zae:"ZAE"};
+function lkFmt(k,v,touched){
+  // ⚠️⚠️ `music` မှာ `null` က အဓိပ္ပာယ် **၂ မျိုး** — 「မသတ်မှတ်ထား」 နဲ့
+  //    「တီးလုံး မထည့်ပါ」。 ထိထားလျှင် ဒုတိယ အဓိပ္ပာယ် ဖြစ်သည် ⇒
+  //    「ပုံသေ」 ဟု ပြလျှင် ပိတ်ထားမှန်း မသိတော့ပါ (စမ်းစဉ် တွေ့)。
+  if(k==="music" && (touched || (v!==null && v!==undefined)))
+    return MUSL[(v===null||v===undefined)?"":v]||String(v);
+  if(v===null||v===undefined) return "ပုံသေ";
+  if(k==="broll_pct") return Math.round(v*100)+"%";
+  if(k==="sfx_trim") return (v>0?"+":"")+(+v).toFixed(1)+" dB";
+  if(k==="music_lufs") return (+v).toFixed(0)+" LUFS";
+  if(k==="sfx_per_min") return (+v).toFixed(2)+"/မိနစ်";
+  if(typeof v==="boolean") return v?"ဖွင့်":"ပိတ်";
+  return String(v);
+}
+function lkLoad(jid){
+  var box=document.getElementById("lkrows"); if(!box) return;
+  box.innerHTML='<p class="vpn">ဖတ်နေသည်…</p>';
+  fetch("/api/jobs/"+jid+"/look",{headers:{Authorization:"Bearer "
+        +(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){return r.json()}).then(function(d){
+     LOOK=d; LOOKD=Object.assign({}, d.over||{});
+     lkRows(jid);
+   }).catch(function(){ box.innerHTML='<p class="vpn">ချိန်ညှိချက် ဖတ်၍ မရပါ</p>' });
+}
+function lkRows(jid){
+  var box=document.getElementById("lkrows"); if(!box||!LOOK) return;
+  var h='';
+  (LOOK.keys||[]).forEach(function(k){
+    var b=(LOOK.bounds||{})[k]; if(!b) return;
+    var lab=LOOKL[k]||[k,""], base=(LOOK.base||{})[k];
+    var cur=(k in LOOKD)?LOOKD[k]:base;
+    var on=(k in LOOKD);
+    h+='<div class="lkr'+(on?' on':'')+'" data-lk="'+k+'"><b title="'+esc(lab[1])+'">'+esc(lab[0])+'</b>';
+    if(b[0]==="bool"){
+      h+='<label class="ck" style="flex:1"><input type="checkbox" data-lkc="'+k+'"'
+        +((cur===true)?" checked":"")+'> '+esc(lab[1])+'</label>';
+    } else if(b[0]==="choice"){
+      h+='<select data-lks="'+k+'">';
+      (b[1]||[]).forEach(function(o){
+        var val=(o===null?"":String(o));
+        h+='<option value="'+esc(val)+'"'+((cur===o)?" selected":"")+'>'
+          +esc(MUSL[val]||val||"—")+'</option>';
+      });
+      h+='</select>';
+    } else {
+      var lo=b[1], hi=b[2], st=(b[0]==="int")?1:((hi-lo)/100);
+      // ⚠️ ပုံသေက `null` ဆိုလျှင် slider ကို ဘောင်ရဲ့ အလယ် မထားရ —
+      //    သုံးစွဲသူက 「ဒါ ပုံသေပဲ」 ထင်မည်。 ⇒ ၀ နီးစပ်ရာ ထားပြီး
+      //    စာသားမှာ 「ပုံသေ」 ဟု ပြသည်。
+      var pos=(cur===null||cur===undefined)
+              ? Math.max(lo, Math.min(hi, 0)) : cur;
+      h+='<input type="range" data-lkr="'+k+'" min="'+lo+'" max="'+hi+'" step="'+st+'" value="'+pos+'">';
+    }
+    // ⚠️ တန်ဖိုးက `null` ဆိုလျှင် `lkFmt` ကိုယ်တိုင် 「ပုံသေ」 ပြပြီးသား ⇒
+    //    နောက်ကပ် အညွှန်း ထပ်ထည့်လျှင် 「ပုံသေပုံသေ」 ဖြစ်မည် (စမ်းစဉ် တွေ့)。
+    var _shown=(cur!==null && cur!==undefined);
+    h+='<span class="v" data-lkv="'+k+'">'+esc(lkFmt(k,cur,on))
+      +((!on && _shown)?'<br><s class="dflt">ပုံသေ</s>':'')+'</span></div>';
+  });
+  h+='<div class="lkacts">'
+    +'<button class="btn" id="lksave">သိမ်းမယ်</button>'
+    +'<button class="btn ghost" id="lkreset">↺ ပုံသေဆီ ပြန်</button>'
+    +'<span class="vpn" id="lkmsg"></span></div>'
+    +'<p class="vpn">ပြောင်းပြီးရင် အောက်က <b>အခမဲ့ preview</b> နဲ့ ကြည့်ပါ — မိနစ် မကုန်ပါ။</p>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-lkr]").forEach(function(e){
+    e.oninput=function(){ var k=e.getAttribute("data-lkr");
+      LOOKD[k]=(LOOK.bounds[k][0]==="int")?parseInt(e.value,10):parseFloat(e.value);
+      lkTouch(k) };
+  });
+  box.querySelectorAll("[data-lkc]").forEach(function(e){
+    e.onchange=function(){ var k=e.getAttribute("data-lkc"); LOOKD[k]=e.checked; lkTouch(k) };
+  });
+  box.querySelectorAll("[data-lks]").forEach(function(e){
+    e.onchange=function(){ var k=e.getAttribute("data-lks");
+      LOOKD[k]=(e.value===""?null:e.value); lkTouch(k) };
+  });
+  document.getElementById("lksave").onclick=function(){ lkSave(jid) };
+  document.getElementById("lkreset").onclick=function(){ LOOKD={}; lkRows(jid); lkSave(jid) };
+  lkSum();
+}
+function lkTouch(k){
+  var r=document.querySelector('[data-lk="'+k+'"]'); if(r) r.classList.add("on");
+  var v=document.querySelector('[data-lkv="'+k+'"]'); if(v) v.textContent=lkFmt(k,LOOKD[k]);
+  lkSum();
+}
+function lkSum(){
+  var e=document.getElementById("lksum"); if(!e) return;
+  var n=Object.keys(LOOKD).length;
+  e.textContent = n ? ("ပြင်ထား "+n+" ခု") : "ဖွင့်ပြီး ချိန်ကြည့်ပါ";
+}
+function lkSave(jid){
+  var m=document.getElementById("lkmsg"); if(m) m.textContent="သိမ်းနေသည်…";
+  fetch("/api/jobs/"+jid+"/finetune",{method:"POST",
+    headers:{"Content-Type":"application/json",
+             Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+    body:JSON.stringify({look:LOOKD})})
+   .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
+   .then(function(z){
+     // ⚠️ server က ဘောင်အတွင်း ချပြီးသား တန်ဖိုး ပြန်ပေးသည် ⇒ **အဲဒါကို ပြရမည်**
+     //    (UI မှာ ပြတာနဲ့ တကယ် သိမ်းတာ ကွဲမနေစေရန်)。
+     if(z.ok && z.d && z.d.look){ LOOKD=z.d.look; lkRows(jid) }
+     // ⚠️⚠️ စာကို **lkRows ပြီးမှ** ထည့်ရမည် — lkRows က box တစ်ခုလုံး
+     //    ပြန်ဆောက်သဖြင့် အရင် ထည့်လျှင် ချက်ချင်း ပျောက်သည် (စမ်းစဉ် တွေ့:
+     //    သုံးစွဲသူက သိမ်းမိ/မမိ မသိရ)。
+     var m2=document.getElementById("lkmsg");
+     if(m2) m2.textContent = z.ok ? "သိမ်းပြီး ✓ — အောက်က preview နဲ့ ကြည့်ပါ"
+                                  : ("မရပါ: "+((z.d&&z.d.detail)||""));
+   }).catch(function(){ if(m) m.textContent="ကွန်ရက် မရပါ" });
+}
+
 /* ══ စာလုံး ဆွဲရွေးပြီး ဖြတ်ခြင်း (Descript ပုံစံ) ════════════════════
    ⚠️⚠️ **ASR ရဲ့ စကားလုံး အချိန်အတိုင်း တည့်တည့် မဖြတ်ရ** — တိုင်းထား
       (Zin ရဲ့ ဖိုင် · စကားလုံး နယ်နိမိတ် ၁၀၀ ခု): **၈၄ ခု (၈၄%)** က
@@ -1709,6 +1859,15 @@ function watchJob(jid, el){
            +'<button class="btn ghost" id="ftsave">ချိန်ညှိချက် သိမ်း</button>'
            +'<span class="vpn" id="ftmsg"></span>'
            +'</div></details>'
+           /* ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「နောက်ထပ် SFX, Motion ဆီကို ဆက်သွားတဲ့
+              ခလုတ်ပါ ထည့်ပေးတာ ပိုကောင်းမယ်」。 ဖြတ်ချက် ပြီးရင် မိနစ်
+              မကုန်ခင် အလှအပကို ချိန်နိုင်ရမည်。
+              ⚠️ ကိန်းသေ **မရေးရ** — ပုံသေ · ဘောင် နှစ်ခုလုံး `/look` ကနေ
+                 ယူသည် (၂၀၂၆-၁၀-၀၁ `cap_pct` ထောင်ချောက်: hard-code
+                 လုပ်ထားသော ဘောင်က style ၄ ခုရဲ့ ပုံသေကို ပြလို့ မရခဲ့)。 */
+           +'<details class="lk" id="lkbox"><summary>✨ အလှအပ · SFX · Motion'
+           +'<s id="lksum">ဖွင့်ပြီး ချိန်ကြည့်ပါ</s></summary>'
+           +'<div class="lkb" id="lkrows"></div></details>'
            /* ⚠️⚠️ **အခမဲ့ styled preview** (Zin ၂၀၂၆-၁၀-၀၂: 「preview က
               မိနစ် မစားပါစေနဲ့」·「၃ ခါနဲ့ လုပ်ပေးပါ」) ───────────────
               ဒီ panel က **ဖြတ်ချက်ပဲ** ပြသည် — စာတန်း · ဂရပ်ဖစ် · တီးလုံး ·
@@ -1742,6 +1901,15 @@ function watchJob(jid, el){
            if(_vp) _vp.textContent="မူရင်း ဗီဒီယိုကို သိမ်းထားချိန် ကုန်၍ ဖျက်ပြီးပါပြီ — ပြန်ထုတ်ရန် ဗီဒီယိုကို ပြန် upload လုပ်ပါ။";
          }
          var _lv="auto";
+         /* ── အလှအပ · SFX · Motion ──
+            ⚠️ ဖွင့်မှ ဖတ်သည် — မဖွင့်ဘဲ ဆွဲလျှင် ဖွင့်မကြည့်သူတိုင်းအတွက်
+               အလကား တောင်းဆိုမှု တစ်ခု ဖြစ်မည်。 */
+         (function(){
+           var bx=document.getElementById("lkbox"); if(!bx) return;
+           bx.addEventListener("toggle", function(){
+             if(bx.open && !LOOK) lkLoad(jid);
+           });
+         })();
          /* ── Fine tune ── */
          (function(){
            var sel=document.getElementById("ftcap");
