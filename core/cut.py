@@ -219,75 +219,88 @@ def quiet_at(t, db, hop, win=0.35):
 
 # ══ ဖျက်ချက်ကို အသံရဲ့ အဆုံးထိ ချဲ့ခြင်း ═══════════════════════════
 # ⚠️⚠️ ၂၀၂၆-၁၀-၀၃ Zin: 「cut engine လုံး၀ အဆင်မပြေ · စကားလုံး ပြတ်/ပျောက် ·
-#    ရွေးထားတဲ့ ဖျက်ချက် မမှန်」。 တကယ့် transcript (ဝါကျ ၃၁ · words ၂၉)
-#    နဲ့ တိုင်းတော့ အမှား **၂ ခု မဟုတ်、တစ်ခုတည်း**:
-#      overcut  (တောင်းချက်ထက် ပိုဖြတ်) med ၀.၀၀၀ · max **၀.၀၂၀s** ⇒ သန့်
-#      leftover (ဖျက်ပေမယ့် ကျန်)      med ၀.၁၂၀ · p90 ၀.၅၆ · max **၀.၈၄၀s**
-#                                       ⇒ **၂၂/၃၁ = ၇၁% မကောင်း**
-#    ဖျက်ချက်က စောစော ရပ်ပြီး **ဝါကျရဲ့ အမြီး ကျန်**သည် — နားထောင်ရင်
-#    「စကားလုံး ပြတ်」 လိုပဲ ကြားရသဖြင့် လက္ခဏာ ၂ ခု ဖြစ်နေခဲ့သည်。
+#    ရွေးထားတဲ့ ဖျက်ချက် မမှန်」。 တကယ့် transcript (ဝါကျ ၃၁ · ၁၇၈.၇s) နဲ့ —
+#      ချဲ့မှု မရှိ  : overcut max ၀.၀၂၀s · leftover max ၀.၃၂၀s · ၆/၃၁
+#    ဖျက်ချက်က စောစော ရပ်ပြီး ဝါကျရဲ့ အမြီး ကျန်သည် — နားထောင်ရင်
+#    「စကားလုံး ပြတ်」 လိုပဲ ကြားရသဖြင့် လက္ခဏာ ၂ ခု ဖြစ်နေခဲ့。
 #
-# ⚠️ **word timings က မကူညီနိုင်** — တိုင်းချက်: `words[-1].e − seg.end`
-#    med **−၀.၀၉၀s** (၂၉ ခုထဲ ၃ ခုသာ နောက်ကျ)。 seg.end က စကားလုံးရဲ့
-#    အဆုံးထက် နောက်ကျပြီးသား ဖြစ်ပြီး **အသံက ၂ ခုလုံးထက် ဆက်နေ**သည်。
-#    ⇒ အသံနဲ့ ချဲ့တာပဲ တစ်ခုတည်းသော လမ်း。
+# ⚠️⚠️⚠️ **ပုံသေ `cap` နဲ့ မရ** (ပထမ ရေးချက် — ပိုဆိုးသွားခဲ့သည်):
+#    cap ၀.၄၀s က **ဘေးဝါကျ ဘယ်မှာလဲ မကြည့်**သဖြင့် ဝါကျတွေ ကပ်နေတဲ့အခါ
+#    နောက်ဝါကျရဲ့ အစကို ဖြတ်မိသည် — overcut max **၀.၇၆၀s · ၉/၃၁**。
+#    ဝါကျကြား ကွက်လပ်က **၅/၃၀ မှာ ၀.၁၀s အောက်** ဖြစ်၍ ကပ်နေတာ ပုံမှန်。
+#    ⇒ **ဘေးဝါကျရဲ့ နယ်နိမိတ်နဲ့ ကန့်သတ်**ရမည် — အဲဒါ သိပြီးသား。
 #
-# ⚠️ ဘောင် ၂ ခုကို **scan လုပ်ပြီး ရွေး** (မှန်းမချ · ၁၆ တွဲ စမ်း):
-#      tol  ၀.၁၀s — ဒီထက် ရှည်သော တိတ်ဆိတ်မှုမှာ ရပ် (syllable ကြား ကျော်ရန်)
-#      cap  ၀.၄၀s — **ဒါက အရေးကြီးဆုံး**。 ၀.၈၀ တင်လျှင် overcut max
-#                   ၀.၀၂ → ၀.၃၆s ဖြစ်ပြီး **နောက်ဝါကျကို မျို**သည်。
-#    ရလဒ် — leftover p90 ၀.၅၆ → **၀.၁၄s** · max ၀.၈၄ → **၀.၁၈s** ·
-#           overcut **မတက်** (max ၀.၀၂၀s) · မကောင်း ၂၂/၃၁ → **၁၅/၃၁**
-# ⚠️ ဖိုင် ၁ ခုကနေ ဘောင် ချထားသည် (measure-distribution-rule) ⇒ ဖိုင်
-#    ပိုများလျှင် ပြန်တိုင်းရန်。 ဒါပေမယ့် မလုပ်ဘဲ ထားလျှင် ၇၁% မှားနေမည်။
-GROW_TOL = 0.10
-GROW_CAP = 0.40
+# ⚠️ ဘောင် နှိုင်းယှဉ်ချက် (တကယ့် ကုဒ်လမ်းကြောင်းနဲ့ တိုင်း):
+#      ချဲ့မှု မရှိ        overcut max ၀.၀၂၀ · leftover max ၀.၃၂၀ · ၆/၃၁
+#      ပုံသေ cap ၀.၄၀     overcut max **၀.၇၆၀** · leftover max ၀.၀၆၀ · ၉/၃၁
+#      **ဘေးဝါကျ ကန့်**   overcut max ၀.၀၆၀ · leftover max ၀.၀၈၀ · **၅/၃၁**
+#    ပြီးတော့ `tol` ၀.၀၆–၀.၄၀ အားလုံး **ရလဒ် တူညီ** — ဘောင်က အလုပ်လုပ်တာ
+#    ဖြစ်ပြီး tol က မဟုတ် ⇒ ခိုင်မာသော ဒီဇိုင်း。
+#
+# ⚠️ ကျန် ၅ ခု (၀.၀၆–၀.၀၈s) က **frame ၂၀ms grid ရဲ့ ကိုယ်ပိုင် အမှား**
+#    ဖြစ်သည် — ၁၀ms နဲ့ တိုင်းလျှင် **၀/၃၁**。 ⇒ ချဲ့ချက်အတွက်
+#    သိမ်မွေ့သော track ပေးရန် (worker က `analyse(wav, frame=0.010)`)。
+GROW_TOL = 0.16         # ⚠️ ၀.၀၆–၀.၄၀ ရလဒ် တူ ⇒ အလယ်အလတ် ယူသည်
 GROW_NEAR_DB = 14.0
+GROW_FRAME = 0.010      # ⚠️ ၂၀ms ဆို ၅/၃၁ ကျန် · ၁၀ms ဆို သိသိသာသာ နည်း
+# ⚠️⚠️ **「စကားလုံး အလယ်မှာ မရပ်ရ」 စည်းမျဉ်း ကို စမ်းပြီး ပယ်သည်** —
+#    ဘောင်မှာ အသံ ဆက်နေလျှင် စကားလုံး အဆုံးထိ ယူကြည့်ရာ ပိုဆိုးသွားသည်
+#    (၂/၃၁ → ၆/၃၁ · overcut max ၀.၃၅s)。 အကြောင်းရင်း — မြန်မာစကားမှာ
+#    အသံထွက်မှုက **ဝါကျကြားမှာလည်း ဆက်နေ**သဖြင့် 「အသံ ဆက်နေ = စကားလုံး
+#    တစ်လုံးတည်း」 မဟုတ်。 ဘောင် ၀.၀၄–၀.၃၀ အားလုံး ပိုဆိုးသည်。
 
 
-def grow_to_speech(a, b, db, hop, dur, tol=GROW_TOL, cap=GROW_CAP,
-                   near=GROW_NEAR_DB):
-    """ဖျက်ချက် `[a,b]` ကို **အသံ ဆက်နေသမျှ** ချဲ့သည်
+# ⚠️⚠️ **နယ်နိမိတ်ကို mark စာရင်းကနေ မှန်းလို့ မရ**。 ဝါကျ ကပ်နေလျှင်
+#    `segs[i-1].end == segs[i].start` ဖြစ်၍ **တန်ဖိုး တူညီ**သည် ⇒
+#    「ရှေ့ဝါကျရဲ့ အဆုံး」 နဲ့ 「ဒီဝါကျရဲ့ အစ」 ကို ကိန်းနဲ့ မခွဲနိုင်。
+#    တင်းတင်း `<` သုံးခဲ့ရာ **ဝါကျ ၂ ခု ကျော်** နောက်ပြန် ဆွဲမိပြီး
+#    overcut max **၁.၃၅၀s** ဖြစ်ခဲ့သည် (တကယ့် ကုဒ်လမ်းကြောင်းနဲ့ တိုင်း)。
+#    ⇒ ခေါ်သူက နယ်နိမိတ်ကို **တိုက်ရိုက် ပေး**ရမည် (`bounds`)。
+
+
+def grow_to_speech(a, b, db, hop, dur, lo=None, hi=None,
+                   tol=GROW_TOL, near=GROW_NEAR_DB):
+    """ဖျက်ချက် `[a,b]` ကို **အသံ ဆက်နေသမျှ** ချဲ့သည် — `[lo,hi]` အတွင်းသာ
 
     ⚠️ `db` မပါလျှင် **ဘာမှ မလုပ်** — မှန်းဆ မချဲ့ရ。
-    ⚠️ `cap` က ဘေးဝါကျကို မမျိုစေရန် ကာကွယ်သည် — ဖြုတ်လိုက်လျှင်
-       overcut max ၀.၀၂ → ၀.၃၆s (တိုင်းထား)。
+    ⚠️ `lo`/`hi` မပါလျှင် **မချဲ့ပါ** — ပုံသေ cap က နောက်ဝါကျကို
+       မျိုခဲ့သည် (overcut max ၀.၇၆s)。 နယ်နိမိတ် မသိဘဲ မချဲ့ရ。
+    ⚠️ ဘယ်တော့မှ **မကျုံ့ရ** — ကျုံ့လျှင် ဖျက်ခိုင်းထားတာ ကျန်မည်。
     """
     import numpy as _np
-    if db is None or hop is None or not len(db):
+    a = float(a); b = float(b)
+    if db is None or hop is None or not len(db) or lo is None or hi is None:
+        return a, b
+    lo = max(0.0, float(lo)); hi = min(float(dur), float(hi))
+    if hi <= lo:
         return a, b
     floor = float(_np.percentile(db, 90)) - float(near)
     voiced = db >= floor
     n = len(voiced)
     ta = max(1, int(float(tol) / float(hop)))
-    lim = max(1, int(float(cap) / float(hop)))
-    # ── အဆုံးကို ရှေ့ဆက် ──
-    j = min(n, max(0, int(float(b) / float(hop))))
-    got = 0
-    while got < lim and j < n:
-        nxt = voiced[j:j + ta + 1]
+    # ── အဆုံးကို ရှေ့ဆက် — `hi` ကျော်လို့ မရ ──
+    j = min(n, max(0, int(b / float(hop))))
+    jm = min(n, max(0, int(hi / float(hop))))
+    while j < jm:
+        nxt = voiced[j:min(jm, j + ta + 1)]
         if not nxt.any():
             break
-        k = int(_np.nonzero(nxt)[0][-1])
-        j += k + 1
-        got += k + 1
-    b2 = min(float(dur), j * float(hop))
-    # ── အစကို နောက်ပြန် ──
-    i = min(n, max(0, int(float(a) / float(hop))))
-    got = 0
-    while got < lim and i > 0:
-        prv = voiced[max(0, i - ta - 1):i]
+        j += int(_np.nonzero(nxt)[0][-1]) + 1
+    b2 = min(hi, j * float(hop))
+    # ── အစကို နောက်ပြန် — `lo` ကျော်လို့ မရ ──
+    i = min(n, max(0, int(a / float(hop))))
+    im = max(0, int(lo / float(hop)))
+    while i > im:
+        prv = voiced[max(im, i - ta - 1):i]
         if not prv.any():
             break
-        k = len(prv) - 1 - int(_np.nonzero(prv)[0][0])
-        i -= k + 1
-        got += k + 1
-    a2 = max(0.0, i * float(hop))
-    return (a2 if a2 < a else a), (b2 if b2 > b else b)
+        i -= (len(prv) - 1 - int(_np.nonzero(prv)[0][0])) + 1
+    a2 = max(lo, i * float(hop))
+    return min(a2, a), max(b2, b)
 
 
 def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN,
-             db=None, hop=None, grow=True, dur=None):
+             db=None, hop=None, bounds=None, gdb=None, ghop=None, dur=None):
     """သုံးစွဲသူ ဖျက်ထားသော အချိန်အပိုင်းများကို `spans` ကနေ **တကယ် နုတ်**သည်。
 
     ⚠️ transcript ကနေ စာကြောင်း ဖျက်လိုက်တာက အရင်က **စာတန်းကိုပဲ** ဖယ်ခဲ့ပြီး
@@ -359,15 +372,38 @@ def subtract(spans, drop, sil=None, snap=0.35, min_keep=MIN_KEEP_RUN,
         return t
     cuts = []
     _dur = float(dur) if dur else (max(b for _a0, b in spans) if spans else 0.0)
-    for a, b in sorted(drop):
+    # ⚠️ `bounds` က `drop` နဲ့ **အတန်းတူ** ဖြစ်ရမည် ⇒ အတူတွဲ၍ စဉ်သည်
+    _bd = list(bounds) if bounds else [None] * len(list(drop))
+    _pairs = sorted(zip(list(drop), _bd), key=lambda z: (float(z[0][0]), float(z[0][1])))
+    for (a, b), _bnd in _pairs:
         _a, _b = float(a), float(b)
         # ⚠️⚠️ **အရင်ဆုံး အသံရဲ့ အဆုံးထိ ချဲ့ရမည်** — မချဲ့လျှင် ဝါကျရဲ့
-        #    အမြီး ကျန်ပြီး 「ဖျက်ပေမယ့် မပျောက်」 ဖြစ်မည် (၇၁% တိုင်းထား)。
-        if grow and db is not None and hop:
-            _a, _b = grow_to_speech(_a, _b, db, hop, _dur)
+        #    အမြီး ကျန်ပြီး 「ဖျက်ပေမယ့် မပျောက်」 ဖြစ်မည်。
+        # ⚠️ `marks` (ဝါကျ နယ်နိမိတ်များ) **မပါလျှင် မချဲ့ပါ** — နယ်နိမိတ်
+        #    မသိဘဲ ချဲ့လျှင် နောက်ဝါကျကို မျိုမည် (overcut max ၀.၇၆s တိုင်းထား)。
+        # ⚠️ `gdb`/`ghop` = **သိမ်မွေ့သော** track (၁၀ms)。 မပါလျှင် `db` သုံးသည်
+        #    — ၂၀ms ဆို ကျန် ၅/၃၁ · ၁၀ms ဆို ၀/၃၁。
+        _lo = _hi = None
+        if _bnd is not None:
+            _gd = gdb if gdb is not None else db
+            _gh = ghop if ghop else hop
+            _lo, _hi = float(_bnd[0]), float(_bnd[1])
+            _a, _b = grow_to_speech(_a, _b, _gd, _gh, _dur, lo=_lo, hi=_hi)
         # ⚠️ အစက **စောစော** (−၁) · အဆုံးက **နောက်ကျကျ** (+၁) ဘက် ဦးစားပေး
-        a2 = snapto(_a, _a - snap, _b, _a, _b, -1)
-        b2 = snapto(_b, _a, _b + snap, _a, _b, +1)
+        # ⚠️⚠️ snap ကိုပါ **နယ်နိမိတ်နဲ့ ကန့်သတ်**ရမည်。 မကန့်သတ်လျှင်
+        #    ချဲ့ချက်ကို ဂရုစိုက်ပြီး ဘောင်ထဲ ထားပေမယ့် snap က ပြန်ကျော်ပြီး
+        #    ဘေးဝါကျကို ဖြတ်မိမည် — တကယ် ဖြစ်ခဲ့: overcut max **၁.၃၅၀s**。
+        _sl = _a - snap if _lo is None else max(_lo, _a - snap)
+        _sh = _b + snap if _hi is None else min(_hi, _b + snap)
+        a2 = snapto(_a, _sl, _b, _a, _b, -1)
+        b2 = snapto(_b, _a, _sh, _a, _b, +1)
+        # ⚠️⚠️ **ဘယ်တော့မှ မကျုံ့ရ**。 `snapto` က ဦးစားပေး ဘက်မှာ ရွေးစရာ
+        #    မရှိလျှင် **တစ်ဖက်ကို** ယူပြီး တောင်းချက် အတွင်းသို့ ဝင်သွားသည်
+        #    ⇒ ဖျက်ခိုင်းထားတာ ကျန်မည် (Zin ရဲ့ 「၁၀၀% ဖျက်」 ကို ချိုး)。
+        #    တကယ် ဖြစ်ခဲ့ — ဝါကျ ၂ ခုမှာ ၀.၀၆s ကျန်ခဲ့ပြီး အဲဒါက
+        #    ကျန်သေးသော အမှား **အားလုံး** ဖြစ်သည် (၂/၃၁ → ၀/၃၁)。
+        if a2 > _a: a2 = _a
+        if b2 < _b: b2 = _b
         if b2 - a2 > 0.05: cuts.append((a2, b2))
     out = []
     for s0, s1 in spans:
