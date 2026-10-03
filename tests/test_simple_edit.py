@@ -215,5 +215,84 @@ class Instructions(unittest.TestCase):
         self.assertIn("SKEEP={}", s[j:j + 60])
 
 
+class PauseDial(unittest.TestCase):
+    """ကြားထဲ ခဏရပ် — **တည်းဖြတ်ခန်းမှာ ချိန်လို့ ရရမည်**
+
+    ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「ကြားထဲမှာ တိတ်နေတဲ့ space တွေကို ဘယ်လို ဖြတ်ရမှာလဲ」。
+       engine က ဖြတ်ပြီးသား ဖြစ်ပေမယ့် ကိန်းက upload စာမျက်နှာမှာ ရှိပြီး
+       တည်းဖြတ်ခန်းမှာ **မရှိ**ခဲ့ပါ ⇒ မမြင်ရ · ချိန်လို့ မရ。
+
+    တိုင်းထားချက် (Zin ရဲ့ ဖိုင် · တကယ့် `cut.plan()`):
+        min_sil ၀.၅၅ (ပုံသေ) → ဖြတ် ၂၆ · ဖယ် ၈၇.၁s (၄၈.၇%)
+        min_sil ၀.၃၀        → ဖြတ် ၄၁ · ဖယ် ၉၀.၆s (၅၀.၇%)  = **+၃.၅s**
+        min_sil ၀.၂၅        → ဖြတ် ၄၈ · ဖယ် ၉၃.၀s (၅၂.၁%)
+        **အားလုံးမှာ စကားပေါ် ကျတာ ၀ ခု** ⇒ တင်းတင်း ထားလည်း ဘေးကင်း。
+
+    ⚠️ ကျန်နေတဲ့ တိတ်ဆိတ်မှုရဲ့ အများစုက **ဝါကျ အတွင်း** ဖြစ်သည် —
+       ချန်ထားတဲ့ ဝါကျ ၅၅.၆s ထဲမှာ ၉.၃s (၁၇%)。 အဲဒီ တိတ်ဆိတ်မှုတွေရဲ့
+       p90 က ၀.၅၄s ဖြစ်ပြီး ပုံသေ min_sil က ၀.၅၅ ⇒ **မဖြတ်ဖြစ်**ခဲ့ခြင်း。
+       ဒါကြောင့် ဒီ dial က တကယ် အရေးပါသည်。
+
+    ⚠️⚠️ အရေအတွက်ကို browser မှာပဲ တွက်သည် — `WAVE.db` (၂၀ms RMS) နဲ့
+       server ရဲ့ `thr_of` အတိအကျ တူသော threshold。 တိုက်စစ်ထား:
+       ၀.၅၅ ⇒ ၂၆ vs ၂၆ · ၀.၇၀ ⇒ ၂၄ vs ၂၄ (**အတိအကျ**)、တင်းတဲ့ဘက်မှာ
+       ၃–၆ ကွာ (planner က ၀.၀၈s အောက်ကို ကျော်ပြီး အပိုင်းတိုတွေ ပေါင်းသည်)
+       ⇒ 「~」 နဲ့ **ခန့်မှန်းမှန်း ပြောရမည်**。
+    """
+
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_the_dial_is_in_the_editor(self):
+        self.assertIn('id="pzbox"', self.s)
+        self.assertIn('id="pzr"', self.s)
+
+    def test_it_is_one_number_not_two(self):
+        """⚠️ ကိန်း ၂ လုံး ပြလျှင် ရှုပ်မည် — ချန်မယ့် အရှည်က လိုက်ညှိသည်"""
+        i = self.s.find('<div id="pzbox">')
+        w = self.s[i:i + 700]
+        self.assertEqual(w.count('type="range"'), 1)
+        self.assertIn("ခဏရပ်တိုင်း", self.s)
+
+    def test_it_is_hidden_once_the_cut_is_frozen(self):
+        """⚠️ `body.rv` မှာ ဖြတ်မှတ် အေးခဲပြီး — ချိန်လို့ ရသလို ပြလျှင် လိမ်ရာ ကျ"""
+        self.assertIn("body.rv #pzbox{display:none}", self.s)
+
+    def test_the_bounds_come_from_the_server(self):
+        """⚠️ UI မှာ ကိန်းသေ ရေးလျှင် style အလိုက် ကွဲတာကို ပြလို့ မရ"""
+        i = self.s.find("function pzLoad(")
+        w = self.s[i:i + 900]
+        self.assertIn("c.bounds", w)
+        self.assertIn("r.min=c.bounds[1]", w)
+
+    def test_the_count_uses_the_same_threshold_as_the_server(self):
+        """⚠️⚠️ threshold မတူလျှင် UI ပြောတာနဲ့ တကယ် ဖြတ်တာ ကွဲမည်"""
+        i = self.s.find("function pzRuns(")
+        w = self.s[i:i + 900]
+        self.assertIn("waveThr()", w)
+        self.assertIn("WAVE.db", w)
+        self.assertIn("0.35", w)          # server ရဲ့ smoothing hit
+
+    def test_the_count_is_labelled_as_an_estimate(self):
+        """⚠️ voice ratio က browser မှာ မရှိ ⇒ အတိအကျ မဟုတ် — လိမ်မပြရ"""
+        i = self.s.find("function pzPaint(")
+        self.assertIn('"s"+(n===null?"" : " · ~"+n+" နေရာ")', self.s[i:i + 700])
+
+    def test_it_repaints_when_the_waveform_arrives(self):
+        """⚠️ လှိုင်းပုံ မရောက်ခင် ဆွဲမိလျှင် ကိန်း မပါဘဲ ကျန်မည် (စမ်းစဉ် တွေ့)"""
+        i = self.s.find('WAVE.peaks=pk; WAVE.dur=buf.duration; WAVE.state="ok";')
+        self.assertIn("pzPaint()", self.s[i:i + 420])
+
+    def test_the_server_keeps_the_pair_valid(self):
+        """⚠️ `keep_pause > min_sil` ဖြစ်လျှင် ဖြတ်မှတ် ရေတွက်ထဲ ပါပေမယ့်
+           ဘာမှ မဖြစ် (no-op) — server က ညှိရမည်。"""
+        a = _src("api", "main.py")
+        i = a.find('if "min_sil" in (b or {}):')
+        self.assertGreater(i, 0)
+        w = a[i:i + 900]
+        self.assertIn("round(_ms * 0.85, 3)", w)
+        self.assertIn("_RC.clean(", w)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -2135,7 +2135,12 @@ def job_look(jid: str, authorization: str = Header(None)):
             "keys": list(LOOK_KEYS),
             "base": {k: base.get(k) for k in LOOK_KEYS},
             "over": {k: over[k] for k in LOOK_KEYS if k in over},
-            "bounds": {k: list(_RC.BOUNDS[k]) for k in LOOK_KEYS if k in _RC.BOUNDS}}
+            "bounds": {k: list(_RC.BOUNDS[k]) for k in LOOK_KEYS if k in _RC.BOUNDS},
+            # ⚠️ ကြားထဲ ခဏရပ် — UI မှာ ကိန်းသေ မရေးရ (style အလိုက် ကွဲသည်)
+            "cut": {"min_sil": over.get("min_sil", base.get("min_sil")),
+                    "keep_pause": over.get("keep_pause", base.get("keep_pause")),
+                    "base_min_sil": base.get("min_sil"),
+                    "bounds": list(_RC.BOUNDS["min_sil"])}}
 
 
 @app.post("/api/jobs/{jid}/finetune")
@@ -2195,6 +2200,24 @@ async def job_finetune(jid: str, req: Request, authorization: str = Header(None)
         db.run("UPDATE jobs SET over=? WHERE id=?",
                json.dumps(over, ensure_ascii=False) if over else None, jid)
         out["look"] = lk
+    # ── ကြားထဲ ခဏရပ် (Zin ၂၀၂၆-၁၀-၀၄: 「ကြားထဲမှာ တိတ်နေတဲ့ space တွေကို
+    #    ဘယ်လို ဖြတ်ရမှာလဲ」) ─────────────────────────────────────────
+    # ⚠️ သုံးစွဲသူက **ကိန်းတစ်ခုပဲ** ပေးသည် (`min_sil` = ဒီထက် ရှည်ရင် ဖြတ်)。
+    #    ချန်မယ့် အရှည် (`keep_pause`) က လိုက်ပါ ညှိသည် — ကိန်း ၂ လုံး
+    #    ပြရလျှင် ရှုပ်မည် (「အရိုးရှင်းဆုံး」)。
+    # ⚠️ `keep_pause ≤ min_sil` ဖြစ်ရမည် — မဟုတ်လျှင် ကြားထဲက ကွက်လပ်တွေက
+    #    ဖြတ်မှတ် ရေတွက်ထဲ ပါပေမယ့် ဘာမှ မဖြစ် (no-op)。 `recipes` က ညှိသည်。
+    if "min_sil" in (b or {}):
+        import recipes as _RC
+        try: _ms = float(b.get("min_sil"))
+        except (TypeError, ValueError): raise HTTPException(400, "min_sil မမှန်")
+        _base = _RC.apply(j.get("recipe"), {})
+        _kp = min(float(_base.get("keep_pause") or 0.30), round(_ms * 0.85, 3))
+        _cl = _RC.clean({"min_sil": _ms, "keep_pause": _kp})
+        over.update(_cl)
+        db.run("UPDATE jobs SET over=? WHERE id=?",
+               json.dumps(over, ensure_ascii=False) if over else None, jid)
+        out["cut"] = _cl
     return {"ok": True, **out}
 
 

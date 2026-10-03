@@ -258,6 +258,16 @@ body.rv .grp{background:transparent;box-shadow:none;border-left-color:transparen
 body.rv #bsec,body.rv #bonly{display:none}
 body.rv #bsimple{display:none}
 #rvnote{display:none}
+#pzbox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;
+  padding:11px 14px;border:1px solid #E7E5E4;border-radius:12px;background:#fff}
+#pzbox b{font-size:13.5px}
+#pzbox span{font-size:13px;color:#57534E}
+#pzbox input[type=range]{flex:1;min-width:140px}
+#pzbox s{text-decoration:none;font-family:"Inter",sans-serif;font-size:13px;
+  font-weight:700;min-width:150px}
+#pzbox i{font-style:normal;font-size:12.5px;color:#57534E}
+/* ⚠️ ဖြတ်ပြီးသား အဆင့် (rv) မှာ ပြင်လို့ မရ — ဖြတ်မှတ် အေးခဲပြီးသား ⇒ ဖျောက် */
+body.rv #pzbox{display:none}
 body.rv #rvnote{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
   margin:0 0 14px;padding:12px 14px;border-radius:12px;
   background:#FFFBEB;border:1px solid #FDE68A}
@@ -576,6 +586,17 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
 <!-- ⚠️ ဖြတ်ပြီးသား အဆင့်မှာ စာတမ်းက **ရလဒ်** ဖြစ်သည် — တည်းဖြတ်လို့
      မရကြောင်းနဲ့ ပြင်ချင်ရင် ဘာလုပ်ရမလဲ **စာရင်းအပေါ်မှာပဲ** ပြောရမည်
      (အောက်က panel ထဲက ခလုတ်ကို သုံးစွဲသူ မတွေ့ပါ — ၂၀၂၆-၁၀-၀၄)。 -->
+<!-- ⚠️ 「ကြားထဲမှာ တိတ်နေတဲ့ space တွေကို ဘယ်လို ဖြတ်ရမှာလဲ」 (Zin ၂၀၂၆-၁၀-၀၄)。
+     engine က ဖြတ်ပြီးသား ဖြစ်ပေမယ့် သုံးစွဲသူက **မမြင်ရ · ချိန်လို့ မရ**ခဲ့ပါ —
+     ကိန်းက upload စာမျက်နှာမှာ ရှိပြီး ဒီမှာ မရှိခဲ့。 ကိန်း **တစ်ခုတည်း** ပြသည်。 -->
+<div id="pzbox">
+  <b>ကြားထဲ ခဏရပ်</b>
+  <span>ဒီထက် ရှည်တဲ့ ခဏရပ်ကို ဖြတ်မယ် —</span>
+  <input type="range" id="pzr" min="0.25" max="1.20" step="0.05" value="0.55">
+  <s id="pzv">—</s>
+  <button type="button" class="btn ghost" id="pzsave">သိမ်းမယ်</button>
+  <i id="pzmsg"></i>
+</div>
 <div id="rvnote">
   <b>ဒါက ဖြတ်ပြီးသား ရလဒ်ပါ</b>
   <span>စာကြောင်း နှိပ်ရင် အဲဒီနေရာ ခုန်ပြီး ပြပါမယ်။ ဖျက်/ပြန်ချန် ပြင်ချင်ရင် —</span>
@@ -885,6 +906,85 @@ function seekTo(t){
     var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
     head(a); loopAll(a); }
 }
+/* ══ ကြားထဲ ခဏရပ် ═══════════════════════════════════════════════════
+   ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「ကြားထဲမှာ တိတ်နေတဲ့ space တွေကို ဘယ်လို ဖြတ်ရမှာလဲ」。
+      engine က ဖြတ်ပြီးသား ဖြစ်ပေမယ့် ကိန်းက upload စာမျက်နှာမှာ ရှိပြီး
+      တည်းဖြတ်ခန်းမှာ **မရှိ**ခဲ့ပါ ⇒ မမြင်ရ · ချိန်လို့ မရ。
+   ⚠️ အရေအတွက်ကို **browser မှာပဲ** တွက်သည် — `WAVE.db` (၂၀ms RMS) နဲ့
+      server ရဲ့ `thr_of` အတိအကျ တူသော threshold သုံးထားသဖြင့်。
+      တိုက်စစ်ထား (Zin ရဲ့ ဖိုင် · တကယ့် planner နဲ့): ၀.၅၅ ⇒ ၂၆ vs ၂၆ ·
+      ၀.၇၀ ⇒ ၂၄ vs ၂၄ (**အတိအကျ**) · တင်းတဲ့ဘက်မှာ ၃–၆ ကွာ
+      (planner က ၀.၀၈s အောက် ဖြတ်မှတ်ကို ကျော်ပြီး အပိုင်းတိုတွေ ပေါင်းသည်)。
+   ⚠️ voice ratio က browser မှာ မရှိ ⇒ ကိန်းက **ခန့်မှန်း**。 မှန်တဲ့ ကိန်းက
+      ဖြတ်ပြီးမှ ပေါ်သည် — လိမ်မပြရ。 */
+var PZ=null;
+function pzRuns(){
+  if(WAVE.state!=="ok"||!WAVE.db) return null;
+  var thr=waveThr(); if(thr===null) return null;
+  var db=WAVE.db, hz=WAVE.dbhz, n=db.length;
+  var m=new Uint8Array(n);
+  for(var i=0;i<n;i++) m[i]=db[i]>thr?1:0;
+  // ⚠️ server နဲ့ တူညီသော smoothing (win 7 · hit 0.35)
+  var sm=new Uint8Array(n);
+  for(i=0;i<n;i++){
+    var t=0,c=0;
+    for(var k=-3;k<=3;k++){ var j=i+k; if(j>=0&&j<n){ t+=m[j]; c++ } }
+    sm[i]=(t/c)>0.35?1:0;
+  }
+  var out=[], cur=null;
+  for(i=0;i<n;i++){
+    if(!sm[i]){ if(cur===null) cur=i }
+    else if(cur!==null){ out.push((i-cur)/hz); cur=null }
+  }
+  if(cur!==null) out.push((n-cur)/hz);
+  return out;
+}
+function pzPaint(){
+  var r=document.getElementById("pzr"), v=document.getElementById("pzv");
+  if(!r||!v) return;
+  var ms=parseFloat(r.value);
+  if(!PZ) PZ=pzRuns();
+  var n = PZ ? PZ.filter(function(x){ return x>ms }).length : null;
+  var kp = Math.min((LOOKBASE_KP===null?0.30:LOOKBASE_KP), Math.round(ms*0.85*1000)/1000);
+  v.textContent = ms.toFixed(2)+"s"+(n===null?"" : " · ~"+n+" နေရာ");
+  var m=document.getElementById("pzmsg");
+  if(m && !m.getAttribute("data-busy"))
+    m.textContent = "ဖြတ်ပြီးရင် ခဏရပ်တိုင်း "+kp.toFixed(2)+"s ကျန်မယ်";
+}
+var LOOKBASE_KP=null;
+function pzLoad(jid){
+  fetch("/api/jobs/"+jid+"/look",{headers:{Authorization:"Bearer "
+        +(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){return r.json()}).then(function(d){
+     var c=(d&&d.cut)||{}; var r=document.getElementById("pzr");
+     if(!r) return;
+     // ⚠️ ဘောင်ကို server ကနေ ယူသည် — UI မှာ ကိန်းသေ မရေးရ
+     if(c.bounds && c.bounds.length>=3){ r.min=c.bounds[1]; r.max=c.bounds[2] }
+     LOOKBASE_KP = (c.keep_pause===undefined||c.keep_pause===null)?0.30:c.keep_pause;
+     if(c.min_sil!==undefined && c.min_sil!==null) r.value=c.min_sil;
+     pzPaint();
+     r.oninput=pzPaint;
+     document.getElementById("pzsave").onclick=function(){ pzSave(jid) };
+   }).catch(function(){});
+}
+function pzSave(jid){
+  var m=document.getElementById("pzmsg"), r=document.getElementById("pzr");
+  if(!r) return;
+  if(m){ m.setAttribute("data-busy","1"); m.textContent="သိမ်းနေသည်…" }
+  fetch("/api/jobs/"+jid+"/finetune",{method:"POST",
+    headers:{"Content-Type":"application/json",
+             Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+    body:JSON.stringify({min_sil: parseFloat(r.value)})})
+   .then(function(x){return x.json().then(function(d){return {ok:x.ok,d:d}})})
+   .then(function(z){
+     if(m){ m.removeAttribute("data-busy");
+       m.textContent = z.ok ? "သိမ်းပြီး ✓ — 「ဖြတ်ချက် စစ်မယ်」 နှိပ်ရင် သုံးပါမယ်"
+                            : ("မရပါ — "+((z.d&&z.d.detail)||"")) }
+     if(z.ok && z.d && z.d.cut && z.d.cut.keep_pause!==undefined)
+       LOOKBASE_KP=z.d.cut.keep_pause;
+   }).catch(function(){ if(m){ m.removeAttribute("data-busy"); m.textContent="ကွန်ရက် မရပါ" } });
+}
+
 /* ══ အလှအပ · SFX · Motion ═══════════════════════════════════════════
    ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「SFX, Motion ဆီကို ဆက်သွားတဲ့ ခလုတ်」。
    ⚠️⚠️ ပုံသေ · ဘောင် ကို **server ကနေသာ** ယူသည် — UI မှာ ကိန်းသေ ရေးလျှင်
@@ -1278,6 +1378,8 @@ function render(d){
     // ⚠️ `tlBind()` နဲ့ `tlDraw()` ကို ခေါ်ရမည် — ဒီ ၂ ကြောင်းက
     //    ၂၀၂၆-၀၉-၂၄ မှာ ဖျက်ခံရပြီး feature တစ်ခုလုံး လက်လှမ်းမမီ ဖြစ်ခဲ့သည်。
     try{ tlBind(); tlDraw() }catch(e){}
+    // ⚠️ ဖြတ်မှတ် မကျခင် အဆင့် (rv မဟုတ်) မှာပဲ ချိန်လို့ ရသည်
+    if(JOB && !document.body.classList.contains("rv")) try{ pzLoad(JOB) }catch(e){}
     // ⚠️ 「✏️ ပြန်ပြင်မယ်」 — အောက်က panel ထဲက `crc` ကို ပဲ ပစ်သည်
     //    (လမ်းကြောင်း ၂ ခု မဆောက်ရ — `/recut` လုပ်ပြီး စာမျက်နှာ ပြန်ဖွင့်သည်)
     var _rve=document.getElementById("rvedit");
@@ -2409,6 +2511,9 @@ function waveLoad(){
       }
       WAVE.db=dbt;
       WAVE.peaks=pk; WAVE.dur=buf.duration; WAVE.state="ok";
+      // ⚠️ ခဏရပ် အရေအတွက်က လှိုင်းပုံ ပေါ်မှာ မူတည်သည် — လှိုင်းပုံ
+      //    မရောက်ခင် ဆွဲမိလျှင် ကိန်း မပါဘဲ ကျန်မည် (စမ်းစဉ် တွေ့)。
+      PZ=null; try{ pzPaint() }catch(e){}
       document.querySelectorAll("canvas[data-w]").forEach(function(c){ waveDraw(c) });
     })
     .catch(function(e){ WAVE.state="fail"; });
