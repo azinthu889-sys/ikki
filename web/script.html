@@ -270,6 +270,8 @@ body.rv .grp{background:transparent;box-shadow:none;border-left-color:transparen
              padding:0;margin:0}
 body.rv #bsec,body.rv #bonly{display:none}
 body.rv #bsimple{display:none}
+/* ⚠️ rv မှာ ⚙ ထဲက ၃ ခုလုံး ဖျောက်ထားသဖြင့် ဗလာ panel ကျန်မည် ⇒ ⚙ ပါ ဖျောက် */
+body.rv #setbox{display:none}
 #rvnote{display:none}
 /* ⚙ — ချိန်ညှိချက် အားလုံး တစ်နေရာထဲ */
 .setd{position:relative}
@@ -836,6 +838,20 @@ function med(){
   return a;
 }
 function medOK(){ return !!(VPROX||AUDIO) }
+/* ⚠️⚠️ `play()` က **promise** ပြန်ပေးသည် — `try/catch` နဲ့ မဖမ်းနိုင်ပါ。
+   browser က ငြင်းလျှင် (autoplay မူဝါဒ · pause နဲ့ ပြိုင်) console မှာ
+   `AbortError` ကျန်ပြီး **သုံးစွဲသူက ဘာမှ မသိ**。 ၂၀၂၆-၁၀-၀၄ index
+   စာမျက်နှာမှာ အဲဒီ error တကယ် တွေ့သည် — တကယ့် အမှားတွေကို ဖုံးတတ်သည်。 */
+function medPlay(a, onFail){
+  var q;
+  try{ q=a.play() }catch(e){ if(onFail) onFail(e); return }
+  if(q && q.catch) q.catch(function(e){
+    // ⚠️ `AbortError` က seek/pause နဲ့ ပြိုင်တာ — ပြောစရာ မလို。
+    //    ကျန်တာ (`NotAllowedError`) ကျမှ သုံးစွဲသူကို ပြောရမည်。
+    if(e && e.name==="AbortError") return;
+    if(onFail) onFail(e);
+  });
+}
 /* ဖျက်ထားတဲ့ အပိုင်းတွေကို ပေါင်းပြီး စီသည် (ခုန်ကျော်ရန်) */
 function skipList(){
   var d=[]; try{ d=tlDrops()||[] }catch(e){ d=[] }
@@ -885,7 +901,8 @@ function playAll(from){
   PLAYALL=true;
   var S=(D&&D.sentences)||[];
   var t0=(from!==undefined&&from!==null)?from:(S.length?Math.max(0,S[0].start-0.12):0);
-  try{ a.currentTime=t0; a.play() }catch(e){ tip("ဖွင့်၍ မရ"); PLAYALL=false; return }
+  try{ a.currentTime=t0 }catch(e){}
+  medPlay(a, function(){ tip("ဖွင့်၍ မရ — ▶ ကို နှိပ်ပါ"); PLAYALL=false; stopAll() });
   var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
   head(a); loopAll(a);
 }
@@ -940,7 +957,7 @@ function seekTo(t){
   clearTimeout(a._t);
   try{ a.currentTime=Math.max(0,t-0.12) }catch(e){ return }
   tlHead(a.currentTime);
-  if(!PLAYALL){ PLAYALL=true; try{a.play()}catch(e){}
+  if(!PLAYALL){ PLAYALL=true; medPlay(a, function(){ tip("ဖွင့်၍ မရ — ▶ ကို နှိပ်ပါ"); stopAll() });
     var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
     head(a); loopAll(a); }
 }
@@ -1310,7 +1327,8 @@ function playRange(t0,t1,label){
   //    မရပ်လျှင် နှစ်ခု ပြိုင်ပြီး ခုန်နေမည်。
   stopAll();
   var a=med(); if(!a) return;
-  try{ a.currentTime=t0; a.play(); }catch(e){ tip("ဖွင့်၍ မရ"); return }
+  try{ a.currentTime=t0 }catch(e){}
+  medPlay(a, function(){ tip("ဖွင့်၍ မရ — ▶ ကို နှိပ်ပါ") });
   clearTimeout(a._t); a._t=setTimeout(function(){a.pause(); head(null)},(t1-t0)*1000+150);
   // ⚠️ **ဘယ်နေရာ ရောက်နေလဲ မြင်ရမည်** — မမြင်ရလျှင် နားထောင်ရုံနဲ့ မလုံလောက်
   head(a);
@@ -1832,7 +1850,6 @@ document.getElementById("bok").onclick=function(){
   });
   /* ⚠️ **အသံလိုင်းပေါ် ကိုယ်တိုင် ရွေးပြီး ဖြတ်ခိုင်းထားတာ**。 ဝါကျ ရှိမရှိ
      မဆိုင်ပါ — engine ဖမ်းမိမဖမ်းမိ မမှီခိုဘဲ ဖြတ်လို့ ရရမည်。 */
-  MCUT.forEach(function(r){ ds.push([r[0], r[1]]) });
   Object.keys(PDEL).forEach(function(k){
     var a=k.split(":"), n=+a[0], s=D.sentences.find(function(z){return z.n===n});
     if(!s||!s.parts||DEL[n]) return;
@@ -1845,7 +1862,6 @@ document.getElementById("bok").onclick=function(){
   /* ⚠️ အသံလိုင်းပေါ် 「ပြန်ချန်」ခိုင်းထားတာ — engine ရဲ့ ဖြတ်ချက်ကို ပယ်。
      ⚠️ Zin ၂၀၂၆-၀၉-၂၂: 「engine က သေချာတယ်ထင်တာ ဖြတ်ထားရင်တောင် Script
         editor မှာ လာပြ · မှားဖြတ်မိတာ ရှိရင် user ပြန်ဆယ်နိုင်」 */
-  MKEEP.forEach(function(r){ ks.push([r[0], r[1]]) });
   // review မှာ transcript စာသားကို client က ပြန်မပို့ပါ။ user ရဲ့
   // ဆုံးဖြတ်ချက်က “ဘယ်ဝါကျ ချန်/ဖြတ်” ဆိုတဲ့ index ပဲ ဖြစ်ပြီး server က
   // မူရင်း ASR စာသားကို index နဲ့ယူသည်။ Unicode/space serialization ကြောင့်
@@ -2377,9 +2393,13 @@ var WAVE={peaks:null, db:null, dbhz:50, hz:200, dur:0, state:"—"};
    ⚠️ Zin ၂၀၂၆-၀၉-၂၂: 「မဖြတ်ခိုင်းဘူး ပြပဲပြပေး · user ကိုယ်တိုင် ဆုံးဖြတ်」
    ⚠️ engine ဖမ်းမိမဖမ်းမိ **မမှီခိုရ** — ဗီဒီယိုရဲ့ ဘယ်အပိုင်းကိုမဆို
       ကိုယ်တိုင် ရွေးပြီး ဖြတ်/ပြန်ချန် လို့ ရမည်。
-   ⚠️ MCUT = ကိုယ်တိုင် ဖြတ်ချက် · MKEEP = engine ဖြတ်ချက်ကို ပြန်ချန်ခိုင်း
+   ⚠️⚠️ ၂၀၂၆-၁၀-၀၄ — `MCUT`/`MKEEP`/`TSEL`/`TDRAG` **ဖယ်ပြီး**。
+      မြေပုံက 「ကြည့်ရုံ」 ဖြစ်သွားသဖြင့် (Zin ရဲ့ ဆုံးဖြတ်ချက်) ဘယ်သူမှ
+      မရေးတော့ပါ — ဖတ် ၆ ကြိမ် · ရေး **၀ ကြိမ်**。 ချန်ထားလျှင်
+      နောက်တစ်ယောက်က 「strip ကနေ ဖြတ်လို့ ရတယ်」 ဟု ထင်မည် —
+      အရင် timeline က ၁၀ ရက် သေနေခဲ့တာ ဒီလို ကျန်ခဲ့လို့ ([[dead code]])。
    ══════════════════════════════════════════════════════════════════ */
-var MCUT=[], MKEEP=[], TSEL=null, TDRAG=null;
+
 /* ⚠️ `vplan` က render ပြီးမှ ထွက်သည် (api/main.py ရဲ့ `/result`) ⇒
       ဖြတ်ချက် စစ်ချိန်မှာ **မရှိသေး**。 အခမဲ့ preview ထုတ်ပြီးမှ ပေါ်မည်。 */
 var VPLAN=null;
@@ -2416,7 +2436,6 @@ function tlDrops(){
     var a=k.split(":"), n=+a[0], x=(D.sentences||[]).find(function(z){return z.n===n});
     if(!x||!x.parts||DEL[n]) return;
     var q=x.parts[+a[1]]; if(q) d.push([q.start, q.end]) });
-  MCUT.forEach(function(r){ d.push([r[0], r[1]]) });
   return d;
 }
 function tlDraw(){
@@ -2432,11 +2451,10 @@ function tlDraw(){
   }
   /* ① ဝါကျ — အစိမ်း */
   (D.sentences||[]).forEach(function(x){ band(x.start, x.end, "#86EFAC", 0, 1) });
-  /* ② engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး (MKEEP မှာ ရှိလျှင် မပြ) */
+  /* ② engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး */
   (D.events||[]).forEach(function(e){
     if(e.type==="sound"||e.type==="unlisted") return;
-    var kept=MKEEP.some(function(r){ return e.start>=r[0]-0.02 && e.end<=r[1]+0.02 });
-    if(!kept) band(e.start, e.end, "#D6D3D1", 0, 1);
+    band(e.start, e.end, "#D6D3D1", 0, 1);
   });
   /* ③ ❓ စာတမ်းမှာ မပါ — အဝါ */
   (D.events||[]).forEach(function(e){
@@ -2459,12 +2477,6 @@ function tlDraw(){
   /* ⑤ ဖျက်ခိုင်းထားတာ — အနီ (ထက်ပိုင်း အမှတ်) */
   tlDrops().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.40)", 0, 1) });
   /* ⑥ ရွေးထားတာ — အပြာ */
-  if(TSEL){
-    band(TSEL[0], TSEL[1], "rgba(59,130,246,.28)", 0, 1);
-    g.strokeStyle="#2563EB"; g.lineWidth=3;
-    g.beginPath(); g.moveTo(X(TSEL[0]),0); g.lineTo(X(TSEL[0]),H);
-    g.moveTo(X(TSEL[1]),0); g.lineTo(X(TSEL[1]),H); g.stroke();
-  }
   /* ⑥ ဂရပ်ဖစ် · B-roll — **preview ထုတ်ပြီးမှ** သိရသည် (`vplan` က
         render ရဲ့ ရလဒ်)。 မထုတ်ရသေးလျှင် ဒီအတန်း ဗလာ ဖြစ်မည် —
         ဘာမှ မပြဘဲ ထားတာက မှားတဲ့ နေရာ ပြတာထက် ကောင်းသည်。 */
@@ -2492,9 +2504,7 @@ function tlDraw(){
       : ("အရှည် "+mm(dur));
   }
   var cc=document.getElementById("tlcuts");
-  if(cc) cc.textContent = (MCUT.length?("ကိုယ်တိုင် ဖြတ် "+MCUT.length+" ခု · "
-      +MCUT.reduce(function(a,r){return a+(r[1]-r[0])},0).toFixed(1)+"s"):"")
-    + (MKEEP.length?(" · ပြန်ချန် "+MKEEP.length+" ခု"):"");
+  if(cc) cc.textContent="";
 }
 function tlBind(){
   var c=document.getElementById("tlc"); if(!c || c.getAttribute("data-b")==="1") return;
