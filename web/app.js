@@ -3167,11 +3167,24 @@ function sopen(id){
         cur==='my'?'ကိုယ်ပိုင် ကစ်ထဲကသာ — စကားအောက်မှာ':'from your own kit only, under the voice');
     h+=ckrow('autocut', cur==='my'?'အလိုအလျောက် ဖြတ်':'Auto jump-cut',
         cur==='my'?'တိတ်ဆိတ်မှု အထဲမှာပဲ — စကားထဲ ဘယ်တော့မှ မဖြတ်':'inside silence only, never in speech');
-    h+=row('silence_ms', cur==='my'?'တိတ်ဆိတ်မှု ဖြတ်မှတ်':'Silence threshold',
-        cur==='my'?'ဒီထက် ရှည်မှ ဖြတ်သည်':'cuts only gaps longer than this',
-        rng('silence_ms',150,1200,10,(o.silence_ms!==undefined?o.silence_ms:(st.silence_ms||400)),
-            function(v){return Math.round(v)+'ms'}),
-        (st.silence_ms||400)+'ms');
+    /* ⚠️⚠️ **ဖြတ်ချက် = ကိန်း ၂ လုံး** (၂၀၂၆-၁၀-၀၃ · Descript ရဲ့
+       「Shorten word gaps」 နည်း)。 ဖတ်နည်း:
+         「<ဂိတ်> ထက် ရှည်တဲ့ ခဏရပ်ကို <ချန်ချက်> ဖြစ်အောင် လျှော့」
+       ⚠️ ယခင်က `silence_ms` (ms slider) တစ်ခုတည်းပဲ ရှိခဲ့ပြီး —
+          「ဘယ်လောက် ချန်မလဲ」 **လုံးဝ မရှိ**ခဲ့ ∴ ချိန်ညှိ ပနေလ်နဲ့ **မတူ**ခဲ့。
+          ပြီးတော့ ၁၂၀၀ms အမြင့်ဆုံးက cinematic-vlog ရဲ့ ၁.၂၀s နဲ့ ထိနေပြီ。
+       ⚠️ `silence_ms` ကို **API မှာ ချန်**ထားသည် — သိမ်းထားပြီးးသား
+          ပုံစံတွေမှာ ပါနိုင်သည် (တစ်လမ်းသွား `min_sil` သို့ များ)。 */
+    h+=row('min_sil', cur==='my'?'ဘယ်လောက်ထက် ရှည်ရင် ဖြတ်မလဲ':'Cut pauses longer than',
+        cur==='my'?'ဒီအောက် ခဏရပ်ကို လုံးဝ မထိပါ':'shorter pauses are left alone',
+        rng('min_sil',0.10,4.00,0.05,(o.min_sil!==undefined?o.min_sil:(st.min_sil||0.75)),
+            function(v){return parseFloat(v).toFixed(2)+'s'}),
+        (st.min_sil||0.75).toFixed(2)+'s');
+    h+=row('keep_pause', cur==='my'?'ဘယ်လောက် ချန်မလဲ':'Shorten them to',
+        cur==='my'?'ဖြတ်ပြီး ကျန်မယ့် ခဏရပ် — ဂိတ်ထက် မကြီးရ':'the pause the viewer hears',
+        rng('keep_pause',0.05,3.00,0.05,(o.keep_pause!==undefined?o.keep_pause:(st.keep_pause||0.40)),
+            function(v){return parseFloat(v).toFixed(2)+'s'}),
+        (st.keep_pause||0.40).toFixed(2)+'s');
     h+=ckrow('shot_grade', cur==='my'?'အပိုင်းလိုက် အရောင်':'Per-shot grade',
         cur==='my'?'အပြင်/အတွင်း ခွဲပြီး သီးသန့် ချိန်သည်':'treats outdoor and indoor separately');
     /* ⚠️ `review` ကို **ဒီမှာ မပြရ** — အဲဒါက job တစ်ခုချင်းရဲ့ `mode`
@@ -3236,6 +3249,10 @@ document.addEventListener('input',function(e){
   if(k==='cap_pct'||k==='cap_base') n.textContent=(parseFloat(i.value)*100).toFixed(1)+'%';
   else if(k==='zoom_amt')           n.textContent=(1+parseFloat(i.value)).toFixed(3)+'×';
   else if(k==='silence_ms')         n.textContent=Math.round(i.value)+'ms';
+  // ⚠️ ဖြတ်ချက်ရဲ့ ကိန်း ၂ လုံး — စက္ကန့်နဲ့ ပြရမည် (ms မဟုတ်)。
+  //    မထည့်လျှင် ဆွဲနေစဥ် ၁.၁၅ လို ကိန်းအကြမ်း ပေါ်မည်。
+  else if(k==='min_sil'||k==='keep_pause')
+                                    n.textContent=parseFloat(i.value).toFixed(2)+'s';
   else                              n.textContent=i.value;
 });
 document.addEventListener('click',function(e){

@@ -162,6 +162,36 @@ class Ui(unittest.TestCase):
         self.assertIn("min=_R.min", w)
         self.assertIn("max=_R.max", w)
 
+    def test_the_style_editor_shows_both_too(self):
+        """⚠️⚠️ UI မှာ ဖြတ်ချက် ပြတဲ့ နေရာ **၂ ခု** ရှိသည် — ချိန်ညှိ panel နဲ့
+           ပုံစံ တည်းဖြတ် စခရင်。 ပထမတစ်ခုပဲ ပြင်ခဲ့ရာ ပုံစံ တည်းဖြတ်မှာ
+           `silence_ms` (ms slider) တစ်ခုတည်း ကျန်ပြီး 「ဘယ်လောက် ချန်မလဲ」
+           **လုံးဝ မရှိ**ခဲ့ — ၁၂၀၀ms အမြင့်ဆုံးက cinematic-vlog ရဲ့ ၁.၂၀s
+           နဲ့ ထိနေပြီးသား。 ⇒ ၂ နေရာလုံး တူညီရမည်。
+        """
+        self.assertIn("row('min_sil'", self.s)
+        self.assertIn("row('keep_pause'", self.s)
+        self.assertNotIn("rng('silence_ms'", self.s)
+
+    def test_the_style_editor_sliders_read_the_api_ranges(self):
+        i = self.s.find("function rng(key,min,max,step,val,fmt)")
+        self.assertGreater(i, 0)
+        w = self.s[i:i + 400]
+        self.assertIn("SMETA.ranges[key]", w)
+
+    def test_both_get_a_seconds_label(self):
+        """⚠️ ms နဲ့ မပြရ — ကိန်း ၂ လုံးက စက္ကန့်"""
+        self.assertIn("k==='min_sil'||k==='keep_pause'", self.s)
+        self.assertIn("toFixed(2)+'s'", self.s)
+
+    def test_the_old_key_still_works_server_side(self):
+        """⚠️ `silence_ms` ကို API မှာ **ချန်**ထားသည် — သိမ်းထားပြီးသား
+           ပုံစံတွေမှာ ပါနိုင်၍ (UI မှာသာ မပြတော့)。"""
+        import recipes as RC
+        self.assertIn("silence_ms", RC.BOUNDS)
+        r = RC.apply("vlog", {"silence_ms": 700})
+        self.assertAlmostEqual(r["min_sil"], 0.70)
+
     def test_the_api_ships_those_ranges(self):
         a = _src("api", "main.py")
         self.assertIn('"ranges"', a)
