@@ -1547,28 +1547,62 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ **ဖျက်ခိုင်းတာ ၁၀၀% ဖျက်ဖြစ်မဖြစ် အမြဲ တိုင်းရမည်** (Zin ၂၀၂၆-၀၉-၁၉) —
             #    တိတ်တဆိတ် ကျော်သွားတာ ဘယ်တော့မှ လက်မခံပါ。 Habit [103] ကို ၁၀၀%
             #    မဖျက်ဘဲ ကျန်ခဲ့ပြီး ဘယ်သူမှ မသိခဲ့ (နားထောင်မှ တွေ့)。
-            _left = []
-            for _k, (_a, _b) in enumerate(_req):
-                _rem = sum(max(0.0, min(_b, _y) - max(_a, _x)) for _x, _y in spans)
-                if _rem > 0.02 and (_b - _a) > 0:
-                    _left.append([_k, round(_rem, 2), round(100.0*_rem/(_b-_a), 1)])
+            # ⚠️⚠️ **စကား**ကိုသာ တိုင်းရမည် — ယခင်က အချိန် ထပ်မှုကို တိုင်းခဲ့ရာ
+            #    တိတ်ဆိတ်မှု ကျန်တာကိုပါ သတိပေးပြီး (အန္တရာယ် မရှိ) ·
+            #    **ပိုဖြတ်မိမှု လုံးဝ မစစ်**ခဲ့ — ဘေးဝါကျရဲ့ စကားလုံး
+            #    ပါသွားတာက 「စကားလုံး ပြတ်」 ဖြစ်ပြီး ပိုဆိုးသည်。
+            _vf = None
+            try:
+                # ⚠️ **ဘောင်ကို ပေးရမည်** — မပေးလျှင် ဝါကျရဲ့ ကိုယ်ပိုင်
+                #    အမြီး ဖြတ်တာကို 「ပိုဖြတ်မိ」 ဟု မှားခေါ်မည်。
+                _vf = CUT.verify_drops(_req, spans, _FINETRACK[0], _FINETRACK[1],
+                                       float(m["dur"]), bounds=_bounds)
+            except Exception as _ve:
+                log(f"  ⚠️ ဖျက်ချက် အတည်ပြုချက် မရ ({type(_ve).__name__}) — "
+                    f"တစ်ခုချင်း မစစ်နိုင်")
+            _left, _over = [], []
+            if _vf:
+                for _k, (_kept, _out) in enumerate(_vf):
+                    _a, _b = _req[_k]
+                    if _kept > CUT.VERIFY_FLOOR and (_b - _a) > 0:
+                        _left.append([_k, round(_kept, 2),
+                                      round(100.0 * _kept / (_b - _a), 1)])
+                    if _out > CUT.VERIFY_FLOOR:
+                        _over.append([_k, round(_out, 2)])
             st["drop_left"] = _left
-            if _left:
-                # ⚠️ `flag_list` ထဲ ထည့်မှ UI မှာ ပေါ်မည် — log တင် ထားလျှင်
-                #    သုံးစွဲသူ ဘယ်တော့မှ မမြင်ရ (တိတ်တဆိတ် ကျော်သွားခြင်း ဖြစ်မည်)。
-                _fl = st.get("flag_list") or []
-                for _k, _s2, _p2 in _left:
-                    _fl.append(dict(kind="drop_left", at=round(_req[_k][0], 2),
-                                    text=f"ဖျက်ခိုင်းထားတာ {_p2}% ကျန်နေသည် "
-                                         f"({_s2:.2f}s) — အသံ ဆက်နေ၍ သပ်သပ် မဖြတ်နိုင်ပါ",
-                                    score=f"{_p2}%"))
+            st["drop_over"] = _over
+            _fl = st.get("flag_list") or []
+            # ⚠️ `flag_list` ထဲ ထည့်မှ UI မှာ ပေါ်မည် — log တင် ထားလျှင်
+            #    သုံးစွဲသူ ဘယ်တော့မှ မမြင်ရ (တိတ်တဆိတ် ကျော်သွားခြင်း ဖြစ်မည်)。
+            for _k, _s2, _p2 in _left:
+                _fl.append(dict(kind="drop_left", at=round(_req[_k][0], 2),
+                                text=f"ဖျက်ခိုင်းထားတဲ့ စကား {_p2}% ကျန်နေသည် "
+                                     f"({_s2:.2f}s) — ဘေးဝါကျနဲ့ ကပ်နေ၍ "
+                                     f"သပ်သပ် မဖြတ်နိုင်ပါ",
+                                score=f"{_p2}%"))
+            for _k, _s3 in _over:
+                _fl.append(dict(kind="drop_over", at=round(_req[_k][0], 2),
+                                text=f"ဖျက်ခိုင်းတာထက် **ပို၍ ဖြတ်မိ** {_s3:.2f}s — "
+                                     f"ဘေးဝါကျရဲ့ စကားလုံး ပါသွားနိုင်သည်",
+                                score=f"{_s3:.2f}s"))
+            if _left or _over:
                 st["flag_list"] = _fl
                 st["flags"] = len(_fl)
-                log(f"  ⚠️ **၁၀၀% မဖျက်နိုင်တာ {len(_left)}/{len(_req)} ခု** — "
-                    + " · ".join(f"#{k+1} {p}% ကျန်" for k, _s, p in _left[:8])
+            if _left:
+                log(f"  ⚠️ **ကျန်နေတာ {len(_left)}/{len(_req)} ခု** — "
+                    + " · ".join(f"#{k+1} {p}%" for k, _s, p in _left[:8])
                     + (" …" if len(_left) > 8 else ""))
-            else:
-                log(f"  ✓ ဖျက်ချက် {len(_req)} ခုလုံး ၁၀၀% ဖျက်ပြီး")
+            if _over:
+                log(f"  ⚠️ **ပိုဖြတ်မိတာ {len(_over)}/{len(_req)} ခု** — "
+                    + " · ".join(f"#{k+1} {s:.2f}s" for k, s in _over[:8])
+                    + (" …" if len(_over) > 8 else ""))
+            if _vf and not _left and not _over:
+                _mx_k = max((x[0] for x in _vf), default=0.0)
+                _mx_o = max((x[1] for x in _vf), default=0.0)
+                log(f"  ✓ ဖျက်ချက် {len(_req)} ခုလုံး တိကျသည် — "
+                    f"ကျန်နေ အများဆုံး {_mx_k:.3f}s · "
+                    f"ပိုဖြတ်မိ အများဆုံး {_mx_o:.3f}s "
+                    f"(ကိရိယာ ကန့်သတ် {CUT.VERIFY_FLOOR:.3f}s)")
         if user_drop_exact:
             # ⚠️ **စစ်ဆေးပြီးမှ ဖြတ်ရမည်** (Cut audit P0)。 အရင်က တိုက်ရိုက်
             #    `subtract(snap=0.0)` ပို့ခဲ့သဖြင့် အစွန်းက စကားထဲ ကျနေလျှင်

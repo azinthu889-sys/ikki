@@ -809,3 +809,109 @@ def loud_removed(wav, spans, dur, near=LOUD_NEAR_DB,
                     n=len(regions), regions=regions[:20])
     except Exception:
         return None
+
+
+# ══ ဖျက်ချက် တစ်ခုချင်း အတည်ပြုခြင်း ═══════════════════════════════
+# ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၃: 「တိကျအောင်လုပ်ပေးဖိ့」。 ယခင် စစ်ချက်က တောင်းချက်နဲ့
+#    ချန်ထားချက်ရဲ့ **အချိန် ထပ်မှု**ကိုသာ တိုင်းသည် ⇒ ချို့ယွင်းချက် ၂ ခု:
+#      · တိတ်ဆိတ်မှု ကျန်တာကိုပါ 「မဖျက်ဖြစ်」 ဟု သတိပေးသည် (အန္တရာယ် မရှိ)
+#      · **ပိုဖြတ်မိမှု လုံးဝ မစစ်** — ဘေးဝါကျရဲ့ စကားလုံး ပါသွားတာက
+#        「စကားလုံး ပြတ်」 ဖြစ်ပြီး ပိုဆိုးသည် (Zin ရဲ့ လက္ခဏာ ①)
+#    ⇒ **စကား** ကိုသာ တိုင်းပြီး **၂ ဖက်လုံး** စစ်သည်。
+# ⚠️ `measure.speech()` ရဲ့ mask ကို **မသုံးရ** — engine က အဲဒါနဲ့ ဖြတ်သဖြင့်
+#    စစ်ချက်က ဘယ်တော့မှ မကျနိုင် (ikki-cut-check-blind)。 အဆင့်နဲ့သာ စစ်သည်。
+# ⚠️ `VERIFY_FLOOR` = ၀.၀၅၀s。 ၁၀ms grid ကို ၂ ဖက် သုံးရာက လာသော
+#    ကိရိယာရဲ့ ကိုယ်ပိုင် ကန့်သတ်ချက် — ဒီအောက်ကို အမှား ဟု မခေါ်နိုင်。
+VERIFY_FLOOR = 0.050
+VERIFY_NEAR_DB = 14.0
+
+
+def verify_drops(reqs, spans, gdb, ghop, dur, bounds=None, near=VERIFY_NEAR_DB):
+    """ဖျက်ချက် တစ်ခုချင်းကို အတည်ပြု — (kept_speech, cut_outside) စာရင်း
+
+    `kept_speech` = တောင်းချက် **အတွင်း** ကျန်သော စကား (မဖျက်ဖြစ်)
+    `cut_outside` = **ဘေးဝါကျရဲ့ စကား** ဖြုတ်မိမှု (စကားလုံး ပြတ်)
+
+    ⚠️⚠️ **တောင်းချက်နဲ့ မတိုင်းရ — ဘောင်နဲ့ တိုင်းရမည်**。 ဝါကျရဲ့ တကယ့်
+       အမြီးက `seg.end` ပြင်ပမှာ ရှိတတ်သည် (ဒါက ဖြေရှင်းရမယ့် ပြဿနာ
+       ကိုယ်တိုင်)。 တောင်းချက်နဲ့ တိုင်းလျှင် အဲဒီ အမြီးကို ဖြတ်တာကို
+       「ပိုဖြတ်မိ」 ဟု မှားခေါ်မည် — မှန်ကန်သော အပြုအမူကို အမှား အဖြစ်
+       သတ်မှတ်ရာ ကျသည် (တကယ် ဖြစ်ခဲ့: ဝါကျ ၂၇ မှာ ၀.၁၅s)。
+       သုံးစွဲသူ ဂရုစိုက်တာက 「**ငါ့ ဘေးဝါကျကို မထိနဲ့**」 ⇒ ဘောင် ပြင်ပ
+       ဖြုတ်မိမှသာ အမှား。 `bounds` မပါလျှင် တောင်းချက်ကို သုံးသည်。
+    ⚠️ တိုင်းလို့ မရလျှင် `None` — အလုပ် မရပ်ရ。
+    """
+    import numpy as _np
+    if gdb is None or not ghop or not len(gdb) or not reqs:
+        return None
+    voiced = gdb >= (float(_np.percentile(gdb, 90)) - float(near))
+    n = len(voiced)
+    h = float(ghop)
+
+    def _sp(a, b):
+        i0 = max(0, int(float(a) / h))
+        i1 = min(n, max(i0 + 1, int(float(b) / h)))
+        return float(voiced[i0:i1].sum()) * h if i1 > i0 else 0.0
+
+    # ⚠️ ဖြုတ်လိုက်သော အပိုင်းများ = ချန်ထားချက်ရဲ့ ဖြည့်စွက်
+    gone, p = [], 0.0
+    for a, b in sorted((float(a), float(b)) for a, b in (spans or [])):
+        if a - p > 1e-6:
+            gone.append((p, a))
+        p = max(p, b)
+    if float(dur) - p > 1e-6:
+        gone.append((p, float(dur)))
+    # ⚠️⚠️ ဖျက်ချက် ၂ ခု **ကပ်လျက်** ဖျက်လျှင် တစ်ခုရဲ့ ဖြုတ်ချက်က ကျန်တစ်ခုရဲ့
+    #    ဘောင် ပြင်ပမှာ ရှိနေမည် ⇒ တစ်ခုချင်း သီးသန့် စစ်လျှင် **အပြန်အလှန်
+    #    အပြစ်တင်**မိပြီး မှားသော သတိပေးချက် ထွက်မည် (တကယ် ဖြစ်ခဲ့:
+    #    ၄၆ ခုထဲ ၄ ခု · ပိုဖြတ်မိ max ၂.၇၃s)。 ⇒ **ဘောင် အားလုံး ပေါင်းစု**
+    #    ပြင်ပ ဖြုတ်မိမှသာ အမှား。
+    _bd = list(bounds) if bounds else [None] * len(list(reqs))
+    _allow = []
+    for _i, (a, b) in enumerate(reqs):
+        _l, _h = float(a), float(b)
+        if _i < len(_bd) and _bd[_i] is not None:
+            _l, _h = float(_bd[_i][0]), float(_bd[_i][1])
+        _allow.append((_l, _h))
+    _mrg = []
+    for _l, _h in sorted(_allow):
+        if _mrg and _l <= _mrg[-1][1] + 1e-6:
+            _mrg[-1] = (_mrg[-1][0], max(_mrg[-1][1], _h))
+        else:
+            _mrg.append((_l, _h))
+
+    def _outside_sp(x, y):
+        """`[x,y]` ထဲက စကား — **ခွင့်ပြုထားသော အပိုင်းများ ဖယ်ပြီး**"""
+        tot, p = 0.0, float(x)
+        for _l, _h in _mrg:
+            if _h <= p or _l >= float(y):
+                continue
+            if _l > p:
+                tot += _sp(p, _l)
+            p = max(p, _h)
+        if p < float(y):
+            tot += _sp(p, float(y))
+        return tot
+
+    out = []
+    for _i, (a, b) in enumerate(reqs):
+        a, b = float(a), float(b)
+        _lo, _hi = _allow[_i]
+        kept = 0.0
+        for x, y in (spans or []):
+            x, y = float(x), float(y)
+            if y <= a or x >= b:
+                continue
+            kept += _sp(max(x, a), min(y, b))
+        # ⚠️ **ကပ်လျက် ဖြုတ်ချက်ကိုသာ** စစ်ရမည် — ဗီဒီယိုတစ်ခုလုံးရဲ့
+        #    ဖြုတ်ချက်အားလုံးကို ဒီတောင်းချက်ရဲ့ အပြစ် မတင်ရ。
+        # ⚠️ ဒီ ဖျက်ချက်နဲ့ **ကပ်လျက်** ဖြုတ်ချက်ကိုသာ ကြည့်ပြီး
+        #    ခွင့်ပြုထားသော အပိုင်းအားလုံးကို ဖယ်သည်。
+        outside = 0.0
+        for x, y in gone:
+            x, y = float(x), float(y)
+            if y <= _lo or x >= _hi:
+                continue                  # ဒီ ဖျက်ချက်နဲ့ မဆိုင်
+            outside += _outside_sp(max(x, _lo - 1.0), min(y, _hi + 1.0))
+        out.append((round(kept, 3), round(outside, 3)))
+    return out
