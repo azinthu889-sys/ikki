@@ -2457,6 +2457,14 @@ async def w_fail(jid: str, req: Request, authorization: str = Header(None)):
     # ⚠️ ပျက်သွားသော အလုပ်အတွက် မိနစ် **မယူရ** — UI က ကတိပေးထားသည်
     db.run("UPDATE usage SET minutes=max(0,minutes-?) WHERE ym=?",
            (j or {}).get("minutes") or 0, time.strftime("%Y-%m"))
+    # ⚠️⚠️ **အခမဲ့ preview ကိုလည်း ပြန်ပေးရမည်** — မိနစ်နဲ့ စည်းမျဉ်း တစ်ခုတည်း
+    #    ဖြစ်ပြီး ဒီတစ်ခု ကျန်ခဲ့သည် (၂၀၂၆-၁၀-၀၄ အစအဆုံး စစ်ဆေးမှုမှာ တွေ့)。
+    #    တကယ် ဖြစ်ခဲ့: `j_5e2a8a101fc6` ရဲ့ preview က QC
+    #    (`headtop_sfx_moments`) မအောင်ဘဲ ပျက်သွားပြီး `prev_used` က ၁ တက်ကာ
+    #    သုံးစွဲသူက **ဘာမှ မရဘဲ အခွင့်အရေး တစ်ခု ဆုံးရှုံး**ခဲ့သည်。
+    #    `prev_n` ကို စချိန်မှာ တိုးထားသဖြင့် ပျက်လျှင် ပြန်လျှော့ရသည်。
+    if (j or {}).get("mode") == "prev":
+        db.run("UPDATE jobs SET prev_n=max(0,COALESCE(prev_n,0)-1) WHERE id=?", jid)
     db.run("UPDATE jobs SET status='failed',err=?,finished=?,minutes=0 WHERE id=?",
            b.get("err","")[:2000], time.time(), jid)
     return {"ok": True}

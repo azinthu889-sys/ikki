@@ -4727,6 +4727,25 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 f"{len(_new5)} cue · ကတ်ပေါ်ချိန် {len(_prot)} ကာ)")
             REPORT["sfx_permin_dropped"] = len(_rm5)
             cues = sorted(_new5, key=lambda x: x[0])
+        # ⚠️⚠️ **floor = cap ⇒ မြှားမျှ လွဲလို့ မရ**。 QC ရဲ့
+        #    `headtop_sfx_moments` က `want = int(per_min·dur/60)` ကို
+        #    အနည်းဆုံး အဖြစ် သုံးပြီး ဤနေရာက ကိန်းတူကို အများဆုံး အဖြစ်
+        #    သုံးသည် ⇒ ထုတ်သူက **အတိအကျ မီမှ** အောင်သည်。
+        #    ၂၀၂၆-၁၀-၀၄ တကယ် ဖြစ်ခဲ့: အပြည့် render က ဖြစ်ရပ် ၉/၉ ⇒ အောင် ·
+        #    preview က ၈/၉ ⇒ **ကျ** (အကြောင်းရင်းက log မှာ မပေါ်ခဲ့ — QC
+        #    အမှားမှာ 「headtop_sfx_moments」 ဆိုတဲ့ နာမည်သာ)。
+        #    ⇒ ဂိတ် **မလျှော့ပါ** — မမီရင် မမီကြောင်း **အရင်ကတည်းက** ပြောသည်。
+        try:
+            _mnow = _sfx_moment_count(cues, LAYER_W)
+            if _cap5 > 0 and _mnow < _cap5:
+                log(f"  ⚠️ SFX · ဖြစ်ရပ် {_mnow} ခု ထွက်ပြီး QC က "
+                    f"အနည်းဆုံး {_cap5} ခု လိုသည် ({_pmx:.1f}/min × "
+                    f"{_dur5:.1f}s) ⇒ QC `headtop_sfx_moments` **ကျမည်**。 "
+                    f"cue {len(cues)} ခုက {LAYER_W}s အတွင်း ပေါင်းနေသဖြင့် "
+                    f"ဖြစ်ရပ် နည်းနေခြင်း ဖြစ်နိုင်သည်")
+                REPORT["sfx_moments_short"] = _cap5 - _mnow
+        except Exception:
+            pass
         # ⚠️ **အသံ တစ်မျိုးတည်း မထပ်ရ** — role ဆက်တိုက် တူလျှင် ပြရမည်
         try:
             _roles = [str(c[1]) for c in cues]
