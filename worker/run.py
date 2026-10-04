@@ -1245,6 +1245,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
             log(f"  ⚠️ reference မသုံးနိုင် ({type(_re).__name__}: {_re}) ⇒ IKKI ပုံသေ")
             ref_notes = [f"{type(_re).__name__}"]
     rc = RC.apply(job.get("recipe"), over)
+    if job.get("recipe") and not RC.known(job.get("recipe")):
+        log(f"  ⚠️ style {job.get('recipe')!r} မရှိတော့ — {RC.FALLBACK} နဲ့ ထုတ်သည်")
+    elif job.get("recipe") in RC.ALIAS:
+        log(f"  ℹ️ style {job.get('recipe')!r} ⇒ {RC.ALIAS[job.get('recipe')]} (နာမည် ပြောင်းထား)")
     # Recipe may carry a delivery format (short-916 -> 9:16). Only fills an
     # empty job fmt -- a size the user picked always wins.
     if not (job.get("fmt") or "").strip() and rc.get("fmt"):
@@ -1432,6 +1436,29 @@ def render(job, brand, src, out, stage, log=print, over=None):
             log(f"  ⚠️ ပေးလာသော စာသား alignment မရ ({type(_ae).__name__}) — user timing သုံးသည်")
         log(f"  စာသား ပေးလာသည် {len(segs)} ကြောင်း — ASR စာသားပြန်မထုတ်"
             + (f" · စာလုံး ပြင်ချက် {_nfix} ကြောင်း" if _nfix else ""))
+        # ⚠️⚠️ **စာသားက အသံရဲ့ တစ်ဝက်ပဲ ဖုံးလျှင် ကျန်တာကို ASR လုပ်ရမည်**。
+        #    audit ၂၀၂၆-၁၀-၀၄ (knowledge · j_50d1f45e28ae): စာသားက မူရင်း ၁၅၆s
+        #    အထိသာ ရှိပြီး ဖြတ်ချက်က စကား ဆက်ရှိသဖြင့် ၃၂၃s ချန်ခဲ့ ⇒ ထွက်ဗီဒီယိုရဲ့
+        #    **၅၄%** မှာ စာတန်း · slide · ဂရပ်ဖစ် လုံးဝ မပါ (parent ရဲ့ ASR က
+        #    တစ်ဝက်တည်းမှာ ရပ်ခဲ့ပြီး re-edit တိုင်း အဲဒါကို ပြန်သုံးခဲ့)。
+        #    ⚠️ ဖျက်ထားသော အပိုင်း ပြန်မပေါ်ပါ — `CP.plan()` က ဖြတ်ပြီးသား
+        #       အချိန်ထဲ ကျသော စာကြောင်းကို ဖယ်သည်。
+        try:
+            _last = max(float(x.get("end") or 0) for x in segs if isinstance(x, dict))
+            _tail = sum(max(0.0, min(e2, float(m["dur"])) - max(s2, _last + 0.5))
+                        for s2, e2 in (MEAS[0] or []))
+            if _tail >= 5.0:
+                log(f"  ⚠️ စာသားက {_last:.1f}s မှာ ဆုံး · နောက်မှာ စကား {_tail:.1f}s ကျန် — ASR ဖြည့်သည်")
+                _lang = (job.get("lang") or "my")
+                _ac2 = (CUT.calib(job.get("brand_id") or rc.get("theme")) or {}).get("asr_align")
+                _new = ASR.run(wav, lang=_lang, log=log, meas=MEAS, align_cfg=_ac2)
+                _add = [x for x in (_new or []) if float(x.get("start") or 0) >= _last - 0.2]
+                segs = list(segs) + _add
+                REPORT["tail_asr"] = dict(after=round(_last, 2), speech=round(_tail, 1),
+                                          added=len(_add))
+                log(f"  ✓ အဆုံးပိုင်း စာကြောင်း {len(_add)} ကြောင်း ဖြည့်ပြီး")
+        except Exception as _te:
+            log(f"  ⚠️ အဆုံးပိုင်း ASR မရ ({type(_te).__name__}: {_te}) — ယခင်အတိုင်း")
     else:
         lang = (job.get("lang") or "my")
         # ⚠️ ချိန်ညှိချက်ကို **calib ကနေ** ယူသည် — code ထဲ မရေးရ (R5)。
@@ -2184,7 +2211,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    "မသတ်မှတ်" နဲ့ ရောနေပြီး ပိတ်လို့ မရခဲ့。
         if cov is not None and float(cov) <= 0.0:
             caps = []; log("  စာတန်း ပိတ်ထား (cap_cover 0)")
-        if cov and caps and 0 < cov < 1:
+        # ⚠️⚠️ `cap_cover` ≥ ၀.၅ = **စာကြောင်း အားလုံး** (ဖြုတ်ချက် မလုပ်)。
+        #    ဒီကိန်းက reference ရဲ့ 「စာတန်း ပေါ်နေသော frame အချိုး」 ဖြစ်ပြီး
+        #    (ခဏရပ် · ဂရပ်ဖစ်ကြောင့် ၁ မရောက်) 「ချန်မည့် စာကြောင်း အချိုး」 မဟုတ်ပါ —
+        #    စာကြောင်း အချိုးအဖြစ် သုံးခဲ့ရာ headtop (၀.၈၅) မှာ ၁၅% · short-video
+        #    (၀.၉၃) မှာ CTA စာကြောင်း ဖြုတ်ခံရ (audit ၂၀၂၆-၁၀-၀၄)。 Zin ရဲ့ စည်းကမ်း:
+        #    「Every word gets a subtitle」 (zin-video-taste)。
+        #    ⇒ ရွေးထိုးခြင်းက **အလေးထား စာတန်း style** (knowledge ၀.၁၅ · ref-fast ၀.၁၂ ·
+        #      ref-slides ၀.၀၈ · cinematic-vlog ၀.၃၀ · promotional ၀.၄၅) အတွက်သာ。
+        if cov and caps and 0 < cov < 0.5:
             want = max(3, int(round(len(caps) * cov)))
             keep = set(TP.emphasis(caps, want, log=log))
             # ⚠️ `emphasis()` က **「အလေးထားထိုက်သည်」ဟု ထင်တာပဲ** ပြန်ပေးသည် —

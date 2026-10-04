@@ -963,6 +963,35 @@ def job_editplan(jid: str, authorization: str = Header(None)):
     return p
 
 
+def srt_rows(segs, cm):
+    """`segs` (မူရင်း အချိန်) ⇒ [(ထွက် start, ထွက် end, text)]
+
+    ⚠️ `cm` မရှိလျှင် (ဖြတ်ချက် မရှိသေး) မူရင်း အတိုင်း ပြန်ပေးသည်。
+    ⚠️ cue တစ်ခုက ဖြတ်မှတ်ကို ဖြတ်ကျော်လျှင် ကျန်ထားသော အပိုင်းများ ထွက် ဗီဒီယိုမှာ
+       ကပ်လျက် ဖြစ်သဖြင့် ပထမ အပိုင်းရဲ့ အစ ⇒ နောက်ဆုံး အပိုင်းရဲ့ အဆုံး ယူသည်。
+    ⚠️ ချန်ထားတာ ၀.၀၅s အောက်ဆိုလျှင် (ဖျက်ထားသော ဝါကျ) cue ကို **ဖယ်**သည်。
+    """
+    out = []
+    spans = (cm or {}).get("spans") or []
+    total = float((cm or {}).get("total") or 0)
+    for s in segs:
+        try: a, b = float(s["start"]), float(s["end"])
+        except (KeyError, TypeError, ValueError): continue
+        tx = s.get("text") or ""
+        if not spans:
+            out.append((a, b, tx)); continue
+        off, o0, o1, kept = 0.0, None, None, 0.0
+        for x, y in spans:
+            lo, hi = max(a, x), min(b, y)
+            if hi > lo:
+                if o0 is None: o0 = off + (lo - x)
+                o1 = off + (hi - x); kept += hi - lo
+            off += y - x
+        if o0 is None or kept < 0.05: continue
+        out.append((o0, min(o1, total) if total else o1, tx))
+    return out
+
+
 @app.get("/api/jobs/{jid}/srt")
 def job_srt(jid: str, authorization: str = Header(None), t: str = ""):
     """စာတန်း ဖိုင် — SRT (ဗီဒီယို မလိုဘဲ သီးသန့် သုံးရန်)"""
@@ -975,8 +1004,13 @@ def job_srt(jid: str, authorization: str = Header(None), t: str = ""):
     def ts(x):
         h=int(x//3600); mm=int(x%3600//60); ss=int(x%60); ms=int((x-int(x))*1000)
         return f"{h:02d}:{mm:02d}:{ss:02d},{ms:03d}"
-    body = "".join(f"{i+1}\n{ts(s['start'])} --> {ts(s['end'])}\n{s['text']}\n\n"
-                   for i,s in enumerate(segs))
+    # ⚠️⚠️ `segs` က **မူရင်း** အချိန် — ဖြတ်ပြီးသား ဗီဒီယိုနဲ့ တွဲသုံးလျှင် လွဲသည်。
+    #    တိုင်းထား (audit ၂၀၂၆-၁၀-၀၄): headtop 1:07.5 ဗီဒီယိုမှာ နောက်ဆုံး cue
+    #    2:49.9 · ref-slides +15.6s လွဲ ပြီး cue ၅/၂၂ က ဗီဒီယို ပြီးမှ စ。
+    #    ⇒ ချန်ထားသော span (`_cut_map`) ပေါ် ပြန်တွက်ပြီး ဖြတ်ပြီးသား cue ကို ဖယ်သည်。
+    rows = srt_rows(segs, _cut_map(j))
+    body = "".join(f"{i+1}\n{ts(a)} --> {ts(b)}\n{tx}\n\n"
+                   for i, (a, b, tx) in enumerate(rows))
     p = os.path.join(OUT, f"{jid}.srt")
     open(p, "w", encoding="utf-8").write(body)
     return FileResponse(p, filename=f"{jid}.srt", media_type="text/plain; charset=utf-8")

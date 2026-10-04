@@ -143,6 +143,34 @@ def _ask(img):
     G.log_fail("broll_describe", 3, 3, None, "retry ကုန် — None ပြန်", final=True)
     return None
 
+# ⚠️⚠️ **အမျိုးအစား tag တစ်ခုတည်းသာ ရှိသော clip** — ၈၃၅ ခုထဲ ၁၅၂ ခုက
+#    `knowledge_sharing` (၅၆) / `talking_head_motion` (၉၆) သာ ရှိပြီး ရုပ်ထဲ
+#    **ဘာပါလဲ မဖော်ပြ**。 audit ၂၀၂၆-၁၀-၀၄: ZAE short-video မှာ
+#    「1000CAT/USDC Binance」 crypto chart က 「ကျွမ်းကျင်မှု」「N5 level」 စာကြောင်း
+#    ပေါ် ကျခဲ့ — tag က 「knowledge」 ပြောပြီး Gemini က chart ကို မမြင်ရ၍。
+#    ⇒ `src` (Pexels URL) ရဲ့ slug ထဲက စာလုံးကို `en` ထဲ ဖြည့်သည်
+#      (`crypto-market-analysis-with-trading-charts` ⇒ crypto · market · trading …)。
+#    index.json ကို မပြင် — load မှာသာ (index ကို တခြား tool တွေ ပြန်ရေးတတ်၍)。
+_GENERIC = {"knowledge_sharing", "talking_head_motion"}
+_SLUG_STOP = {"a", "an", "the", "of", "on", "in", "with", "and", "for", "to", "at",
+              "by", "from", "video", "videos", "stock", "footage", "dynamic", "free"}
+
+
+def _enrich(c):
+    my = [str(x) for x in (c.get("my") or [])]
+    if not my or not set(my) <= _GENERIC:
+        return c
+    src = str(c.get("src") or "")
+    slug = src.rstrip("/").rsplit("/", 1)[-1]
+    words = [w for w in re.split(r"[^a-z]+", slug.lower())
+             if len(w) > 2 and w not in _SLUG_STOP]
+    if words:
+        en = list(c.get("en") or [])
+        c["en"] = en + [w for w in words if w not in en][:8]
+        c["_enriched"] = True
+    return c
+
+
 def load():
     try:
         d = json.load(open(INDEX, encoding="utf-8"))
@@ -196,6 +224,7 @@ def load():
                                os.path.basename(c.get("path", "")))
             if os.path.exists(_lb):
                 c["path"] = _lb
+            _enrich(c)
             # ⚠️ ကူးထားတဲ့ ဖိုင် မရှိတော့တာတွေ ဖယ်ရမည် — မဖျက်လျှင် render ပျက်သည်
             if os.path.exists(c.get("path", "")):
                 clips.append(c)
@@ -527,7 +556,7 @@ def match(segs, want, used=None, log=print, strict=False):
        မဆိုင်တဲ့ရုပ် ဝင်သွားမည်。 ဒါက ပထမက Gemini မမေးဘဲ ထားခဲ့တဲ့ အကြောင်းရင်း；
        ခုတော့ စစ်လိုက်သဖြင့် မေးလို့ ရသည်。
     """
-    import json, re, time, urllib.request, urllib.error
+    import json, re, re, time, urllib.request, urllib.error
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import gemguard as G
     import topics as T
@@ -594,7 +623,12 @@ def match(segs, want, used=None, log=print, strict=False):
                 f"(ယခင် ကန့်သတ် {WIN_MIN})")
     for i, c in enumerate(_win):
         cid = "c%02d" % i; ids[cid] = c
-        rows.append(f'{cid}: {" · ".join((c.get("my") or [])[:4])}  [{c["dur"]:.0f}s]')
+        # ⚠️ `en` ပါ ပို့ရမည် — `my` သာ ပို့ခဲ့ရာ tag 「knowledge_sharing」 တစ်ခုတည်း
+        #    ရှိသော crypto chart ကို Gemini က 「ပညာ」 ဟု မြင်ပြီး 「ကျွမ်းကျင်မှု」
+        #    စာကြောင်းနဲ့ တွဲခဲ့ (audit ၂၀၂၆-၁၀-၀၄)。 `_enrich` က src slug ထည့်ပေးသည်。
+        _my = [str(x) for x in (c.get("my") or [])[:4]]
+        _en = [str(x) for x in (c.get("en") or []) if str(x) not in _my][:6]
+        rows.append(f'{cid}: {" · ".join(_my + _en)}  [{c["dur"]:.0f}s]')
     lines = "\n".join(f"{i+1}. {s['text']}" for i, s in enumerate(segs[:80]))
     body = {"contents":[{"parts":[{"text": MPROMPT % (want, "\n".join(rows), lines)}]}],
             "generationConfig":{"temperature":0.1}}

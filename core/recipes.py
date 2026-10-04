@@ -639,8 +639,26 @@ def _expand(r):
     return r
 
 
+# ⚠️ နာမည် ပြောင်းသွားသော style — job အဟောင်း/re-edit က နာမည်ဟောင်းနဲ့ လာတတ်သည်。
+#    `hype-2026` (reference ၂၀၂၆-၀၉-၂၀) ကို ref-talk/ref-fast/ref-slides ၃ ခု ခွဲခဲ့ပြီး
+#    နာမည်ဟောင်းက တိတ်တဆိတ် **cinematic-vlog** ဖြစ်သွားခဲ့ (audit ၂၀၂၆-၁၀-၀၄:
+#    j_5ad18e99130c log က 「Cinematic Vlog」 · ဖြတ်ချက် ၀ · B-roll 40%)。
+ALIAS = {"hype-2026": "ref-talk"}
+FALLBACK = "cinematic-vlog"
+
+
+def known(name):
+    """style နာမည် သိ/မသိ (alias ပါ)"""
+    return ALIAS.get(name, name) in R
+
+
 def get(name):
-    r = dict(DEF); r.update(R.get(name, R["cinematic-vlog"]))
+    name = ALIAS.get(name, name)
+    if name and name not in R:
+        # ⚠️ **တိတ်တဆိတ် မပြောင်းရ** — stderr (worker.log) ထဲ ကျန်ရစ်စေသည်
+        import sys as _sys
+        print(f"⚠️ recipe {name!r} မရှိ — {FALLBACK} သုံးသည်", file=_sys.stderr)
+    r = dict(DEF); r.update(R.get(name, R[FALLBACK]))
     # ⚠️ `natural=True` ကို **ဒီမှာ** ဖြန့်ရသည် — `grade.chain()` ထဲမှာ ဖြန့်လျှင်
     #    သုံးစွဲသူရဲ့ sat/vign/lv_* ပြင်ချက်က `apply()` မှာ ပေါင်းပြီးသား ဖြစ်၍
     #    natural က ပြန်ဖျက်ပစ်မည် (slider သေမည်)。 recipe အလွှာမှာ ဖြန့်လျှင်
@@ -1001,7 +1019,7 @@ def apply(name, over):
     # ⚠️ **recipe နာမည်ကို ပါသွားစေရမည်** — `label` က ပြရန်သာ ("Headtop")
     #    ဖြစ်ပြီး ပုံစံအလိုက် မူဝါဒ (SFX သိပ်သည်းမှု စသည်) က id နဲ့ ရှာသည်。
     #    မပါလျှင် တိုင်းထားသော profile ကို ဘယ်တော့မှ မတွေ့ပါ。
-    r["_id"] = (name or "").strip() or "cinematic-vlog"
+    r["_id"] = ALIAS.get((name or "").strip(), (name or "").strip()) or "cinematic-vlog"
     o = clean(over)
     cn = o.pop("cut", None)
     if cn in CUTS:

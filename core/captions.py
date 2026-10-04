@@ -794,6 +794,30 @@ def track(caps, out, work, W, H, size, fill, font, fallback, bot,
     for c, _pre in _units:
         _wc = None if _pre is not None else (word_cards(c, size, maxw, MW, font, hold=hold) if by_word else None)
         for lines, a, b, sz in (_pre or _wc or cards(c, size, maxw, MW, font, max_lines=max_lines, hold=hold)):
+            # ⚠️⚠️ **frame ဘောင် ကျော်၍ မရ — နောက်ဆုံး ဂိတ်** (audit ၂၀၂၆-၁၀-၀၄ short-916):
+            #    ~၁၄s (၂၀%) မှာ စာတန်းက ဘယ်/ညာ ၂ ဖက်လုံး ပြတ်ခဲ့ — ASR က space မပါသော
+            #    စကားစုရှည် ပြန်ပြီး xl (182px) မှာ ချုံ့ကြမ်း `size×0.6` floor ထိ
+            #    ချုံ့ပြီးလည်း မဆံ့ခဲ့。 card ထုတ်သော လမ်း ၄ ခု (cards · word_cards ·
+            #    speech_cards · word_pop) အားလုံး ဒီကို ဖြတ်သဖြင့် **ဒီမှာ တစ်ခါ** စစ်သည်。
+            #    ⚠️ stroke က ink ကို ဘေးတစ်ဖက်စီ `sz×stroke_w` ချဲ့သည် — ထည့်တွက်ရမည်。
+            #    စာလုံး သေးသွားတာက ပြတ်နေတာထက် အမြဲ ကောင်းသည် (floor မထား)。
+            _hard = int(W * 0.92)
+            def _wide(_s):
+                _sw = (2 * max(2, int(_s * stroke_w))) if (stroke and stroke_w) else 0
+                return max((MW(t, _s, font) for t in lines), default=0) + _sw
+            if lines and _wide(sz) > _hard:
+                _s0 = sz
+                # ① ချုံ့တာထက် **၂ ကြောင်း ခွဲ** ကို ဦးစားပေး (syllable နယ်နိမိတ် · cluster
+                #    အလယ် မခွဲ) — တစ်ကြောင်းတည်း ချုံ့ရုံဆို 182→86px (ထက်ဝက်) ကျခဲ့
+                if len(lines) == 1 and max_lines >= 2:
+                    _sw = (2 * max(2, int(sz * stroke_w))) if (stroke and stroke_w) else 0
+                    _two = split_two(lines[0], MW, sz, font, _hard - _sw)
+                    if _two: lines = list(_two)
+                # ② ခွဲပြီးလည်း မဆံ့သေးမှ ချုံ့
+                while _wide(sz) > _hard and sz > 12:
+                    sz -= 3
+                if log:
+                    log(f"  စာတန်း · ဘောင်ကျော်၍ ချုံ့ {_s0}→{sz}px · 「{''.join(lines)[:18]}」")
             parts=[]
             for j,txt in enumerate(lines):
                 q = os.path.join(work, f"c{k:04d}_{j}.png")

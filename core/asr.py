@@ -490,8 +490,22 @@ def burmese(wav, log=print, meas=None, align_cfg=None):
             _spk = sum(min(b, e2) - max(a, s2) for s2, e2 in sp if e2 > a and s2 < b)
             _ok = ((_spk / (b - a)) if b > a else 1.0) >= GLOSS_MIN_SPEECH
             t0 = time.time(); txt = ""; tm = None
+            # ⚠️⚠️ **စကား ရှိသော chunk အလွတ် ပြန်လျှင် ပြန်ခေါ်ရမည်**。 audit
+            #    ၂၀၂၆-၁၀-၀၄ (j_5ad18e99130c): chunk ၁/၄ က စာလုံး ၀ ပြန်ပြီး silence
+            #    map က စကား ပြနေတဲ့ ပထမ ၁၇.၃s (hook) မှာ စာတန်း · ဂရပ်ဖစ် လုံးဝ မပါ。
+            #    ယခင်က အလွတ် ဆိုတာနဲ့ ချက်ချင်း ရပ်ခဲ့ (quota ကုန်ချိန် ကာကွယ်ချက်
+            #    အောက်က 「၄ ခု ဆက်တိုက် အလွတ်」 က ဆက်အလုပ်လုပ်သည် — အစုလိုက် စစ်၍)。
+            _sp_ratio = (_spk / (b - a)) if b > a else 0.0
+            _empty_tries = 2 if _sp_ratio >= 0.30 else 0
             for _k in range(max(1, tries_json)):
                 txt = _call(_b64(p), gloss_ok=_ok)
+                _e = 0
+                while not txt.strip() and _e < _empty_tries:
+                    _e += 1
+                    log(f"  ↻ ASR chunk {i+1} — အလွတ် ပြန်လာ (စကား {_sp_ratio*100:.0f}%) · "
+                        f"ပြန်ခေါ်သည် {_e}/{_empty_tries}")
+                    time.sleep(1.5 * _e)
+                    txt = _call(_b64(p), gloss_ok=_ok)
                 if not txt.strip(): break
                 tm = _parse_timed(txt, a, b)
                 if tm: break
