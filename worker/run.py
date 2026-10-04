@@ -4176,7 +4176,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    the same sentence B-roll picked. The card is composited on top, so the
             #    clip is hidden and only flashes through the card's 0.22 s fade-in.
             #    ⇒ the card wins; drop B-roll that overlaps a card by > 0.2 s.
-            if (job.get("recipe") or rc.get("_id")) == "headtop" and slides and bmov:
+            # ⚠️⚠️ **plan ပုံစံ အားလုံး** (audit ၂၀၂၆-၁၀-၀၄ short-916): ကတ်နဲ့ B-roll
+            #    ကို တစ်ချိန်တည်း ချခဲ့ — compare_two 17.4s ↔ B-roll 17.43s · stat_map
+            #    50.4s ↔ B-roll 50.43s ⇒ ကတ် (2.1s) က B-roll အောက်မှာ **လုံးဝ မမြင်ရ**。
+            #    headtop မှာသာ ဖယ်ခဲ့ ⇒ plan ကတ် ရှိသော ပုံစံတိုင်း。
+            if ((job.get("recipe") or rc.get("_id")) == "headtop" or rc.get("plan")) \
+                    and slides and bmov:
                 _cw = [(float(a_), float(b_)) for _p, a_, b_, _l in slides]
                 _bk = [x for x in bmov
                        if not any(min(float(x[0]) + float(x[2]), b_) - max(float(x[0]), a_) > 0.2

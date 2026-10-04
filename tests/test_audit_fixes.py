@@ -87,5 +87,15 @@ class X1CaptionWidth(unittest.TestCase):
         self.assertIn("_two = split_two(lines[0], MW, sz, font, _hard - _sw)", s)
 
 
+class X5CardUnderBroll(unittest.TestCase):
+    """short-916: compare_two 17.4s ↔ B-roll 17.43s · stat_map 50.4s ↔ B-roll 50.43s
+    ⇒ 2.1s ကတ်က B-roll အောက်မှာ လုံးဝ မမြင်ရ — headtop မှာသာ ဖယ်ခဲ့。"""
+    def test_rule_covers_every_plan_style(self):
+        s = _src("worker/run.py")
+        self.assertIn('== "headtop" or rc.get("plan"))', s)
+        for k in ("headtop", "short-916", "ref-talk"):
+            self.assertTrue(RC.get(k).get("plan"), k)
+
+
 if __name__ == "__main__":
     unittest.main()
