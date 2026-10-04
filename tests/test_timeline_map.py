@@ -134,20 +134,25 @@ class Layout(unittest.TestCase):
         self.assertIn(".vbar video[hidden]{display:none}", self.s)
 
     def test_the_side_column_does_not_squeeze_the_transcript(self):
-        """⚠️ `.wrap` က ~၇၈၀px ⇒ ညာဘက် ၃၆၂px ထပ်ထည့်လျှင် စာတမ်းက
-           ၃၅၄px ကျန်မည် (တိုင်းထား)。 breakpoint မှာ အကျယ် တင်ရသည်。
-           တိုင်းထား ပြင်ပြီး: main ၁၂၁၀ · စာတမ်း ၇၈၄ · ဘေးတိုင် ၃၆၂。"""
+        """⚠️ `.wrap` က ~၇၈၀px ⇒ ညာဘက် ၃၇၂px ထပ်ထည့်လျှင် စာတမ်းက
+           ၃၅၄px ကျန်မည် (တိုင်းထား)。 Descript pane ဖြစ်သွားပြီ ⇒ pane က
+           ကျယ်သော်လည်း **စာဖတ်ရ အကျယ်** (`--w`) ကို ထိန်းရသည်。
+           တိုင်းထား: ၁၂၈၀px မှာ စာတမ်း pane ၉၀၈ · ဘေးတိုင် ၃၇၂。"""
         i = self.s.find("@media(min-width:1100px){")
         self.assertGreater(i, 0)
-        w = self.s[i:i + 900]
-        self.assertIn("max-width:min(1210px", w)
-        self.assertIn("grid-template-columns:minmax(0,1fr) 362px", w)
+        w = self.s[i:i + 1200]
+        self.assertIn("#spane>*{max-width:var(--w)", w)
+        self.assertIn("main.editor>.vbar{flex:0 0 372px", w)
 
-    def test_the_side_column_is_sticky(self):
-        # ⚠️ မှတ်ချက် ရှည်သွားသဖြင့် ဘောင် ကျယ်ထားရသည် — ရည်ရွယ်ချက်က
-        #    「ဘေးတိုင်က ကပ်နေရမည်」。
+    def test_the_side_column_stays_put_while_the_script_scrolls(self):
+        """⚠️ ရည်ရွယ်ချက်က 「ဗီဒီယိုက ပုံသေ · စာတမ်းပဲ ရွေ့」。 အရင်က
+           `position:sticky` နဲ့ လုပ်ခဲ့သည်; ယခု pane နှစ်ခု **သီးသန့်စီ**
+           scroll လုပ်သည် ⇒ sticky မလိုတော့ပါ。"""
         i = self.s.find("@media(min-width:1100px){")
-        self.assertIn("position:sticky", self.s[i:i + 2200])
+        w = self.s[i:i + 1200]
+        self.assertIn("html,body{height:100%;overflow:hidden}", w)
+        self.assertIn("#spane{flex:1 1 auto;min-width:0;overflow-y:auto", w)
+        self.assertIn("overflow-y:auto", w[w.find("main.editor>.vbar{"):])
 
 
 class Graphics(unittest.TestCase):

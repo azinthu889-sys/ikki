@@ -161,29 +161,33 @@ body{background:var(--bg);color:var(--ink);
   .tlg{display:none}
 }
 @media(max-width:620px){ .vbar video{width:112px} }
-/* ⚠️ ကျယ်တဲ့ မျက်နှာပြင်မှာ ဗီဒီယိုကို **ဘေးချင်း ကပ်** (Descript ပုံစံ) —
-      အပေါ်မှာ ထားလျှင် စာတမ်းအတွက် အမြင့် ၂၀၀px ကုန်သည်。 DOM မပြောင်းဘဲ
-      grid နဲ့ ညာဘက် ကော်လံ ချသည်。 */
+/* ══ Descript layout — pane ၃ ခု သီးသန့်စီ ════════════════════════════
+   ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「timeline အပေါ်မှာ video view နဲ့ script ကို သပ်သပ်စီ
+      ခွဲပေးပါ · descript UI ပုံစံမျိုး」。
+   Descript က စာမျက်နှာ တစ်ခုလုံး မ scroll ပါ — **pane တစ်ခုချင်း** scroll သည်:
+      ခေါင်းစီး (ပုံသေ) · စာတမ်း (scroll) │ ဗီဒီယို (ပုံသေ) · timeline (ပုံသေ)
+   ⚠️ grid မသုံးတော့ပါ — `span` ကိန်းသေ ၂ မျိုးလုံး မှားခဲ့သည် (row ၉၉၉ ·
+      `-1` က explicit grid ကိုသာ)。 flex column + flex row က တွက်စရာ မလို。
+   ⚠️ `#spane` ကို **JS က ဆောက်**သည် — ဘယ်ဘက် ကလေးတွေက `.vbar` နဲ့
+      ညီအစ်ကို ဖြစ်နေသဖြင့် wrapper မရှိဘဲ သီးသန့် scroll မရနိုင်ပါ。 */
 @media(min-width:1100px){
-  /* ⚠️ `.wrap` ရဲ့ `--w` က စာဖတ်ရ လွယ်အောင် ~၇၈၀px ဖြစ်သည်。 ညာဘက်
-     ကော်လံ ၃၆၂px ထပ်ထည့်လျှင် စာတမ်းက ၃၅၄px ကျန်ပြီး **ကျဉ်းလွန်း**မည်
-     (တိုင်းထား ၂၀၂၆-၁၀-၀၄)。 ⇒ ဒီ breakpoint မှာ အကျယ်ကို တင်ရသည် —
-     စာတမ်း အတွက် မူလ အကျယ် ပြန်ရအောင်。 */
-  main.editor{max-width:min(1210px, 100% - 40px)}
-  main.editor{display:grid;grid-template-columns:minmax(0,1fr) 362px;
-              gap:24px;align-items:start}
-  main.editor > *{grid-column:1;min-width:0}
-  /* ⚠️⚠️ ဘေးတိုင် span — ကိန်းသေ **မရေးရ**。 တိုင်းထားချက်:
-       `span 999` ⇒ row ၉၉၉ ခု တကယ် ဆောက်ပြီး စာမျက်နှာ **၂၅,၉၄၇px**
-                    (စာရင်းက ၁,၇၅၇px) ⇒ ဗလာ scroll ၂၄,၀၀၀px
-       `1 / -1`    ⇒ `-1` က **explicit** grid ရဲ့ နောက်ဆုံး မျဉ်း。
-                    explicit row မရှိသဖြင့် row ၁ ခုသာ ⇒ row 1 က ၃၃၉px
-                    (ဘေးတိုင် အမြင့်) ဖြစ်ကာ စာရင်းက ၆၅၁px အောက် ကျသည်。
-     ⇒ JS က **တကယ့် အရေအတွက်** နဲ့ `span N` ပေးသည် (`tlAll` ထဲ)。 */
-  main.editor > .vbar{grid-column:2;position:sticky;top:10px;
-    flex-direction:column;margin:0;padding:12px;border:1px solid #E7E5E4;border-radius:14px;
-    box-shadow:0 6px 18px rgba(0,0,0,.05)}
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  .bar{flex:0 0 auto;position:static;margin-bottom:0;padding:14px 0 10px}
+  main.editor{flex:1 1 auto;min-height:0;display:flex;align-items:stretch;
+    max-width:none;width:100%;margin:0;padding:0;
+    border-top:1px solid #EFEEEC}
+  #spane{flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden;
+    padding:18px 26px 60px}
+  /* ⚠️ စာဖတ်ရ လွယ်ရန် မူလ အကျယ် ထိန်းသည် — pane က ကျယ်သွားလည်း */
+  #spane>*{max-width:var(--w);margin-left:auto;margin-right:auto}
+  main.editor>.vbar{flex:0 0 372px;overflow-y:auto;overflow-x:hidden;
+    position:static;margin:0;border:0;border-left:1px solid #E7E5E4;
+    border-radius:0;box-shadow:none;padding:16px 16px 40px;
+    flex-direction:column;align-items:stretch}
   .vbar video{width:100%;max-width:none}
+  .vbar .vnote{display:block}
+  #tlbar{position:static;flex:0 0 auto;box-shadow:0 -4px 14px rgba(0,0,0,.05)}
 }
 /* ⚠️ **ဖတ်နေတဲ့ စာကြောင်း** — ဖျက်ထားတဲ့ အနီ နဲ့ မရောရ ⇒ ဘယ်ဘက် အစွန်းနဲ့
       နောက်ခံ အဝါဖျော့ သုံးသည် (ဖျက်ချက်က ခြစ်ထားသော စာလုံး ဖြစ်သည်)。 */
@@ -2769,7 +2773,9 @@ function tlBind(){
     var bar=document.getElementById("tlbar");
     bar.classList.toggle("min");
     try{ localStorage.setItem("ikki_tlmin", bar.classList.contains("min")?"1":"0") }catch(e){}
-    document.body.style.paddingBottom=(bar.getBoundingClientRect().height+16)+"px";
+    document.body.style.paddingBottom=
+      (getComputedStyle(bar).position==="fixed")
+        ? (bar.getBoundingClientRect().height+16)+"px" : "";
   };
   try{ if(localStorage.getItem("ikki_tlmin")==="1")
          document.getElementById("tlbar").classList.add("min") }catch(e){}
@@ -2807,27 +2813,46 @@ function tlRefresh(){
   try{ tlDraw() }catch(e){}
 }
 
-/* ⚠️ ဘေးတိုင်ကို **တကယ့် row အရေအတွက်** နဲ့ span ပေးသည် — CSS တစ်ခုတည်းနဲ့
-   မရနိုင်ပါ (`-1` က explicit grid ကိုသာ ရည်ညွှန်း · `span 999` က row ၉၉၉
-   တကယ် ဆောက်)。 */
+/* ⚠️ သမိုင်း — grid သုံးစဉ်က ဘေးတိုင် span ကိုယ်တိုင် တွက်ခဲ့ရသည်
+   (`-1` က explicit grid ကိုသာ ရည်ညွှန်း · `span 999` က row ၉၉၉ တကယ် ဆောက်
+   ⇒ စာမျက်နှာ ၂၅,၉၄၇px)。 ယခု flex ⇒ ကျန်ခဲ့သော style ကိုသာ ရှင်းသည်。 */
 function vbarSpan(){
-  var m=document.querySelector("main.editor"), v=document.getElementById("vbar");
-  if(!m||!v) return;
-  if(getComputedStyle(m).display!=="grid"){ v.style.gridRow=""; return }
-  var n=[...m.children].filter(function(e){
-    return e!==v && e.offsetParent!==null && getComputedStyle(e).position!=="fixed";
-  }).length;
-  v.style.gridRow = "1 / span " + Math.max(1, n);
+  // ⚠️ grid မသုံးတော့ပါ (Descript layout က flex) — အရင် job တွေက
+  //    style ကျန်ခဲ့လျှင် ရှင်းပေးသည်
+  var v=document.getElementById("vbar");
+  if(v && v.style.gridRow) v.style.gridRow="";
+}
+/* ⚠️⚠️ **စာတမ်း pane ကို wrapper ထဲ ထည့်ရသည်**。 ဘယ်ဘက် ကလေးတွေ
+   (`editnote` · `scrp` · `rvnote` · `list`) က `.vbar` နဲ့ **ညီအစ်ကို**
+   ဖြစ်နေသဖြင့် wrapper မရှိဘဲ 「စာတမ်းပဲ scroll · ဗီဒီယိုက ပုံသေ」 မရနိုင်ပါ。
+   ⚠️ တစ်ခါပဲ ဆောက်ရမည် — `render()` က ထပ်ခေါ်တတ်သည် (`data-w` နဲ့ မှတ်)。
+   ⚠️ `.vbar` ကို **ရွှေ့မရ** — `<video>` ရွှေ့လျှင် ပြန်စမည်
+      (ဖွင့်နေရင် ရပ်သွားပြီး filmstrip ပါ ပျက်မည်)。 ⇒ ကျန်တာကိုသာ ရွှေ့။ */
+function spane(){
+  var m=document.querySelector("main.editor");
+  if(!m || m.getAttribute("data-sp")==="1") return;
+  var v=document.getElementById("vbar");
+  var w=document.createElement("div"); w.id="spane";
+  var kids=[].slice.call(m.children).filter(function(e){ return e!==v });
+  if(!kids.length) return;
+  m.insertBefore(w, kids[0]);
+  kids.forEach(function(e){ w.appendChild(e) });
+  m.setAttribute("data-sp","1");
 }
 
 function tlAll(){
+  try{ spane() }catch(e){}
   try{ vbarSpan() }catch(e){}
   var bar=document.getElementById("tlbar"); if(!bar) return;
   // ⚠️ ဖွင့်ထားမှ အတန်းတွေရဲ့ အကျယ် တိုင်းလို့ ရသည် (ဖျောက်ထားလျှင် ၀)
   bar.hidden = !(D && (D.sentences||[]).length);
   if(bar.hidden) return;
+  // ⚠️ Descript layout (≥1100px) မှာ bar က flex item ⇒ နေရာ ချန်စရာ မလို。
+  //    ကျဉ်းတဲ့ မျက်နှာပြင်မှာသာ `fixed` ဖြစ်ပြီး နောက်ဆုံး စာကြောင်းက
+  //    bar အောက် ဝင်မှာမို့ ချန်ရသည်。
   document.body.style.paddingBottom =
-    (bar.getBoundingClientRect().height + 16) + "px";
+    (getComputedStyle(bar).position === "fixed")
+      ? (bar.getBoundingClientRect().height + 16) + "px" : "";
   try{ tlRuler() }catch(e){}
   try{ tlCaps() }catch(e){}
   try{ tlRefresh() }catch(e){}

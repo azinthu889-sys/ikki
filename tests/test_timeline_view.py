@@ -109,22 +109,35 @@ class GridSpan(unittest.TestCase):
         css = _re.sub(r"/\*.*?\*/", "", self.s, flags=_re.S)
         i = css.find("@media(min-width:1100px){")
         self.assertGreater(i, 0)
-        w = css[i:i + 900]
+        w = css[i:i + 1200]
         self.assertNotIn("span 999", w)
         self.assertNotIn("grid-row:1 / -1", w)
-        self.assertIn("main.editor > .vbar{grid-column:2;position:sticky", w)
+        # ⚠️ grid ကို **လုံးဝ ဖယ်**ထားသည် ⇒ span မှားစရာ မကျန်တော့
+        self.assertNotIn("grid-template-columns", w)
+        self.assertIn("main.editor{flex:1 1 auto", w)
 
-    def test_the_span_is_computed_from_the_real_count(self):
+    def test_the_stale_grid_row_is_cleared(self):
+        """⚠️ အရင် job တွေက `style.gridRow` ကျန်ခဲ့လျှင် flex ထဲ ရောက်မှ
+           နေရာ လွဲမည် ⇒ ရှင်းပေးရသည်"""
         self.assertIn("function vbarSpan(", self.s)
         i = self.s.find("function vbarSpan(")
-        w = self.s[i:i + 700]
-        self.assertIn('"1 / span " + Math.max(1, n)', w)
-        self.assertIn('e.offsetParent!==null', w)
+        w = self.s[i:i + 400]
+        self.assertIn('v.style.gridRow=""', w)
+        self.assertNotIn("span", w.split("}")[0])
 
-    def test_fixed_children_are_excluded(self):
-        """⚠️ `#tlbar` က fixed — row တစ်ခု ရေတွက်မိလျှင် နေရာ လွဲမည်"""
-        i = self.s.find("function vbarSpan(")
-        self.assertIn('getComputedStyle(e).position!=="fixed"', self.s[i:i + 700])
+    def test_the_script_pane_wraps_everything_except_the_video(self):
+        """⚠️⚠️ `.vbar` ကို **ရွှေ့မရ** — `<video>` ရွှေ့လျှင် ပြန်စပြီး
+           filmstrip ပါ ပျက်မည် ⇒ ကျန်တာကိုသာ `#spane` ထဲ ထည့်ရသည်。
+           ⚠️ တစ်ခါပဲ ဆောက်ရမည် — `render()` က ထပ်ခေါ်တတ်သည်。"""
+        self.assertIn("function spane(", self.s)
+        i = self.s.find("function spane(")
+        w = self.s[i:i + 700]
+        self.assertIn('w.id="spane"', w)
+        self.assertIn("e!==v", w)              # .vbar ကို ချန်ထားသည်
+        self.assertIn('data-sp', w)            # တစ်ခါပဲ
+        self.assertIn("insertBefore", w)       # နေရာ အတိုင်း
+        j = self.s.find("function tlAll(")
+        self.assertIn("spane()", self.s[j:j + 400])
 
     def test_the_fixed_bar_is_outside_the_grid(self):
         """⚠️ `main` ထဲ ထားလျှင် grid က row ခွဲပေးသည်"""
