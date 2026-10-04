@@ -1162,6 +1162,35 @@ def tmpl_wants_text(cid):
     return v
 
 
+def snap_broll(bmov, spans, head, flash=0.6):
+    """B-roll ရဲ့ အဆုံး/အစ ကို အနီးဆုံး ဖြတ်မှတ်နဲ့ ကိုက်အောင် ရွှေ့ — `(bmov, n)`
+
+    ⚠️ flash shot (audit ၂၀၂၆-၁၀-၀၄): B-roll က ဖြတ်မှတ်နဲ့ `flash` စက္ကန့်အတွင်း
+       ဆုံး/စ လျှင် ကြားထဲ ပြောသူ frame အနည်းငယ် ဖျပ်ခနဲ ပေါ်သည်။ အရှည် မပြောင်း
+       (ပြန် prep မလို)၊ `head` မတိုင်ခင် မရွှေ့၊ ဘေး B-roll နဲ့ မထပ်စေ。
+    `bmov` = [(at, path, dur, tag)] (ထွက် အချိန်) · `spans` = ချန်ထားသော မူရင်း span。
+    """
+    cuts, acc = [], 0.0
+    for x, y in (spans or [])[:-1]:
+        acc += y - x; cuts.append(round(acc, 3))
+    out, n = [], 0
+    for k, (at, bp, d, tag) in enumerate(bmov):
+        e = at + d
+        prev_end = (out[-1][0] + out[-1][2]) if out else -1.0
+        next_at = bmov[k + 1][0] if k + 1 < len(bmov) else 1e9
+        new = at
+        after = [c for c in cuts if 0.02 < c - e < flash]
+        before = [c for c in cuts if 0.02 < at - c < flash]
+        if after and after[0] - d >= head and after[0] <= next_at:
+            new = after[0] - d
+        elif before and before[-1] >= max(head, prev_end):
+            new = before[-1]
+        if abs(new - at) > 1e-3:
+            n += 1
+        out.append((round(new, 2), bp, d, tag))
+    return out, n
+
+
 def render(job, brand, src, out, stage, log=print, over=None):
     """တကယ့် pipeline — stage ၂–၆ က နေရာချထားရုံ မဟုတ်တော့。"""
     import theme, infogfx as IG, titles2 as T2, titles as T1
@@ -1813,7 +1842,15 @@ def render(job, brand, src, out, stage, log=print, over=None):
         # ⚠️ auto-cut ဂိတ် (precision ≥၉၅%) မအောင်သေး (C0736: ၉၁.၁%) ⇒ စက်က မဖြတ်ရ。
         # ⚠️ ကျဘမ်းလျှင် **review ကို မပိတ်ရ** — အကြံပြုချက် မပါဘဲ ဆက်သွား。
         _rt = []; _cl = []; _rt_off = None
-        _rcal = CUT.calib(job.get("brand_id") or rc.get("theme")) or {}
+        # ⚠️⚠️ **user အားလုံးအတွက်** (Zin ၂၀၂၆-၁၀-၀၅: 「ZAE ZJL ကို မေ့ထား · user
+        #    တွေဘက်ကပဲ စဉ်းစား」)。 ယခင်က calib ရှိသော brand (zjl) မှသာ ပြန်စ ရှာပြီး
+        #    customer brand တိုင်းမှာ **ပိတ်** ခဲ့ ⇒ ထပ်ရိုက်ထားသော take ~၈s (၁၀%) ကို
+        #    ဘယ်သူမှ မသိဘဲ ကျန်ခဲ့ (audit ref-talk · brand ikki)。 ဤ ရှာဖွေမှုက
+        #    **စာရင်းပြရုံ · user က ရွေး** ဖြစ်၍ (auto-cut မဟုတ်) အမှား ရှာမိလည်း
+        #    ကုန်ကျမှု နည်းသည် ⇒ brand calib မရှိလျှင် တိုင်းပြီးသား ZJL calib ကို
+        #    **ပုံသေ** အဖြစ် သုံးသည်。 `camera` ပုံစံ ဂိတ် (podcast precision ၇၉.၆%) ကျန်သည်。
+        _rcal = (CUT.calib(job.get("brand_id") or rc.get("theme"))
+                 or CUT.calib("zjl") or {})
         # ⚠️ **ပုံစံ ကန့်သတ်ချက်** (၂၀၂၆-၀၉-၁၆ Zin) — ဂိတ်က ဗီဒီယို ၆ ခုမှာ
         #    vlog ၅ ခု အောင် · podcast ကျ (precision ၇၉.၆% · ဂိတ် ၈၅) ⇒ သုံးစွဲသူ
         #    ပြောသော ပုံစံ `camera` (ကင်မရာကို ပြောတာ) မှသာ ပြန်စ ရှာသည်。
@@ -4149,6 +4186,16 @@ def render(job, brand, src, out, stage, log=print, over=None):
                         + " · ".join(f"{float(x[0]):.1f}s" for x in bmov if x not in _bk))
                     REPORT["broll_under_card"] = len(bmov) - len(_bk)
                     bmov = _bk
+            # ⚠️⚠️ **flash shot မကျန်စေရ** (audit ၂၀၂၆-၁၀-၀၄): B-roll က ဖြတ်မှတ်နဲ့
+            #    ၀.၂–၀.၄s အကွာမှာ ဆုံးလျှင် ပြောသူ frame ၇ ခုလောက် ဖျပ်ခနဲ ပေါ်သည်
+            #    (short-video ၂၂.၂၇s မှာ ၀.၂၃s · short-916 ၂၂.၆၇s မှာ ၀.၄၀s)。
+            #    `_flash_shots` က B-roll မတပ်ခင် cut ကိုသာ စစ်၍ မဖမ်းမိခဲ့。
+            #    ⇒ B-roll ရဲ့ **အဆုံး/အစ** ကို အနီးဆုံး ဖြတ်မှတ်နဲ့ ကိုက်အောင် ရွှေ့သည်
+            #      (အရှည် မပြောင်း ⇒ ပြန် prep မလို · ဘေး B-roll နဲ့ မထပ်ရ)。
+            bmov, _snapped = snap_broll(bmov, spans, HEAD)
+            if _snapped:
+                log(f"  B-roll · flash shot ကာကွယ် — {_snapped} ခု ဖြတ်မှတ်နဲ့ ကိုက်အောင် ရွှေ့")
+                REPORT["broll_flash_snapped"] = _snapped
             for at,_,d,tag in bmov: log(f"  B-roll {at:6.2f}s · {d:.1f}s · {tag}")
             log(f"  B-roll {len(bmov)} ခု တပ်ပြီး")
             # ══ တွဲမှု မှတ်တမ်းကို **နောက်ဆုံးမှာ** ရေးသည် ═══════════════
