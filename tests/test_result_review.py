@@ -242,6 +242,44 @@ class ResultInThePane(unittest.TestCase):
         self.assertIn('ev.target.closest(".tlgfx i")', w)
         self.assertIn("seekTo(o2s(+ge.at||0))", w)
 
+    def test_only_one_banner_shows(self):
+        """⚠️ ထုတ်ပြီးသားမှာ `rv` ပါ တွဲပါသဖြင့် banner ၂ ခု ထပ်ပေါ်ပြီး
+           「ပြန်ပြင်」 ခလုတ် ၂ ခု ဖြစ်ခဲ့သည် (ဖရိမ်း ကြည့်မှ တွေ့)。
+           ⚠️ specificity တူ၍ **နောက်က** အနိုင်ရသည် ⇒ `body.rv #rvnote`
+              ပြီးနောက်မှ ထားရမည် — ရှေ့မှာ ထားလျှင် အလကား。"""
+        self.assertIn("body.done #rvnote{display:none}", self.s)
+        self.assertGreater(self.s.index("body.done #rvnote{display:none}"),
+                           self.s.index("body.rv #rvnote{display:flex"))
+
+    def test_approve_is_dead_once_rendered(self):
+        """⚠️⚠️ နှိပ်လျှင် `approve` က 409 「အဆင့်မှာ မရှိပါ (done)」 ပြန်သည်。
+           ⚠️ ပြန်ပြင်တဲ့အခါ **ပြန်ဖွင့်ပေးရမည်** — မဖွင့်လျှင် ပြင်ပြီးမှ
+              ထုတ်လို့ မရတော့ (လမ်းပိတ်)。"""
+        i = self.s.find('var _bk2=document.getElementById("bok")')
+        self.assertGreater(i, 0)
+        self.assertIn('_bk2.disabled=true', self.s[i:i + 200])
+        j = self.s.find("function outEdit(")
+        w = self.s[j:j + 1100]
+        self.assertIn("_bk3.disabled=false", w)
+        self.assertIn("✂️ Edit", w)
+
+    def test_only_one_banner_shows(self):
+        """⚠️ ထုတ်ပြီးသားမှာ `rv` ပါ တွဲပါသဖြင့် banner ၂ ခု ထပ်ပေါ်ပြီး
+           「ပြန်ပြင်」 ခလုတ် ၂ ခု ဖြစ်ခဲ့သည် (ဖရိမ်း ကြည့်မှ တွေ့)。"""
+        self.assertIn("body.done #rvnote{display:none}", self.s)
+
+    def test_approve_is_dead_once_rendered(self):
+        """⚠️⚠️ နှိပ်လျှင် `approve` က 409 「အဆင့်မှာ မရှိပါ (done)」 ပြန်သည်。
+           ⚠️ ပြန်ပြင်တဲ့အခါ **ပြန်ဖွင့်ပေးရမည်** — မဖွင့်လျှင် ပြင်ပြီးမှ
+              ထုတ်လို့ မရတော့ (လမ်းပိတ်)。"""
+        i = self.s.find('var _bk2=document.getElementById("bok")')
+        self.assertGreater(i, 0)
+        self.assertIn("_bk2.disabled=true", self.s[i:i + 200])
+        j = self.s.find("function outEdit(")
+        w = self.s[j:j + 1300]
+        self.assertIn("_bk3.disabled=false", w)
+        self.assertIn("✂️ Edit", w)
+
     def test_the_script_pane_is_on_the_left(self):
         """⚠️ `.vbar` က DOM ထဲ ပထမ ⇒ wrapper က နောက်မှ ဝင်ပြီး ဗီဒီယိုက
            ဘယ်ဘက် ရောက်သည် (တိုင်းထား: vbar x=18 · spane x=390)。

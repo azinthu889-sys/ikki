@@ -387,9 +387,16 @@ body.done #donote{display:flex}
 #pzbox i{font-style:normal;font-size:12.5px;color:#57534E}
 /* ⚠️ ဖြတ်ပြီးသား အဆင့် (rv) မှာ ပြင်လို့ မရ — ဖြတ်မှတ် အေးခဲပြီးသား ⇒ ဖျောက် */
 body.rv #pzbox{display:none}
-body.rv #rvnote{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+/* ⚠️ banner က 「ဒါက ဖြတ်ပြီးသား ရလဒ်ပါ」 ဟု ဆိုသည် ⇒ **ဖြတ်ပြီးမှသာ** ပြရမည်。
+   `rv` က ထုတ်နေဆဲ · ကျဘမ်း မှာပါ တပ်သဖြင့် အဲဒီမှာလည်း ပေါ်နေခဲ့သည်
+   (၂၀၂၆-၁၀-၀၅ `queued` နဲ့ `failed` နှစ်ခုလုံးမှာ တွေ့ — ပြင်စရာ မရှိဘဲ
+   「✏️ ပြန်ပြင်မယ်」 ပြနေခြင်း)。 */
+body.rv.rvcut #rvnote{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
   margin:0 0 14px;padding:12px 14px;border-radius:12px;
   background:#FFFBEB;border:1px solid #FDE68A}
+/* ⚠️ ထုတ်ပြီးသားမှာ `rv` ပါ တွဲပါသဖြင့် banner ၂ ခု ထပ်ပေါ်သည် —
+   「ပြန်ပြင်」 ခလုတ် ၂ ခု ဖြစ်ပြီး ဘယ်ဟာ နှိပ်ရမှန်း မသိ (ဖရိမ်း ကြည့်မှ တွေ့)。 */
+body.done #rvnote{display:none}
 #rvnote b{font-size:14px}
 #rvnote span{flex:1;min-width:200px;font-size:13px;color:#57534E}
 /* ⚠️⚠️ **ရိုးရှင်းစနစ် — ပုံမှန်** (၂၀၂၆-၁၀-၀၄ Zin: 「UI design က နားလည်ရခက်
@@ -1040,6 +1047,10 @@ function outEdit(){
   if(FILM.el){ try{ FILM.el.remove() }catch(e){} }
   FILM.el=null; FILM.done=false; FILM.busy=false;
   render(D);
+  // ⚠️ `render()` က ခလုတ်ကို ပြန်မဖွင့်ပါ ⇒ ဒီမှာ ဖွင့်ရမည်。 မဖွင့်လျှင်
+  //    ပြန်ပြင်ပြီးမှ **ထုတ်လို့ မရတော့** (လမ်းပိတ်)。
+  var _bk3=document.getElementById("bok");
+  if(_bk3){ _bk3.disabled=false; _bk3.textContent="✂️ Edit — ဗီဒီယို ထုတ်" }
   tip("✏️ တည်းဖြတ် mode — ပြင်ပြီးရင် 「✂️ Edit — ဗီဒီယို ထုတ်」 ကို နှိပ်ပါ");
 }
 
@@ -1815,6 +1826,12 @@ function render(d){
       if(_dd) _dd.href=VPROX;
       var _dr=document.getElementById("donre");
       if(_dr) _dr.onclick=function(){ outEdit() };
+      /* ⚠️⚠️ အပေါ်က ခလုတ်က **ထုတ်ပြီးသားမှာ နှိပ်လို့ မရရ** — နှိပ်လျှင်
+         `approve` က 409 「အတည်ပြုရန် အဆင့်မှာ မရှိပါ (done)」 ပြန်သည်
+         (Zin ၂၀၂၆-၀၉-၂၂ တစ်ခါ တွေ့ခဲ့ပြီး)。 ပြန်ပြင်ချင်လျှင် banner ထဲက
+         「↩ ပြန်ဖြတ်မယ်」 က တည်းဖြတ် mode ပြန်ဝင်ပေးသည်。 */
+      var _bk2=document.getElementById("bok");
+      if(_bk2){ _bk2.disabled=true; _bk2.textContent="✅ ထုတ်ပြီးပါပြီ" }
       setTimeout(vplanTry, 0);
     } else {
       document.body.classList.remove("done");
@@ -1867,7 +1884,7 @@ function render(d){
       +'<s>ကင်မရာကို လှမ်းကိုင်နေ · ဘောင်ထဲက ထွက်သွား · အခြားနေရာ ကြည့်နေ — '
       +'ဒါတွေကို <b>ကြိုဖျက်ပေးထား</b>ပါတယ်။ မလိုချင်ရင် တစ်ခုချင်း ပြန်ထည့်လို့ ရပါတယ်။</s>'
       +'<s>'+_pz.map(function(x){return "["+x.n+"] "+mm(x.start)}).join("  ·  ")+'</s></div>';
-    var wr=document.querySelector(".wrap"); if(wr) wr.prepend(pw);
+    var wr=paneHost(); if(wr) wr.prepend(pw);
   }
   // ⚠️ တိတ်ဆိတ်မှုကို **ဝါကျ တစ်ခုချင်းရဲ့ ရှေ့မှာ** ထည့်ရမည် — ယခင်က 🔴 ကတ်
   //    အတွင်းမှာ မထည့်မိ၍ ကတ် ရှေ့မှာ အစုလိုက် စုပုံနေခဲ့သည် (Zin တွေ့ · ၂၀၂၆-၀၉-၁၇)。
@@ -2177,7 +2194,7 @@ document.getElementById("bok").onclick=function(){
   var keep=D.sentences.filter(function(s){return !DEL[s.n]});
   if(!keep.length){tip("ချန်ထားတာ မရှိပါ");return}
   if(!REV){                              // ① အတည်ပြု → ဖတ်ရန် မြင်ကွင်း
-    REV=true; document.body.classList.add("rv");
+    REV=true; document.body.classList.add("rv","rvcut");
     document.body.classList.remove("only");
     document.getElementById("bonly").classList.remove("on");
     this.textContent="✂️ Edit — ဗီဒီယို ထုတ်";
@@ -2325,7 +2342,7 @@ document.getElementById("bok").onclick=function(){
        +(z.d.cut_s!=null?' ('+z.d.cut_s+'s)':'')+'<br>'
        +'<a href="/">ဗီဒီယို စာမျက်နှာ →</a>';
        document.getElementById("bok").textContent="ထုတ်ပြီး"; }
-     document.querySelector(".wrap").prepend(el);
+     paneHost().prepend(el);
      window.scrollTo({top:0,behavior:"smooth"});
    })
    .catch(function(e){BUSY=false;tip("မထုတ်နိုင်ပါ — "+(e.message||e));
@@ -2561,7 +2578,31 @@ function watchJob(jid, el){
           });
          return;
        }
-       if(st==="failed"){ el.innerHTML='<b class="er">ထုတ်လို့ မရပါ</b><br>'+esc(j.err||""); return }
+       if(st==="failed"){
+         /* ⚠️ အမှားစာ တစ်ကြောင်းတည်းနဲ့ မလုံလောက် — **ဘာလုပ်ရမလဲ** ပေးရမည်。
+            `retry` က ဖြတ်ချက် အတိုင်း ဆက်သွားသဖြင့် ပြန်ဖြတ်စရာ မလို。 */
+         el.innerHTML='<b class="er">ထုတ်လို့ မရပါ</b><br>'+esc(j.err||"")
+           +'<br><span class="sub">ပြန်စလျှင် ခင်ဗျား ဖြတ်ထားတဲ့အတိုင်း ဆက်သွားပါမည် '
+           +'— ပြန်ဖြတ်စရာ မလိုပါ။</span>'
+           +'<div class="acts2"><button class="btn primary" id="rtf">↻ ပြန်စမယ်</button>'
+           +'<a class="btn ghost" style="text-decoration:none" href="/">ဗီဒီယိုများ →</a></div>';
+         var _rf=document.getElementById("rtf");
+         if(_rf) _rf.onclick=function(){
+           _rf.disabled=true; _rf.textContent="ပြန်စနေသည်…";
+           fetch("/api/jobs/"+jid+"/retry",{method:"POST",
+             headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+            .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
+            .then(function(y){
+              if(!y.ok){ _rf.disabled=false; _rf.textContent="↻ ပြန်စမယ်";
+                tip("ပြန်စ၍ မရပါ — "+(y.d.detail||"")); return }
+              el.innerHTML='<b>✅ ပြန်စလိုက်ပါပြီ</b>';
+              watchJob(jid, el);
+            })
+            .catch(function(e){ _rf.disabled=false; _rf.textContent="↻ ပြန်စမယ်";
+              tip("ပြန်စ၍ မရပါ — "+(e.message||e)) });
+         };
+         return;
+       }
        /* ── ဖြတ်ချက် အတည်ပြုချက် (clean-cut preview) ────────────────
           ⚠️ Zin ၂၀၂၆-၀၉-၂၁: ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း **မထည့်ခင်** ဖြတ်ချက်ကို
              အရင် ကြည့်ခိုင်းသည် — မှားလျှင် အဲဒီအလုပ်အားလုံး အလဟဿ ဖြစ်မည်。 */
@@ -3253,14 +3294,33 @@ function vbarSpan(){
       (ဖွင့်နေရင် ရပ်သွားပြီး filmstrip ပါ ပျက်မည်)。 ⇒ ကျန်တာကိုသာ ရွှေ့။ */
 function spane(){
   var m=document.querySelector("main.editor");
-  if(!m || m.getAttribute("data-sp")==="1") return;
+  if(!m) return;
   var v=document.getElementById("vbar");
-  var w=document.createElement("div"); w.id="spane";
-  var kids=[].slice.call(m.children).filter(function(e){ return e!==v });
-  if(!kids.length) return;
-  m.insertBefore(w, kids[0]);
-  kids.forEach(function(e){ w.appendChild(e) });
-  m.setAttribute("data-sp","1");
+  var w=document.getElementById("spane");
+  if(!w){
+    var kids=[].slice.call(m.children).filter(function(e){ return e!==v });
+    if(!kids.length) return;
+    w=document.createElement("div"); w.id="spane";
+    m.insertBefore(w, kids[0]);
+    kids.forEach(function(e){ w.appendChild(e) });
+    m.setAttribute("data-sp","1");
+    return;
+  }
+  /* ⚠️⚠️ **နောက်မှ ထည့်တဲ့ panel ကို ပြန်သိမ်းရမည်**。 `#dn` (ဖြတ်ချက် ·
+     ထုတ်နေသည် · ကျဘမ်း) က `.wrap` ထဲ တိုက်ရိုက် ဝင်သဖြင့် flex က
+     **ကော်လံ အသစ်** ခွဲပေးပြီး pane ၃ ခု မဟုတ်တော့ဘဲ ၄ ခု ဖြစ်သွားသည်。
+     တိုင်းထား (၁၅၁၂px · cut_review): #dn x=0 w=538 · #spane x=538 **w=400**
+     · #vbar x=937 w=575 ⇒ စာတမ်းက ၉၃၇ ကနေ **၄၀၀px** ကျဉ်းသွားခဲ့သည်。
+     ⚠️ `review`/`done` မှာ `#dn` မရှိ၍ မပေါ်ပါ — ဒါကြောင့် စမ်းစဉ် လွတ်သွားသည်。 */
+  var stray=[].slice.call(m.children).filter(function(e){ return e!==v && e!==w });
+  if(!stray.length) return;
+  var ref=w.firstChild;
+  stray.forEach(function(e){ w.insertBefore(e, ref) });
+}
+/* ⚠️ panel ထည့်ရမယ့် နေရာ — `#spane` ရှိလျှင် အဲဒီထဲ (မဟုတ်လျှင် ကော်လံ ကွဲမည်)。
+   ကျဉ်းတဲ့ မျက်နှာပြင်မှာ `#spane` မရှိသေး ⇒ `.wrap` ကိုပဲ ပြန်ပေးသည်。 */
+function paneHost(){
+  return document.getElementById("spane") || document.querySelector(".wrap");
 }
 
 function tlAll(){
@@ -3504,18 +3564,49 @@ if(JOB) fetch("/api/jobs/"+JOB,
     // ⚠️ ထုတ်ပြီးသားက **ရလဒ် mode** — `render()` က ကိုင်သည်。 ဒီမှာ
     //    panel တွေ ဆောက်လျှင် ၂ ထပ် ဖြစ်မည်。 Visual Plan ကိုသာ ထည့်ပေးသည်。
     if(j.status==="done"){ setTimeout(vplanTry, 0); return }
-    if(["queued","running","cutting","cut_review"].indexOf(j.status)<0) return;
+    /* ⚠️ `failed` ပါ ထည့်ရမည် — မထည့်လျှင် ကျဘမ်းဖြစ်ကြောင်း **ဘာမှ မပြ**ဘဲ
+       အပေါ်က ခလုတ်က နှိပ်လို့ရနေပြီး နှိပ်လျှင် 409 ရသည် (၂၀၂၆-၁၀-၀၅ တွေ့)。
+       `watchJob` ထဲမှာ `failed` အတွက် အမှားစာ + ↻ ပြန်စ ခလုတ် ရှိပြီးသား。 */
+    if(["queued","running","cutting","cut_review","failed"].indexOf(j.status)<0) return;
     var el=document.getElementById("dn")||document.createElement("div");
-    el.id="dn"; el.className="done"; document.querySelector(".wrap").prepend(el);
+    el.id="dn"; el.className="done"; paneHost().prepend(el);
     document.body.classList.add("rv");
+    // ⚠️ ဖြတ်ပြီးမှသာ 「✏️ ပြန်ပြင်မယ်」 banner ပြရမည် (အထက် CSS မှတ်ချက်)
+    if(j.status==="cut_review") document.body.classList.add("rvcut");
     /* ⚠️ `review` မဟုတ်လျှင် **ခလုတ် ပိတ်ရမည်** — မပိတ်လျှင် ထပ်နှိပ်ပြီး
        409 ရမည် (Zin တကယ် ဖြစ်ခဲ့)。 */
     var _bk=document.getElementById("bok");
-    _bk.textContent = (j.status==="cut_review") ? "ဖြတ်ချက် ကြည့်ပါ ↑" : "ထုတ်နေသည်…";
+    _bk.textContent = (j.status==="cut_review") ? "ဖြတ်ချက် ကြည့်ပါ ↑"
+                    : (j.status==="failed")      ? "⚠️ ကျဘမ်း ဖြစ်ထားသည်"
+                    : "ထုတ်နေသည်…";
     _bk.disabled = true;
     watchJob(JOB, el);
   }).catch(function(){});
-fetch(url,opt).then(function(r){return r.json()}).then(function(d){render(d); waveLoad();})
+/* ⚠️⚠️ **pane wrapper ကို အရင် ဆောက်ရမည်**。 `spane()` က `tlAll()` ထဲကသာ
+   ခေါ်ထားသဖြင့် `render()` မပြေးလျှင် (ASR မပြီး · ကျဘမ်း) wrapper မရှိဘဲ
+   `main.editor{display:flex}` က **ကလေးတိုင်းကို ကော်လံ တစ်ခုစီ** ခွဲပေးသည်
+   (၂၀၂၆-၁၀-၀၅ `failed` မှာ တကယ် တွေ့: ကော်လံ ၅ ခု ကွဲနေ)。 */
+try{ spane() }catch(e){}
+/* ⚠️⚠️ **`r.ok` ကို စစ်ရမည်**。 ASR မပြီးသေးလျှင် server က **400** နဲ့
+   `{"detail":"စာသား မရှိ — ASR မပြီးသေး"}` ပြန်သည်。 အရင်က `r.json()` ကိုပဲ
+   ယူပြီး `render(d)` ဆက်ပြေးသဖြင့် `d.sentences` မရှိဘဲ `S.forEach` မှာ ကျကာ
+   သုံးစွဲသူက **「Cannot read properties of undefined (reading 'forEach')」**
+   ဟု JavaScript error အကြမ်း မြင်ရသည် (၂၀၂၆-၁၀-၀၅ `queued` နဲ့ `failed`
+   နှစ်ခုလုံးမှာ တကယ် တွေ့)。 ⇒ server ရဲ့ ဗမာစာ မက်ဆေ့ကို ပြရမည်。 */
+fetch(url,opt)
+  .then(function(r){ return r.json()
+      .catch(function(){ return {} })
+      .then(function(d){ return {ok:r.ok, status:r.status, d:d} }) })
+  .then(function(z){
+    if(!z.ok){
+      var _m = (z.d && z.d.detail) ? String(z.d.detail)
+             : ("ဖတ်လို့ မရပါ (" + z.status + ")");
+      document.getElementById("list").innerHTML=
+        '<div class="hint">'+esc(_m)+'</div>';
+      return;
+    }
+    render(z.d); waveLoad();
+  })
   .catch(function(e){document.getElementById("list").innerHTML=
     '<div class="hint">ဖတ်လို့ မရပါ — '+esc(e.message||e)+'</div>'});
 </script>
