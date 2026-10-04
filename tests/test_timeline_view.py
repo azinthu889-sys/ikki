@@ -197,5 +197,70 @@ class Tracks(unittest.TestCase):
             self.assertIn(f, w, f)
 
 
+class OneClickCut(unittest.TestCase):
+    """⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၄ မေးခွန်း: 「timeline ပေါ်မှာ user ကိုယ်တိုင်
+       တိတ်ဆိတ်မှုတွေ ဖြတ်/ညှိလို့ရအောင်」 **သို့မဟုတ်** 「ဖြတ်မယ့် အပိုင်းကို
+       အရောင်နဲ့ ပြပြီး တစ်ချက် နှိပ်ရုံနဲ့ ဖြတ်」 — ဘယ်ဟာ ပိုကောင်းလဲ。
+
+    ⇒ **တစ်ချက် နှိပ်** ကို ရွေးသည်。 အကြောင်းရင်း ကိန်းနဲ့:
+       · engine ရဲ့ ဖြတ်မှတ်က အသံအလိုက် စစ်ပြီးသား — ဖျက်ချက် ၁၆၅ ခုမှာ
+         အမှား **၀/၃၁** (ကျန်နေ ၀.၀၀၀s · ပိုဖြတ်မိ ၀.၀၀၀s)
+       · လက်နဲ့ ဆွဲတဲ့ မှတ်က ဝါကျအလယ်မှာ **၆၀%** သာ တိတ်ဆိတ်မှုထဲ ကျသည်
+         ⇒ ဆွဲရွေးစနစ်က ကျွန်တော် တစ်ရက်လုံး ပြင်ခဲ့တဲ့ ပြဿနာကို ပြန်ဖြစ်စေမည်
+       · ဖုန်းမှာ ဆွဲ/zoom/handle က မလွယ် — နှိပ်တာက လွယ်
+       · ယန္တရား (`SKEEP`) က **ရှိပြီးသား** · server ဆီလည်း ရောက်ပြီးသား
+
+    ဒီဖိုင်မှာ ပြင်လို့ရတဲ့ အနားယူချက် **၂၀ ခု · ၈၀.၈s** (၀.၆s ထက် ရှည်)。
+    """
+
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_the_cut_track_exists(self):
+        self.assertIn('id="tlcuts"', self.s)
+        self.assertIn("✂ ဖြတ်မည်", self.s)
+
+    def test_the_blocks_are_clickable(self):
+        """⚠️ clip အတန်းက `pointer-events:none` — ဒီတစ်ခုက **နှိပ်လို့ရရမည်**"""
+        i = self.s.find(".tlcuts i{")
+        self.assertGreater(i, 0)
+        w = self.s[i:i + 300]
+        self.assertIn("cursor:pointer", w)
+        self.assertNotIn("pointer-events:none", w)
+
+    def test_colour_says_what_will_happen(self):
+        """⚠️ အနီ = ဖြတ်မည် · အစိမ်း = ချန်မည်"""
+        i = self.s.find(".tlcuts i{")
+        self.assertIn("#FCA5A5", self.s[i:i + 300])
+        self.assertIn(".tlcuts i.kept{", self.s)
+
+    def test_clicking_a_block_does_not_seek(self):
+        """⚠️ မခွဲလျှင် ဖြတ်ချင်တိုင်း ဗီဒီယိုက ခုန်မည်"""
+        i = self.s.find("function go(ev){")
+        w = self.s[i:i + 1400]
+        self.assertIn('ev.target.closest(".tlcuts i")', w)
+        self.assertIn("ev.stopPropagation()", w)
+
+    def test_it_reuses_the_existing_keep_mechanism(self):
+        """⚠️⚠️ အသစ် ဆောက်လျှင် တစ်ခုက နောက်ကျကျန်ပြီး server ဆီ မရောက်"""
+        i = self.s.find("function go(ev){")
+        w = self.s[i:i + 1400]
+        self.assertIn("if(SKEEP[k]) delete SKEEP[k]; else SKEEP[k]=1;", w)
+
+    def test_the_transcript_chip_stays_in_sync(self):
+        """⚠️⚠️ `paint()` က ⏸ ကတ်တွေ ပြန်မဆောက်ပါ (`render()` မှာ ဆောက်ထား)
+           ⇒ timeline က 「ချန်」 ပြနေပြီး ကတ်က 「ဖြတ်」 ပြနေမည်
+           (စမ်းစဉ် တကယ် တွေ့: `pau_chips_kept=0`)。"""
+        i = self.s.find("function go(ev){")
+        w = self.s[i:i + 1600]
+        self.assertIn('.pau[data-pk="', w)
+        self.assertIn('pel.classList.toggle("kept", on)', w)
+
+    def test_only_pauses_long_enough_to_hit_are_shown(self):
+        """⚠️ ၀.၆s အောက်မှာ အကွက်က ၂px ⇒ နှိပ်လို့ မရ"""
+        i = self.s.find("function tlCuts(")
+        self.assertIn("e.dur<PAU_MIN", self.s[i:i + 900])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -119,6 +119,15 @@ body{background:var(--bg);color:var(--ink);
   background:linear-gradient(transparent 62%, rgba(15,23,42,.72));
   display:flex;align-items:flex-end;padding:0 0 1px 3px}
 .tlgfx i{background:#EDE9FE;border-color:#A78BFA;color:#5B21B6}
+/* ✂ ဖြတ်မည် — **နှိပ်လို့ရရမည်** (clip အတန်းနဲ့ မတူ) */
+.tlcuts{position:relative;height:18px}
+.tlcuts i{position:absolute;top:0;height:18px;border-radius:3px;cursor:pointer;
+  background:#FCA5A5;border:1px solid #EF4444;font-style:normal;
+  font-size:9.5px;line-height:17px;color:#7F1D1D;text-align:center;
+  overflow:hidden;white-space:nowrap;transition:background 120ms}
+.tlcuts i:hover{background:#F87171}
+.tlcuts i.kept{background:#D1FAE5;border-color:#10B981;color:#065F46}
+.tlcuts i.kept:hover{background:#A7F3D0}
 /* ⚠️ အတန်းတိုင်း **အကျယ် တူရမည်** — မတူလျှင် playhead က အတန်းချင်း လွဲမည် */
 #tlruler{display:block;width:100%;height:16px}
 #tlfilm{display:block;width:100%;height:46px;border-radius:5px;background:#F5F5F4;
@@ -692,6 +701,13 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
       <div class="tlcaps" id="tlcaps"></div></div></div>
     <div class="tlrow" id="tlgfxrow" hidden><s>✦ ဂရပ်ဖစ်</s><div class="tltr">
       <div class="tlcaps tlgfx" id="tlgfx"></div></div></div>
+    <!-- ⚠️⚠️ **engine ဖြတ်မယ့် အပိုင်းကို အရောင်နဲ့ ပြပြီး တစ်ချက် နှိပ်ရုံနဲ့
+         ဖြတ်/ချန်** (Zin ၂၀၂၆-၁၀-၀၄)。 ဆွဲရွေးစနစ် မသုံးရခြင်း အကြောင်းရင်း:
+         engine ရဲ့ ဖြတ်မှတ်က အသံအလိုက် စစ်ပြီးသား (အမှား ၀/၃၁) ဖြစ်ပြီး
+         လက်နဲ့ ဆွဲတဲ့ မှတ်က ဝါကျအလယ်မှာ **၆၀%** သာ တိတ်ဆိတ်မှုထဲ ကျသည်。
+         ⇒ ရွေးစရာ ပေးတာက ပိုဆိုး — **အတည်ပြုစရာ** ပေးတာ ပိုကောင်းသည်。 -->
+    <div class="tlrow"><s>✂ ဖြတ်မည်</s><div class="tltr">
+      <div class="tlcuts" id="tlcuts"></div></div></div>
     <div class="tlrow"><s>♪ အသံ</s><div class="tltr"><canvas id="tlc"></canvas></div></div>
     <i id="tlph" hidden></i>
   </div>
@@ -2593,6 +2609,32 @@ function tlClips(){
   box.innerHTML=h;
 }
 
+/* ⚠️⚠️ **✂ ဖြတ်မည် အတန်း** — engine ဖြတ်မယ့် အနားယူချက်တွေကို အရောင်နဲ့
+   ပြပြီး **တစ်ချက် နှိပ်ရုံနဲ့** ဖြတ်/ချန် ပြောင်းသည်。
+   ⚠️ ယန္တရားက `SKEEP` — စာတမ်းထဲက ⏸ ကတ်နဲ့ **တစ်ခုတည်း**。 အသစ် မဆောက်ပါ
+      (နှစ်ခု ဆောက်လျှင် တစ်ခုက နောက်ကျကျန်ပြီး server ဆီ မရောက်)。
+   ⚠️ `PAU_MIN` အောက်ကို မပြပါ — ၀.၆s အောက်မှာ အကွက်က ၂px ဖြစ်ပြီး
+      နှိပ်လို့ မရတော့ (ဒီဖိုင်မှာ ၂၇ ခုထဲက ၂၀ ခု ပြသည်)。 */
+function tlCuts(){
+  var box=document.getElementById("tlcuts"); if(!box) return;
+  var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
+  var h="", n=0, kept=0, cut=0;
+  ((D&&D.events)||[]).forEach(function(e){
+    if(e.type!=="silence" || e.dur<PAU_MIN) return;
+    var k=e.start.toFixed(2)+":"+e.end.toFixed(2), on=!!SKEEP[k];
+    var L=(e.start/dur)*100, W=Math.max(0.35, (e.dur/dur)*100);
+    n++; if(on) kept+=e.dur; else cut+=e.dur;
+    h+='<i class="'+(on?"kept":"")+'" data-tk="'+k+'" style="left:'+L.toFixed(3)
+      +'%;width:'+W.toFixed(3)+'%" title="'+e.dur.toFixed(1)+'s · '
+      +(on?"ချန်မည် — နှိပ်ရင် ဖြတ်":"ဖြတ်မည် — နှိပ်ရင် ချန်")+'">'
+      +(W>2.2?e.dur.toFixed(1)+"s":"")+'</i>';
+  });
+  box.innerHTML=h;
+  var lab=document.getElementById("tlcutn");
+  if(lab) lab.textContent = n ? ("ဖြတ် "+(n-Math.round(0))+" · −"+cut.toFixed(1)+"s"
+                                 +(kept>0.05?(" · ချန် "+kept.toFixed(1)+"s"):"")) : "";
+}
+
 /* ⑤ ဂရပ်ဖစ် အတန်း — preview ထုတ်ပြီးမှ (`vplan`) */
 function tlGfx(){
   var row=document.getElementById("tlgfxrow"), box=document.getElementById("tlgfx");
@@ -2691,7 +2733,33 @@ function tlBind(){
     return Math.max(0, Math.min(tlDur(), cx/r.width*tlDur()));
   }
   // ⚠️ **ကြည့်ရုံ** (Zin ၂၀၂၆-၁၀-၀၄) — ဆွဲရွေးပြီး ဖြတ်တာ မပါ。
-  function go(ev){ ev.preventDefault(); seekTo(tOf(ev)) }
+  function go(ev){
+    // ⚠️ ✂ အကွက် နှိပ်တာက **ဖြတ်/ချန်** — ခုန်ခြင်း မဟုတ်。 မခွဲလျှင်
+    //    ဖြတ်ချင်တိုင်း ဗီဒီယိုက ခုန်မည်。
+    var t=ev.target.closest(".tlcuts i");
+    if(t){
+      ev.preventDefault(); ev.stopPropagation();
+      var k=t.getAttribute("data-tk");
+      if(SKEEP[k]) delete SKEEP[k]; else SKEEP[k]=1;
+      // ⚠️⚠️ စာတမ်းထဲက ⏸ ကတ်ကို **တိုက်ရိုက် ပြောင်းရမည်**。 `paint()` က
+      //    ဝါကျ အတန်းတွေပဲ ပြန်ဆွဲပြီး အသံ/အနားယူ ကတ်တွေက `render()` မှာ
+      //    ဆောက်ထားသဖြင့် မပြောင်းပါ ⇒ timeline က 「ချန်」 ပြနေပြီး ကတ်က
+      //    「ဖြတ်」 ပြနေမည် (စမ်းစဉ် တွေ့: `pau_chips_kept=0`)。
+      var pel=document.querySelector('.pau[data-pk="'+k+'"]');
+      if(pel){
+        var on=!!SKEEP[k];
+        pel.classList.toggle("kept", on);
+        var sp=pel.querySelector("span"), kb=pel.querySelector("[data-pkeep]");
+        var a2=k.split(":"), d2=(+a2[1]-+a2[0]);
+        if(sp) sp.textContent="⏸ "+d2.toFixed(1)+"s အနားယူ — "+(on?"ချန်မည်":"ဖြတ်မည်");
+        if(kb) kb.textContent=on?"✕ ဖြတ်":"↩ ပြန်ချန်";
+      }
+      counts();
+      tip(SKEEP[k] ? "↩ ဒီအနားယူချက် ချန်မည်" : "✂ ဒီအနားယူချက် ဖြတ်မည်");
+      return;
+    }
+    ev.preventDefault(); seekTo(tOf(ev));
+  }
   body.addEventListener("mousedown", go);
   body.addEventListener("touchstart", go, {passive:false});
   var pb=document.getElementById("tlbplay");
@@ -2734,6 +2802,7 @@ function tlHead(t){
 function tlRefresh(){
   try{ tlCaps() }catch(e){}
   try{ tlClips() }catch(e){}
+  try{ tlCuts() }catch(e){}
   try{ tlGfx() }catch(e){}
   try{ tlDraw() }catch(e){}
 }
