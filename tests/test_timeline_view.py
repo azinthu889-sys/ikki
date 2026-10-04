@@ -142,5 +142,60 @@ class DeadCss(unittest.TestCase):
         self.assertNotIn("#tl .tlb{", s)
 
 
+class Tracks(unittest.TestCase):
+    """⚠️ Descript ရဲ့ **အမည်တပ် အတန်း** (「T Outfit」 စသည်) ပုံစံ —
+       အတန်းတိုင်းက IKKI ရဲ့ တကယ့် အလွှာ。"""
+
+    def setUp(self):
+        self.s = _src("web", "script.html")
+
+    def test_every_track_has_a_label(self):
+        for lab in ("▦ ဗီဒီယို", "T စာတန်း", "✦ ဂရပ်ဖစ်", "♪ အသံ"):
+            self.assertIn(lab, self.s, lab)
+
+    def test_clips_are_contiguous_kept_sentences(self):
+        """⚠️ Descript ရဲ့ နံပါတ်တပ် clip = ဖြတ်ပြီး တကယ် ထွက်မယ့် အပိုင်း"""
+        i = self.s.find("function tlClips(")
+        self.assertGreater(i, 0)
+        w = self.s[i:i + 1100]
+        self.assertIn("if(DEL[x.n]){ cur=null; return }", w)
+        self.assertIn("runs.push(cur)", w)
+
+    def test_clips_cannot_be_dragged(self):
+        """⚠️⚠️ IKKI က clip ရွှေ့ခြင်း **မလုပ်ပါ** — ဆွဲလို့ရသလို ပြလျှင်
+           မဖြစ်နိုင်တာကို ကတိပေးရာ ကျမည်。"""
+        i = self.s.find(".tlclips{")
+        self.assertGreater(i, 0)
+        self.assertIn("pointer-events:none", self.s[i:i + 160])
+
+    def test_the_graphics_track_hides_until_there_is_a_plan(self):
+        self.assertIn('id="tlgfxrow" hidden', self.s)
+        i = self.s.find("function tlGfx(")
+        self.assertIn("row.hidden=!on", self.s[i:i + 600])
+
+    def test_the_playhead_accounts_for_the_label_column(self):
+        """⚠️⚠️ label ကော်လံ ၇၆px ရှိသဖြင့် body ကနေ တွက်လျှင် လွဲမည်"""
+        i = self.s.find("function tlHead(")
+        w = self.s[i:i + 900]
+        self.assertIn('body.querySelector(".tltr")', w)
+
+    def test_clicking_maps_through_the_track_not_the_body(self):
+        i = self.s.find("function tlBind(")
+        w = self.s[i:i + 900]
+        self.assertIn('body.querySelector(".tltr")', w)
+
+    def test_every_track_shares_one_time_axis(self):
+        """⚠️ အကျယ် မတူလျှင် playhead က အတန်းချင်း လွဲမည်"""
+        i = self.s.find(".tlrow>.tltr{")
+        self.assertGreater(i, 0)
+        self.assertIn("flex:1", self.s[i:i + 80])
+
+    def test_the_rows_are_refreshed_on_every_edit(self):
+        i = self.s.find("function tlRefresh(")
+        w = self.s[i:i + 300]
+        for f in ("tlCaps()", "tlClips()", "tlGfx()", "tlDraw()"):
+            self.assertIn(f, w, f)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

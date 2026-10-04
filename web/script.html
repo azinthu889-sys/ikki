@@ -107,6 +107,18 @@ body{background:var(--bg);color:var(--ink);
   border-radius:999px;padding:3px 11px;cursor:pointer}
 #tlbplay{min-width:34px}
 .tlbody{position:relative;padding:6px 16px 10px;cursor:pointer}
+/* ⚠️ အတန်းတိုင်း **အချိန်တန်း အကျယ် တူရမည်** — မတူလျှင် playhead က
+   အတန်းချင်း လွဲမည် ⇒ label ကော်လံကို ပုံသေ ထားပြီး `.tltr` ကို flex:1。 */
+.tlrow{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.tlrow>s{flex:0 0 76px;text-decoration:none;font-size:10.5px;color:#A8A29E;
+  white-space:nowrap;overflow:hidden;text-align:right}
+.tlrow>.tltr{flex:1;min-width:0;position:relative}
+.tlclips{position:absolute;inset:0;pointer-events:none}
+.tlclips i{position:absolute;top:0;bottom:0;border:2px solid #0F172A;
+  border-radius:4px;font-style:normal;font-size:10px;color:#fff;
+  background:linear-gradient(transparent 62%, rgba(15,23,42,.72));
+  display:flex;align-items:flex-end;padding:0 0 1px 3px}
+.tlgfx i{background:#EDE9FE;border-color:#A78BFA;color:#5B21B6}
 /* ⚠️ အတန်းတိုင်း **အကျယ် တူရမည်** — မတူလျှင် playhead က အတန်းချင်း လွဲမည် */
 #tlruler{display:block;width:100%;height:16px}
 #tlfilm{display:block;width:100%;height:46px;border-radius:5px;background:#F5F5F4;
@@ -670,11 +682,17 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
     </span>
     <button type="button" id="tlbmin" title="ချုံ့/ချဲ့">▾</button>
   </div>
+  <!-- ⚠️ Descript ပုံစံ — ဘယ်ဘက်မှာ **အတန်း အမည်** · ညာဘက်မှာ အချိန်တန်း。
+       အတန်းတိုင်းက IKKI ရဲ့ တကယ့် အလွှာ: ဗီဒီယို · စာတန်း · ဂရပ်ဖစ် · အသံ。 -->
   <div class="tlbody" id="tlbody">
-    <canvas id="tlruler"></canvas>
-    <canvas id="tlfilm"></canvas>
-    <div class="tlcaps" id="tlcaps"></div>
-    <canvas id="tlc"></canvas>
+    <div class="tlrow"><s>⏱</s><div class="tltr"><canvas id="tlruler"></canvas></div></div>
+    <div class="tlrow"><s>▦ ဗီဒီယို</s><div class="tltr">
+      <canvas id="tlfilm"></canvas><div class="tlclips" id="tlclips"></div></div></div>
+    <div class="tlrow"><s>T စာတန်း</s><div class="tltr">
+      <div class="tlcaps" id="tlcaps"></div></div></div>
+    <div class="tlrow" id="tlgfxrow" hidden><s>✦ ဂရပ်ဖစ်</s><div class="tltr">
+      <div class="tlcaps tlgfx" id="tlgfx"></div></div></div>
+    <div class="tlrow"><s>♪ အသံ</s><div class="tltr"><canvas id="tlc"></canvas></div></div>
     <i id="tlph" hidden></i>
   </div>
 </div>
@@ -2554,6 +2572,44 @@ function tlFilm(){
   step();
 }
 
+/* ⚠️ **clip = ဆက်တိုက် ချန်ထားသော ဝါကျများ** — ဖြတ်ပြီးရင် တကယ် ထွက်မယ့်
+   အပိုင်းတွေ ဖြစ်သည် (Descript ရဲ့ နံပါတ်တပ် clip နဲ့ တူညီသော အဓိပ္ပာယ်)。
+   ⚠️ ဆွဲလို့ **မရ**ပါ — IKKI က clip ရွှေ့ခြင်း မလုပ်သဖြင့် ဆွဲလို့ရသလို
+      ပြလျှင် မဖြစ်နိုင်တာကို ကတိပေးရာ ကျမည် ⇒ `pointer-events:none`。 */
+function tlClips(){
+  var box=document.getElementById("tlclips"); if(!box) return;
+  var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
+  var S=(D&&D.sentences)||[], runs=[], cur=null;
+  S.forEach(function(x){
+    if(DEL[x.n]){ cur=null; return }
+    if(cur && x.start - cur.end < 1.2) cur.end=x.end;
+    else { cur={start:x.start, end:x.end}; runs.push(cur) }
+  });
+  var h="";
+  runs.forEach(function(r,i){
+    var L=(r.start/dur)*100, W=Math.max(0.5, ((r.end-r.start)/dur)*100);
+    h+='<i style="left:'+L.toFixed(3)+'%;width:'+W.toFixed(3)+'%">'+(i+1)+'</i>';
+  });
+  box.innerHTML=h;
+}
+
+/* ⑤ ဂရပ်ဖစ် အတန်း — preview ထုတ်ပြီးမှ (`vplan`) */
+function tlGfx(){
+  var row=document.getElementById("tlgfxrow"), box=document.getElementById("tlgfx");
+  if(!row||!box) return;
+  var on=!!(VPLAN && VPLAN.length), dur=tlDur();
+  row.hidden=!on || !dur;
+  if(row.hidden){ box.innerHTML=""; return }
+  var h="";
+  VPLAN.forEach(function(e){
+    if(e.missing) return;
+    var L=((e.at||0)/dur)*100, W=Math.max(0.6, ((e.dur||0.8)/dur)*100);
+    h+='<i style="left:'+L.toFixed(3)+'%;width:'+W.toFixed(3)+'%" title="'
+      +esc(String(e.tpl||""))+'">'+esc(String(e.text||e.tpl||"").slice(0,16))+'</i>';
+  });
+  box.innerHTML=h;
+}
+
 /* ③ စာတန်း အတန်း — ဝါကျတိုင်း တစ်ကွက် (Descript ရဲ့ chip အတန်း) */
 function tlCaps(){
   var box=document.getElementById("tlcaps"); if(!box) return;
@@ -2627,12 +2683,12 @@ function tlBind(){
   if(!body || body.getAttribute("data-b")==="1") return;
   body.setAttribute("data-b","1");
   function tOf(ev){
-    var r=body.getBoundingClientRect();
+    // ⚠️ အချိန်တန်း (`.tltr`) ရဲ့ နေရာကနေ တွက်ရမည် — label ကော်လံ ၇၆px
+    //    ပါနေသဖြင့် body ကနေ တွက်လျှင် လွဲမည်。
+    var tr=body.querySelector(".tltr"); if(!tr) return 0;
+    var r=tr.getBoundingClientRect();
     var cx=(ev.touches&&ev.touches[0]?ev.touches[0].clientX:ev.clientX)-r.left;
-    // ⚠️ padding ကို နုတ်ရမည် — မနုတ်လျှင် ဘယ်/ညာ အစွန်းမှာ လွဲသည်
-    var pad=parseFloat(getComputedStyle(body).paddingLeft)||0;
-    var w=r.width-2*pad;
-    return Math.max(0, Math.min(tlDur(), (cx-pad)/w*tlDur()));
+    return Math.max(0, Math.min(tlDur(), cx/r.width*tlDur()));
   }
   // ⚠️ **ကြည့်ရုံ** (Zin ၂၀၂၆-၁၀-၀၄) — ဆွဲရွေးပြီး ဖြတ်တာ မပါ。
   function go(ev){ ev.preventDefault(); seekTo(tOf(ev)) }
@@ -2661,10 +2717,12 @@ function tlHead(t){
   if(!e||!body) return;
   var dur=tlDur();
   if(!dur || t===null || t===undefined){ e.hidden=true; return }
-  var pad=parseFloat(getComputedStyle(body).paddingLeft)||0;
-  var w=body.getBoundingClientRect().width-2*pad;
+  // ⚠️ label ကော်လံ ရှိသဖြင့် `.tltr` ရဲ့ တကယ့် နေရာကနေ တွက်ရမည် —
+  //    padding တစ်ခုတည်းနဲ့ တွက်လျှင် ၈၄px လွဲမည်。
+  var tr=body.querySelector(".tltr"); if(!tr) return;
+  var br=body.getBoundingClientRect(), rr=tr.getBoundingClientRect();
   e.hidden=false;
-  e.style.left=(pad + Math.max(0, Math.min(1, t/dur))*w)+"px";
+  e.style.left=((rr.left-br.left) + Math.max(0, Math.min(1, t/dur))*rr.width)+"px";
   var p=document.getElementById("tlbpos");
   if(p) p.textContent=mm(t)+" / "+mm(dur);
   var b=document.getElementById("tlbplay");
@@ -2675,6 +2733,8 @@ function tlHead(t){
    ထုတ်တာ ၂ စက္ကန့်လောက် ကြာပြီး ဗီဒီယိုကို ခုန်စေသည်)。 ဒေတာ အတန်း ၂ ခုသာ。 */
 function tlRefresh(){
   try{ tlCaps() }catch(e){}
+  try{ tlClips() }catch(e){}
+  try{ tlGfx() }catch(e){}
   try{ tlDraw() }catch(e){}
 }
 
