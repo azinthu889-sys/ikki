@@ -118,7 +118,10 @@ body{background:var(--bg);color:var(--ink);
   border-radius:4px;font-style:normal;font-size:10px;color:#fff;
   background:linear-gradient(transparent 62%, rgba(15,23,42,.72));
   display:flex;align-items:flex-end;padding:0 0 1px 3px}
+/* ⚠️ ဂရပ်ဖစ် အကွက်က **နှိပ်လို့ရသည်** (ထုတ်ပြီးသားမှာ) ⇒ လက်ညှိုး ပြရမည် */
 .tlgfx i{background:#EDE9FE;border-color:#A78BFA;color:#5B21B6}
+body.done .tlgfx i{cursor:pointer}
+body.done .tlgfx i:hover{background:#DDD6FE}
 /* ✂ ဖြတ်မည် — **နှိပ်လို့ရရမည်** (clip အတန်းနဲ့ မတူ) */
 .tlcuts{position:relative;height:18px}
 .tlcuts i{position:absolute;top:0;height:18px;border-radius:3px;cursor:pointer;
@@ -177,11 +180,15 @@ body{background:var(--bg);color:var(--ink);
   main.editor{flex:1 1 auto;min-height:0;display:flex;align-items:stretch;
     max-width:none;width:100%;margin:0;padding:0;
     border-top:1px solid #EFEEEC}
-  #spane{flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden;
+  /* ⚠️ Descript အတိုင်း **စာတမ်း ဘယ် · ဗီဒီယို ညာ**。 `.vbar` က DOM ထဲ
+     ပထမ ဖြစ်နေသဖြင့် wrapper က နောက်မှ ဝင်ပြီး ဗီဒီယိုက ဘယ်ဘက် ရောက်သည်
+     (တိုင်းထား: vbar x=18 · spane x=390)。 ⇒ `order` နဲ့ ပြောင်းသည် —
+     DOM မရွှေ့ရ (`<video>` ရွှေ့လျှင် ပြန်စပြီး filmstrip ပါ ပျက်မည်)。 */
+  #spane{order:1;flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden;
     padding:18px 26px 60px}
   /* ⚠️ စာဖတ်ရ လွယ်ရန် မူလ အကျယ် ထိန်းသည် — pane က ကျယ်သွားလည်း */
   #spane>*{max-width:var(--w);margin-left:auto;margin-right:auto}
-  main.editor>.vbar{flex:0 0 372px;overflow-y:auto;overflow-x:hidden;
+  main.editor>.vbar{order:2;flex:0 0 372px;overflow-y:auto;overflow-x:hidden;
     position:static;margin:0;border:0;border-left:1px solid #E7E5E4;
     border-radius:0;box-shadow:none;padding:16px 16px 40px;
     flex-direction:column;align-items:stretch}
@@ -332,7 +339,12 @@ body.rv #bsec,body.rv #bonly{display:none}
 body.rv #bsimple{display:none}
 /* ⚠️ rv မှာ ⚙ ထဲက ၃ ခုလုံး ဖျောက်ထားသဖြင့် ဗလာ panel ကျန်မည် ⇒ ⚙ ပါ ဖျောက် */
 body.rv #setbox{display:none}
-#rvnote{display:none}
+#rvnote,#donote{display:none}
+#donote{gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px;
+  padding:12px 14px;border:1px solid #BBF7D0;background:#F0FDF4;border-radius:12px}
+#donote b{font-size:14px}
+#donote span{flex:1;min-width:200px;font-size:13px;color:#57534E}
+body.done #donote{display:flex}
 /* ⚙ — ချိန်ညှိချက် အားလုံး တစ်နေရာထဲ */
 .setd{position:relative}
 .setd>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center}
@@ -668,6 +680,19 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
   <span>စာကြောင်း နှိပ်ရင် အဲဒီနေရာ ခုန်ပြီး ပြပါမယ်။ ဖျက်/ပြန်ချန် ပြင်ချင်ရင် —</span>
   <button type="button" class="btn primary" id="rvedit">✏️ ပြန်ပြင်မယ်</button>
 </div>
+<!-- ⚠️ ထုတ်ပြီးသား ရလဒ် — **ဒီ pane ထဲမှာပဲ** စစ်လို့ရရန် (Zin ၂၀၂၆-၁၀-၀၄)。
+     အရင်က card သေးသေးထဲမှာ ဗီဒီယို ထည့်ပြခဲ့ပြီး timeline/စာတမ်း နဲ့
+     မဆက်စပ်ခဲ့ ⇒ Motion ကို နေရာအလိုက် စစ်လို့ မရခဲ့ပါ。 -->
+<div id="donote">
+  <b>✅ ထုတ်ပြီးပါပြီ</b>
+  <span id="donsum"></span>
+  <a class="btn ghost" id="dondl" style="text-decoration:none">⬇ ဒေါင်းမယ်</a>
+  <button type="button" class="btn ghost" id="donre">↩ ပြန်ဖြတ်မယ်</button>
+  <a class="btn primary" id="donnew" style="text-decoration:none" href="/#new">➕ နောက် ဗီဒီယို</a>
+</div>
+<!-- ⚠️ ဂရပ်ဖစ် တစ်ခုချင်း လဲ/ဖြုတ် — timeline က **နေရာ** ပြပြီး ဒီ panel က
+     **ဘာလဲ · ဘာလို့ မထွက်ခဲ့လဲ** ပြသည်。 နှစ်ခုလုံး လိုသည်。 -->
+<div id="vplan"></div>
 <div id="list"></div>
 </main>
 <!-- ⚠️⚠️ **Descript ပုံစံ အောက်ခြေ timeline** (Zin ၂၀၂၆-၁၀-၀၄:
@@ -882,6 +907,84 @@ function undo(){
   _SKT=0; paint(); counts(); tip("ပြန်ပြင်ပြီး");
 }
 var _HD=null;
+/* ══ ရလဒ် စစ်ခြင်း — ထုတ်ပြီး ဗီဒီယိုကို **ဒီ pane ထဲမှာပဲ** ═══════════
+   Zin ၂၀၂၆-၁၀-၀၄: 「ဖြတ်ချက် OK လို့ Motion ထည့်ပြီးရင်လဲ · Layout pane
+   မှာပဲ စစ်လို့ရတဲ့ပုံစံမျိုးက ပိုပြီးကောင်းမယ်」。
+   ⚠️⚠️ **အချိန် အခြေခံ ၂ မျိုး ရှိသည် — ရောလျှင် နေရာ လွဲမည်**:
+      · စာတမ်း · လှိုင်း · ဖြတ်မှတ် ⇒ **မူရင်း** အချိန်
+      · ထုတ်ပြီး ဗီဒီယို · `vplan` (ဂရပ်ဖစ်) ⇒ **ထွက်** အချိန်
+      တိုင်းထား (j_3f7316e4b795): ဂရပ်ဖစ် နောက်ဆုံး ၄၇.၁၂s · ထွက် ၆၄.၈၀s
+      ⇒ ၇၃%。 မူရင်း ၁၇၈.၆၈s နဲ့ ဆွဲလျှင် ၂၆% ⇒ **၄၇% လွဲ**。
+      (ဒါက `tlGfx()` မှာ တကယ် ရှိနေခဲ့သော အမှား — ၂၀၂၆-၁၀-၀၄ မှ တွေ့)
+   ⇒ OUT mode မှာ timeline ရဲ့ ဝင်ရိုးက **ထွက် အချိန်**; မူရင်း အချိန်
+      အားလုံးကို `s2o()` နဲ့ ပြောင်းမှ ဆွဲသည်。
+   ⚠️ မြေပုံ (`cut_map`) မရှိလျှင် OUT mode **မဖွင့်ရ** — ခန့်မှန်းပြီး
+      ဆွဲလျှင် မှားတဲ့ နေရာ ပြမည် (မရှိတာထက် ဆိုးသည်)。 */
+var OUT={on:false, dur:0, map:null, acc:null, total:0, exact:false};
+/* ⚠️⚠️ ထုတ်ပြီးသား job ကို **ပြန်ပြင်လို့ ရနေရမည်**。 ရလဒ်ကို အမြဲ
+   ကြည့်ရုံပဲ ပြလျှင် 「✂️ Edit — ဗီဒီယို ထုတ်」 လမ်းကြောင်း ပိတ်သွားမည်
+   (အရင်က ထုတ်ပြီးသား job ကို ဖွင့်လျှင် တည်းဖြတ်လို့ ရခဲ့သည်)。
+   ⇒ 「↩ ပြန်ဖြတ်မယ်」 က စာမျက်နှာ မပြောင်းဘဲ တည်းဖြတ် mode ပြန်ဝင်သည်。 */
+var REEDIT=false;
+function outInit(d){
+  OUT.on=false; OUT.map=null; OUT.acc=null; OUT.total=0; OUT.exact=false;
+  if(REEDIT) return;
+  if(!d || d.status!=="done" || !d.out_dur) return;
+  var m=d.cut_map;
+  if(!m || !m.spans || !m.spans.length) return;
+  OUT.map=m.spans; OUT.exact=!!m.exact; OUT.dur=+d.out_dur||0;
+  var acc=[], run=0;
+  OUT.map.forEach(function(r){ acc.push(run); run+=(r[1]-r[0]) });
+  OUT.acc=acc; OUT.total=run; OUT.on=true;
+}
+/* မူရင်း ⇒ ထွက် (ဖျက်ထားသော အပိုင်းထဲ ကျလျှင် နောက်ဆုံး ချန်ထားတဲ့ မှတ်) */
+function s2o(t){
+  if(!OUT.on) return t;
+  var M=OUT.map, A=OUT.acc;
+  for(var i=0;i<M.length;i++){
+    if(t < M[i][0]) return A[i];
+    if(t <= M[i][1]) return A[i] + (t - M[i][0]);
+  }
+  return OUT.total;
+}
+/* ထွက် ⇒ မူရင်း */
+function o2s(t){
+  if(!OUT.on) return t;
+  var M=OUT.map, A=OUT.acc;
+  for(var i=M.length-1;i>=0;i--){
+    if(t >= A[i]) return Math.min(M[i][1], M[i][0] + (t - A[i]));
+  }
+  return M.length ? M[0][0] : t;
+}
+/* timeline ဝင်ရိုးပေါ် နေရာ (စက္ကန့်) — **မူရင်း အချိန် ထည့်ပါ** */
+function tlX(t){ return OUT.on ? s2o(t) : t }
+
+/* ရလဒ် ⇒ တည်းဖြတ် (စာမျက်နှာ မပြောင်း — ဖွင့်ထားတာ ရပ်ပြီး proxy ပြန်သုံး) */
+function outEdit(){
+  if(!OUT.on) return;
+  try{ stopAll() }catch(e){}
+  REEDIT=true;
+  document.body.classList.remove("rv","done");
+  VPROX = (JOB && D && D.vprox)
+    ? ("/api/jobs/"+JOB+"/vprox?t="+encodeURIComponent(localStorage.getItem("ikki_token")||""))
+    : null;
+  // ⚠️ player နဲ့ filmstrip နှစ်ခုလုံး ဖိုင် ပြောင်းရမည် — မပြောင်းလျှင်
+  //    ထွက်ဖိုင်ကို မူရင်း အချိန်နဲ့ ခုန်ပြီး နေရာ လွဲမည်。
+  var _v=document.getElementById("vid");
+  if(_v){
+    _v.pause();
+    // ⚠️ `src=""` ဆိုလျှင် browser က **စာမျက်နှာ URL ကိုပဲ** media အဖြစ်
+    //    ဖတ်ဖို့ ကြိုးစားသည် (တိုင်းထား: `vid.src` က script.html ဖြစ်သွား)
+    //    ⇒ မရှိလျှင် attribute ကို ဖြုတ်ရသည်。
+    if(VPROX) _v.src=VPROX; else { _v.removeAttribute("src"); try{ _v.load() }catch(e){} }
+    _v._poster=false;
+  }
+  if(FILM.el){ try{ FILM.el.remove() }catch(e){} }
+  FILM.el=null; FILM.done=false; FILM.busy=false;
+  render(D);
+  tip("✏️ တည်းဖြတ် mode — ပြင်ပြီးရင် 「✂️ Edit — ဗီဒီယို ထုတ်」 ကို နှိပ်ပါ");
+}
+
 function head(a){
   cancelAnimationFrame(_HD);
   var lines=[].slice.call(document.querySelectorAll(".trim .tbar s"));
@@ -965,7 +1068,8 @@ function rowNow(t){
 }
 function vpos(a){
   var e=document.getElementById("vpos"); if(!e||!a) return;
-  e.textContent=mm(a.currentTime)+" / "+mm(a.duration||(D&&D.src_dur)||0);
+  e.textContent=mm(a.currentTime)+" / "
+    +mm(a.duration||(OUT.on?OUT.dur:0)||(D&&D.src_dur)||0);
 }
 function playAll(from){
   if(!medOK()){ tip("ကြည့်စရာ မရှိ — ဗီဒီယို ပြန်တင်ပါ"); return }
@@ -974,6 +1078,7 @@ function playAll(from){
   PLAYALL=true;
   var S=(D&&D.sentences)||[];
   var t0=(from!==undefined&&from!==null)?from:(S.length?Math.max(0,S[0].start-0.12):0);
+  if(OUT.on) t0=(from!==undefined&&from!==null)?Math.max(0,s2o(from)):0;
   try{ a.currentTime=t0 }catch(e){}
   medPlay(a, function(){ tip("ဖွင့်၍ မရ — ▶ ကို နှိပ်ပါ"); PLAYALL=false; stopAll() });
   var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
@@ -995,7 +1100,11 @@ function skipCached(){
 }
 function tickAll(a){
   if(!PLAYALL) return;
-  var t=a.currentTime, sk=skipCached();
+  var t=a.currentTime;
+  // ⚠️ ထုတ်ပြီးသား ဗီဒီယိုမှာ **ခုန်စရာ မရှိ** — ဖြတ်ပြီးသား ဖြစ်သည်。
+  //    ခုန်လျှင် မူရင်း အချိန်တွေနဲ့ ထွက် အချိန်ကို ရောပြီး ကျော်မိမည်。
+  if(OUT.on){ rowNow(o2s(t)); vpos(a); tlHead(t); return }
+  var sk=skipCached();
   for(var i=0;i<sk.length;i++){
     // ⚠️ `-0.05` — ခုန်မှတ်ကို အနည်းငယ် စောရမည်。 မစောလျှင် ဖျက်ထားတဲ့
     //    စကားရဲ့ ပထမ frame လေး ကြားရသည် (Zin: 「ဖျက်ထားတာ ကြားနေရတယ်」)。
@@ -1028,7 +1137,10 @@ function seekTo(t){
   if(!medOK()){ tip("ကြည့်စရာ မရှိ"); return }
   var a=med(); if(!a) return;
   clearTimeout(a._t);
-  try{ a.currentTime=Math.max(0,t-0.12) }catch(e){ return }
+  // ⚠️ `t` က **အမြဲ မူရင်း အချိန်** (စာကြောင်း · ကတ် · timeline အားလုံး)。
+  //    ထုတ်ပြီး ဗီဒီယိုမှာ ထွက် အချိန် ဖြစ်သဖြင့် ပြောင်းမှ ခုန်ရသည်。
+  try{ a.currentTime = OUT.on ? Math.max(0, s2o(t))
+                              : Math.max(0, t-0.12) }catch(e){ return }
   tlHead(a.currentTime);
   if(!PLAYALL){ PLAYALL=true; medPlay(a, function(){ tip("ဖွင့်၍ မရ — ▶ ကို နှိပ်ပါ"); stopAll() });
     var pb=document.getElementById("vplay"); if(pb) pb.textContent="⏸ ခဏရပ်";
@@ -1481,12 +1593,26 @@ document.addEventListener("click",function(ev){
 
 function render(d){
   D=d; var S=d.sentences||[], E=(d.events||[]).slice(), out=[], ei=0;
+  /* ⚠️ `VPLAN` ကို **render() ထဲမှာ** ယူရသည် — `watchJob` က `cut_review`
+     အဆင့်မှာသာ ခေါ်သဖြင့် ထုတ်ပြီးသား job ကို ဖွင့်လျှင် ဘယ်တော့မှ မလာ。 */
+  if(d.vplan && !VPLAN) VPLAN=d.vplan;
+  outInit(d);
   // ⚠️ ဗီဒီယို proxy ရှိမှ player ကို ပြရမည် — မရှိဘဲ ပြလျှင် မည်းနေသော
   //    ဘောင်သာ မြင်ရပြီး 「ပျက်နေတယ်」 ဟု ထင်မည် (အသံပဲ ရှိတဲ့ အရင် job တွေ
   //    အတွက် အသံနဲ့ပဲ ဆက်သွားသည် — ခုန်ကျော်မှု အတူတူ အလုပ်လုပ်သည်)。
   if(JOB && d.vprox){
     VPROX="/api/jobs/"+JOB+"/vprox?t="
           +encodeURIComponent(localStorage.getItem("ikki_token")||"");
+  }
+  /* ⚠️⚠️ ထုတ်ပြီးသားမှာ **ထွက် ဗီဒီယိုကိုပဲ ပြရမည်** — proxy က ဖြတ်မထား ·
+     ဂရပ်ဖစ် မပါ ⇒ 「Motion ထည့်ပြီးရင် စစ်」လို့ မရ。 `VPROX` တစ်ခုတည်း
+     ပြောင်းရုံနဲ့ player · filmstrip · ခုန်ခြင်း အားလုံး ထွက်ဖိုင် ဖြစ်သွားသည်
+     (လမ်းကြောင်း အသစ် မဆောက်ရ)。 */
+  if(JOB && OUT.on){
+    VPROX="/api/jobs/"+JOB+"/file?t="
+          +encodeURIComponent(localStorage.getItem("ikki_token")||"");
+    document.body.classList.add("rv");     // ⚠️ အေးခဲပြီ — ဖြတ်လို့ မရတော့
+    FILM.done=false; FILM.el=null;
   }
   var _vb=document.getElementById("vbar");
   if(_vb){
@@ -1511,6 +1637,23 @@ function render(d){
     if(JOB && !document.body.classList.contains("rv")) try{ pzLoad(JOB) }catch(e){}
     // ⚠️ 「✏️ ပြန်ပြင်မယ်」 — အောက်က panel ထဲက `crc` ကို ပဲ ပစ်သည်
     //    (လမ်းကြောင်း ၂ ခု မဆောက်ရ — `/recut` လုပ်ပြီး စာမျက်နှာ ပြန်ဖွင့်သည်)
+    /* ── ထုတ်ပြီးသား ရလဒ် — ဒီ pane ထဲမှာပဲ ── */
+    if(OUT.on){
+      document.body.classList.add("done");
+      var _ds=document.getElementById("donsum");
+      if(_ds) _ds.textContent =
+        mm(d.src_dur||0)+" → "+mm(OUT.dur)
+        + " · ဂရပ်ဖစ် "+((VPLAN||[]).filter(function(x){return !x.missing}).length)+" ခု"
+        + (OUT.exact ? "" : " · timeline က ခန့်မှန်း (ပြန်ထုတ်လျှင် အတိအကျ)");
+      var _dd=document.getElementById("dondl");
+      if(_dd) _dd.href=VPROX;
+      var _dr=document.getElementById("donre");
+      if(_dr) _dr.onclick=function(){ outEdit() };
+      setTimeout(vplanTry, 0);
+    } else {
+      document.body.classList.remove("done");
+      var _vpb=document.getElementById("vplan"); if(_vpb) _vpb.innerHTML="";
+    }
     var _rve=document.getElementById("rvedit");
     if(_rve) _rve.onclick=function(){
       var b=document.getElementById("crc");
@@ -2186,6 +2329,37 @@ function openLib(evid, jid, j){
    .catch(function(e){ VCAT={ok:false,why:String(e.message||e)}; draw() });
 }
 
+/* ⚠️ အရန် — `/api/script` ဖတ်၍ မရလျှင် အရင် card အတိုင်း ပြသည်。
+   (ရလဒ်ကို **မပြဘဲ မထားရ** — ထုတ်ပြီးသားကို မမြင်ရလျှင် အလုပ် ပျောက်သလို ဖြစ်မည်) */
+function _doneCard(jid, j, el){
+       var u="/api/jobs/"+jid+"/file?t="+encodeURIComponent(localStorage.getItem("ikki_token")||"");
+       el.innerHTML='<b>✅ ဖြတ်ပြီးပါပြီ</b> · '
+         +(j.out_dur?Math.round(j.out_dur)+'s':'')+(j.src_dur?' (မူရင်း '+Math.round(j.src_dur)+'s)':'')
+         +'<video controls preload="metadata" src="'+u+'"></video>'
+         +'<div class="acts2">'
+         // ⚠️ 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ်」 — ဒါက **အဓိက ခလုတ်** (Zin ၂၀၂၆-၀၉-၁၉)
+         +'<a class="btn primary" style="text-decoration:none;margin:0" href="/#new">➕ နောက် ဗီဒီယို</a>'
+         +'<a class="btn ghost" style="text-decoration:none" href="'+u+'">⬇ ဒေါင်းမယ်</a>'
+         +'<button class="btn ghost" id="again">↩ ပြန်ဖြတ်မယ်</button>'
+         +'<a class="btn ghost" style="text-decoration:none" href="/">ဗီဒီယိုများ →</a></div>'
+         +(j.flags?'<div style="margin-top:10px;font-size:13px;color:var(--sec)">⚠️ စစ်ရန် '+j.flags+' ခု — ဗီဒီယိုများ စာမျက်နှာမှာ ကြည့်ပါ</div>':'')
+         +syncNote(j)
+         +'<div id="vplan"></div>';
+       var ag=document.getElementById("again");
+       if(ag) ag.onclick=function(){ location.href="/script.html?job="+encodeURIComponent(jid) };
+  paintVPlan(jid, j);
+}
+
+/* ⚠️ `paintVPlan` က **job row** လိုသည် (`over._ev` — သုံးစွဲသူ လဲထားတာ)。
+   `/api/script` မှာ မပါသဖြင့် သီးသန့် ယူထားပြီး နှစ်ဖက်လုံးက ဒီကိုပဲ ခေါ်သည်
+   (စာမျက်နှာ ဖွင့်ကတည်းက ထုတ်ပြီးသား · ဖွင့်ထားစဉ် ပြီးသွားတာ ၂ မျိုးလုံး)。 */
+var JOBROW=null;
+function vplanTry(){
+  if(!JOBROW || !document.getElementById("vplan")) return;
+  if(!OUT.on) { var b=document.getElementById("vplan"); if(b) b.innerHTML=""; return }
+  try{ paintVPlan(JOB, JOBROW) }catch(e){}
+}
+
 function watchJob(jid, el){
   var t0=Date.now();
   function tick(){
@@ -2193,22 +2367,24 @@ function watchJob(jid, el){
      .then(function(r){return r.json()}).then(function(j){
        var st=j.status||"", sg=+(j.stage||0);
        if(st==="done"){
-         var u="/api/jobs/"+jid+"/file?t="+encodeURIComponent(localStorage.getItem("ikki_token")||"");
-         el.innerHTML='<b>✅ ဖြတ်ပြီးပါပြီ</b> · '
-           +(j.out_dur?Math.round(j.out_dur)+'s':'')+(j.src_dur?' (မူရင်း '+Math.round(j.src_dur)+'s)':'')
-           +'<video controls preload="metadata" src="'+u+'"></video>'
-           +'<div class="acts2">'
-           // ⚠️ 「တစ်ပုဒ်ပြီးတာနဲ့ နောက်တစ်ပုဒ်」 — ဒါက **အဓိက ခလုတ်** (Zin ၂၀၂၆-၀၉-၁၉)
-           +'<a class="btn primary" style="text-decoration:none;margin:0" href="/#new">➕ နောက် ဗီဒီယို</a>'
-           +'<a class="btn ghost" style="text-decoration:none" href="'+u+'">⬇ ဒေါင်းမယ်</a>'
-           +'<button class="btn ghost" id="again">↩ ပြန်ဖြတ်မယ်</button>'
-           +'<a class="btn ghost" style="text-decoration:none" href="/">ဗီဒီယိုများ →</a></div>'
-           +(j.flags?'<div style="margin-top:10px;font-size:13px;color:var(--sec)">⚠️ စစ်ရန် '+j.flags+' ခု — ဗီဒီယိုများ စာမျက်နှာမှာ ကြည့်ပါ</div>':'')
-           +syncNote(j)
-           +'<div id="vplan"></div>';
-         var ag=document.getElementById("again");
-         if(ag) ag.onclick=function(){ location.href="/script.html?job="+encodeURIComponent(jid) };
-         paintVPlan(jid, j);
+         /* ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「Motion ထည့်ပြီးရင်လဲ Layout pane မှာပဲ
+            စစ်လို့ရတဲ့ပုံစံ」。 အရင်က ဒီနေရာမှာ card သေးသေးထဲ `<video>`
+            ထည့်ပြခဲ့ပြီး timeline/စာတမ်း နဲ့ မဆက်စပ်ခဲ့ ⇒ ဂရပ်ဖစ် တစ်ခုချင်း
+            ဘယ်နေရာ ကျသလဲ စစ်လို့ မရခဲ့。 ⇒ pane ကိုပဲ ရလဒ် mode ပြောင်းသည်。
+            ⚠️ `/api/script` ကို ပြန်ဖတ်ရသည် — `cut_map`/`vplan` က ဒီမှာသာ。 */
+         el.innerHTML='<b>✅ ထုတ်ပြီးပါပြီ</b> <span class="sub">— အောက်မှာ ပြန်စစ်ပါ</span>';
+         fetch("/api/script/"+jid,
+           {headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+          .then(function(r){return r.json()})
+          .then(function(dd){
+            REEDIT=false; JOBROW=j;
+            render(dd);
+            try{ el.remove() }catch(e){}
+            var _sp=document.getElementById("spane");
+            if(_sp) _sp.scrollTop=0;
+          }).catch(function(){ /* ⚠️ မရလျှင် အောက်က card အဟောင်းကို ပြန်ပြ */
+            _doneCard(jid, j, el);
+          });
          return;
        }
        if(st==="failed"){ el.innerHTML='<b class="er">ထုတ်လို့ မရပါ</b><br>'+esc(j.err||""); return }
@@ -2479,7 +2655,10 @@ var WAVE={peaks:null, db:null, dbhz:50, hz:200, dur:0, state:"—"};
       ဖြတ်ချက် စစ်ချိန်မှာ **မရှိသေး**。 အခမဲ့ preview ထုတ်ပြီးမှ ပေါ်မည်。 */
 var VPLAN=null;
 
-function tlDur(){ return (D&&D.src_dur) || WAVE.dur || 0 }
+/* ⚠️ ထုတ်ပြီးသားမှာ ဝင်ရိုးက **ထွက် အချိန်** — မူရင်း ရှည်နဲ့ ဆွဲလျှင်
+      ဗီဒီယိုက ၃၆% မှာ ရပ်နေပြီး playhead က ဆက်သွားနေမည်。 */
+function tlDur(){ return OUT.on ? (OUT.dur||OUT.total)
+                                : ((D&&D.src_dur) || WAVE.dur || 0) }
 function _ovl(list, a, b){   /* [a,b] ကို list ထဲ ပေါင်း (merge) */
   list.push([Math.min(a,b), Math.max(a,b)]);
   list.sort(function(x,y){return x[0]-y[0]});
@@ -2607,7 +2786,8 @@ function tlClips(){
   });
   var h="";
   runs.forEach(function(r,i){
-    var L=(r.start/dur)*100, W=Math.max(0.5, ((r.end-r.start)/dur)*100);
+    var _a=tlX(r.start), _b=tlX(r.end);
+    var L=(_a/dur)*100, W=Math.max(0.5, ((_b-_a)/dur)*100);
     h+='<i style="left:'+L.toFixed(3)+'%;width:'+W.toFixed(3)+'%">'+(i+1)+'</i>';
   });
   box.innerHTML=h;
@@ -2622,6 +2802,16 @@ function tlClips(){
 function tlCuts(){
   var box=document.getElementById("tlcuts"); if(!box) return;
   var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
+  // ⚠️ ထုတ်ပြီးသားမှာ **ဖြတ်/ချန် မရှိတော့** — အေးခဲပြီ。 နှိပ်လို့ရသလို
+  //    ပြထားလျှင် နှိပ်ပြီး ဘာမှ မဖြစ်ဘဲ 「ပျက်နေတယ်」 ဟု ထင်မည်
+  //    (၂၀၂၆-၁၀-၀၄ `rv` မှာ တကယ် ဖြစ်ခဲ့သော အမှား)。
+  if(OUT.on){
+    box.innerHTML="";
+    var _rw=box.closest(".tlrow"); if(_rw) _rw.hidden=true;
+    var _lb0=document.getElementById("tlcutn"); if(_lb0) _lb0.textContent="";
+    return;
+  }
+  var _rw2=box.closest(".tlrow"); if(_rw2) _rw2.hidden=false;
   var h="", n=0, kept=0, cut=0;
   ((D&&D.events)||[]).forEach(function(e){
     if(e.type!=="silence" || e.dur<PAU_MIN) return;
@@ -2643,7 +2833,10 @@ function tlCuts(){
 function tlGfx(){
   var row=document.getElementById("tlgfxrow"), box=document.getElementById("tlgfx");
   if(!row||!box) return;
-  var on=!!(VPLAN && VPLAN.length), dur=tlDur();
+  /* ⚠️⚠️ `vplan` ရဲ့ `at` က **ထွက် အချိန်**。 OUT mode မဟုတ်လျှင်
+     ဝင်ရိုးက မူရင်း အချိန် ဖြစ်နေသဖြင့် ဒီတန်းကို ဆွဲလျှင် **လွဲမည်**
+     (တိုင်းထား: ၄၇.၁၂s ⇒ ၇၃% အစား ၂၆%)。 ⇒ မြေပုံ ရှိမှ ပြသည်。 */
+  var on=!!(VPLAN && VPLAN.length && OUT.on), dur=tlDur();
   row.hidden=!on || !dur;
   if(row.hidden){ box.innerHTML=""; return }
   var h="";
@@ -2662,7 +2855,9 @@ function tlCaps(){
   var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
   var S=(D&&D.sentences)||[], h="";
   S.forEach(function(x){
-    var L=Math.max(0.4, (x.start/dur)*100), Wd=Math.max(0.6, ((x.end-x.start)/dur)*100);
+    if(OUT.on && DEL[x.n]) return;      // ⚠️ ထွက်ထဲ မပါတော့ — ပြလျှင် မှား
+    var _a=tlX(x.start), _b=tlX(x.end);
+    var L=Math.max(0.4, (_a/dur)*100), Wd=Math.max(0.6, ((_b-_a)/dur)*100);
     h+='<i class="'+(DEL[x.n]?"gone":"")+'" style="left:'+L.toFixed(3)
       +'%;width:'+Wd.toFixed(3)+'%" title="['+x.n+'] '+esc(x.text).slice(0,60)+'">'
       +esc((FIX[x.n]||x.text||"").slice(0,22))+'</i>';
@@ -2681,16 +2876,35 @@ function tlDraw(){
     var x=X(a), w=Math.max(2, X(b)-X(a));
     g.fillStyle=col; g.fillRect(x, 0, w, H);
   }
-  /* engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး */
-  (D.events||[]).forEach(function(e){
-    if(e.type==="sound"||e.type==="unlisted") return;
-    band(e.start, e.end, "#EDEBE9");
-  });
-  /* ❓ စာတမ်းမှာ မပါ — အဝါ */
-  (D.events||[]).forEach(function(e){
-    if(e.type==="unlisted") band(e.start, e.end, "#FEF3C7") });
+  /* ⚠️ ထုတ်ပြီးသားမှာ **ဖြတ်ထားတာတွေ မရှိတော့** — အနားယူ · ❓ · ဖျက်ချက်
+     အားလုံး ထွက်ထဲ မပါ。 ဆွဲလျှင် အကျယ် ၀ ဖြစ်ပြီး အဓိပ္ပာယ် မရှိ。 */
+  if(!OUT.on){
+    /* engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး */
+    (D.events||[]).forEach(function(e){
+      if(e.type==="sound"||e.type==="unlisted") return;
+      band(e.start, e.end, "#EDEBE9");
+    });
+    /* ❓ စာတမ်းမှာ မပါ — အဝါ */
+    (D.events||[]).forEach(function(e){
+      if(e.type==="unlisted") band(e.start, e.end, "#FEF3C7") });
+  }
   /* အသံလိုင်း */
-  if(WAVE.state==="ok" && WAVE.peaks){
+  if(OUT.on && WAVE.state==="ok" && WAVE.peaks){
+    /* ⚠️⚠️ ထွက် အချိန် ဝင်ရိုးပေါ် ဆွဲရမည် — မူရင်း လှိုင်းကို တန်းဆွဲလျှင်
+       ဖြတ်ထားတဲ့ အပိုင်းတွေပါ ပါလာပြီး ဗီဒီယိုနဲ့ **လုံးဝ မကိုက်**。
+       ⇒ pixel တိုင်းကို `o2s()` နဲ့ မူရင်း အချိန် ပြန်ရှာပြီး ယူသည်。
+       (ဒါက **စကားသံ** လှိုင်း — render မှာ ထည့်တဲ့ တီးလုံး/SFX မပါ) */
+    var _n=WAVE.peaks.length, _mx=0.02;
+    for(var _i=0;_i<_n;_i++){ var _v=WAVE.peaks[_i]||0; if(_v>_mx) _mx=_v }
+    g.fillStyle="#57534E";
+    for(var _x=0;_x<W;_x++){
+      var _st=o2s(_x/W*dur);
+      var _k=Math.floor(_st/(WAVE.dur||dur)*_n);
+      var _v2=(WAVE.peaks[Math.max(0,Math.min(_n-1,_k))]||0)/_mx;
+      var _hh=Math.max(1, _v2*(H-6));
+      g.fillRect(_x, (H-_hh)/2, 1, _hh);
+    }
+  } else if(WAVE.state==="ok" && WAVE.peaks){
     var n=WAVE.peaks.length, mx=0.02;
     for(var i=0;i<n;i++){ var v=WAVE.peaks[i]||0; if(v>mx) mx=v }
     g.fillStyle="#57534E";
@@ -2702,10 +2916,10 @@ function tlDraw(){
   } else {
     g.fillStyle="#D6D3D1"; g.fillRect(0,H/2-1,W,2);
   }
-  /* ဖျက်ခိုင်းထားတာ — အနီ */
-  tlDrops().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.34)") });
-  /* ဂရပ်ဖစ်/B-roll — preview ထုတ်ပြီးမှ */
-  if(VPLAN && VPLAN.length){
+  /* ဖျက်ခိုင်းထားတာ — အနီ (ထုတ်ပြီးသားမှာ မကျန်တော့) */
+  if(!OUT.on) tlDrops().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.34)") });
+  /* ဂရပ်ဖစ်/B-roll — `at` က **ထွက် အချိန်** ⇒ OUT mode မှာသာ */
+  if(OUT.on && VPLAN && VPLAN.length){
     g.fillStyle="#A78BFA";
     VPLAN.forEach(function(e){
       if(e.missing) return;
@@ -2714,7 +2928,11 @@ function tlDraw(){
     });
   }
   var inf=document.getElementById("tlinfo");
-  if(inf){
+  if(inf && OUT.on){
+    inf.textContent = "ထုတ်ပြီး "+mm(dur)
+      + ((D&&D.src_dur) ? " (မူရင်း "+mm(D.src_dur)+")" : "")
+      + (OUT.exact ? "" : " · ခန့်မှန်း");
+  } else if(inf){
     var _rm=0; tlDrops().forEach(function(r){ _rm+=(r[1]-r[0]) });
     inf.textContent = _rm>0.05
       ? (mm(dur)+" → "+mm(Math.max(0,dur-_rm))+" (−"+_rm.toFixed(1)+"s)")
@@ -2738,6 +2956,18 @@ function tlBind(){
   }
   // ⚠️ **ကြည့်ရုံ** (Zin ၂၀၂၆-၁၀-၀၄) — ဆွဲရွေးပြီး ဖြတ်တာ မပါ。
   function go(ev){
+    /* ⚠️ ဂရပ်ဖစ် အကွက် နှိပ် ⇒ အဲဒီနေရာ ခုန် — 「Motion ကို နေရာအလိုက်
+       စစ်」ဖို့ အဓိက လမ်း (Zin ၂၀၂၆-၁၀-၀၄)。 `at` က **ထွက် အချိန်** ⇒
+       ဝင်ရိုးနဲ့ တူသဖြင့် တန်း ထားလို့ ရသည်。 */
+    var gx=ev.target.closest(".tlgfx i");
+    if(gx && OUT.on){
+      ev.preventDefault(); ev.stopPropagation();
+      var gi=[].indexOf.call(gx.parentNode.children, gx);
+      var gl=(VPLAN||[]).filter(function(x){ return !x.missing });
+      var ge=gl[gi];
+      if(ge){ seekTo(o2s(+ge.at||0)); tip("✦ "+String(ge.text||ge.tpl||"ဂရပ်ဖစ်").slice(0,28)) }
+      return;
+    }
     // ⚠️ ✂ အကွက် နှိပ်တာက **ဖြတ်/ချန်** — ခုန်ခြင်း မဟုတ်。 မခွဲလျှင်
     //    ဖြတ်ချင်တိုင်း ဗီဒီယိုက ခုန်မည်。
     var t=ev.target.closest(".tlcuts i");
@@ -2762,7 +2992,12 @@ function tlBind(){
       tip(SKEEP[k] ? "↩ ဒီအနားယူချက် ချန်မည်" : "✂ ဒီအနားယူချက် ဖြတ်မည်");
       return;
     }
-    ev.preventDefault(); seekTo(tOf(ev));
+    /* ⚠️⚠️ `tOf()` က **ဝင်ရိုး အချိန်** ပြန်ပေးသည် — OUT mode မှာ ထွက်
+       အချိန်。 `seekTo()` က **မူရင်း** အချိန် လက်ခံသဖြင့် ပြန်မပြောင်းဘဲ
+       ပေးလျှင် `s2o()` ကို နှစ်ထပ် ခံပြီး **အများကြီး လွဲ**မည်。 */
+    ev.preventDefault();
+    var _t=tOf(ev);
+    seekTo(OUT.on ? o2s(_t) : _t);
   }
   body.addEventListener("mousedown", go);
   body.addEventListener("touchstart", go, {passive:false});
@@ -3050,6 +3285,10 @@ if(JOB) fetch("/api/jobs/"+JOB,
   .then(function(r){return r.json()}).then(function(j){
     // ⚠️ `cut_review` ပါ ထည့်ရမည် — refresh လုပ်လျှင် ဖြတ်ချက် panel
     //    ပြန်ပေါ်ရမည် (မထည့်လျှင် ဆုံးဖြတ်စရာ ခလုတ် ပျောက်သွားသည်)。
+    JOBROW=j;
+    // ⚠️ ထုတ်ပြီးသားက **ရလဒ် mode** — `render()` က ကိုင်သည်。 ဒီမှာ
+    //    panel တွေ ဆောက်လျှင် ၂ ထပ် ဖြစ်မည်。 Visual Plan ကိုသာ ထည့်ပေးသည်。
+    if(j.status==="done"){ setTimeout(vplanTry, 0); return }
     if(["queued","running","cutting","cut_review"].indexOf(j.status)<0) return;
     var el=document.getElementById("dn")||document.createElement("div");
     el.id="dn"; el.className="done"; document.querySelector(".wrap").prepend(el);

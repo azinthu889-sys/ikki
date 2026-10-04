@@ -167,8 +167,12 @@ def init():
     #    မသိမ်းသဖြင့် plan က တိတ်တဆိတ် ပျောက်ခဲ့သည် (၂၀၂၆-၀၉-၂၁ တိုင်းချက်:
     #    job ထဲက `plan` မှာ ဖြတ်မှတ်သာ ပါပြီး template event ၀ ခု)。
     #    ⇒ သုံးစွဲသူက event တစ်ခုချင်း ပြင်နိုင်ရန် **သီးသန့် ကော်လံ** လိုသည်。
+    # ⚠️ `cut_map` က **render လုပ်ပြီးသား** span (မူရင်း⇒ထွက် မြေပုံ) —
+    #    `cut_spans` နဲ့ **မတူ**。 `cut_spans` က အတည်မပြုရသေးတဲ့ clean-cut
+    #    preview အတွက်ဖြစ်ပြီး re-edit တိုင်း NULL ပြန်ဖြစ်သည်。 တူတူ သုံးလျှင်
+    #    Premium export ဂိတ် (`_short_cut_spans`) က မှားတဲ့ span စစ်မည်。
     for _c, _d in (("segs_all", "TEXT"), ("keep_n", "TEXT"),
-                   ("edit_plan", "TEXT")):
+                   ("edit_plan", "TEXT"), ("cut_map", "TEXT")):
         if _c not in jcols2: c.execute(f"ALTER TABLE jobs ADD COLUMN {_c} {_d}")
     ucols = [r[1] for r in c.execute("PRAGMA table_info(uploads)")]
     for extra, ddl in (("key","TEXT"), ("mpu","TEXT"),

@@ -92,7 +92,9 @@ class ViewOnly(unittest.TestCase):
     def test_clicking_seeks(self):
         i = self.s.find("function tlBind(){")
         j = self.s.find("\nfunction tlHead(")
-        self.assertIn("seekTo(tOf(ev))", self.s[i:j])
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — ထုတ်ပြီးသားမှာ `tOf()` က **ထွက်** အချိန် ပြန်ပေး
+        #    သဖြင့် `seekTo()` (မူရင်း လက်ခံ) ကို တန်းမပေးရတော့。
+        self.assertIn("seekTo(OUT.on ? o2s(_t) : _t)", self.s[i:j])
 
     def test_no_multitrack_was_added(self):
         """⚠️ Descript ရဲ့ clip အတန်း · text layer · caption chip —
@@ -140,18 +142,20 @@ class Layout(unittest.TestCase):
            တိုင်းထား: ၁၂၈၀px မှာ စာတမ်း pane ၉၀၈ · ဘေးတိုင် ၃၇၂。"""
         i = self.s.find("@media(min-width:1100px){")
         self.assertGreater(i, 0)
-        w = self.s[i:i + 1200]
+        w = self.s[i:i + 1700]
         self.assertIn("#spane>*{max-width:var(--w)", w)
-        self.assertIn("main.editor>.vbar{flex:0 0 372px", w)
+        # ⚠️ `order` — `.vbar` က DOM ထဲ ပထမ ဖြစ်နေသဖြင့် (တိုင်းထား:
+        #    vbar x=18 · spane x=390)。 DOM ရွှေ့လျှင် `<video>` ပြန်စမည်。
+        self.assertIn("main.editor>.vbar{order:2;flex:0 0 372px", w)
 
     def test_the_side_column_stays_put_while_the_script_scrolls(self):
         """⚠️ ရည်ရွယ်ချက်က 「ဗီဒီယိုက ပုံသေ · စာတမ်းပဲ ရွေ့」。 အရင်က
            `position:sticky` နဲ့ လုပ်ခဲ့သည်; ယခု pane နှစ်ခု **သီးသန့်စီ**
            scroll လုပ်သည် ⇒ sticky မလိုတော့ပါ。"""
         i = self.s.find("@media(min-width:1100px){")
-        w = self.s[i:i + 1200]
+        w = self.s[i:i + 1700]
         self.assertIn("html,body{height:100%;overflow:hidden}", w)
-        self.assertIn("#spane{flex:1 1 auto;min-width:0;overflow-y:auto", w)
+        self.assertIn("#spane{order:1;flex:1 1 auto;min-width:0;overflow-y:auto", w)
         self.assertIn("overflow-y:auto", w[w.find("main.editor>.vbar{"):])
 
 
@@ -164,7 +168,11 @@ class Graphics(unittest.TestCase):
     def test_the_layer_is_only_drawn_when_there_is_a_plan(self):
         """⚠️ မရှိဘဲ ခန့်မှန်း ဆွဲလျှင် **မှားတဲ့ နေရာ** ပြမည် —
            ဘာမှ မပြတာက ပိုကောင်းသည်。"""
-        i = self.s.find("if(VPLAN && VPLAN.length){")
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — `vplan.at` က **ထွက်** အချိန် ဖြစ်ကြောင်း တိုင်းပြီး
+        #    သိရသဖြင့် မူရင်း ဝင်ရိုးပေါ် ဆွဲတာကို ရပ်လိုက်သည် ⇒ `OUT.on` ပါ လိုသည်
+        #    (၄၇.၁၂s က ၇၃% အစား ၂၆% မှာ ပေါ်နေခဲ့)。 ရည်ရွယ်ချက် မပြောင်း:
+        #    **မရှိဘဲ ခန့်မှန်း မဆွဲရ**。
+        i = self.s.find("if(OUT.on && VPLAN && VPLAN.length){")
         self.assertGreater(i, 0)
 
     def test_its_legend_is_hidden_until_then(self):
@@ -176,7 +184,7 @@ class Graphics(unittest.TestCase):
 
     def test_a_missing_graphic_is_not_drawn(self):
         """⚠️ engine က စီစဉ်ပြီး ဆောက်မရခဲ့တာကို ထွက်ခဲ့သလို မပြရ"""
-        i = self.s.find("if(VPLAN && VPLAN.length){")
+        i = self.s.find("if(OUT.on && VPLAN && VPLAN.length){")
         self.assertIn("if(e.missing) return", self.s[i:i + 400])
 
 

@@ -583,7 +583,7 @@ def job_list(authorization: str = Header(None)):
 # Ask storage once per upload and remember the answer for a while.
 _SRC_CACHE = {}
 _LIST_HEAVY = ("segs", "segs_all", "edit_plan", "plan", "report", "vplan",
-               "flag_list", "cut_spans", "sync", "over", "keep_n")
+               "flag_list", "cut_spans", "cut_map", "sync", "over", "keep_n")
 def _refuse_src_gone(uid):
     """Refuse a render whose source is known to be gone -- before any free
     preview or minute is counted (the job could only fail later with a 404)."""
@@ -1459,7 +1459,7 @@ async def job_approve(jid: str, req: Request, authorization: str = Header(None))
     db.run("UPDATE jobs SET status='queued',mode='cut',stage=0,stage_name=NULL,"
            "segs=?,keep_n=?,over=?,approved=?,"
            "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
-           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_map=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
            "report=NULL,report_at=NULL WHERE id=?",
            json.dumps(clean, ensure_ascii=False),
            json.dumps(_kn),
@@ -2412,7 +2412,7 @@ def job_recut(jid: str, authorization: str = Header(None)):
     db.run("UPDATE jobs SET status='review',mode='review',stage=2,"
            "stage_name='စာတမ်း အတည်ပြုရန်',err=NULL,minutes=0,over=?,"
            "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
-           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_map=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
            "report=NULL,report_at=NULL WHERE id=?",
            json.dumps(over, ensure_ascii=False) if over else None, jid)
     return {"ok": True}
@@ -2434,7 +2434,7 @@ def job_cut_refresh(jid: str, authorization: str = Header(None)):
     db.run("UPDATE jobs SET status='queued',mode='cut',stage=0,stage_name=NULL,"
            "err=NULL,claimed=NULL,finished=NULL,minutes=0,"
            "cut_path=NULL,cut_key=NULL,cut_dur=NULL,cut_src=NULL,"
-           "cut_hash=NULL,cut_spans=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
+           "cut_hash=NULL,cut_spans=NULL,cut_map=NULL,cut_n=NULL,cut_ok=NULL,cut_note=NULL,"
            "report=NULL,report_at=NULL WHERE id=?", jid)
     return {"ok": True, "preserved": True}
 
@@ -2544,6 +2544,13 @@ async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}
     if m.get("vplan") is not None:
         db.run("UPDATE jobs SET vplan=? WHERE id=?",
                json.dumps(m.get("vplan"), ensure_ascii=False), jid)
+    # ⚠️⚠️ **render လုပ်တဲ့ span အတိအကျ** — ထုတ်ပြီး ဗီဒီယိုကို စာတမ်း/timeline
+    #    နဲ့ တွဲပြဖို့ မူရင်း⇒ထွက် မြေပုံ လိုသည်。 မသိမ်းလျှင် `plan` ကနေ
+    #    ပြန်ခန့်မှန်းရပြီး **လွဲသည်** (တိုင်းထား j_3f7316e4b795: ၆၇.၆၀s vs
+    #    တကယ့် ၆၄.၈၀s ⇒ ၂.၈၀s)。 worker က ဖြတ်တဲ့ span ကိုပဲ ပို့သည်。
+    if m.get("cut_map"):
+        db.run("UPDATE jobs SET cut_map=? WHERE id=?",
+               json.dumps(m.get("cut_map"), separators=(",", ":")), jid)
     # ⚠️⚠️ **styled preview က မိနစ် မကောက်ရ** (Zin ၂၀၂၆-၁၀-၀၂)。
     #    `mode='prev'` ဆိုလျှင် ၀ — ကန့်သတ်က `prev_n` နဲ့ ထိန်းပြီးသား。
     _jm = (db.one("SELECT mode FROM jobs WHERE id=?", jid) or {}).get("mode")
@@ -3369,6 +3376,75 @@ async def nocache_html(request, call_next):
         r.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return r
 
+def _jload(v, dflt=None):
+    """DB ထဲက JSON စာသား ⇒ object (မရလျှင် `dflt`)。"""
+    if v is None or v == "":
+        return dflt
+    if not isinstance(v, str):
+        return v
+    try: return json.loads(v)
+    except Exception: return dflt
+
+
+def _cut_map(j, plan=None):
+    """မူရင်း အချိန် ⇒ ထွက် အချိန် မြေပုံ — **ချန်ထားသော span များ**。
+
+    ⚠️⚠️ ဤမြေပုံ မမှန်လျှင် timeline တစ်ခုလုံး လွဲမည် ⇒ **ဘယ်ကနေ ရသလဲ**
+       အစဉ်လိုက် ပြတ်သားစွာ ခွဲထားသည်:
+         ⓪ `cut_map`         — worker က **တကယ် render လုပ်တဲ့** span (အကောင်းဆုံး)
+         ① `over["_spans"]`  — အတည်ပြုစဉ် **အေးခဲထားသော** ဖြတ်မှတ်
+         ② `cut_spans`       — clean-cut preview ထဲက (အတည်မပြုရသေးလျှင်)
+         ③ `plan["spans"]` ထဲက `over["_drop"]` နုတ် — **ခန့်မှန်း**သာ
+       ③ က ခန့်မှန်း ဖြစ်ကြောင်း `exact=False` နဲ့ ပြောရသည် — တိုင်းထားချက်
+       (job `j_3f7316e4b795`): ③ က ၆၇.၆၀s ထွက်ပြီး တကယ့် `out_dur` က ၆၄.၈၀s
+       ⇒ **၂.၈၀s လွဲ**。 မလွဲဟု ဟန်ဆောင်လျှင် ဂရပ်ဖစ် နေရာတွေ မှားပြမည်。
+    ⚠️ `out_dur` နဲ့ တိုက်စစ်သည် — ၀.၅၀s ထက် ကွာလျှင် `exact=False`。
+    """
+    over = _jload(j.get("over"), {}) or {}
+    spans, src = None, ""
+    if j.get("cut_map"):
+        spans, src = _jload(j.get("cut_map")), "render"
+    elif over.get("_spans"):
+        spans, src = over["_spans"], "approve"
+    elif j.get("cut_spans"):
+        spans, src = _jload(j.get("cut_spans")), "cut"
+    else:
+        plan = plan if plan is not None else (_jload(j.get("plan"), {}) or {})
+        base = plan.get("spans") or []
+        if base:
+            spans = _sub_spans(base, over.get("_drop") or [])
+            src = "plan"
+    if not spans:
+        return None
+    spans = [[round(float(a), 3), round(float(b), 3)]
+             for a, b in spans if float(b) - float(a) > 0.01]
+    if not spans:
+        return None
+    tot = round(sum(b - a for a, b in spans), 3)
+    out = j.get("out_dur")
+    exact = (src in ("render", "approve", "cut"))
+    if out:
+        # ⚠️ ဘယ် အရင်းအမြစ် ဖြစ်ဖြစ် **တကယ့် ထွက်ရှည်** နဲ့ မကိုက်လျှင်
+        #    အတိအကျ ဟု မခေါ်ရ (crossfade · pad ကြောင့် အနည်းငယ် ကွာတတ်)。
+        exact = exact and abs(tot - float(out)) <= 0.50
+    return {"spans": spans, "total": tot, "src": src, "exact": bool(exact)}
+
+
+def _sub_spans(spans, drops):
+    """`spans` ထဲက `drops` ကို ဖြုတ်。"""
+    out = [[float(a), float(b)] for a, b in spans]
+    for a, b in (drops or []):
+        a, b = float(a), float(b)
+        nxt = []
+        for x, y in out:
+            if b <= x or a >= y:
+                nxt.append([x, y]); continue
+            if x < a: nxt.append([x, min(a, y)])
+            if y > b: nxt.append([max(b, x), y])
+        out = nxt
+    return [s for s in out if s[1] - s[0] > 0.01]
+
+
 @app.get("/api/script/{jid}")
 def script_get(jid: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
@@ -3406,7 +3482,16 @@ def script_get(jid: str, authorization: str = Header(None)):
                 sents[o["n"]-1]["script_match"] = o["match"]
                 smark[o["mark"]] = smark.get(o["mark"], 0) + 1
     ng = len({s["group_id"] for s in sents if s["group_id"]})
+    _cmap = _cut_map(j, plan)
     return {"job": jid, "title": j.get("title"), "src_dur": j.get("src_dur"),
+            # ⚠️⚠️ **အချိန် အခြေခံ ၂ မျိုး ရှိသည်**。 စာတမ်း/လှိုင်း/ဖြတ်မှတ်
+            #    အားလုံးက **မူရင်း** အချိန်; ထုတ်ပြီး ဗီဒီယို နဲ့ `vplan` က
+            #    **ထွက်** အချိန်。 မြေပုံတစ်ခု မပါဘဲ ပေါင်းပြလျှင် နေရာ လွဲမည်
+            #    (တိုင်းထား ၂၀၂၆-၁၀-၀၄: ဂရပ်ဖစ် နောက်ဆုံး ၄၇.၁၂s က ထွက် ၆၄.၈s
+            #     ထဲ ၇၃% မှာ ရှိသည်; မူရင်း ၁၇၈.၆၈s နဲ့ ဆွဲလျှင် ၂၆% ⇒ လွဲ)。
+            "cut_map": _cmap,
+            # ⚠️ ဂရပ်ဖစ်/B-roll နေရာ — render ပြီးမှ ထွက်သည်
+            "vplan": _jload(j.get("vplan")),
             # ⚠️ ထုတ်ပြီးသား job မှာ **ခန့်မှန်းချက် မပြရ** — segs က ချန်ထားပြီးသား
             #    ဝါကျများသာ ဖြစ်ပြီး `src_dur` က မူရင်း အတိုင်း ကျန်နေသဖြင့်
             #    တွက်ချက်ချက်က မှားသည် (Zin ၂၀၂၆-၀၉-၁၉: 「၆:၀၇ → ၆:၀၇ ဘာလို့လဲ」

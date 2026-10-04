@@ -4216,6 +4216,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    (`xfade_audio`) က အောင်လား ကျလား **တိတ်တဆိတ်** ဖြစ်ပြီး render s6
     #    မှာ မှတ်တမ်း တစ်လုံးမှ မရခဲ့。 fallback (fade+concat) ကျော်သွားလျှင်
     #    ဖြတ်ဆက်မှာ ကလစ်သံ ပြန်ပါလာမည် — မသိရ。 (ikki-measure-the-real-path)
+    # ⚠️⚠️ **ဤနေရာက မူရင်း⇒ထွက် မြေပုံ ရဲ့ တစ်ခုတည်းသော မှန်ကန်ရာ** —
+    #    render လုပ်မယ့် span အတိအကျ。 `_render_spans` မဟုတ်ဘဲ `spans` သုံးသည်
+    #    (reframe adapter က span ကို ပိုင်းသည်; စုစုပေါင်း အချိန် မပြောင်း ဒါပေမယ့်
+    #    အပိုင်းအရေအတွက် ပြောင်း ⇒ မြေပုံအတွက် မလို)。 မသိမ်းလျှင် API က `plan`
+    #    ကနေ ပြန်ခန့်မှန်းရပြီး လွဲသည် (တိုင်းထား: ၆၇.၆၀s vs တကယ့် ၆၄.၈၀s)。
+    st["cut_map"] = [[round(float(_a), 3), round(float(_b), 3)] for _a, _b in spans]
     SP.spans(src, _render_spans, cutv, os.path.join(work,"sp"), fps=rc["fps"], zooms=_zooms,
              log=log, **({"fade": _fd/2.0} if _fd > 0 else {}))
     # ⚠️ ဖြတ်ချက် မရှိသော ဗီဒီယိုမှာ `_zooms` က ဘာမှ မလုပ်နိုင် ⇒ ရုပ်က
@@ -6494,6 +6500,12 @@ def handle(d):
                                    edit_plan=st.get("edit_plan"),
                                    # ⚠️ မပါလျှင် Visual Plan panel က ဗလာ ဖြစ်မည်
                                    vplan=st.get("vplan"),
+                                   # ⚠️⚠️ **မူရင်း⇒ထွက် မြေပုံ** — ဖြတ်ပြီး
+                                   #    ဗီဒီယိုကို စာတမ်း/timeline နဲ့ တွဲပြရန်。
+                                   #    `spans` က တကယ် render လုပ်တဲ့ အတိုင်း;
+                                   #    မပို့လျှင် API က `plan` ကနေ ပြန်ခန့်မှန်း
+                                   #    ရပြီး လွဲသည် (ikki-source-vs-cut-time)。
+                                   cut_map=st.get("cut_map"),
                                    minutes=round((time.time()-t0)/60, 2), note=job.get("recipe","")))
     except Exception:
         _failed = True
