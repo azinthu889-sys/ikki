@@ -86,32 +86,56 @@ body{background:var(--bg);color:var(--ink);
 .vbar button.pri{background:#0F172A;color:#fff;border-color:#0F172A}
 .vbar .vnote{font-size:12.5px;color:#57534E;line-height:1.6}
 .vbar{flex-wrap:wrap}
-.vbar #tl{flex:1 0 100%;margin-top:4px;padding-top:8px;border-top:1px solid #F5F5F4}
-.tlh{display:flex;gap:10px;align-items:baseline;font-size:12.5px;margin-bottom:5px}
-.tlh b{font-size:12.5px}
-.tlh span{color:#A8A29E}
-.tlh s{margin-left:auto;text-decoration:none;color:#57534E;font-family:"Inter",sans-serif}
-.tlwrap{position:relative}
-#tlc{display:block;width:100%;height:44px;background:#FAFAF9;border:1px solid #E7E5E4;
-     border-radius:8px;cursor:pointer}
-/* ⚠️ playhead ကို canvas ပြန်မဆွဲဘဲ ရွှေ့သည် — ၆၀fps မှာ ပြန်ဆွဲလျှင်
-      ဝါကျ · ဖျက်ချက် အားလုံး ပြန်ဖြတ်သန်းရမည် (ဖြုန်းတီးမှု)。 */
-#tlph{position:absolute;top:0;bottom:0;width:2px;background:#DC2626;pointer-events:none;
-      box-shadow:0 0 0 1px rgba(255,255,255,.7)}
-.tlg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#57534E;margin-top:6px}
-.tlg span{display:flex;gap:5px;align-items:center}
-.tlg i{width:11px;height:11px;border-radius:3px;display:inline-block}
-/* ⚠️⚠️ ကျဉ်းတဲ့ မျက်နှာပြင်မှာ player က **၆၂၃px** ယူနေပြီး စာတမ်းက
-   ၁,၁၄၀px အောက်ကျ ⇒ ပထမ စာကြောင်း မမြင်ရ (တိုင်းထား ၂၀၂၆-၁၀-၀၄)。
-   ⇒ ဘေးချင်း ကပ်ပြီး ပုံငယ် · မြေပုံ ပါးပါး · အညွှန်းက `title` ထဲ。 */
+/* ══ Descript ပုံစံ အောက်ခြေ timeline ═══════════════════════════════
+   ⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「UI view ကို descript လို Edit timeline view နဲ့ ပြတာ
+      ပိုနားလည်လွယ် · စနစ်ကတော့ ikki အတိုင်း」。
+   ⚠️ အမြင့်ကို **ပုံသေ** ထားပြီး body မှာ နေရာ ချန်သည် — မချန်လျှင်
+      နောက်ဆုံး စာကြောင်းက bar အောက် ဝင်ပြီး နှိပ်လို့ မရတော့ပါ。 */
+#tlbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#fff;
+  border-top:1px solid #E7E5E4;box-shadow:0 -6px 20px rgba(0,0,0,.07)}
+.tlbh{display:flex;gap:10px;align-items:center;padding:7px 16px;
+  border-bottom:1px solid #F5F5F4;font-size:12.5px}
+.tlbh b{font-size:12.5px;letter-spacing:.02em}
+.tlbh s{text-decoration:none;color:#57534E;font-family:"Inter",sans-serif}
+.tlleg{display:flex;gap:6px;align-items:center;font-size:11px;color:#A8A29E}
+.tlleg i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-left:6px}
+.tlleg s{text-decoration:none}
+@media(max-width:760px){ .tlleg{display:none} }
+.tlbz{margin-left:auto;display:flex;gap:8px;align-items:center;
+  font-family:"Inter",sans-serif;color:#57534E}
+.tlbh button{font:inherit;font-size:12.5px;border:1px solid #E7E5E4;background:#fff;
+  border-radius:999px;padding:3px 11px;cursor:pointer}
+#tlbplay{min-width:34px}
+.tlbody{position:relative;padding:6px 16px 10px;cursor:pointer}
+/* ⚠️ အတန်းတိုင်း **အကျယ် တူရမည်** — မတူလျှင် playhead က အတန်းချင်း လွဲမည် */
+#tlruler{display:block;width:100%;height:16px}
+#tlfilm{display:block;width:100%;height:46px;border-radius:5px;background:#F5F5F4;
+  margin-top:3px}
+.tlcaps{position:relative;height:22px;margin-top:4px}
+.tlcaps i{position:absolute;top:0;height:20px;border-radius:4px;
+  background:#D1FAE5;border:1px solid #6EE7B7;overflow:hidden;
+  font-style:normal;font-size:10.5px;line-height:20px;padding:0 4px;
+  white-space:nowrap;color:#065F46}
+.tlcaps i.gone{background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C;
+  text-decoration:line-through}
+#tlc{display:block;width:100%;height:40px;margin-top:4px;border-radius:5px;
+  background:#FAFAF9}
+#tlph{position:absolute;top:6px;bottom:10px;width:2px;background:#DC2626;
+  pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.8)}
+/* ချုံ့ထားချိန် — ခေါင်းစီးပဲ ကျန် */
+#tlbar.min .tlbody{display:none}
+#tlbar.min #tlbmin{transform:rotate(180deg)}
+@media(max-width:760px){
+  .tlbody{padding:5px 10px 8px}
+  #tlfilm{height:34px} #tlc{height:30px} .tlcaps{height:18px}
+  .tlcaps i{height:16px;line-height:16px;font-size:9.5px}
+}
 @media(max-width:1099px){
   .vbar{align-items:center;gap:10px;padding:8px 6px 10px}
   .vbar video{width:132px;max-width:34vw}
   .vbar .vnote{display:none}
   .vbar .vbtns{gap:6px}
   .vbar button{padding:6px 11px;font-size:12.5px}
-  .vbar #tl{margin-top:2px;padding-top:6px}
-  .tlh span{display:none}
   #tlc{height:30px}
   .tlg{display:none}
 }
@@ -128,7 +152,14 @@ body{background:var(--bg);color:var(--ink);
   main.editor{display:grid;grid-template-columns:minmax(0,1fr) 362px;
               gap:24px;align-items:start}
   main.editor > *{grid-column:1;min-width:0}
-  main.editor > .vbar{grid-column:2;grid-row:1 / span 999;position:sticky;top:10px;
+  /* ⚠️⚠️ ဘေးတိုင် span — ကိန်းသေ **မရေးရ**。 တိုင်းထားချက်:
+       `span 999` ⇒ row ၉၉၉ ခု တကယ် ဆောက်ပြီး စာမျက်နှာ **၂၅,၉၄၇px**
+                    (စာရင်းက ၁,၇၅၇px) ⇒ ဗလာ scroll ၂၄,၀၀၀px
+       `1 / -1`    ⇒ `-1` က **explicit** grid ရဲ့ နောက်ဆုံး မျဉ်း。
+                    explicit row မရှိသဖြင့် row ၁ ခုသာ ⇒ row 1 က ၃၃၉px
+                    (ဘေးတိုင် အမြင့်) ဖြစ်ကာ စာရင်းက ၆၅၁px အောက် ကျသည်。
+     ⇒ JS က **တကယ့် အရေအတွက်** နဲ့ `span N` ပေးသည် (`tlAll` ထဲ)。 */
+  main.editor > .vbar{grid-column:2;position:sticky;top:10px;
     flex-direction:column;margin:0;padding:12px;border:1px solid #E7E5E4;border-radius:14px;
     box-shadow:0 6px 18px rgba(0,0,0,.05)}
   .vbar video{width:100%;max-width:none}
@@ -475,21 +506,10 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
 .pau.kept b[data-pkeep]{background:#DCFCE7;color:#15803D}
 .snd.gone b[data-sdel]{background:#FEE2E2;color:#B91C1C}
 /* ── အသံလိုင်း အကုန် (၂၀၂၆-၀၉-၂၂) ── */
-#tl{margin-top:12px;padding-top:10px;border-top:1px solid #EFEEEC}
-#tl .tlh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
-#tl .tlh b{font-size:13px;font-weight:600}
-#tl .tlh span{font-size:11.5px;color:#A1A1AA}
-#tl .tlh s{text-decoration:none;margin-left:auto;font-size:12px;color:#0F172A;
-     font-family:"Inter",sans-serif;white-space:nowrap}
-#tlc{display:block;width:100%;height:76px;background:#FAFAF9;border:1px solid #E7E5E4;
-     border-radius:10px;cursor:crosshair;touch-action:none}
-#tl .tlb{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:center}
-#tl .tlb .btn{padding:7px 12px;font-size:12.5px}
-#tl .tlb s{text-decoration:none;font-size:11.5px;color:#A1A1AA;margin-left:auto}
-#tl .tlg{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:11px;color:#A1A1AA}
-#tl .tlg span{display:flex;gap:4px;align-items:center}
-#tl .tlg i{width:11px;height:11px;border-radius:3px;display:inline-block}
-@media(max-width:600px){#tlc{height:96px}#tl .tlb .btn{flex:1;text-align:center}}
+/* ⚠️ ၂၀၂၆-၀၉-၂၄ ကတည်းက သေနေသော `#tl …` CSS ကို ဖယ်ပြီး —
+   element တွေ ဖျက်ခံရပြီး style ကျန်ခဲ့သည်。 ၂၀၂၆-၁၀-၀၄ မှာ
+   အောက်ခြေ timeline ဆောက်တော့ အဟောင်း `#tlc{height:76px}` က
+   အသစ် `40px` ကို **လွှမ်း**နေသည် (တိုင်းထား: ၇၆px ထွက်)。 */
 /* ── ❓ စာတမ်းမှာ မပါသော အသံ (၂၀၂၆-၀၉-၂၂) ──
    ⚠️ **မမြင်ရဘဲ ထွက်ချက်ထဲ ပါသွားခဲ့သော ပိုင်းများ**。 အသံလိုင်း ပြပြီး
       သုံးစွဲသူ နားထောင်ပြီးမှ ဆုံးဖြတ်ရမည် (engine က မဖြတ်ပါ)。 */
@@ -593,31 +613,8 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
     <div class="vnote" id="vnote">ဖွင့်လိုက်ရင် <b>ဖျက်ထားတဲ့ အပိုင်းတွေကို ခုန်ကျော်</b>ပြီး
       ပြပါမယ် — ထွက်လာမယ့် ဗီဒီယိုအတိုင်း။ စာကြောင်းရဲ့ အချိန်ကို နှိပ်ရင် အဲဒီနေရာ ခုန်သွားမယ်။</div>
   </div>
-  <!-- ⚠️⚠️ **ဗီဒီယို တစ်ခုလုံးရဲ့ မြေပုံ** ───────────────────────────────
-       ၂၀၂၆-၀၉-၂၂ Zin: 「Audio လှိုင်းအကုန်လုံး script editor မှာ လာပြပေးပါ」
-       ⇒ တည်ဆောက်ခဲ့သည်。 ၂၀၂၆-၀၉-၂၄ commit 7cffb70 (「လုပ်ဆောင်နေဆဲ」)
-       မှာ `<canvas id="tlc">` နဲ့ `tlBind(); tlDraw();` **ခေါ်ချက် ၂ ကြောင်း**
-       ဖျက်ခံရပြီး လုပ်ငန်းဆောင်တာ ကုဒ် ၁၄၀ ကြောင်းကျော် ကျန်ခဲ့သည် ⇒
-       ၁၀ ရက်လောက် **ဘယ်သူမှ မမြင်ခဲ့ပါ**。 ဒီမှာ ပြန်တင်သည်。
-       ⚠️ Zin ၂၀၂၆-၁၀-၀၄: **「ကြည့်ရုံပဲ ထား」** ⇒ ✕ ဖြတ် · ↩ ပြန်ချန် ·
-          ဆွဲရွေး ခလုတ်တွေ **မပါတော့ပါ**。 ဖြတ်နည်း ၃ မျိုး ဖြစ်သွားလျှင်
-          「အဆင့်ဆင့်တွေက ပိုရှုပ်စေတယ်」 ဆိုတဲ့ ပြဿနာ ပြန်ဖြစ်မည်。
-          စာတမ်းမှာ စကားလုံး မရှိတဲ့ အရာ (တိတ်ဆိတ်မှု · B-roll · ဂရပ်ဖစ် ·
-          SFX) ဘယ်မှာ ရှိလဲ **မြင်ဖို့**သာ。 -->
-  <div id="tl">
-    <div class="tlh"><b>ဗီဒီယို တစ်ခုလုံး</b>
-      <span>နှိပ်ရင် အဲဒီနေရာ ခုန်မယ်</span>
-      <s id="tlinfo">—</s></div>
-    <div class="tlwrap"><canvas id="tlc"></canvas><i id="tlph" hidden></i></div>
-    <div class="tlg">
-      <span><i style="background:#86EFAC"></i>ဝါကျ</span>
-      <span><i style="background:#FDE68A"></i>စာတမ်းမှာ မပါ</span>
-      <span><i style="background:#D6D3D1"></i>engine ဖြတ်ထား</span>
-      <span><i style="background:#FCA5A5"></i>ဖျက်မည်</span>
-      <span id="tlgx" hidden><i style="background:#A78BFA"></i>ဂရပ်ဖစ်/B-roll</span>
-    </div>
-  </div>
 </div>
+
 <div class="editnote" aria-live="polite">
   <span><b>စာကြောင်းကို နှိပ်</b> ⇒ ဖျက် · <b>စာလုံးတွေ ဆွဲရွေး</b> ⇒ အဲဒီစာလုံးပဲ ဖျက် · <b>▶</b> နားထောင်</span>
   <span id="editstate"></span>
@@ -648,6 +645,40 @@ body.simple .row .tx{font-size:15.5px;line-height:1.75}
 </div>
 <div id="list"></div>
 </main>
+<!-- ⚠️⚠️ **Descript ပုံစံ အောက်ခြေ timeline** (Zin ၂၀၂၆-၁၀-၀၄:
+     「UI view ကို descript လို Edit timeline view နဲ့ ပြတာ ပိုနားလည်လွယ်」·
+     「စနစ်ကိုက ikki အတိုင်းနဲ့ UI view ကို descript လို」)。
+     ⚠️ အတန်းတိုင်းက **IKKI ရဲ့ တကယ့် ဒေတာ** — ရုပ်ပုံ (proxy ကနေ) ·
+        စာတန်း (ဝါကျ) · အသံလှိုင်း。 Descript ရဲ့ clip ရွှေ့ခြင်း ·
+        အလွှာ ထပ်ခြင်း **မပါ** — IKKI က အဲဒါတွေ မလုပ်သဖြင့် ပြလျှင်
+        မဖြစ်နိုင်တာကို ကတိပေးရာ ကျမည်。 -->
+<div id="tlbar" hidden>
+  <div class="tlbh">
+    <b>Timeline</b>
+    <s id="tlinfo">—</s>
+    <!-- ⚠️ အရောင် ၄ မျိုးက ဘာကို ဆိုလိုလဲ မပြလျှင် မြေပုံက အဓိပ္ပာယ် မရှိ。
+         (အောက်ခြေ bar ဆောက်ရင်း အရင် အညွှန်း ပျောက်သွားခဲ့သည်) -->
+    <span class="tlleg">
+      <i style="background:#EDEBE9"></i>engine ဖြတ်
+      <i style="background:#FEF3C7"></i>စာတမ်းမှာ မပါ
+      <i style="background:#FCA5A5"></i>ဖျက်မည်
+      <i id="tlgx" hidden style="background:#A78BFA"></i><s id="tlgxt" hidden>ဂရပ်ဖစ်</s>
+    </span>
+    <span class="tlbz">
+      <button type="button" id="tlbplay" title="ဖွင့်/ရပ်">▶</button>
+      <span id="tlbpos">0:00</span>
+    </span>
+    <button type="button" id="tlbmin" title="ချုံ့/ချဲ့">▾</button>
+  </div>
+  <div class="tlbody" id="tlbody">
+    <canvas id="tlruler"></canvas>
+    <canvas id="tlfilm"></canvas>
+    <div class="tlcaps" id="tlcaps"></div>
+    <canvas id="tlc"></canvas>
+    <i id="tlph" hidden></i>
+  </div>
+</div>
+
 <div class="tip" id="tip"></div>
 <audio id="au"></audio>
 <script>
@@ -767,7 +798,7 @@ function counts(){
   var es=document.getElementById("editstate");
   if(es) es.textContent="ရွေးထား: "+del+" ကြောင်း ဖြတ် · "+kept+" ကြောင်း ချန်";
   // ⚠️ ဖျက်ချက် ပြောင်းတိုင်း မြေပုံ လိုက်မပြောင်းလျှင် **မှားတဲ့ ပုံ** ပြနေမည်
-  try{ tlDraw() }catch(e){}
+  try{ tlRefresh() }catch(e){}
 }
 /* ⚠️ အကြောင်းရင်း — ဤစည်းမျဉ်း ၃ ခုက **ငါ တွက်ထားတာ** သာ။
       engine/API က အကြောင်းရင်း မပေးပါ (field မရှိ) ⇒ စာသား နဲ့ အုပ်စု ကနေ ခွဲတာ。
@@ -1437,7 +1468,7 @@ function render(d){
     if(_sb) _sb.onclick=function(){ stopAll() };
     // ⚠️ `tlBind()` နဲ့ `tlDraw()` ကို ခေါ်ရမည် — ဒီ ၂ ကြောင်းက
     //    ၂၀၂၆-၀၉-၂၄ မှာ ဖျက်ခံရပြီး feature တစ်ခုလုံး လက်လှမ်းမမီ ဖြစ်ခဲ့သည်。
-    try{ tlBind(); tlDraw() }catch(e){}
+    try{ tlBind(); tlAll() }catch(e){}
     // ⚠️ ဖြတ်မှတ် မကျခင် အဆင့် (rv မဟုတ်) မှာပဲ ချိန်လို့ ရသည်
     if(JOB && !document.body.classList.contains("rv")) try{ pzLoad(JOB) }catch(e){}
     // ⚠️ 「✏️ ပြန်ပြင်မယ်」 — အောက်က panel ထဲက `crc` ကို ပဲ ပစ်သည်
@@ -1769,7 +1800,7 @@ document.addEventListener("dblclick",function(e){
     b.classList.toggle("on", !on);
     b.textContent = on ? "⚙ အသေးစိတ်" : "✓ ရိုးရှင်းစနစ်";
     try{ localStorage.setItem("ikki_simple", on?"1":"0") }catch(e){}
-    try{ tlDraw() }catch(e){}
+    try{ tlRefresh() }catch(e){}
   }
   var saved=null;
   try{ saved=localStorage.getItem("ikki_simple") }catch(e){}
@@ -2237,9 +2268,11 @@ function watchJob(jid, el){
          try{
            VPLAN = typeof j.vplan==="string" ? JSON.parse(j.vplan||"null") : (j.vplan||null);
          }catch(e){ VPLAN=null }
-         var _gx=document.getElementById("tlgx");
-         if(_gx) _gx.hidden = !(VPLAN && VPLAN.length);
-         try{ tlDraw() }catch(e){}
+         var _gx=document.getElementById("tlgx"), _gxt=document.getElementById("tlgxt");
+         var _on=!!(VPLAN && VPLAN.length);
+         if(_gx) _gx.hidden=!_on;
+         if(_gxt) _gxt.hidden=!_on;
+         try{ tlRefresh() }catch(e){}
          /* ── အလှအပ · SFX · Motion ──
             ⚠️ ဖွင့်မှ ဖတ်သည် — မဖွင့်ဘဲ ဆွဲလျှင် ဖွင့်မကြည့်သူတိုင်းအတွက်
                အလကား တောင်းဆိုမှု တစ်ခု ဖြစ်မည်。 */
@@ -2442,99 +2475,234 @@ function tlDrops(){
     var q=x.parts[+a[1]]; if(q) d.push([q.start, q.end]) });
   return d;
 }
+/* ── အတန်းတိုင်း အကျယ် တူအောင် ── */
+function tlW(c){ var w=c.clientWidth||1; c.width=w*2; return c.width }
+
+/* ① အချိန် ပေတံ */
+function tlRuler(){
+  var c=document.getElementById("tlruler"); if(!c) return;
+  var dur=tlDur(); if(!dur) return;
+  var W=tlW(c), H=c.height=c.clientHeight*2, g=c.getContext("2d");
+  g.clearRect(0,0,W,H);
+  g.fillStyle="#A8A29E"; g.font="18px Inter,sans-serif";
+  // ⚠️ အကွက် အရေအတွက်ကို အကျယ်နဲ့ ညှိရမည် — ပုံသေ ၃၀s ဆိုလျှင်
+  //    ဖုန်းမှာ စာတွေ ထပ်ပြီး ဖတ်မရဖြစ်သည်
+  var step = dur>600 ? 120 : dur>240 ? 60 : dur>90 ? 30 : 10;
+  for(var t=0;t<=dur;t+=step){
+    var x=t/dur*W;
+    g.fillRect(x,H-6,1,6);
+    if(x < W-60) g.fillText(mm(t), x+4, H-10);
+  }
+}
+
+/* ② ရုပ်ပုံ အတန်း — proxy ကနေ ဖရိမ်း ထုတ်သည် */
+/* ⚠️⚠️ ဖရိမ်း ထုတ်ရာမှာ **သုံးစွဲသူ မြင်နေရတဲ့ ဗီဒီယိုကို မသုံးရ** —
+   seek လုပ်တိုင်း ပုံ ခုန်သွားပြီး သူက 「ပျက်နေတယ်」 ထင်မည်。 ပြီးတော့
+   သူ timeline နှိပ်လိုက်ရင် ထုတ်နေတာ **ပျက်**ပြီး filmstrip တဝက် ကျန်သည်
+   (စမ်းစဉ် တကယ် တွေ့: `FILM.done=false`)。
+   ⇒ ဖျောက်ထားသော ဗီဒီယို သီးသန့် — အချင်းချင်း မနှောင့်ယှက်。 */
+var FILM={done:false, busy:false, el:null};
+function filmVid(){
+  if(FILM.el) return FILM.el;
+  var v=document.createElement("video");
+  v.muted=true; v.playsInline=true; v.preload="auto";
+  v.style.cssText="position:absolute;left:-9999px;width:1px;height:1px";
+  v.src=VPROX;
+  document.body.appendChild(v);
+  FILM.el=v; return v;
+}
+function tlFilm(){
+  var c=document.getElementById("tlfilm"); if(!c) return;
+  var W=tlW(c), H=c.height=c.clientHeight*2, g=c.getContext("2d");
+  g.fillStyle="#F5F5F4"; g.fillRect(0,0,W,H);
+  var dur=tlDur();
+  if(!VPROX || !dur){
+    // ⚠️ proxy မရှိလျှင် **ဗလာ ပြရမည်** — အတုအယောင် ပုံ မပြရ
+    g.fillStyle="#A8A29E"; g.font="20px Inter,sans-serif";
+    g.fillText("ဗီဒီယို proxy မရှိပါ (အသံနဲ့ ဆက်သုံးနိုင်သည်)", 10, H/2+7);
+    return;
+  }
+  if(FILM.busy || FILM.done) return;
+  var v=filmVid();
+  if(!v.videoWidth){
+    v.addEventListener("loadeddata", function _o(){
+      v.removeEventListener("loadeddata",_o); tlFilm(); });
+    return;
+  }
+  FILM.busy=true;
+  var th=H, tw=Math.round(th*(v.videoWidth/v.videoHeight || 16/9));
+  var n=Math.max(4, Math.min(24, Math.ceil(W/tw)));
+  var cv=document.createElement("canvas"), cg=cv.getContext("2d");
+  cv.width=tw; cv.height=th;
+  var i=0, guard=0;
+  function step(){
+    if(i>=n){ FILM.busy=false; FILM.done=true; return }
+    if(++guard>n*4){ FILM.busy=false; return }   // ⚠️ အဆုံးမရှိ မဖြစ်စေရန်
+    var t=(i+0.5)/n*dur;
+    var on=function(){
+      v.removeEventListener("seeked", on);
+      try{
+        cg.drawImage(v,0,0,tw,th);
+        g.drawImage(cv, Math.round(i*W/n), 0, Math.ceil(W/n), th);
+      }catch(e){}
+      i++; setTimeout(step, 0);
+    };
+    v.addEventListener("seeked", on);
+    try{ v.currentTime=Math.min(dur-0.05, t) }
+    catch(e){ v.removeEventListener("seeked",on); i++; setTimeout(step,0) }
+  }
+  step();
+}
+
+/* ③ စာတန်း အတန်း — ဝါကျတိုင်း တစ်ကွက် (Descript ရဲ့ chip အတန်း) */
+function tlCaps(){
+  var box=document.getElementById("tlcaps"); if(!box) return;
+  var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
+  var S=(D&&D.sentences)||[], h="";
+  S.forEach(function(x){
+    var L=Math.max(0.4, (x.start/dur)*100), Wd=Math.max(0.6, ((x.end-x.start)/dur)*100);
+    h+='<i class="'+(DEL[x.n]?"gone":"")+'" style="left:'+L.toFixed(3)
+      +'%;width:'+Wd.toFixed(3)+'%" title="['+x.n+'] '+esc(x.text).slice(0,60)+'">'
+      +esc((FIX[x.n]||x.text||"").slice(0,22))+'</i>';
+  });
+  box.innerHTML=h;
+}
+
+/* ④ အသံလှိုင်း + ဖျက်ချက် */
 function tlDraw(){
   var c=document.getElementById("tlc"); if(!c) return;
   var dur=tlDur(); if(!dur) return;
-  var W=c.width=c.clientWidth*2, H=c.height=c.clientHeight*2;
-  var g=c.getContext("2d");
+  var W=tlW(c), H=c.height=c.clientHeight*2, g=c.getContext("2d");
   var X=function(t){ return t/dur*W };
   g.clearRect(0,0,W,H);
-  function band(a,b,col,y0,y1){
+  function band(a,b,col){
     var x=X(a), w=Math.max(2, X(b)-X(a));
-    g.fillStyle=col; g.fillRect(x, y0*H, w, (y1-y0)*H);
+    g.fillStyle=col; g.fillRect(x, 0, w, H);
   }
-  /* ① ဝါကျ — အစိမ်း */
-  (D.sentences||[]).forEach(function(x){ band(x.start, x.end, "#86EFAC", 0, 1) });
-  /* ② engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး */
+  /* engine ဖြတ်ထားသော တိတ်ဆိတ်မှု — မီးခိုး */
   (D.events||[]).forEach(function(e){
     if(e.type==="sound"||e.type==="unlisted") return;
-    band(e.start, e.end, "#D6D3D1", 0, 1);
+    band(e.start, e.end, "#EDEBE9");
   });
-  /* ③ ❓ စာတမ်းမှာ မပါ — အဝါ */
+  /* ❓ စာတမ်းမှာ မပါ — အဝါ */
   (D.events||[]).forEach(function(e){
-    if(e.type==="unlisted") band(e.start, e.end, "#FDE68A", 0, 1) });
-  /* ④ အသံလိုင်း */
+    if(e.type==="unlisted") band(e.start, e.end, "#FEF3C7") });
+  /* အသံလိုင်း */
   if(WAVE.state==="ok" && WAVE.peaks){
     var n=WAVE.peaks.length, mx=0.02;
     for(var i=0;i<n;i++){ var v=WAVE.peaks[i]||0; if(v>mx) mx=v }
     g.fillStyle="#57534E";
     for(var x2=0;x2<W;x2++){
       var k=Math.floor(x2/W*n), v2=(WAVE.peaks[k]||0)/mx;
-      var h=Math.max(1, v2*(H-14));
-      g.fillRect(x2, (H-h)/2, 1, h);
+      var hh=Math.max(1, v2*(H-6));
+      g.fillRect(x2, (H-hh)/2, 1, hh);
     }
   } else {
     g.fillStyle="#D6D3D1"; g.fillRect(0,H/2-1,W,2);
-    g.fillStyle="#A1A1AA"; g.font="22px sans-serif";
-    g.fillText(WAVE.state==="loading"?"အသံ ဖတ်နေသည်…":"အသံ မရပါ", 10, H/2-12);
   }
-  /* ⑤ ဖျက်ခိုင်းထားတာ — အနီ (ထက်ပိုင်း အမှတ်) */
-  tlDrops().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.40)", 0, 1) });
-  /* ⑥ ရွေးထားတာ — အပြာ */
-  /* ⑥ ဂရပ်ဖစ် · B-roll — **preview ထုတ်ပြီးမှ** သိရသည် (`vplan` က
-        render ရဲ့ ရလဒ်)。 မထုတ်ရသေးလျှင် ဒီအတန်း ဗလာ ဖြစ်မည် —
-        ဘာမှ မပြဘဲ ထားတာက မှားတဲ့ နေရာ ပြတာထက် ကောင်းသည်。 */
+  /* ဖျက်ခိုင်းထားတာ — အနီ */
+  tlDrops().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.34)") });
+  /* ဂရပ်ဖစ်/B-roll — preview ထုတ်ပြီးမှ */
   if(VPLAN && VPLAN.length){
     g.fillStyle="#A78BFA";
     VPLAN.forEach(function(e){
       if(e.missing) return;
       var x=X(e.at||0), w=Math.max(3, X((e.at||0)+(e.dur||0.6))-x);
-      g.fillRect(x, 0, w, H*0.16);
+      g.fillRect(x, 0, w, H*0.14);
     });
-  }
-  /* ⑦ မိနစ် အမှတ် */
-  g.fillStyle="#A1A1AA"; g.font="18px Inter,sans-serif";
-  for(var t=0;t<dur;t+=(dur>240?60:30)){
-    g.fillRect(X(t),H-10,1,10);
-    g.fillText(Math.floor(t/60)+":"+("0"+Math.round(t%60)).slice(-2), X(t)+4, H-14);
   }
   var inf=document.getElementById("tlinfo");
   if(inf){
-    // ⚠️ ဖျက်လိုက်တာ ဘယ်လောက်လဲ **ဒီမှာပဲ မြင်ရမည်** — strip က မြေပုံ
-    //    ဖြစ်သဖြင့် ကိန်းကလည်း ဒီမှာ ရှိသင့်သည်。
     var _rm=0; tlDrops().forEach(function(r){ _rm+=(r[1]-r[0]) });
     inf.textContent = _rm>0.05
       ? (mm(dur)+" → "+mm(Math.max(0,dur-_rm))+" (−"+_rm.toFixed(1)+"s)")
       : ("အရှည် "+mm(dur));
   }
-  var cc=document.getElementById("tlcuts");
-  if(cc) cc.textContent="";
 }
+
+/* ⑤ အားလုံး ပြန်ဆွဲ */
+/* ⑥ နှိပ်ရင် ခုန် · playhead · ချုံ့/ချဲ့ */
 function tlBind(){
-  var c=document.getElementById("tlc"); if(!c || c.getAttribute("data-b")==="1") return;
-  c.setAttribute("data-b","1");
+  var body=document.getElementById("tlbody");
+  if(!body || body.getAttribute("data-b")==="1") return;
+  body.setAttribute("data-b","1");
   function tOf(ev){
-    var r=c.getBoundingClientRect();
+    var r=body.getBoundingClientRect();
     var cx=(ev.touches&&ev.touches[0]?ev.touches[0].clientX:ev.clientX)-r.left;
-    return Math.max(0, Math.min(tlDur(), cx/r.width*tlDur()));
+    // ⚠️ padding ကို နုတ်ရမည် — မနုတ်လျှင် ဘယ်/ညာ အစွန်းမှာ လွဲသည်
+    var pad=parseFloat(getComputedStyle(body).paddingLeft)||0;
+    var w=r.width-2*pad;
+    return Math.max(0, Math.min(tlDur(), (cx-pad)/w*tlDur()));
   }
-  // ⚠️⚠️ **ကြည့်ရုံ** (Zin ၂၀၂၆-၁၀-၀၄: 「ကြည့်ရုံပဲ ထားပြီး လုပ်ပေးပါ」)。
-  //    ဆွဲရွေးပြီး ✕ ဖြတ် · ↩ ပြန်ချန် လမ်းကြောင်း **ဖယ်ထားသည်** —
-  //    ဝါကျ နှိပ် · စာလုံး ဆွဲရွေး နဲ့ ပေါင်းလျှင် ဖြတ်နည်း ၃ မျိုး ဖြစ်ပြီး
-  //    「အဆင့်ဆင့်တွေက ပိုရှုပ်စေတယ်」 ဆိုတဲ့ ပြဿနာ ပြန်ဖြစ်မည်。
+  // ⚠️ **ကြည့်ရုံ** (Zin ၂၀၂၆-၁၀-၀၄) — ဆွဲရွေးပြီး ဖြတ်တာ မပါ。
   function go(ev){ ev.preventDefault(); seekTo(tOf(ev)) }
-  c.addEventListener("mousedown", go);
-  c.addEventListener("touchstart", go, {passive:false});
-  window.addEventListener("resize", function(){ tlDraw() });
+  body.addEventListener("mousedown", go);
+  body.addEventListener("touchstart", go, {passive:false});
+  var pb=document.getElementById("tlbplay");
+  if(pb) pb.onclick=function(){ if(PLAYALL) stopAll(); else playAll() };
+  var mb=document.getElementById("tlbmin");
+  if(mb) mb.onclick=function(){
+    var bar=document.getElementById("tlbar");
+    bar.classList.toggle("min");
+    try{ localStorage.setItem("ikki_tlmin", bar.classList.contains("min")?"1":"0") }catch(e){}
+    document.body.style.paddingBottom=(bar.getBoundingClientRect().height+16)+"px";
+  };
+  try{ if(localStorage.getItem("ikki_tlmin")==="1")
+         document.getElementById("tlbar").classList.add("min") }catch(e){}
+  // ⚠️ အကျယ် ပြောင်းလျှင် canvas အားလုံး ပြန်ဆွဲရမည် (device pixel နဲ့ ဆွဲထား၍)
+  var _rt=null;
+  window.addEventListener("resize", function(){
+    clearTimeout(_rt); _rt=setTimeout(function(){ FILM.done=false; tlAll() }, 180);
+  });
 }
 /* playhead — canvas ပြန်မဆွဲဘဲ ရွှေ့သည် */
 function tlHead(t){
-  var e=document.getElementById("tlph"), c=document.getElementById("tlc");
-  if(!e||!c) return;
+  var e=document.getElementById("tlph"), body=document.getElementById("tlbody");
+  if(!e||!body) return;
   var dur=tlDur();
   if(!dur || t===null || t===undefined){ e.hidden=true; return }
+  var pad=parseFloat(getComputedStyle(body).paddingLeft)||0;
+  var w=body.getBoundingClientRect().width-2*pad;
   e.hidden=false;
-  e.style.left=(Math.max(0, Math.min(1, t/dur))*100)+"%";
+  e.style.left=(pad + Math.max(0, Math.min(1, t/dur))*w)+"px";
+  var p=document.getElementById("tlbpos");
+  if(p) p.textContent=mm(t)+" / "+mm(dur);
+  var b=document.getElementById("tlbplay");
+  if(b) b.textContent = PLAYALL ? "❙❙" : "▶";
+}
+
+/* ⚠️ ဖျက်ချက် ပြောင်းတိုင်း — ရုပ်ပုံ အတန်းကို **ပြန်မထုတ်ရ** (ဖရိမ်း
+   ထုတ်တာ ၂ စက္ကန့်လောက် ကြာပြီး ဗီဒီယိုကို ခုန်စေသည်)。 ဒေတာ အတန်း ၂ ခုသာ。 */
+function tlRefresh(){
+  try{ tlCaps() }catch(e){}
+  try{ tlDraw() }catch(e){}
+}
+
+/* ⚠️ ဘေးတိုင်ကို **တကယ့် row အရေအတွက်** နဲ့ span ပေးသည် — CSS တစ်ခုတည်းနဲ့
+   မရနိုင်ပါ (`-1` က explicit grid ကိုသာ ရည်ညွှန်း · `span 999` က row ၉၉၉
+   တကယ် ဆောက်)。 */
+function vbarSpan(){
+  var m=document.querySelector("main.editor"), v=document.getElementById("vbar");
+  if(!m||!v) return;
+  if(getComputedStyle(m).display!=="grid"){ v.style.gridRow=""; return }
+  var n=[...m.children].filter(function(e){
+    return e!==v && e.offsetParent!==null && getComputedStyle(e).position!=="fixed";
+  }).length;
+  v.style.gridRow = "1 / span " + Math.max(1, n);
+}
+
+function tlAll(){
+  try{ vbarSpan() }catch(e){}
+  var bar=document.getElementById("tlbar"); if(!bar) return;
+  // ⚠️ ဖွင့်ထားမှ အတန်းတွေရဲ့ အကျယ် တိုင်းလို့ ရသည် (ဖျောက်ထားလျှင် ၀)
+  bar.hidden = !(D && (D.sentences||[]).length);
+  if(bar.hidden) return;
+  document.body.style.paddingBottom =
+    (bar.getBoundingClientRect().height + 16) + "px";
+  try{ tlRuler() }catch(e){}
+  try{ tlCaps() }catch(e){}
+  try{ tlRefresh() }catch(e){}
+  try{ tlFilm() }catch(e){}
 }
 
 function waveLoad(){

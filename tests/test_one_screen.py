@@ -65,9 +65,9 @@ class OneGear(unittest.TestCase):
     def test_the_panel_fits_a_narrow_screen(self):
         """⚠️ `right:0` က ကျဉ်းတဲ့ မျက်နှာပြင်မှာ ဘယ်ဘက် ကျော်ထွက်သည်
            (ဖရိမ်းမှာ တွေ့ — ၂၉၀px panel · ၅၉၄px မျက်နှာပြင်)。"""
-        i = self.s.find("@media(max-width:760px){")
-        self.assertGreater(i, 0)
-        self.assertIn("position:fixed", self.s[i:i + 240])
+        # ⚠️ `@media(max-width:760px)` block က **၂ ခု** ရှိသည် (timeline အတွက်
+        #    နောက်တစ်ခု ထပ်လာ) ⇒ `.setb` စည်းမျဉ်းကိုသာ တိုက်ရိုက် ရှာရမည်。
+        self.assertIn(".setb{position:fixed", self.s)
 
 
 class TopBar(unittest.TestCase):

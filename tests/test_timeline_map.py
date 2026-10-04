@@ -50,13 +50,17 @@ class OnThePage(unittest.TestCase):
     def test_both_calls_are_made(self):
         """⚠️ `tlBind(); tlDraw();` ၂ ကြောင်း ပျောက်လို့ feature တစ်ခုလုံး
            လက်လှမ်းမမီ ဖြစ်ခဲ့သည်。"""
-        self.assertIn("tlBind(); tlDraw()", self.s)
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — အတန်း ၄ ခု ဖြစ်သွားသဖြင့် `tlAll()` က အားလုံး ဆွဲသည်
+        self.assertIn("tlBind(); tlAll()", self.s)
 
     def test_it_is_redrawn_on_every_edit(self):
         """⚠️ ဖျက်ချက် ပြောင်းတိုင်း မလိုက်ပြောင်းလျှင် **မှားတဲ့ ပုံ** ပြနေမည်"""
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — `tlRefresh()` က ဒေတာ အတန်း ၂ ခု (စာတန်း + လှိုင်း)
+        #    ကိုသာ ပြန်ဆွဲသည်。 ရုပ်ပုံ အတန်းကို ပြန်မထုတ်ပါ — ဖရိမ်း ထုတ်တာ
+        #    ကြာပြီး ဖျက်တိုင်း ထုတ်နေလျှင် သုံးလို့ မရတော့。
         i = self.s.find("function counts(){")
         j = self.s.find("\n}", i)
-        self.assertIn("tlDraw()", self.s[i:j])
+        self.assertIn("tlRefresh()", self.s[i:j])
 
     def test_the_legend_is_there(self):
         """⚠️ အရောင် ၄ မျိုးက ဘာကို ဆိုလိုလဲ မပြလျှင် မြေပုံက အဓိပ္ပာယ် မရှိ"""
@@ -140,8 +144,10 @@ class Layout(unittest.TestCase):
         self.assertIn("grid-template-columns:minmax(0,1fr) 362px", w)
 
     def test_the_side_column_is_sticky(self):
+        # ⚠️ မှတ်ချက် ရှည်သွားသဖြင့် ဘောင် ကျယ်ထားရသည် — ရည်ရွယ်ချက်က
+        #    「ဘေးတိုင်က ကပ်နေရမည်」。
         i = self.s.find("@media(min-width:1100px){")
-        self.assertIn("position:sticky", self.s[i:i + 900])
+        self.assertIn("position:sticky", self.s[i:i + 2200])
 
 
 class Graphics(unittest.TestCase):
@@ -157,8 +163,11 @@ class Graphics(unittest.TestCase):
         self.assertGreater(i, 0)
 
     def test_its_legend_is_hidden_until_then(self):
+        # ⚠️ ၂၀၂၆-၁၀-၀၄ — အောက်ခြေ timeline ဆောက်ရင်း markup ပြောင်းသွားသည်。
+        #    အညွှန်းက **ပေါ်ရမယ့် အချိန်မှာသာ** ပေါ်ရမည် ဆိုတာက မပြောင်း。
         self.assertIn('id="tlgx" hidden', self.s)
-        self.assertIn("_gx.hidden = !(VPLAN && VPLAN.length)", self.s)
+        self.assertIn("if(_gx) _gx.hidden=!_on;", self.s)
+        self.assertIn("_on=!!(VPLAN && VPLAN.length)", self.s)
 
     def test_a_missing_graphic_is_not_drawn(self):
         """⚠️ engine က စီစဉ်ပြီး ဆောက်မရခဲ့တာကို ထွက်ခဲ့သလို မပြရ"""
