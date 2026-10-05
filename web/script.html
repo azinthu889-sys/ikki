@@ -697,6 +697,17 @@ body.prep #vid,body.prep .vbtns,body.prep #vnote{display:none}
 body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:none}
 #tlwait{color:var(--mute);font-size:13px;margin-left:10px}
 #dn .pcancel{margin-top:10px}
+/* ── ညာ pane ထဲက အခြေအနေ ကတ် ── */
+main.editor>.vbar>#dn{margin:14px 0 4px;width:100%;box-shadow:none !important;
+  background:#FCFCFB;border:1px solid var(--line,#ECEAE6)}
+main.editor>.vbar>#dn video{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;
+  margin:8px 0;display:block}
+body.cutrev #vid,body.cutrev .vbar .vside{display:none !important}
+@media(max-width:859px){body.cutrev .vbar{display:none !important}}
+main.editor>.vbar>#dn .acts2{flex-wrap:wrap}
+main.editor>.vbar>#donote{margin:14px 0 4px;padding:14px;border-radius:14px;
+  background:#F0FDF4;border:1px solid #BBF7D0}
+main.editor>.vbar>#donote span{min-width:0;flex-basis:100%}
 /* စာသား မရခင် မလုပ်နိုင်သေးတာတွေ မပြ (အချိန် 「— → —」 · ဖြတ်နည်း · script ထည့်) */
 body.prep .bar .tm,body.prep .bar .lg,body.prep .editnote,body.prep #scrp,
 body.prep #bsec,body.prep #setbox{display:none}
@@ -1903,6 +1914,7 @@ function render(d){
     document.body.classList.add("rv");     // ⚠️ အေးခဲပြီ — ဖြတ်လို့ မရတော့
     FILM.done=false; FILM.el=null;
   }
+  try{ donePlace() }catch(e){}
   var _vb=document.getElementById("vbar");
   if(_vb){
     _vb.hidden = !medOK();
@@ -2461,7 +2473,7 @@ document.getElementById("bok").onclick=function(){
        +(z.d.cut_s!=null?' ('+z.d.cut_s+'s)':'')+'<br>'
        +'<a href="/">ဗီဒီယို စာမျက်နှာ →</a>';
        document.getElementById("bok").textContent="ထုတ်ပြီး"; }
-     paneHost().prepend(el);
+     dnPlace(el);
      window.scrollTo({top:0,behavior:"smooth"});
    })
    .catch(function(e){BUSY=false;tip("မထုတ်နိုင်ပါ — "+(e.message||e));
@@ -2676,6 +2688,9 @@ function watchJob(jid, el){
     fetch("/api/jobs/"+jid,{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
      .then(function(r){return r.json()}).then(function(j){
        var st=j.status||"", sg=+(j.stage||0);
+       /* ⚠️ cut_review မှာ ကတ်ထဲက 「ဖြတ်ပြီး」 ဗီဒီယိုက **တစ်ခုတည်းသော** player —
+          မူရင်း player (#vid) ကို ဖျောက် (ဗီဒီယို ၂ ခု မပြရ) */
+       document.body.classList.toggle("cutrev", st==="cut_review");
        /* ⚠️ prep (upload ပြီးစ) — စာသား ရပြီ (`review`) ဆိုလျှင် စာမျက်နှာ
           reload မလုပ်ဘဲ editor ကို ဖွင့်သည်。 ကျဘမ်းက အောက်မှာ ဆက်ကိုင်。
           အခြား (cut_review/done — auto လမ်း) ⇒ ပုံမှန် boot လမ်းကြောင်း。 */
@@ -3656,6 +3671,50 @@ function spane(){
 function paneHost(){
   return document.getElementById("spane") || document.querySelector(".wrap");
 }
+/* ⚠️⚠️ **အခြေအနေ ကတ် (#dn) က ဗီဒီယို pane ထဲ · ဗီဒီယို အောက်** (Zin ၂၀၂၆-၁၀-၀၅
+   「Editor ပေ့မှာ အဆင်မပြေတာတွေ … video view က တစ်ခုပဲ ပြရင်ရပါတယ်」)。
+   ယခင်က #dn ကို စာတမ်း pane ထိပ်မှာ ထည့်ခဲ့ရာ —
+     · cut_review: ဖြတ်ပြီး preview ဗီဒီယိုက စာတမ်းထဲ · မူရင်း ဗီဒီယိုက ညာ ⇒ **၂ ခု**
+     · ထုတ်နေဆဲ: စာတမ်း scroll ဆင်းထားလျှင် progress **မမြင်ရ**
+   ⇒ ညာ pane = 「ဗီဒီယို + ဘာဖြစ်နေလဲ + နောက်တစ်ဆင့်」 · ဘယ် = စာတမ်းသာ。
+   ⚠️ ကျဉ်း layout (<860px) မှာ vbar က သေးသေး sticky ⇒ ယခင်အတိုင်း စာတမ်းထဲ。 */
+/* ထုတ်ပြီးသား ရလဒ် ကတ် (#donote · ⬇ ဒေါင်း) — #dn နဲ့ စည်းမျဉ်းတူ: ဗီဒီယို အောက် */
+function donePlace(){
+  var dn=document.getElementById("donote"), vb=document.getElementById("vbar");
+  if(!dn || !vb) return;
+  var desk=window.matchMedia && matchMedia("(min-width:860px)").matches;
+  if(desk){
+    if(dn.parentNode===vb) return;
+    var v=document.getElementById("vid");
+    if(v && v.parentNode===vb) vb.insertBefore(dn, v.nextSibling); else vb.prepend(dn);
+  } else if(dn.parentNode===vb){
+    var l=document.getElementById("list");
+    if(l && l.parentNode) l.parentNode.insertBefore(dn, l); else paneHost().prepend(dn);
+  }
+}
+/* ⚠️ window အကျယ်က 860px ကို ဖြတ်ကျော်လျှင် ကတ်တွေ ပြန်နေရာချ — မချလျှင်
+   ကျဉ်း→ကျယ် မှာ ကတ်က စာတမ်းထဲ ကျန်ပြီး ညာ pane **ဗလာ** (စမ်းစဉ် တွေ့) */
+(function(){
+  if(!window.matchMedia) return;
+  var mq=matchMedia("(min-width:860px)");
+  function re(){
+    var d=document.getElementById("dn"); if(d) dnPlace(d);
+    try{ donePlace() }catch(e){}
+  }
+  if(mq.addEventListener) mq.addEventListener("change", re); else if(mq.addListener) mq.addListener(re);
+})();
+function dnPlace(el){
+  var vb=document.getElementById("vbar");
+  var desk=window.matchMedia && matchMedia("(min-width:860px)").matches;
+  if(desk && vb){
+    vb.hidden=false;
+    var ref=document.getElementById("vposter")||document.getElementById("vid");
+    if(ref && ref.parentNode===vb) vb.insertBefore(el, ref.nextSibling); else vb.prepend(el);
+    vb.scrollTop=0;
+  } else {
+    paneHost().prepend(el);
+  }
+}
 
 function tlAll(){
   try{ spane() }catch(e){}
@@ -4013,7 +4072,7 @@ if(JOB) fetch("/api/jobs/"+JOB,
     // ⚠️ fetch ၂ ခု ပြိုင်ပြေး — စာသား fetch က အရင် ပြန်လာလျှင် ဒီမှာ ဆက်ကိုင်
     if(window._prepMaybe && ["queued","running"].indexOf(j.status)>-1) prepEnter();
     var el=document.getElementById("dn")||document.createElement("div");
-    el.id="dn"; el.className="done"; paneHost().prepend(el);
+    el.id="dn"; el.className="done"; dnPlace(el);
     document.body.classList.add("rv");
     // ⚠️ ဖြတ်ပြီးမှသာ 「✏️ ပြန်ပြင်မယ်」 banner ပြရမည် (အထက် CSS မှတ်ချက်)
     if(j.status==="cut_review") document.body.classList.add("rvcut");
