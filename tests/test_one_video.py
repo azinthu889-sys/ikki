@@ -22,7 +22,8 @@ class OneVideo(unittest.TestCase):
         self.assertIn("     dnPlace(el);\n", self.s)
 
     def test_cut_review_hides_the_source_player(self):
-        self.assertIn('document.body.classList.toggle("cutrev", st==="cut_review")', self.s)
+        # ၂၀၂၆-၁၀-၀၅: proxy ရှိလျှင် live player တစ်ခုတည်း · မရှိမှ server ဖိုင် (cutrev)
+        self.assertIn('document.body.classList.toggle("cutrev", !_live);', self.s)
         self.assertIn("body.cutrev #vid,body.cutrev .vbar .vside{display:none !important}", self.s)
 
     def test_result_card_follows(self):
