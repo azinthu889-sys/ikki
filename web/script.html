@@ -706,6 +706,22 @@ body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:non
   padding:14px 16px;font-size:13px}
 #keys dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:10px 0 0}
 #keys dt{font-weight:600;white-space:nowrap}
+.steps{display:none}
+.bar .acts .btn{white-space:nowrap}
+@media(min-width:1180px) and (max-width:1560px){ .bar .tm .sub{display:none} .ptitle{max-width:22%} }
+@media(min-width:1180px){
+  .steps{display:flex;gap:4px;list-style:none;margin:0 0 0 8px;padding:0;counter-reset:st}
+  .steps li{counter-increment:st;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    color:#A8A29E;padding:4px 10px 4px 4px;border-radius:999px;white-space:nowrap}
+  .steps li::before{content:counter(st);display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+    border:1.5px solid #D6D3D1;font-size:11px;font-family:"Inter",sans-serif}
+  .steps li.on{color:#4C1D95;background:#F5F3FF}
+  .steps li.on::before{background:#6D28D9;border-color:#6D28D9;color:#fff}
+  .steps li.ok{color:#047857}
+  .steps li.ok::before{content:"✓";background:#D1FAE5;border-color:#6EE7B7;color:#047857}
+  .steps li+li{position:relative;margin-left:10px}
+  .steps li+li::after{content:"";position:absolute;left:-12px;top:50%;width:8px;height:1.5px;background:#D6D3D1}
+}
 /* ⏳ ထုတ်နေဆဲ badge — progress bar ပါ (ရပ်နေလား · ဆက်နေလား တစ်ချက်ကြည့်ရုံနဲ့ သိ) */
 .ptitle s.busy{background:linear-gradient(90deg,#C4B5FD var(--p,0%),#F5F3FF var(--p,0%));color:#4C1D95}
 @media (prefers-reduced-motion:no-preference){ .ptitle s.busy{animation:ptpulse 1.6s ease-in-out infinite} }
@@ -831,6 +847,10 @@ body.prep .bar .acts{margin-top:0}
        အဆင့် badge (ဘယ်အဆင့်မှာ ရောက်နေလဲ တစ်ချက်ကြည့်ရုံနဲ့ သိ) -->
   <div class="ptitle"><a class="pback" href="/" title="ဗီဒီယိုများ">‹</a>
     <b id="ptname">—</b><s id="ptstate"></s></div>
+  <!-- ⚠️ Zin ၂၀၂၆-၁၀-၀၅ 「Professional app」 — ဘယ်အဆင့် ရောက်နေလဲ အမြဲ မြင်ရ -->
+  <ol class="steps" id="steps" aria-label="အဆင့်">
+    <li data-s="1">ဖြတ်</li><li data-s="2">Motion · SFX</li><li data-s="3">Preview</li><li data-s="4">Export</li>
+  </ol>
   <div class="tm">
     <b id="t0">—</b><span class="arw">→</span><b id="t1">—</b>
     <span class="sub"><span id="nd">0</span> ဖျက် · <span id="nk">0</span> ချန်<span id="nai"></span></span>
@@ -895,7 +915,7 @@ body.prep .bar .acts{margin-top:0}
 </div>
 <main class="wrap editor">
 <div class="vbar" id="vbar" hidden>
-  <video id="vid" playsinline preload="metadata"></video>
+  <video id="vid" playsinline preload="auto"></video>
   <div class="vside">
     <div class="vbtns">
       <button type="button" class="pri" id="vplay">▶ အစအဆုံး ဖွင့်</button>
@@ -2578,7 +2598,7 @@ document.getElementById("bok").onclick=function(){
          };
        },0);
      }
-     else { var jid=z.d.job_id||JOB; watchJob(jid, el);
+     else { var jid=z.d.job_id||JOB; watchJob(jid, el); try{ TCBASE=tcSig() }catch(_){}
        el.innerHTML='<b>✅ '+(isRev?'ဖြတ်ချက် ထုတ်နေပါပြီ':'ထုတ်နေပါပြီ')+'</b><br>job <code>'+esc(jid)+'</code>'
        +' · ချန် '+(z.d.kept!=null?z.d.kept:keep.length)+' ကြောင်း'
        +(z.d.removed!=null?' · ဖြတ် '+z.d.removed+' ကြောင်း':'')
@@ -4293,6 +4313,8 @@ document.addEventListener("keydown",function(e){
     if(document.body.classList.contains("rv")){ tip("ပြင်ဖို့ 「✏️ ပြန်ပြင်မယ်」 နှိပ်ပါ"); return }
     toggle(+rows[SEL].getAttribute("data-n"))}
   else if(e.key===" "&&SEL>=0){e.preventDefault();play(+rows[SEL].getAttribute("data-n"))}
+  /* Pro editor အတိုင်း — ရွေးထားတာ မရှိလျှင် Space = ဖွင့်/ရပ် (ဖြတ်ထားတာ ခုန်ကျော်) */
+  else if(e.key===" "){ e.preventDefault(); if(PLAYALL) stopAll(); else { var _m=med(); playAll(_m&&_m.currentTime>0.2?_m.currentTime:undefined) } }
 });
 
 /* ══ Professional pass — project နာမည် · အဆင့် badge · ↶ · ⌨ · timeline zoom ══ */
@@ -4320,6 +4342,22 @@ function ptPaint(){
   st.style.setProperty("--p", (busy?Math.max(3,pct):0)+"%");
 }
 setInterval(ptPaint, 1000);
+function stepPaint(){
+  var ol=document.getElementById("steps"); if(!ol) return;
+  var st=(JOBROW&&JOBROW.status)||(D&&D.status)||"", md=(JOBROW&&JOBROW.mode)||"", pl=JOB?planGet(JOB):null;
+  var done=document.body.classList.contains("done"), cur=1, fin=0;
+  if(PREP) cur=1;
+  else if(done){ if(md==="prev"){ cur=3; fin=2 } else { cur=4; fin=4 } }
+  else if(st==="review"){ cur = document.getElementById("sfxp") ? 2 : 1; fin=cur-1 }
+  else if(st==="cut_review"||md==="cut"){ cur=2; fin=1 }
+  else if(st==="running"||st==="queued"){ var pv = md==="prev" || (pl&&pl.preview); cur = pv?3:4; fin=cur-1 }
+  else if(st==="failed"){ cur=Math.max(2,cur); fin=cur-1 }
+  ol.querySelectorAll("li").forEach(function(li){
+    var n=+li.getAttribute("data-s");
+    li.className = n<=fin ? "ok" : (n===cur ? "on" : "");
+  });
+}
+setInterval(stepPaint, 800);
 function tlZoom(dir){
   var body=document.getElementById("tlbody"); if(!body) return;
   var steps=[1,1.5,2,3,4,6], i=steps.indexOf(TLZ); if(i<0) i=0;
@@ -4374,6 +4412,7 @@ function tlZoom(dir){
      တစ်ခု ပြင်ပြီး တစ်ခု ကျန်မိမည်。 */
   if(nx) nx.onclick=function(){
     var bk=document.getElementById("bok");
+    if(JOBROW && JOBROW.status==="cut_review"){ bk.click(); return }
     if(!bk || bk.disabled){ tip("ခဏ စောင့်ပါ"); return }
     stopAll(); tcHide();
     if(!REV) bk.click();
@@ -4466,7 +4505,7 @@ function exportAfterPreview(){
    .then(function(y){
      if(!y.ok){ if(b){ b.disabled=false; b.textContent="✅ Export (HD)" } tip("Export မရပါ — "+(y.d.detail||"")); return }
      planDel(JOB);
-     location.reload();
+     window._leaving=true; location.reload();
    })
    .catch(function(e){ if(b){ b.disabled=false; b.textContent="✅ Export (HD)" } tip("Export မရပါ — "+(e.message||e)) });
 }
@@ -4551,6 +4590,15 @@ function cutPanelTabs(el, jid, noCut){
   bar.addEventListener("click", function(e){ var b=e.target.closest("[data-pt]"); if(b) show(b.getAttribute("data-pt")) });
   var last="motion"; try{ last=localStorage.getItem("ikki_ptab")||"motion" }catch(e){}
   if(!S[last]) last="motion";
+  /* ⚠️ cut_review — ဒီ panel က 「SFX အဆင့်」 ⇒ Motion tab နဲ့ စ · ခလုတ် နာမည် flow အတိုင်း */
+  if(!noCut){
+    last="motion";
+    var _pvb=q("#cpv"); if(_pvb) _pvb.textContent=_pvb.textContent.replace(/^.*\((\d+) ခါ ကျန်\).*$/,"👁 Preview ကြည့် (အခမဲ့ $1 ခါ)");
+    var _okb=q("#cok"); if(_okb) _okb.textContent="✅ Export (HD)";
+    var _t0=el.firstElementChild; if(_t0 && _t0.tagName==="B") _t0.textContent="✨ Motion · SFX";
+    var _sb=_t0 && _t0.nextElementSibling;
+    if(_sb && _sb.classList.contains("vpn")) _sb.textContent="ဖြတ်ချက် ပြီးပါပြီ — အလှအပ ရွေးပြီး 👁 Preview နဲ့ စစ်ပါ · အဆင်ပြေရင် ✅ Export";
+  }
   if(!LOOK) lkLoad(jid);
   show(last);
 }
@@ -4637,24 +4685,38 @@ function tcApply(){
      tip("သိမ်း၍ မရပါ — "+(e.message||e)) });
 }
 setInterval(function(){ try{ tcDirtyPaint() }catch(e){} try{ bokCutPaint() }catch(e){} }, 600);
+/* ⚠️ ဖြတ်ချက်က 「Motion · SFX → Preview/Export」 နှိပ်မှ server ဆီ ရောက်သည် ⇒ ပြင်ပြီး
+   မသိမ်းဘဲ page ပိတ်လျှင် ပျောက်မည် ⇒ browser ရဲ့ 「ထွက်မလား」 သတိပေး (Pro app) */
+window.addEventListener("beforeunload", function(e){
+  try{
+    var st=(JOBROW&&JOBROW.status)||(D&&D.status)||"";
+    if((st==="review"||st==="cut_review") && TCBASE!==null && tcSig()!==TCBASE && !window._leaving){
+      e.preventDefault(); e.returnValue=""; return "";
+    }
+  }catch(_){}
+});
 /* ⚠️ cut_review မှာ အပေါ်ညာ ခလုတ်က 「ဖြတ်ချက် ကြည့်ပါ ↑」 (ပိတ်) ဖြစ်နေခဲ့ — Pro app တွေမှာ
    အဲဒီနေရာက **Export**。 ⇒ panel ထဲက ခလုတ်ကို လွှဲပြီး နှိပ်ပေး (လမ်း ၂ ခု မခွဲ) */
 function bokCutPaint(){
   var bk=document.getElementById("bok"); if(!bk) return;
-  var nx=document.getElementById("tlnext");
-  if(nx) nx.hidden = !!(JOBROW && JOBROW.status==="cut_review");
+  /* ⚠️ 「SFX ဆက်သွားမည့် ခလုတ် ပျောက်」 (Zin) — cut_review မှာလည်း ဖျောက်မထား */
+  var nx=document.getElementById("tlnext"); if(nx) nx.hidden=false;
   if(!(JOBROW && JOBROW.status==="cut_review" && document.getElementById("dn"))) return;
   var dirty=!!document.getElementById("tcdirty"), ok=document.getElementById("cok");
-  var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "ထုတ်မယ် →";
+  var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "✨ Motion · SFX →";
   if(bk.textContent!==want) bk.textContent=want;
-  bk.disabled = !dirty && !(ok && !ok.disabled);
+  bk.disabled = false;
 }
 document.addEventListener("click", function(e){
   var bk=e.target.closest && e.target.closest("#bok"); if(!bk) return;
   if(!(JOBROW && JOBROW.status==="cut_review")) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  var a=document.getElementById("tcapply"), ok=document.getElementById("cok");
-  if(a) a.click(); else if(ok && !ok.disabled) ok.click();
+  var a=document.getElementById("tcapply");
+  if(a){ a.click(); return }
+  /* ⇒ Motion · SFX tab ဖွင့်ပြီး panel ဆီ (ဒီကနေ 👁 Preview / ✅ Export) */
+  var t=document.querySelector('#dn .ptabs [data-pt="motion"]'); if(t) t.click();
+  var dn=document.getElementById("dn");
+  if(dn) try{ dn.scrollIntoView({block:"start",behavior:"smooth"}) }catch(_){}
 }, true);
 
 /* ══ ပြင်ဆင်နေဆဲ (prep) mode ═════════════════════════════════════════

@@ -27,6 +27,19 @@ class SfxFlow(unittest.TestCase):
         self.assertIn('/cutok"', w)
         self.assertIn("preview:!!_pl.preview", w)
 
+    def test_sfx_button_never_disappears_in_cut_review(self):
+        # 「SFX ဆက်သွားမည့် ခလုတ်ပါ ပျောက်နေတယ်」
+        self.assertIn('var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "✨ Motion · SFX →";', self.s)
+        self.assertIn('var nx=document.getElementById("tlnext"); if(nx) nx.hidden=false;', self.s)
+
+    def test_pro_basics(self):
+        # 「Professional app တစ်ခု ဖြစ်အောင်」 — step bar · Space ဖွင့်/ရပ် · ပထမ frame · မသိမ်းရသေး သတိပေး
+        self.assertIn('<ol class="steps" id="steps"', self.s)
+        self.assertIn("function stepPaint()", self.s)
+        self.assertIn('else if(e.key===" "){ e.preventDefault(); if(PLAYALL) stopAll();', self.s)
+        self.assertIn('<video id="vid" playsinline preload="auto"></video>', self.s)
+        self.assertIn('window.addEventListener("beforeunload"', self.s)
+
     def test_preview_then_export(self):
         self.assertIn("function exportAfterPreview()", self.s)
         self.assertIn('JOBROW.mode==="prev"', self.s)
