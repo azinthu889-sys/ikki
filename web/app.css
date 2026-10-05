@@ -917,3 +917,45 @@ textarea.app-dialog-input{min-height:104px;resize:vertical}.app-dialog-actions{d
    (rgb(245,208,0) ပေါ် rgb(245,208,0) ⇒ contrast ၁.၀) — စာသားက လုံးဝ
    မမြင်ရ。 browser မှာ တိုင်းမှ တွေ့သည်。 ⇒ အမှောင်နဲ့ ပြရမည်。 */
 .dropbig.locked #dropnote{ color:#1A1500; font-weight:700 }
+
+/* ══ Modern skin (Zin ၂၀၂၆-၁၀-၀၅: 「ပင်မ စာမျက်နှာကိုလည်း modern ဖြစ်အောင်」) ══════════
+   ⚠️ အပေါ်က ဒီဇိုင်း (brand အဝါ · font · စာလုံးအရွယ်) **မထိ** — ဖြည့်စွက်ရုံ。
+   ပြောင်းတာ: ကင်းဗတ် + ကတ် ခွဲ (ဘေ့ချ်ရောင် အလွှာ ထပ်တာ ဖယ်) · ကတ် အရိပ်ဖျော့ ·
+   glass ခေါင်းစီး · ဘေးမီနူး ရွေးထားတာ accent မျဉ်း · hover မှာ အနည်းငယ် ကြွ。
+   editor (script.html) ရဲ့ Modern skin နဲ့ ပုံစံ တူ (ကတ် radius · အရိပ်)。 */
+:root{ --cv:#0A0A0A; --card:#131313; --cardb:#232323;
+       --csh:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35); }
+:root[data-theme="light"]{ --cv:#F4F4F2; --card:#FFFFFF; --cardb:#E9E8E4;
+       --csh:0 1px 2px rgba(16,12,8,.04),0 8px 28px rgba(16,12,8,.07); }
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --cv:#F4F4F2; --card:#FFFFFF; --cardb:#E9E8E4;
+  --csh:0 1px 2px rgba(16,12,8,.04),0 8px 28px rgba(16,12,8,.07); }}
+
+body{background:var(--cv)}
+.top{background:color-mix(in srgb, var(--cv) 78%, transparent);
+  backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom-color:var(--cardb)}
+.side{border-right:0}
+.nav{border-radius:12px;position:relative;transition:background .18s,color .18s}
+.nav[aria-current="page"]{background:var(--card);box-shadow:var(--csh)}
+.nav[aria-current="page"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;
+  border-radius:3px;background:var(--ac)}
+.lang,.ico{background:var(--card);box-shadow:0 0 0 1px var(--cardb)}
+
+.studio-hero{background:
+  radial-gradient(60% 120% at 100% 0,color-mix(in srgb, var(--ac) 22%, transparent),transparent 60%),
+  radial-gradient(40% 80% at 0 100%,color-mix(in srgb, var(--ac) 8%, transparent),transparent 70%),
+  var(--card);
+  border-color:var(--cardb);border-radius:24px;box-shadow:var(--csh)}
+.flow-step{background:var(--cv);border-radius:999px;padding:5px 10px 5px 5px}
+.flow-step.active{background:color-mix(in srgb, var(--ac) 18%, var(--card));box-shadow:0 0 0 1px color-mix(in srgb, var(--ac) 55%, transparent)}
+
+.setup-section,.project-brand{background:var(--card);border-color:var(--cardb);border-radius:22px;
+  box-shadow:var(--csh)}
+.mode{background:var(--cv);border-color:var(--cardb);
+  transition:border-color .16s,transform .16s,box-shadow .2s,background .2s}
+.mode:hover{transform:translateY(-1px);box-shadow:var(--csh)}
+.mode[aria-pressed="true"]{background:color-mix(in srgb, var(--ac) 10%, var(--card))}
+.btn{border:1px solid var(--cardb)}
+.btn.go,.btn.primary,#start,#revgo{border-color:transparent}
+.chip{border-radius:999px}
