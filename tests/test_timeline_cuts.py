@@ -42,5 +42,27 @@ class TimelineCuts(unittest.TestCase):
         self.assertIn("bx.open=true;", self.s)
 
 
+class AutoJoin(unittest.TestCase):
+    """「ဖြတ်ချက်တွေ ဆက်နေရင် အော်တို အကုန်ဆက်」 · 「ဖြတ်ချက်နဲ့ အစိမ်း ကြား ကွာဟချက် မဟ」"""
+    def setUp(self):
+        with open(R, encoding="utf-8") as f:
+            self.s = f.read()
+
+    def test_adjacent_cuts_join_in_view_preview_and_export(self):
+        self.assertIn("var MERGE_GAP=0.35;", self.s)
+        self.assertIn("function tcView()", self.s)
+        self.assertIn("if(L && r[0]<=L[1]+MERGE_GAP)", self.s)
+        self.assertIn("try{ tcBridges().forEach(function(r){ ds.push(r) }) }catch(e){}", self.s)
+
+    def test_group_click_restores_all(self):
+        self.assertIn('if(it.kind==="g"){', self.s)
+        self.assertIn("ဆက်နေတဲ့ ဖြတ်ချက်", self.s)
+
+    def test_red_green_gap_goes_to_the_kept_side(self):
+        i = self.s.find("function tcView()")
+        w = self.s[i:i + 3200]
+        self.assertIn("if(g1>0.005 && g1<=MERGE_GAP) v.a=c.b;", w)
+
+
 if __name__ == "__main__":
     unittest.main()

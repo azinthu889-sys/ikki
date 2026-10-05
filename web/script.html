@@ -140,6 +140,7 @@ body.done .tlgfx i:hover{background:#DDD6FE}
 .tlcuts i.kx,.tlcuts i.ku{background:#FDBA74;border-color:#EA580C;color:#7C2D12}
 .tlcuts i.kept{background:#D1FAE5 !important;border:1px dashed #10B981 !important;color:#065F46 !important}
 .tlcuts i.sel{box-shadow:0 0 0 2px #7C3AED;z-index:2}
+.tlcuts i.kg{background:#EF4444;border-color:#B91C1C;color:#fff;font-weight:600}
 #tci{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 16px;
   background:#FAF5FF;border-bottom:1px solid #EDE9FE;font-size:12.5px}
 #tci[hidden]{display:none}
@@ -1303,14 +1304,15 @@ function medPlay(a, onFail){
 }
 /* ဖျက်ထားတဲ့ အပိုင်းတွေကို ပေါင်းပြီး စီသည် (ခုန်ကျော်ရန်) */
 function skipList(){
-  var d=[]; try{ d=tlDrops()||[] }catch(e){ d=[] }
+  var d=[]; try{ d=(tlDrops()||[]).concat(tcBridges()) }catch(e){ d=[] }
   d=d.filter(function(r){ return r && r[1]>r[0] }).sort(function(x,y){return x[0]-y[0]});
   var o=[];
   d.forEach(function(r){
     var L=o[o.length-1];
     // ⚠️ ထပ်နေတာတွေ ပေါင်းရမည် — မပေါင်းလျှင် ခုန်ပြီးမှ နောက်တစ်ခုထဲ
     //    ပြန်ဝင်ကာ 「တုန်နေသလို」 ဖြစ်သည်。
-    if(L && r[0]<=L[1]+0.02) L[1]=Math.max(L[1], r[1]);
+    // ⚠️ MERGE_GAP အောက် ကြားက အသံ အပိုင်းအစလေးကိုပါ ကျော် (ကပ်နေတဲ့ ဖြတ်ချက် အလိုလို ဆက်)
+    if(L && r[0]<=L[1]+MERGE_GAP) L[1]=Math.max(L[1], r[1]);
     else o.push([r[0], r[1]]);
   });
   return o;
@@ -2480,6 +2482,8 @@ document.getElementById("bok").onclick=function(){
   var ks=Object.keys(SKEEP).map(function(k){ var a=k.split(":"); return [+a[0], +a[1]] });
   /* ⚠️ timeline မှာ အနား ရွှေ့ထားသော အနားယူ — မူရင်းကို ချန် (keep) ပြီး
      အသစ်ကိုသာ အတိအကျ ဖြတ် (drop · server က keep ပြီးမှ drop) */
+  /* ⚠️ ကပ်နေတဲ့ ဖြတ်ချက်ကြားက အသံ အပိုင်းအစ — preview မှာ ကျော်သလို ထုတ်တာမှာလည်း ဖြတ် */
+  try{ tcBridges().forEach(function(r){ ds.push(r) }) }catch(e){}
   Object.keys(SADJ).forEach(function(k){
     if(SKEEP[k]) return;
     var o=k.split(":"), sp=SADJ[k];
@@ -3307,7 +3311,10 @@ function tcItems(){
   var out=[], S=(D&&D.sentences)||[];
   ((D&&D.events)||[]).forEach(function(e){
     if(e.type!=="silence" || e.dur<PAU_MIN) return;
-    var k=e.start.toFixed(2)+":"+e.end.toFixed(2), sp=SADJ[k]||[e.start,e.end];
+    /* ⚠️ အကွက် = preview က **တကယ် ကျော်တဲ့** အပိုင်း (tlDrops နဲ့ margin တူ) —
+       မတူလျှင် အကွက်နဲ့ ဘေးက အကွက်ကြား 「ကွာဟ」 ပေါ်ပြီး ဘယ်အထိ ဖြတ်လဲ မသေချာ */
+    var k=e.start.toFixed(2)+":"+e.end.toFixed(2), m=Math.min(0.12, e.dur*0.2);
+    var sp=SADJ[k]||[+(e.start+m).toFixed(3), +(e.end-m).toFixed(3)];
     out.push({key:"s|"+k, kind:"s", k:k, a:sp[0], b:sp[1], o:[e.start,e.end], cut:!SKEEP[k]});
   });
   S.forEach(function(x){
@@ -3353,12 +3360,12 @@ function tlCuts(){
   }
   var _rw2=box.closest(".tlrow"); if(_rw2) _rw2.hidden=false;
   var h="", n=0, kept=0, cut=0;
-  tcItems().forEach(function(it){
+  tcView().forEach(function(it){
     var L=(it.a/dur)*100, W=Math.max(0.45, ((it.b-it.a)/dur)*100), d=it.b-it.a;
     if(it.cut){ n++; cut+=d } else kept+=d;
     h+='<i class="k'+it.kind+(it.cut?"":" kept")+(TCSEL===it.key?" sel":"")
       +'" data-tc="'+esc(it.key)+'" style="left:'+L.toFixed(3)+'%;width:'+W.toFixed(3)+'%" title="'
-      +TC_NAME[it.kind]+' '+d.toFixed(1)+'s · '
+      +(it.kind==="g"?("ဆက်နေတဲ့ ဖြတ်ချက် "+it.members.length+" ခု"):TC_NAME[it.kind])+' '+d.toFixed(1)+'s · '
       +(it.cut?"ဖြတ်မည် — နှိပ်ရင် ပြန်ထည့်":"ပြန်ထည့်ထား — နှိပ်ရင် ပြန်ဖြတ်")+'">'
       +(W>2.2?d.toFixed(1)+"s":"")+'</i>';
   });
@@ -3368,10 +3375,96 @@ function tlCuts(){
                                  +(kept>0.05?(" · ပြန်ထည့် "+kept.toFixed(1)+"s"):"")) : "";
   if(TCSEL) tcShow(TCSEL, true);
 }
-function tcFind(key){ return tcItems().find(function(x){ return x.key===key }) }
+function tcFind1(key){ return tcItems().find(function(x){ return x.key===key }) }
+/* ══ ကပ်နေတဲ့ ဖြတ်ချက် — **အလိုလို တစ်ဆက်တည်း** (Zin ၂၀၂၆-၁၀-၀၅ 「ဖြတ်ချက်တွေ
+   ဆက်နေရင် အော်တို အကုန် ဆက်သွားတဲ့ ပုံစံ」) ══════════════════════════════════
+   ⚠️ ကြား MERGE_GAP အောက် (ချန်ထားသော အသံ အပိုင်းအစလေး) — ချန်လျှင် ၀.၁–၀.၃s
+      「တ」 ဆိုတဲ့ အသံ ပိုင်းကလေး ကြားရပြီး jump cut ညစ်သည် ⇒ ပါ ဖြတ် (preview ·
+      ထုတ်မယ့် ဗီဒီယို နှစ်ခုလုံး) · timeline မှာ အကွက် **တစ်ခုတည်း**。
+   group ကို နှိပ် ⇒ အကုန် ပြန်ထည့် · အနား ဆွဲ ⇒ ပထမ/နောက်ဆုံး ဖြတ်ချက်ကို ညှိ。 */
+var MERGE_GAP=0.35;
+function tcView(){
+  var all=tcItems(), cut=all.filter(function(x){ return x.cut }).sort(function(x,y){ return x.a-y.a });
+  var out=all.filter(function(x){ return !x.cut }), run=null;
+  function flush(){
+    if(!run) return;
+    if(run.length===1) out.push(run[0]);
+    else out.push({key:"g~"+run.map(function(m){ return m.key }).join("~"), kind:"g", members:run,
+                   a:run[0].a, b:Math.max.apply(null, run.map(function(m){ return m.b })), cut:true});
+    run=null;
+  }
+  cut.forEach(function(it){
+    if(run){ var e=Math.max.apply(null, run.map(function(m){ return m.b }));
+      if(it.a <= e+MERGE_GAP){ run.push(it); return } }
+    flush(); run=[it];
+  });
+  flush();
+  /* ⚠️⚠️ အနီ (ဖြတ်) ↔ အစိမ်း (ပြန်ထည့်) ကြား MERGE_GAP အောက် ကွာဟ — **အစိမ်း ဘက်**
+     (ချန်) ပေါင်းပြ ⇒ နှစ်ကွက် တည့်တည့် ထိ · ဖြတ်မှတ် တစ်နေရာတည်း (Zin 「ကြားမှာ
+     ကွာဟချက် မဟနေ · ဖြတ်ချက် တိကျအောင်」)。 ဖြတ်ချက်ဘက် မပေါင်းရ — အစိမ်းက စကား
+     ဖြစ်နိုင်ပြီး ASR အဆုံးချိန်က ခန့်မှန်းချက် ⇒ စကားလုံး အမြီး ပြတ်မည်。
+     ကြားက အသံက **ချန်ပြီးသား** (ဖြတ်ချက်ထဲ မပါ) ⇒ အသံ မပြောင်း · မြင်ကွင်းသာ。 */
+  var cuts=out.filter(function(x){ return x.cut });
+  /* ⚠️ ဖြတ်ချက်ထဲ **အပြည့် ကျနေတဲ့** အစိမ်း (ဥပမာ ဖျက်ထားတဲ့ စာကြောင်းထဲက အနားယူ) —
+     ပြန်ထည့်ထားပေမယ့် တကယ် မပါ ⇒ ပြလျှင် လှည့်စားရာ ကျ ⇒ မပြ */
+  out=out.filter(function(v){
+    return v.cut || !cuts.some(function(c){ return v.a>=c.a-0.001 && v.b<=c.b+0.001 }) });
+  out.forEach(function(v){
+    if(v.cut) return;
+    cuts.forEach(function(c){
+      var g1=v.a-c.b, g2=c.a-v.b;
+      if(g1>0.005 && g1<=MERGE_GAP) v.a=c.b;
+      if(g2>0.005 && g2<=MERGE_GAP) v.b=c.a;
+    });
+  });
+  return out;
+}
+function tcFind(key){
+  if(String(key||"").indexOf("g~")===0){
+    var v=tcView().find(function(x){ return x.key===key }); if(v) return v;
+    // member key တွေ ပြောင်းသွားနိုင် (စာလုံး ဖြတ်ချက်ရဲ့ key က အစ အချိန်) ⇒ ပထမ member နဲ့ ရှာ
+    var k1=key.split("~")[1], m=tcFind1(k1);
+    return m ? tcAt(m.a) : null;
+  }
+  var it=tcFind1(key); if(it) return it;
+  return null;
+}
+function tcAt(t){
+  return tcView().find(function(x){ return x.cut && t>=x.a-0.001 && t<=x.b+0.001 }) || null;
+}
+/* ထုတ်တဲ့အခါ ပို့ရမယ့် ကြားအပိုင်း (bridge) — preview နဲ့ တူညီရမည် */
+function tcBridges(){
+  var d=(tlDrops()||[]).filter(function(r){ return r && r[1]>r[0] }).sort(function(x,y){ return x[0]-y[0] });
+  var br=[], runs=[], end=null;
+  d.forEach(function(r){
+    if(end!==null && r[0]<=end+MERGE_GAP){
+      if(r[0]>end+0.005) br.push([+end.toFixed(3), +r[0].toFixed(3)]);
+      runs[runs.length-1][1]=Math.max(runs[runs.length-1][1], r[1]);
+    } else runs.push([r[0], r[1]]);
+    end = end===null ? r[1] : Math.max(end, r[1]);
+  });
+  return br;
+}
 /* ── တစ်ချက်နှိပ် — ဖြတ် ↔ ပြန်ထည့် ── */
 function tcToggle(key){
   var it=tcFind(key); if(!it) return;
+  if(it.kind==="g"){
+    var t0=it.a;
+    it.members.slice().forEach(function(m){ if(tcFind1(m.key)) tcToggle1(m.key) });
+    counts(); TCSEL=null; tlCuts();
+    tip("↩ ဆက်နေတဲ့ ဖြတ်ချက် "+it.members.length+" ခု အကုန် ပြန်ထည့်ပြီး");
+    return;
+  }
+  tcToggle1(key);
+  counts();
+  TCSEL=key; tlCuts();
+  var now=tcFind1(key);
+  if(now && now.cut){ var g=tcAt(now.a); if(g && g.kind==="g"){ TCSEL=g.key; tlCuts() } }
+  tip(now && now.cut ? "✂ ဖြတ်မည် — "+(now.b-now.a).toFixed(1)+"s"
+                     : "↩ ပြန်ထည့်ပြီး — "+(it.b-it.a).toFixed(1)+"s");
+}
+function tcToggle1(key){
+  var it=tcFind1(key); if(!it) return;
   if(it.kind==="s"){
     if(SKEEP[it.k]) delete SKEEP[it.k]; else SKEEP[it.k]=1;
     var pel=document.querySelector('.pau[data-pk="'+it.k+'"]');
@@ -3398,28 +3491,33 @@ function tcToggle(key){
     if(btn) btn.click(); else { if(dict[it.k]) delete dict[it.k]; else dict[it.k]=1 }
     if(dict[it.k]) delete TCRES[key]; else TCRES[key]={kind:it.kind, k:it.k, a:it.a, b:it.b};
   }
-  counts();
-  TCSEL=key; tlCuts();
-  var now=tcFind(key);
-  tip(now && now.cut ? "✂ ဖြတ်မည် — "+(now.b-now.a).toFixed(1)+"s"
-                     : "↩ ပြန်ထည့်ပြီး — "+(it.b-it.a).toFixed(1)+"s");
 }
 /* ── ချိန်ညှိ — အစ/အဆုံး ±၀.၀၄s ── */
 function tcMove(side, dir){
   var it=tcFind(TCSEL); if(!it || !it.cut) return;
   if(tcSet(it, side, +((side?it.b:it.a)+dir*TC_STEP).toFixed(3))===false) return;
-  counts(); tlCuts(); tcPlay();
+  counts();
+  var _s=tcFind(TCSEL); if(_s && _s.kind!=="g"){ var _g=tcAt(_s.a); if(_g && _g.kind==="g") TCSEL=_g.key }
+  tlCuts(); tcPlay();
 }
 /* အနား တစ်ဖက်ကို `v` (မူရင်း အချိန်) ဆီ ရွှေ့ — ◀▶ နဲ့ ဆွဲချက် နှစ်ခုလုံး သုံး。
    ⚠️ ပြန်ပေးချက် false = မရွှေ့ရ (စာကြောင်း အပြင် ချဲ့ချက်) */
 function tcSet(it, side, v){
+  if(it.kind==="g"){
+    var mm=side ? it.members.slice().sort(function(x,y){ return y.b-x.b })[0] : it.members[0];
+    var r=tcSet(mm, side, v);
+    if(r!==false){ var g=tcAt(side ? Math.min(v, mm.b) - 0.002 : Math.max(v, mm.a) + 0.002);
+      TCSEL = g ? g.key : TCSEL }
+    return r;
+  }
   var dur=(D&&D.dur)||tlDur()||1e9;
   if(it.kind==="s"){
     var lo=Math.max(0,it.o[0]-1.0), hi=Math.min(dur,it.o[1]+1.0);
-    var sp=SADJ[it.k]||[it.o[0],it.o[1]];
+    var sp=SADJ[it.k]||[it.a,it.b];
     if(side===0) sp[0]=Math.max(lo, Math.min(v, sp[1]-0.06));
     else         sp[1]=Math.min(hi, Math.max(v, sp[0]+0.06));
-    if(Math.abs(sp[0]-it.o[0])<0.005 && Math.abs(sp[1]-it.o[1])<0.005) delete SADJ[it.k];
+    var _m=Math.min(0.12,(it.o[1]-it.o[0])*0.2);
+    if(Math.abs(sp[0]-(it.o[0]+_m))<0.005 && Math.abs(sp[1]-(it.o[1]-_m))<0.005) delete SADJ[it.k];
     else SADJ[it.k]=sp;
   } else if(it.kind==="t"){
     var S=D.sentences.find(function(z){return z.n===it.n});
@@ -3460,6 +3558,7 @@ function tcDrag(ev, hit){
   var key=hit.c.getAttribute("data-tc"), it=tcFind(key); if(!it) return;
   var kind=it.kind; if(kind==="x"||kind==="u") return;
   var tr=hit.c.parentNode.getBoundingClientRect(), dur=tlDur();
+  /* ⚠️ group ဆွဲစဉ် member key ပြောင်းနိုင် ⇒ ဆွဲနေသော အနား အချိန်နဲ့ ပြန်ရှာ */
   TCSEL=key; stopAll();
   function at(e){
     var x=(e.touches?e.touches[0].clientX:e.clientX);
@@ -3508,8 +3607,10 @@ function tcShow(key, quiet){
     q = (qa&&qb) ? "✓ နှစ်ဖက်လုံး တိတ်ဆိတ်ရာ"
       : "⚠️ "+(!qa&&!qb?"နှစ်ဖက်":(!qa?"အစ":"အဆုံး"))+" စကားသံထဲ — ◀▶ နဲ့ ညှိပါ";
   }
-  e.innerHTML='<b class="'+(it.cut?"c":"k")+'">'+(it.cut?"✂ ":"↩ ")+TC_NAME[it.kind]+' '+d.toFixed(2)+'s</b>'
-    +'<button type="button" class="tcmain" data-tcx="t">'+(it.cut?"↩ ပြန်ထည့်":"✂ ပြန်ဖြတ်")+'</button>'
+  var _nm = it.kind==="g" ? ("ဆက်နေတဲ့ ဖြတ်ချက် "+it.members.length+" ခု") : TC_NAME[it.kind];
+  if(it.kind==="g") adj=true;
+  e.innerHTML='<b class="'+(it.cut?"c":"k")+'">'+(it.cut?"✂ ":"↩ ")+_nm+' '+d.toFixed(2)+'s</b>'
+    +'<button type="button" class="tcmain" data-tcx="t">'+(it.cut?(it.kind==="g"?"↩ အကုန် ပြန်ထည့်":"↩ ပြန်ထည့်"):"✂ ပြန်ဖြတ်")+'</button>'
     +((it.cut&&adj)
       ? '<span class="tcg">အစ <button type="button" data-tcx="0,-1" title="အစ စော">◀</button>'
         +'<button type="button" data-tcx="0,1" title="အစ နောက်ကျ">▶</button></span>'
