@@ -18,7 +18,9 @@ class SfxFlow(unittest.TestCase):
 
     def test_review_button_opens_the_sfx_panel(self):
         self.assertIn('id="bok">✨ Motion · SFX →</button>', self.s)
-        self.assertIn('if(D.status==="review" && !window._autoGo){ sfxOpen(); return }', self.s)
+        i = self.s.find('if(D.status==="review" && !window._autoGo){')
+        self.assertGreater(i, 0)
+        self.assertIn("sfxOpen(); return }", self.s[i:i + 300])
 
     def test_cut_review_is_skipped_with_a_plan(self):
         self.assertIn('if(st==="cut_review" && planGet(jid)){', self.s)
@@ -29,7 +31,7 @@ class SfxFlow(unittest.TestCase):
 
     def test_sfx_button_never_disappears_in_cut_review(self):
         # 「SFX ဆက်သွားမည့် ခလုတ်ပါ ပျောက်နေတယ်」
-        self.assertIn('var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "✨ Motion · SFX →";', self.s)
+        self.assertIn('var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : (_na ? _na.lab : "✨ Motion · SFX →");', self.s)
         self.assertIn('var nx=document.getElementById("tlnext"); if(nx) nx.hidden=false;', self.s)
 
     def test_pro_basics(self):
@@ -39,6 +41,11 @@ class SfxFlow(unittest.TestCase):
         self.assertIn('else if(e.key===" "){ e.preventDefault(); if(PLAYALL) stopAll();', self.s)
         self.assertIn('<video id="vid" playsinline preload="auto"></video>', self.s)
         self.assertIn('window.addEventListener("beforeunload"', self.s)
+
+    def test_next_button_does_the_next_step(self):
+        # 「နှိပ်လို့ မရ」 — panel ရောက်ပြီးရင် ခလုတ်က Preview/Export ကို တကယ် စ
+        self.assertIn("function nextAction()", self.s)
+        self.assertIn("var _na=nextAction(); if(_na && _na.el){ _na.el.click(); return }", self.s)
 
     def test_preview_then_export(self):
         self.assertIn("function exportAfterPreview()", self.s)

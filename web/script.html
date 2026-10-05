@@ -159,7 +159,7 @@ body.done .tlgfx i:hover{background:#DDD6FE}
   #tlnext::after{content:"Motion · SFX →";font-size:12px}
   #tlinfo{display:none}
 }
-#tlnext{background:#0F172A !important;color:#fff;border-color:#0F172A !important;font-weight:600}
+#tlnext{white-space:nowrap;background:#0F172A !important;color:#fff;border-color:#0F172A !important;font-weight:600}
 body.rv #tlnext,body.done #tlnext,body.prep #tlnext{display:none}
 /* ⚠️ အတန်းတိုင်း **အကျယ် တူရမည်** — မတူလျှင် playhead က အတန်းချင်း လွဲမည် */
 #tlruler{display:block;width:100%;height:16px}
@@ -744,7 +744,13 @@ body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:non
 .psec>label.ck{flex-direction:row;align-items:center;font-weight:500}
 .psec select{font:inherit;font-size:13px;padding:7px 10px;border:1px solid #E7E5E4;border-radius:9px;background:#fff}
 .psec #crc{margin-top:10px}
-.psec .lkr{padding:8px 0}
+.psec .lkr{padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+.psec .lkr>b{grid-column:1;grid-row:1;flex:none}
+.psec .lkr>span.v{grid-column:2;grid-row:1;flex:none;text-align:right}
+.psec .lkr>span.v br{display:none}
+.psec .lkr>span.v .dflt{margin-left:6px}
+.psec .lkr>input,.psec .lkr>select,.psec .lkr>label{grid-column:1/-1;grid-row:2;min-width:0;width:100%}
+.psec .lkr>label.ck{display:flex;gap:8px;align-items:center;font-size:12.5px;color:#57534E}
 .psec .lkacts #lksave{display:none}
 .psec .lkacts+.vpn{display:none}
 .pfoot{padding:12px 0 0;margin-top:8px;border-top:1px solid #ECEAE6}
@@ -2443,7 +2449,9 @@ document.getElementById("bok").onclick=function(){
      ဖြုတ် · SFX အဆင့် သွားတဲ့ ခလုတ် · SFX ပြီး preview စစ် · အဆင်ပြေရင် export」。
      ⇒ review မှာ ဒီခလုတ်က **Motion · SFX panel** ဖွင့်သည် (ဖတ်ရန် မြင်ကွင်း · အတည်ပြု
        dialog မရှိတော့)。 panel ရဲ့ Preview/Export က `_autoGo` နဲ့ ဒီလမ်းကို ပြန်ခေါ်。 */
-  if(D.status==="review" && !window._autoGo){ sfxOpen(); return }
+  if(D.status==="review" && !window._autoGo){
+    var _na=nextAction(); if(_na && _na.el){ _na.el.click(); return }
+    sfxOpen(); return }
   if(window._autoGo){ REV=true; }
   if(!REV){                              // ① အတည်ပြု → ဖတ်ရန် မြင်ကွင်း
     REV=true; document.body.classList.add("rv","rvcut");
@@ -2604,7 +2612,7 @@ document.getElementById("bok").onclick=function(){
        +(z.d.removed!=null?' · ဖြတ် '+z.d.removed+' ကြောင်း':'')
        +(z.d.cut_s!=null?' ('+z.d.cut_s+'s)':'')+'<br>'
        +'<a href="/">ဗီဒီယို စာမျက်နှာ →</a>';
-       var _bk5=document.getElementById("bok"); _bk5.textContent="ထုတ်နေသည်…"; _bk5.disabled=true; }
+       var _bk5=document.getElementById("bok"); _bk5.textContent="ထုတ်နေသည်…"; _bk5.disabled=true; window._sent=true; }
      dnPlace(el);
      window.scrollTo({top:0,behavior:"smooth"});
    })
@@ -4412,6 +4420,7 @@ function tlZoom(dir){
      တစ်ခု ပြင်ပြီး တစ်ခု ကျန်မိမည်。 */
   if(nx) nx.onclick=function(){
     var bk=document.getElementById("bok");
+    var _na=nextAction(); if(_na && _na.el){ _na.el.click(); return }
     if(JOBROW && JOBROW.status==="cut_review"){ bk.click(); return }
     if(!bk || bk.disabled){ tip("ခဏ စောင့်ပါ"); return }
     stopAll(); tcHide();
@@ -4695,6 +4704,36 @@ window.addEventListener("beforeunload", function(e){
     }
   }catch(_){}
 });
+/* ══ 「နောက်တစ်ဆင့်」 ခလုတ် (Zin ၂၀၂၆-၁၀-၀၆ 「နှိပ်လို့ မရ」) ═══════════════════════
+   Motion · SFX panel ရောက်ပြီးရင် 「✨ Motion · SFX →」 ကို ထပ်နှိပ်လည်း panel က
+   ပွင့်ပြီးသား ⇒ ဘာမှ မပြောင်း ⇒ 「နှိပ်မရ」 ထင်ရ。 ⇒ panel ရောက်ပြီးရင် ခလုတ် ၂ ခုလုံး
+   (အပေါ်ညာ · timeline) က **နောက်တစ်ဆင့် တကယ် လုပ်**: 👁 Preview ထုတ် / ✅ Export /
+   💾 သိမ်း。 */
+function nextAction(){
+  var st=(JOBROW&&JOBROW.status)||(D&&D.status)||"", g=function(i){ return document.getElementById(i) };
+  if(st==="cut_review"){
+    if(g("tcapply")) return {lab:"💾 သိမ်းပြီး ပြန်ထုတ်", el:g("tcapply")};
+    var pv=g("cpv"), ok=g("cok");
+    if(pv && !pv.disabled) return {lab:"👁 Preview ထုတ်မယ် →", el:pv};
+    if(ok && !ok.disabled) return {lab:"✅ Export →", el:ok};
+  }
+  if(st==="review" && g("sfxp")){
+    var a=g("sfxpv"), b=g("sfxgo");
+    if(a && !a.disabled) return {lab:"👁 Preview ထုတ်မယ် →", el:a};
+    if(b && !b.disabled) return {lab:"✅ Export →", el:b};
+  }
+  return null;
+}
+function nextPaint(){
+  var na=nextAction(), nx=document.getElementById("tlnext"), bk=document.getElementById("bok");
+  var st=(JOBROW&&JOBROW.status)||(D&&D.status)||"";
+  if(nx){ var w = na ? na.lab : "✓ ဖြတ်ပြီး · Motion · SFX →"; if(nx.textContent!==w) nx.textContent=w }
+  if(bk && st==="review" && !BUSY && !window._autoGo && !window._sent){
+    var w2 = na ? na.lab : "✨ Motion · SFX →"; if(bk.textContent!==w2) bk.textContent=w2; bk.disabled=false;
+  }
+}
+setInterval(function(){ try{ nextPaint() }catch(e){} }, 500);
+
 /* ⚠️ cut_review မှာ အပေါ်ညာ ခလုတ်က 「ဖြတ်ချက် ကြည့်ပါ ↑」 (ပိတ်) ဖြစ်နေခဲ့ — Pro app တွေမှာ
    အဲဒီနေရာက **Export**。 ⇒ panel ထဲက ခလုတ်ကို လွှဲပြီး နှိပ်ပေး (လမ်း ၂ ခု မခွဲ) */
 function bokCutPaint(){
@@ -4703,7 +4742,8 @@ function bokCutPaint(){
   var nx=document.getElementById("tlnext"); if(nx) nx.hidden=false;
   if(!(JOBROW && JOBROW.status==="cut_review" && document.getElementById("dn"))) return;
   var dirty=!!document.getElementById("tcdirty"), ok=document.getElementById("cok");
-  var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "✨ Motion · SFX →";
+  var _na=nextAction();
+  var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : (_na ? _na.lab : "✨ Motion · SFX →");
   if(bk.textContent!==want) bk.textContent=want;
   bk.disabled = false;
 }
@@ -4713,6 +4753,7 @@ document.addEventListener("click", function(e){
   e.preventDefault(); e.stopImmediatePropagation();
   var a=document.getElementById("tcapply");
   if(a){ a.click(); return }
+  var _na=nextAction(); if(_na && _na.el){ _na.el.click(); return }
   /* ⇒ Motion · SFX tab ဖွင့်ပြီး panel ဆီ (ဒီကနေ 👁 Preview / ✅ Export) */
   var t=document.querySelector('#dn .ptabs [data-pt="motion"]'); if(t) t.click();
   var dn=document.getElementById("dn");
