@@ -1072,7 +1072,22 @@ function start(input){
                            /* ⚠️ reference က **optional** — မရွေးလျှင် ဗလာ ⇒
                               IKKI Smart Edit ပုံသေအတိုင်း (မပြောင်း)。 */
                            ref_id:state.ref||''})});
-  }).then(function(j){ savePrefs(); watch(j.job_id) })
+  }).then(function(j){
+    savePrefs();
+    /* ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၅: 「video upload လုပ်လိုက်တာနဲ့ စဖွင့်ကတည်းက 3 layout
+       design နဲ့ စဖွင့်ပြီး export အထိ UI နဲ့ သွားလို့ရအောင်」。 အရင်က
+       ဒီမှာ progress စက်ဝိုင်း (s-work) ပြပြီး စာသား ပြီးမှ editor ဆီ ပို့ခဲ့ —
+       စာမျက်နှာ ၂ ခု · ပုံစံ ၂ မျိုး。 ⇒ **တန်းပို့**သည်; editor က
+       တင်/စာသား အဆင့်ကို pane ထဲမှာ ပြပြီး စာသား ရတာနဲ့ အလိုလို ဖွင့်သည်。
+       ⚠️ Cinematic (clip များ · စာတမ်း မရှိ) နဲ့ `?old=1` က ယခင်အတိုင်း。 */
+    if(!cine && !/[?&]old=1/.test(location.search)){
+      editorPoster(files[0], j.job_id).then(function(){
+        location.href='/script.html?job='+encodeURIComponent(j.job_id);
+      });
+      return;
+    }
+    watch(j.job_id);
+  })
     /* Login is an interruption, never a render failure. `api()` has already
        opened IKKI's sign-in dialog; do not replace it with the red failure
        screen or imply that a source video/minutes were affected. */
@@ -1175,6 +1190,36 @@ function bindAud(){
 if(!bindAud()){
   document.addEventListener('DOMContentLoaded', bindAud);
   window.addEventListener('load', bindAud);
+}
+
+/* ── editor ဆီ ယူသွားမယ့် ပုံ (poster) ──
+   ⚠️ server ဘက်မှာ ဗီဒီယို proxy/thumb က worker စာသား ထုတ်ပြီးမှ ရသည် ⇒
+      editor ရဲ့ ဗီဒီယို pane က အဲဒီအထိ **ဗလာ** ဖြစ်မည်。 browser မှာ ဖိုင်
+      ရှိနေတုန်း ဖရိမ်း တစ်ခု ဖမ်းပြီး sessionStorage (job id နဲ့) ထဲ ထားသည်。
+   ⚠️ မရလည်း (codec · ကြာ) **ရပ်မထားရ** — ၂.၅s နောက်ဆုံး ဆက်သွားသည်。 */
+function editorPoster(f, jid){
+  return new Promise(function(done){
+    var fin=false, url=null;
+    function end(){ if(fin) return; fin=true; try{ if(url) URL.revokeObjectURL(url) }catch(e){} done() }
+    setTimeout(end, 2500);
+    try{
+      if(!f || !/^video\//.test(f.type||'video/')) return end();
+      var v=document.createElement('video');
+      v.muted=true; v.playsInline=true; v.preload='auto';
+      url=URL.createObjectURL(f); v.src=url;
+      v.onloadedmetadata=function(){ try{ v.currentTime=Math.min(1.0,(v.duration||2)/3) }catch(e){ end() } };
+      v.onseeked=function(){
+        try{
+          var w=Math.min(640,v.videoWidth||640), h=Math.round(w*(v.videoHeight||9)/(v.videoWidth||16));
+          var c=document.createElement('canvas'); c.width=w; c.height=h;
+          c.getContext('2d').drawImage(v,0,0,w,h);
+          sessionStorage.setItem('ikki_poster_'+jid, c.toDataURL('image/jpeg',0.72));
+        }catch(e){}
+        end();
+      };
+      v.onerror=end;
+    }catch(e){ end() }
+  });
 }
 
 /* ── job စောင့်ကြည့်ခြင်း ── */

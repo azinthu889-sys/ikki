@@ -140,7 +140,7 @@ class Layout(unittest.TestCase):
            ၃၅၄px ကျန်မည် (တိုင်းထား)。 Descript pane ဖြစ်သွားပြီ ⇒ pane က
            ကျယ်သော်လည်း **စာဖတ်ရ အကျယ်** (`--w`) ကို ထိန်းရသည်。
            တိုင်းထား: ၁၂၈၀px မှာ စာတမ်း pane ၉၀၈ · ဘေးတိုင် ၃၇၂。"""
-        i = self.s.find("@media(min-width:1100px){")
+        i = self.s.find("@media(min-width:860px){")
         self.assertGreater(i, 0)
         w = self.s[i:i + 1700]
         self.assertIn("#spane>*{max-width:var(--w)", w)
@@ -152,7 +152,7 @@ class Layout(unittest.TestCase):
         """⚠️ ရည်ရွယ်ချက်က 「ဗီဒီယိုက ပုံသေ · စာတမ်းပဲ ရွေ့」。 အရင်က
            `position:sticky` နဲ့ လုပ်ခဲ့သည်; ယခု pane နှစ်ခု **သီးသန့်စီ**
            scroll လုပ်သည် ⇒ sticky မလိုတော့ပါ。"""
-        i = self.s.find("@media(min-width:1100px){")
+        i = self.s.find("@media(min-width:860px){")
         w = self.s[i:i + 1700]
         self.assertIn("html,body{height:100%;overflow:hidden}", w)
         self.assertIn("#spane{order:1;flex:1 1 auto;min-width:0;overflow-y:auto", w)

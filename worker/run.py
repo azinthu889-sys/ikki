@@ -2045,7 +2045,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
         log(f"  🔎 ဖြုတ်ချက် စစ် (mask မသုံး) · ဖြုတ် {_lr['removed_s']:.1f}s ထဲ "
             f"ကျယ်သံ **{_lr['loud_s']:.2f}s ({_lr['pct']:.1f}%)** · "
             f"ကြမ်းခင်း {_lr['floor_db']:.1f} dB · ဂိတ်ကျော် **{_lr['n']} ခု**")
-        for _ra, _rb, _rf, _rd, _rmx in _lr["regions"][:6]:
+        # ⚠️ `cut.loud_removed()` က voice ကိန်း (၆ ခုမြောက်) ထပ်ထည့်ပြီးနောက်
+        #    ဒီမှာ ၅ ခုပဲ ဖြည်ခဲ့ ⇒ ကျယ်သံ ပါတဲ့ ဗီဒီယိုတိုင်း render တစ်ခုလုံး ကျ
+        #    (၂၀၂၆-၁၀-၀၅ j_0087b4d3e41f 「too many values to unpack」)。 log ပဲ
+        #    ဖြစ်သဖြင့် field အသစ် ထပ်လာလည်း မကျစေရ ⇒ `*_`
+        for _ra, _rb, _rf, _rd, _rmx, *_ in _lr["regions"][:6]:
             log(f"      ⚠️ {_ra:7.2f}–{_rb:7.2f}s · အချိုး {_rf:.2f} · "
                 f"ကျယ် {_rd:.2f}s · max {_rmx:.1f} dB")
     else:

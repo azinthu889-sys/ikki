@@ -107,7 +107,7 @@ class GridSpan(unittest.TestCase):
         # ⚠️ မှတ်ချက်ထဲက စာသားကို မရေတွက်ရ — **သတ်မှတ်ချက်** ကိုသာ စစ်သည်
         import re as _re
         css = _re.sub(r"/\*.*?\*/", "", self.s, flags=_re.S)
-        i = css.find("@media(min-width:1100px){")
+        i = css.find("@media(min-width:860px){")
         self.assertGreater(i, 0)
         w = css[i:i + 1200]
         self.assertNotIn("span 999", w)

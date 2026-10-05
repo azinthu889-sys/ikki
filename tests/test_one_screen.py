@@ -99,7 +99,7 @@ class Compact(unittest.TestCase):
         self.s = _src("web", "script.html")
 
     def test_the_narrow_player_is_compact(self):
-        i = self.s.find("@media(max-width:1099px){")
+        i = self.s.find("@media(max-width:859px){")
         self.assertGreater(i, 0)
         w = self.s[i:i + 700]
         self.assertIn(".vbar video{width:132px", w)

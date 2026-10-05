@@ -160,7 +160,7 @@ body.done .tlgfx i:hover{background:#DDD6FE}
   #tlfilm{height:34px} #tlc{height:30px} .tlcaps{height:18px}
   .tlcaps i{height:16px;line-height:16px;font-size:9.5px}
 }
-@media(max-width:1099px){
+@media(max-width:859px){
   .vbar{align-items:center;gap:10px;padding:8px 6px 10px}
   .vbar video{width:132px;max-width:34vw}
   .vbar .vnote{display:none}
@@ -179,7 +179,7 @@ body.done .tlgfx i:hover{background:#DDD6FE}
       `-1` က explicit grid ကိုသာ)。 flex column + flex row က တွက်စရာ မလို。
    ⚠️ `#spane` ကို **JS က ဆောက်**သည် — ဘယ်ဘက် ကလေးတွေက `.vbar` နဲ့
       ညီအစ်ကို ဖြစ်နေသဖြင့် wrapper မရှိဘဲ သီးသန့် scroll မရနိုင်ပါ。 */
-@media(min-width:1100px){
+@media(min-width:860px){
   html,body{height:100%;overflow:hidden}
   body{display:flex;flex-direction:column}
   .bar{flex:0 0 auto;position:static;margin-bottom:0;padding:8px 0}
@@ -447,7 +447,7 @@ body.simple #list .row.del .tx{background:#FEF2F2;color:#B91C1C;opacity:.8;
 body.simple #list .row.now .tx{background:#FEF3C7}
 body.simple #list .row.sel{outline:0}
 body.simple #list .row.sel .tx{box-shadow:inset 0 -2px 0 #0F172A55}
-@media(min-width:1100px){
+@media(min-width:860px){
   /* ဗီဒီယိုကို ကြီးကြီး (Descript က ညာဘက် pane ~၄၀%) */
   body.simple main.editor>.vbar{flex:0 0 clamp(372px,38vw,640px)}
   /* legend က ခြစ်ထားသော စာ ကိုယ်တိုင် ရှင်းပြနေပြီ ⇒ ထိပ်ပိုင်း ချုံ့ */
@@ -650,6 +650,28 @@ body.simple #list .row.sel .tx{box-shadow:inset 0 -2px 0 #0F172A55}
 .trow button:disabled{opacity:.4;cursor:default}
 .trow em{font-style:normal;font-size:12px;color:#78716C;margin-left:auto}
 .row .spl.cut{background:#FEE2E2;color:#B91C1C}
+/* ══ ပြင်ဆင်နေဆဲ (prep) — upload ပြီး · စာသား မထွက်သေး ══════════════════
+   ⚠️ Zin ၂၀၂၆-၁၀-၀၅: 「upload လုပ်လိုက်တာနဲ့ စဖွင့်ကတည်းက 3 layout design နဲ့」。
+   pane ၃ ခုလုံး **ချက်ချင်း** ပေါ်ရမည် — ဗီဒီယို (ဖမ်းထားသော ပုံ) · စာတမ်း
+   (တိုးတက်မှု + ဖော်မပြီးသေး အတန်း) · timeline (စောင့်နေ)。 */
+#vposter{width:100%;border-radius:12px;background:#1C1917;display:block;
+  aspect-ratio:16/9;object-fit:cover}
+#vposter.ph{display:flex;align-items:center;justify-content:center;color:#A8A29E;
+  font-size:14px;text-align:center;padding:12px}
+body.prep #vid,body.prep .vbtns,body.prep #vnote{display:none}
+.prepsk{margin-top:18px}
+.prepsk i{display:block;height:15px;border-radius:8px;margin:16px 0;
+  background:linear-gradient(90deg,#EFEDEA 0%,#F7F6F4 50%,#EFEDEA 100%);
+  background-size:200% 100%;animation:prepsh 1.6s ease-in-out infinite}
+@keyframes prepsh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.prepsk i{animation:none}}
+body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:none}
+#tlwait{color:var(--mute);font-size:13px;margin-left:10px}
+#dn .pcancel{margin-top:10px}
+/* စာသား မရခင် မလုပ်နိုင်သေးတာတွေ မပြ (အချိန် 「— → —」 · ဖြတ်နည်း · script ထည့်) */
+body.prep .bar .tm,body.prep .bar .lg,body.prep .editnote,body.prep #scrp,
+body.prep #bsec,body.prep #setbox{display:none}
+body.prep .bar .acts{margin-top:0}
 </style>
 </head>
 <body>
@@ -2568,6 +2590,13 @@ function watchJob(jid, el){
     fetch("/api/jobs/"+jid,{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
      .then(function(r){return r.json()}).then(function(j){
        var st=j.status||"", sg=+(j.stage||0);
+       /* ⚠️ prep (upload ပြီးစ) — စာသား ရပြီ (`review`) ဆိုလျှင် စာမျက်နှာ
+          reload မလုပ်ဘဲ editor ကို ဖွင့်သည်。 ကျဘမ်းက အောက်မှာ ဆက်ကိုင်。
+          အခြား (cut_review/done — auto လမ်း) ⇒ ပုံမှန် boot လမ်းကြောင်း。 */
+       if(PREP){
+         if(st==="review"){ prepExit(); return }
+         if(st!=="queued" && st!=="running" && st!=="failed"){ location.reload(); return }
+       }
        if(st==="done"){
          /* ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၄: 「Motion ထည့်ပြီးရင်လဲ Layout pane မှာပဲ
             စစ်လို့ရတဲ့ပုံစံ」。 အရင်က ဒီနေရာမှာ card သေးသေးထဲ `<video>`
@@ -2838,6 +2867,24 @@ function watchJob(jid, el){
          var cls = (k+1<sg) ? "ok" : (k+1===sg ? "now" : "");
          return '<s class="'+cls+'">'+(k+1<sg?"✓ ":"")+esc(nm)+'</s>';
        }).join("");
+       if(PREP){
+         /* ⚠️ စာသား မထွက်ခင် 「ဖြတ်နေပါပြီ」 ဟု မပြရ — ဘာမှ မဖြတ်ရသေး */
+         var pp=Math.max(4, Math.min(95, Math.round(sg/2*100)));
+         el.innerHTML='<span class="pct">'+(st==="queued"?"…":pp+"%")+'</span>'
+           +'<b>'+(st==="queued" ? "တန်းစီ စောင့်နေပါတယ်…" : "စာသား ထုတ်နေပါတယ်…")+'</b> '
+           +Math.round((Date.now()-t0)/1000)+'s'
+           +'<div class="pbar"><i style="width:'+(st==="queued"?3:pp)+'%"></i></div>'
+           +'<div style="font-size:12.5px;color:var(--mute)">ပြီးတာနဲ့ ဒီမှာပဲ '
+           +'စာတမ်း · ဗီဒီယို · timeline အလိုလို ပွင့်လာပါမယ် — ဒီစာမျက်နှာကို ဖွင့်ထားရုံပါပဲ</div>'
+           +'<button type="button" class="btn ghost pcancel" id="pcx">✕ မလုပ်တော့ပါ</button>';
+         var _pcx=document.getElementById("pcx");
+         if(_pcx) _pcx.onclick=function(){
+           ask("ဒီဗီဒီယိုကို ရပ်မလား","အလုပ်ကို ရပ်ပြီး ဗီဒီယိုများ စာမျက်နှာ ပြန်သွားပါမယ်။",
+               "ရပ်မယ်", prepCancel) };
+         var _bk4=document.getElementById("bok");
+         if(_bk4){ _bk4.disabled=true; _bk4.textContent="စာသား ထုတ်နေသည်…" }
+         setTimeout(tick, 3000); return;
+       }
        el.innerHTML='<span class="pct">'+pct+'%</span>'
          +'<b>ဖြတ်နေပါပြီ…</b> '+esc(STG[sg-1]||"")+' · '+Math.round((Date.now()-t0)/1000)+'s'
          +'<div class="pbar"><i style="width:'+pct+'%"></i></div>'
@@ -3341,7 +3388,7 @@ function tlAll(){
   // ⚠️ ဖွင့်ထားမှ အတန်းတွေရဲ့ အကျယ် တိုင်းလို့ ရသည် (ဖျောက်ထားလျှင် ၀)
   bar.hidden = !(D && (D.sentences||[]).length);
   if(bar.hidden) return;
-  // ⚠️ Descript layout (≥1100px) မှာ bar က flex item ⇒ နေရာ ချန်စရာ မလို。
+  // ⚠️ Descript layout (≥860px · Zin ၂၀၂၆-၁၀-၀၅ ~၉၉၀px window မှာ တစ်ကော်လံ ကျနေခဲ့) မှာ bar က flex item ⇒ နေရာ ချန်စရာ မလို。
   //    ကျဉ်းတဲ့ မျက်နှာပြင်မှာသာ `fixed` ဖြစ်ပြီး နောက်ဆုံး စာကြောင်းက
   //    bar အောက် ဝင်မှာမို့ ချန်ရသည်。
   document.body.style.paddingBottom =
@@ -3553,6 +3600,85 @@ document.addEventListener("keydown",function(e){
   else if(e.key===" "&&SEL>=0){e.preventDefault();play(+rows[SEL].getAttribute("data-n"))}
 });
 
+/* ══ ပြင်ဆင်နေဆဲ (prep) mode ═════════════════════════════════════════
+   upload ပြီးတာနဲ့ app.js က ဒီစာမျက်နှာကို တန်းဖွင့်သည် (ASR မပြီးသေး)。
+   ⚠️ server မှာ ဗီဒီယို proxy မရှိသေး ⇒ app.js က browser ထဲက ဖိုင်ကနေ
+      ဖမ်းထားသော ပုံ (`sessionStorage.ikki_poster_<job>`) ကို ပြသည်。
+   ⚠️ စာသား ရတာနဲ့ (`review`) **reload မလုပ်ဘဲ** အလိုလို ဖွင့်သည် —
+      `watchJob` က `prepExit()` ကို ခေါ်သည်。 */
+var PREP=false;
+function prepEnter(){
+  if(PREP || !JOB) return;
+  PREP=true;
+  document.body.classList.add("prep");
+  try{ spane() }catch(e){}
+  var vb=document.getElementById("vbar");
+  if(vb){
+    vb.hidden=false;
+    if(!document.getElementById("vposter")){
+      var src=null;
+      try{ src=sessionStorage.getItem("ikki_poster_"+JOB) }catch(e){}
+      var pe;
+      if(src){ pe=document.createElement("img"); pe.src=src; pe.alt="" }
+      else { pe=document.createElement("div"); pe.className="ph";
+             pe.textContent="🎬 ဗီဒီယို ပြင်ဆင်နေပါတယ်" }
+      pe.id="vposter";
+      vb.insertBefore(pe, vb.firstChild);
+    }
+  }
+  var host=paneHost();
+  if(host && !document.getElementById("prepsk")){
+    var sk=document.createElement("div"); sk.id="prepsk"; sk.className="prepsk";
+    sk.setAttribute("aria-hidden","true");
+    sk.innerHTML=[92,78,96,64,88,71,94,58].map(function(w){
+      return '<i style="width:'+w+'%"></i>' }).join("");
+    var lst=document.getElementById("list");
+    if(lst){ lst.innerHTML=""; lst.appendChild(sk) } else host.appendChild(sk);
+  }
+  var tb=document.getElementById("tlbar");
+  if(tb){
+    tb.hidden=false;
+    var h=tb.querySelector(".tlbh");
+    if(h && !document.getElementById("tlwait")){
+      var w=document.createElement("s"); w.id="tlwait";
+      w.textContent="စာသား ထုတ်ပြီးတာနဲ့ timeline ပေါ်လာပါမယ်";
+      var info=document.getElementById("tlinfo");
+      if(info) info.textContent="";
+      h.insertBefore(w, info ? info.nextSibling : null);
+    }
+  }
+  var bk=document.getElementById("bok");
+  if(bk){ bk.disabled=true; bk.textContent="စာသား ထုတ်နေသည်…" }
+}
+function prepExit(after){
+  if(!PREP) return;
+  PREP=false;
+  document.body.classList.remove("prep","rv","rvcut");
+  ["vposter","prepsk","tlwait","dn"].forEach(function(id){
+    var e=document.getElementById(id); if(e) try{ e.remove() }catch(_){}
+  });
+  try{ sessionStorage.removeItem("ikki_poster_"+JOB) }catch(e){}
+  var bk=document.getElementById("bok");
+  if(bk){ bk.disabled=false; bk.textContent="ဖြတ်ချက် စစ်မယ် →" }
+  fetch("/api/script/"+JOB,
+    {headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
+   .then(function(z){
+     if(!z.ok){ location.reload(); return }
+     render(z.d); try{ waveLoad() }catch(e){}
+     var _sp=document.getElementById("spane"); if(_sp) _sp.scrollTop=0;
+     if(after) after();
+   })
+   .catch(function(){ location.reload() });
+}
+function prepCancel(){
+  if(!JOB) return;
+  fetch("/api/jobs/"+JOB+"/cancel",{method:"POST",
+    headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+   .then(function(){ location.href="/" })
+   .catch(function(e){ tip("ရပ်လို့ မရပါ — "+(e.message||e)) });
+}
+
 var q=new URLSearchParams(location.search);
 var demo=q.get("demo"), job=q.get("job");
 JOB = demo ? null : (job||null);          // demo မှာ render မလုပ်ရ
@@ -3579,6 +3705,8 @@ if(JOB) fetch("/api/jobs/"+JOB,
        အပေါ်က ခလုတ်က နှိပ်လို့ရနေပြီး နှိပ်လျှင် 409 ရသည် (၂၀၂၆-၁၀-၀၅ တွေ့)。
        `watchJob` ထဲမှာ `failed` အတွက် အမှားစာ + ↻ ပြန်စ ခလုတ် ရှိပြီးသား。 */
     if(["queued","running","cutting","cut_review","failed"].indexOf(j.status)<0) return;
+    // ⚠️ fetch ၂ ခု ပြိုင်ပြေး — စာသား fetch က အရင် ပြန်လာလျှင် ဒီမှာ ဆက်ကိုင်
+    if(window._prepMaybe && ["queued","running"].indexOf(j.status)>-1) prepEnter();
     var el=document.getElementById("dn")||document.createElement("div");
     el.id="dn"; el.className="done"; paneHost().prepend(el);
     document.body.classList.add("rv");
@@ -3610,6 +3738,11 @@ fetch(url,opt)
       .then(function(d){ return {ok:r.ok, status:r.status, d:d} }) })
   .then(function(z){
     if(!z.ok){
+      /* ⚠️ upload ပြီးစ (ASR မပြီး) ⇒ အမှားစာ မပြဘဲ pane ၃ ခုနဲ့ စောင့်သည် —
+         job အခြေအနေကို `watchJob` က ကြည့်နေပြီး စာသား ရတာနဲ့ ဖွင့်မည်。 */
+      if(JOB && z.status===400 && JOBROW
+         && ["queued","running"].indexOf(JOBROW.status)>-1){ prepEnter(); return }
+      if(JOB && z.status===400 && !JOBROW){ window._prepMaybe=true }
       var _m = (z.d && z.d.detail) ? String(z.d.detail)
              : ("ဖတ်လို့ မရပါ (" + z.status + ")");
       document.getElementById("list").innerHTML=

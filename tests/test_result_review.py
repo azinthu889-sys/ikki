@@ -284,8 +284,8 @@ class ResultInThePane(unittest.TestCase):
         """⚠️ `.vbar` က DOM ထဲ ပထမ ⇒ wrapper က နောက်မှ ဝင်ပြီး ဗီဒီယိုက
            ဘယ်ဘက် ရောက်သည် (တိုင်းထား: vbar x=18 · spane x=390)。
            `order` နဲ့ ပြောင်းသည် — DOM ရွှေ့လျှင် `<video>` ပြန်စမည်"""
-        i = self.s.find("@media(min-width:1100px){")
-        w = self.s[i:i + 1400]
+        i = self.s.find("@media(min-width:860px){")
+        w = self.s[i:i + 2400]
         self.assertIn("#spane{order:1", w)
         self.assertIn("main.editor>.vbar{order:2", w)
 
