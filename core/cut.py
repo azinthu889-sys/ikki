@@ -559,7 +559,7 @@ MIN_LEFT = 1.0           # ဗီဒီယိုမှာ အနည်းဆု�
 
 
 def validate_drops(drops, sp, dur, edge=EDGE_PAD, min_drop=MIN_DROP,
-                   min_left=MIN_LEFT, kept=None):
+                   min_left=MIN_LEFT, kept=None, spans=None):
     """`(ok, bad)` — `ok` က ဖြတ်လို့ရသော အပိုင်း · `bad` က `(အပိုင်း, အကြောင်းရင်း)`
 
     `sp`   — စကား run စာရင်း `[(a, b)]` (`measure.speech()[0]`)
@@ -600,7 +600,16 @@ def validate_drops(drops, sp, dur, edge=EDGE_PAD, min_drop=MIN_DROP,
             continue
         ok.append([a, b]); taken.append((a, b))
     if kept is not None:
-        rm = sum(y - x for x, y in taken)
+        # ⚠️⚠️ **ကျန်နေသော span နဲ့ ထပ်တဲ့ အရှည်ကိုသာ** နုတ်ရမည် (၂၀၂၆-၁၀-၀၅
+        #    j_d96beb16229d): editor ရဲ့ 「အစိမ်းမှ အစိမ်း」 ဖြတ်ချက်က ဖျက်ပြီးသား
+        #    စာကြောင်း/အနားယူကို ဖုံးသဖြင့် အရှည် တစ်ခုလုံး နုတ်လျှင် 「-18.9s သာ
+        #    ကျန်မည်」 ဟု မှားတွက်ပြီး ၄/၅ ခုလုံး ငြင်းခဲ့ ⇒ ၀.၃၅s အပိုင်းအစ ၁၀ ခု ကျန်
+        #    ⇒ export က 「0.60s အောက် shot」 နဲ့ ပိတ်ခဲ့。 `spans` ပေးလျှင် တကယ် ထပ်တာ။
+        if spans:
+            rm = sum(max(0.0, min(y, sb) - max(x, sa))
+                     for x, y in taken for sa, sb in spans)
+        else:
+            rm = sum(y - x for x, y in taken)
         if kept - rm < min_left:
             # ⚠️ အားလုံး ဖျက်မိလျှင် ဗီဒီယို မကျန်တော့ ⇒ တစ်ခုမှ မဖျက်ရ
             return [], [(d, f"အားလုံး ဖျက်လျှင် {kept-rm:.1f}s သာ ကျန်မည် "

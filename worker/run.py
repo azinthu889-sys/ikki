@@ -1712,7 +1712,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #       တိတ်တဆိတ် ကျော်သွားလျှင် သုံးစွဲသူ ဘယ်တော့မှ မသိရ。
             _kept = sum(b - a for a, b in spans)
             _dok, _dbad = CUT.validate_drops(user_drop_exact, MEAS[0], m["dur"],
-                                             kept=_kept)
+                                             kept=_kept, spans=spans)
             # 2026-09-30 (Zin: "the bits I cut inside a phrase must really go"):
             # `_drop_exact` is also the channel for every cut the user makes by
             # ear in Script Editor (✂ in-phrase trim, sound events, manual cuts on

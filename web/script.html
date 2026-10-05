@@ -706,6 +706,14 @@ body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:non
   padding:14px 16px;font-size:13px}
 #keys dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:10px 0 0}
 #keys dt{font-weight:600;white-space:nowrap}
+/* ⏳ ထုတ်နေဆဲ badge — progress bar ပါ (ရပ်နေလား · ဆက်နေလား တစ်ချက်ကြည့်ရုံနဲ့ သိ) */
+.ptitle s.busy{background:linear-gradient(90deg,#C4B5FD var(--p,0%),#F5F3FF var(--p,0%));color:#4C1D95}
+@media (prefers-reduced-motion:no-preference){ .ptitle s.busy{animation:ptpulse 1.6s ease-in-out infinite} }
+@keyframes ptpulse{50%{box-shadow:0 0 0 4px rgba(124,58,237,.18)}}
+.autoerr{display:flex;flex-direction:column;gap:4px;padding:12px;margin:0 0 12px;border-radius:12px;
+  background:#FEF2F2;border:1px solid #FECACA}
+.autoerr b{color:#B91C1C;font-size:13.5px}
+.autoerr span{font-size:12.5px;color:#7F1D1D;line-height:1.6}
 #tcdirty{display:flex;flex-direction:column;gap:6px;padding:12px;margin:0 0 12px;border-radius:12px;
   background:#F5F3FF;border:1px solid #DDD6FE}
 #tcdirty b{color:#5B21B6}
@@ -2792,6 +2800,9 @@ function watchJob(jid, el){
     fetch("/api/jobs/"+jid,{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
      .then(function(r){return r.json()}).then(function(j){
        var st=j.status||"", sg=+(j.stage||0);
+       /* ⚠️ header badge ကို **လက်ရှိ** အခြေအနေနဲ့ ပြရမည် — JOBROW က page ဖွင့်ချိန်က
+          ဖြစ်၍ 「ထုတ်နေ」 ဟု ပြပြီး တကယ်က ရပ်နေတာ မသိရ (Zin 「graphic ထုတ်နေပြီလား」) */
+       if(JOBROW){ JOBROW.status=st; JOBROW.stage=sg; JOBROW.mode=j.mode||JOBROW.mode }
        /* ⚠️ cut_review မှာ ကတ်ထဲက 「ဖြတ်ပြီး」 ဗီဒီယိုက **တစ်ခုတည်းသော** player —
           မူရင်း player (#vid) ကို ဖျောက် (ဗီဒီယို ၂ ခု မပြရ) */
        if(st!=="cut_review") document.body.classList.remove("cutrev");
@@ -2865,14 +2876,23 @@ function watchJob(jid, el){
             .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
             .then(function(y){
               if(!y.ok){
-                /* preview ကုန် (402) ⇒ export လမ်း မပြောင်းဘဲ ပြော · အဟောင်း panel ပြန်ပြ */
-                planDel(jid); el._autoSent=false;
-                tip("ဆက်လုပ်၍ မရပါ — "+(y.d.detail||"")); setTimeout(tick, 300); return }
+                /* ⚠️ တိတ်တဆိတ် panel အဟောင်း ပြန်ပြလျှင် 「graphic ထုတ်နေလား」 မသိရ (Zin) ⇒
+                   အကြောင်းရင်းကို အနီနဲ့ ပြ · ဖြတ်ချက် panel (↩ ပြန်ပြင်) ကို အောက်မှာ */
+                planDel(jid); el._autoSent=false; window._autoErr=String(y.d.detail||y.d.error||"");
+                setTimeout(tick, 300); return }
               setTimeout(tick, 2500);
             })
             .catch(function(){ el._autoSent=false; setTimeout(tick, 4000) });
          }
          return;
+       }
+       if(st==="cut_review" && window._autoErr && !el._errShown){
+         el._errShown=true;
+         setTimeout(function(){
+           var n=document.createElement("div"); n.className="autoerr";
+           n.innerHTML='<b>⚠️ Motion · SFX မစနိုင်ပါ — ဂရပ်ဖစ် မထုတ်ရသေးပါ</b><span>'+esc(window._autoErr)+'</span>';
+           el.prepend(n);
+         }, 50);
        }
        if(st==="cut_review"){
          /* ⚠️ `prev_free`/`prev_used` က `/api/jobs/{id}` ကနေ လာသည်。
@@ -4284,14 +4304,22 @@ function ptPaint(){
   n.textContent=String(t||"ဗီဒီယို").replace(/\.(mp4|mov|m4v|webm|mkv)$/i,"");
   n.title=t;
   var b=document.body.classList, s2=(JOBROW&&JOBROW.status)||(D&&D.status)||"";
+  var sg2=+((JOBROW&&JOBROW.stage)||0), md=(JOBROW&&JOBROW.mode)||"";
+  var busy=(s2==="running"||s2==="cutting"||s2==="queued") && !PREP;
+  var pct = md==="cut" ? Math.round(Math.min(3,sg2)/3*25) : Math.round(sg2/7*100);
   st.textContent = PREP ? "ပြင်ဆင်နေ"
-    : b.contains("done") ? "ထုတ်ပြီး"
-    : s2==="cut_review" ? "ဖြတ်ချက် ကြည့်ရန်"
-    : (s2==="running"||s2==="cutting"||s2==="queued") ? "ထုတ်နေ"
-    : s2==="failed" ? "ကျသွား"
+    : b.contains("done") ? (md==="prev" ? "👁 Preview" : "✅ ထုတ်ပြီး")
+    : s2==="cut_review" ? (planGet(JOB) ? "⏳ Motion · SFX စမယ်" : "ဖြတ်ချက် ကြည့်ရန်")
+    : busy ? ("⏳ "+(s2==="queued" ? "တန်းစီ"
+                 : md==="cut" ? "ဖြတ်ချက် ပြင်ဆင်"
+                 : (["တင်","စာသား","ဖြတ်","စာတန်း","✨ ဂရပ်ဖစ်","🔊 အသံ","🎬 ထုတ်"][Math.max(0,sg2-1)]||"ထုတ်"))
+             +" "+Math.max(3,pct)+"%")
+    : s2==="failed" ? "⚠️ ကျသွား"
     : "စာသား တည်းဖြတ်";
+  st.classList.toggle("busy", busy);
+  st.style.setProperty("--p", (busy?Math.max(3,pct):0)+"%");
 }
-setInterval(ptPaint, 1500);
+setInterval(ptPaint, 1000);
 function tlZoom(dir){
   var body=document.getElementById("tlbody"); if(!body) return;
   var steps=[1,1.5,2,3,4,6], i=steps.indexOf(TLZ); if(i<0) i=0;
