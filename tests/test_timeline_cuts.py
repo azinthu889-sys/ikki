@@ -66,6 +66,12 @@ class AutoJoin(unittest.TestCase):
         self.assertIn("return br.concat(tcRegions());", self.s)
         self.assertIn('skipList().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.34)") })', self.s)
 
+    def test_head_and_tail_are_always_cut_but_restorable(self):
+        # 「ဒီအနောက်မှာ မလိုတဲ့ဟာတွေ ပါနေသေး」
+        self.assertIn("var edge=(i===0 || i===K.length) && K.length>0;", self.s)
+        self.assertIn('if(it.region) TCRES["r|"', self.s)
+        self.assertIn('if(it.kind==="r"){', self.s)
+
     def test_red_green_gap_goes_to_the_kept_side(self):
         i = self.s.find("function tcView()")
         w = self.s[i:i + 3200]

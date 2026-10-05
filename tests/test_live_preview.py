@@ -38,10 +38,11 @@ class LivePreview(unittest.TestCase):
         i = self.s.find("function tcApply(")
         w = self.s[i:i + 1400]
         self.assertIn('/recut"', w)
-        self.assertIn("bk.click(); bk.click();", w)
+        # ၂၀၂၆-၁၀-၀၅: သိမ်းပြီးရင် Motion·SFX panel ⇒ Preview/Export
+        self.assertIn("sfxOpen();", w)
 
     def test_panel_is_tabbed(self):
-        self.assertIn("function cutPanelTabs(el, jid)", self.s)
+        self.assertIn("function cutPanelTabs(el, jid, noCut)", self.s)
         self.assertIn("try{ cutPanelTabs(el, jid) }catch(e){}", self.s)
         for k in ('["cut","✂ ဖြတ်ချက်"]', '["motion","✨ Motion"]', '["sound","🔊 အသံ"]', '["caps","T စာတန်း"]'):
             self.assertIn(k, self.s)

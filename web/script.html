@@ -852,7 +852,7 @@ body.prep .bar .acts{margin-top:0}
 </div>
       </div>
     </details>
-    <button class="btn primary" id="bok">ဖြတ်ချက် စစ်မယ် →</button>
+    <button class="btn primary" id="bok">✨ Motion · SFX →</button>
   </div>
   <!-- 2026-10-02 UI audit: nine legend entries in one line; the three that matter
        most stay visible, the rest fold under ⓘ -->
@@ -2411,6 +2411,12 @@ var REV=false, BUSY=false;
 document.getElementById("bok").onclick=function(){
   var keep=D.sentences.filter(function(s){return !DEL[s.n]});
   if(!keep.length){tip("ချန်ထားတာ မရှိပါ");return}
+  /* ⚠️⚠️ Zin ၂၀၂၆-၁၀-၀၅: 「ဖြတ်ချက် စစ်တာကို cut အဆင့်မှာတင် လုပ်လို့ရ ⇒ အဲဒီ အဆင့်
+     ဖြုတ် · SFX အဆင့် သွားတဲ့ ခလုတ် · SFX ပြီး preview စစ် · အဆင်ပြေရင် export」。
+     ⇒ review မှာ ဒီခလုတ်က **Motion · SFX panel** ဖွင့်သည် (ဖတ်ရန် မြင်ကွင်း · အတည်ပြု
+       dialog မရှိတော့)。 panel ရဲ့ Preview/Export က `_autoGo` နဲ့ ဒီလမ်းကို ပြန်ခေါ်。 */
+  if(D.status==="review" && !window._autoGo){ sfxOpen(); return }
+  if(window._autoGo){ REV=true; }
   if(!REV){                              // ① အတည်ပြု → ဖတ်ရန် မြင်ကွင်း
     REV=true; document.body.classList.add("rv","rvcut");
     document.body.classList.remove("only");
@@ -2419,7 +2425,7 @@ document.getElementById("bok").onclick=function(){
     var back=document.createElement("button");
     back.className="btn ghost"; back.id="bback"; back.textContent="← ပြန်ပြင်";
     back.onclick=function(){REV=false;document.body.classList.remove("rv");
-      document.getElementById("bok").textContent="ဖြတ်ချက် စစ်မယ် →";
+      document.getElementById("bok").textContent="✨ Motion · SFX →";
       back.remove();document.getElementById("dn")&&document.getElementById("dn").remove()};
     this.parentNode.insertBefore(back,this);
     window.scrollTo({top:0,behavior:"smooth"});
@@ -2438,6 +2444,7 @@ document.getElementById("bok").onclick=function(){
   }
   // ⚠️ `confirm()` **မသုံးရ** — တိတ်တဆိတ် false ပြန်လျှင် ခလုတ် နှိပ်လို့ မရဟု ဖြစ်သည်
   var self=this;
+  if(window._autoGo){ fire(); return }
   // 2026-10-01 Zin: "not the settings I chose in the UI" -- the re-render used to
   // inherit the old job's style/format silently. Send the UI's current choice
   // (ikki_prefs, written by the main page) and say it out loud before rendering.
@@ -2450,6 +2457,7 @@ document.getElementById("bok").onclick=function(){
       "✂️ ထုတ်မယ်", fire);
   return;
   function fire(){
+  window._autoGo=false;
   BUSY=true; self.textContent="ထုတ်နေသည်…";
   // ⚠️ `review` = ASR ပြီးပြီ · ဗီဒီယို **မထုတ်ရသေး** ⇒ `approve` နဲ့ **ဒီ job ကိုပဲ**
   //    ဆက်သွားစေသည် ⇒ render **တစ်ခါပဲ**。 `done` ဆိုမှ `render` (job အသစ်)。
@@ -2568,7 +2576,7 @@ document.getElementById("bok").onclick=function(){
        +(z.d.removed!=null?' · ဖြတ် '+z.d.removed+' ကြောင်း':'')
        +(z.d.cut_s!=null?' ('+z.d.cut_s+'s)':'')+'<br>'
        +'<a href="/">ဗီဒီယို စာမျက်နှာ →</a>';
-       document.getElementById("bok").textContent="ထုတ်ပြီး"; }
+       var _bk5=document.getElementById("bok"); _bk5.textContent="ထုတ်နေသည်…"; _bk5.disabled=true; }
      dnPlace(el);
      window.scrollTo({top:0,behavior:"smooth"});
    })
@@ -2843,6 +2851,29 @@ function watchJob(jid, el){
        /* ── ဖြတ်ချက် အတည်ပြုချက် (clean-cut preview) ────────────────
           ⚠️ Zin ၂၀၂၆-၀၉-၂၁: ဂရပ်ဖစ်/တီးလုံး/SFX/စာတန်း **မထည့်ခင်** ဖြတ်ချက်ကို
              အရင် ကြည့်ခိုင်းသည် — မှားလျှင် အဲဒီအလုပ်အားလုံး အလဟဿ ဖြစ်မည်。 */
+       if(st==="cut_review" && planGet(jid)){
+         /* ⚠️ ဖြတ်ချက် ထုတ်တာ (ဖြတ်မှတ် အေးခဲ) ပြီးတာနဲ့ **အလိုလို** Motion·SFX ဆက် —
+            ဖြတ်ချက်ကို editor ထဲမှာ live preview နဲ့ စစ်ပြီးသား (Zin) */
+         var _pl=planGet(jid);
+         if(!el._autoSent){
+           el._autoSent=true;
+           el.innerHTML='<b>✨ Motion · SFX ထည့်နေပါပြီ…</b><div class="pbar"><i style="width:30%"></i></div>';
+           fetch("/api/jobs/"+jid+"/cutok",{method:"POST",
+             headers:{"Content-Type":"application/json",
+                      Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+             body:JSON.stringify({motion:_pl.motion||"auto", preview:!!_pl.preview})})
+            .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
+            .then(function(y){
+              if(!y.ok){
+                /* preview ကုန် (402) ⇒ export လမ်း မပြောင်းဘဲ ပြော · အဟောင်း panel ပြန်ပြ */
+                planDel(jid); el._autoSent=false;
+                tip("ဆက်လုပ်၍ မရပါ — "+(y.d.detail||"")); setTimeout(tick, 300); return }
+              setTimeout(tick, 2500);
+            })
+            .catch(function(){ el._autoSent=false; setTimeout(tick, 4000) });
+         }
+         return;
+       }
        if(st==="cut_review"){
          /* ⚠️ `prev_free`/`prev_used` က `/api/jobs/{id}` ကနေ လာသည်。
             API အဟောင်းနဲ့ ဆိုလျှင် `undefined` ⇒ ၀ ဟု ယူပြီး preview
@@ -3064,6 +3095,15 @@ function watchJob(jid, el){
        }
        /* ⚠️ `mode=cut` က အဆင့် ၃ အထိသာ — ၇ ခုအတွက် တွက်လျှင် ၄၃% မှာ
              ရပ်နေသလို ဖြစ်ပြီး「တက်မလာဘူး」ထင်ရသည်。 */
+       if((j.mode||"")==="cut" && planGet(jid)){
+         var cp2=Math.max(5, Math.min(30, Math.round(sg/3*30)));
+         el.innerHTML='<span class="pct">'+cp2+'%</span>'
+           +'<b>'+(planGet(jid).preview?'👁 Preview ပြင်ဆင်နေပါပြီ…':'✅ Export ပြင်ဆင်နေပါပြီ…')+'</b> '
+           +Math.round((Date.now()-t0)/1000)+'s'
+           +'<div class="pbar"><i style="width:'+cp2+'%"></i></div>'
+           +'<div style="font-size:12.5px;color:var(--mute)">ဖြတ်ချက် → Motion · SFX → စာတန်း → ထုတ် — ပြီးရင် ဒီမှာပဲ ပြပါမယ်</div>';
+         setTimeout(tick, 4000); return;
+       }
        if((j.mode||"")==="cut"){
          var cp=Math.max(5, Math.min(96, Math.round(sg/3*100)));
          el.innerHTML='<span class="pct">'+cp+'%</span>'
@@ -3097,7 +3137,7 @@ function watchJob(jid, el){
          setTimeout(tick, 3000); return;
        }
        el.innerHTML='<span class="pct">'+pct+'%</span>'
-         +'<b>ဖြတ်နေပါပြီ…</b> '+esc(STG[sg-1]||"")+' · '+Math.round((Date.now()-t0)/1000)+'s'
+         +'<b>'+(planGet(jid)?(planGet(jid).preview?'👁 Preview ထုတ်နေပါပြီ…':'✅ Export ထုတ်နေပါပြီ…'):'ဖြတ်နေပါပြီ…')+'</b> '+esc(STG[sg-1]||"")+' · '+Math.round((Date.now()-t0)/1000)+'s'
          +'<div class="pbar"><i style="width:'+pct+'%"></i></div>'
          +'<div style="font-size:12.5px;color:var(--mute)">အဆင့် '+sg+'/7 — ပြီးရင် ဒီမှာပဲ ပြပါမယ်</div>'
          +'<div class="pstg">'+chips+'</div>';
@@ -3344,12 +3384,13 @@ function tcItems(){
     out.push({key:"u|"+k, kind:"u", k:k, a:+a[0], b:+a[1], cut:true}) });
   Object.keys(TCRES).forEach(function(key){
     var r=TCRES[key];
+    if(r.kind==="r") out.push({key:key, kind:"r", a:r.a, b:r.b, cut:false});
     if((r.kind==="x" && !SDEL[r.k]) || (r.kind==="u" && !UDEL[r.k]))
       out.push({key:key, kind:r.kind, k:r.k, a:r.a, b:r.b, cut:false});
   });
   return out;
 }
-var TC_NAME={s:"အနားယူ", d:"စာကြောင်း", t:"စာလုံး", x:"အသံ", u:"စာတမ်းမှာ မပါ"};
+var TC_NAME={s:"အနားယူ", d:"စာကြောင်း", t:"စာလုံး", x:"အသံ", u:"စာတမ်းမှာ မပါ", r:"အပိုင်း"};
 function tlCuts(){
   var box=document.getElementById("tlcuts"); if(!box) return;
   var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
@@ -3419,6 +3460,10 @@ function tcView(){
      ဖြစ်နိုင်ပြီး ASR အဆုံးချိန်က ခန့်မှန်းချက် ⇒ စကားလုံး အမြီး ပြတ်မည်。
      ကြားက အသံက **ချန်ပြီးသား** (ဖြတ်ချက်ထဲ မပါ) ⇒ အသံ မပြောင်း · မြင်ကွင်းသာ。 */
   var cuts=out.filter(function(x){ return x.cut });
+  /* ပြန်ထည့်ထားတဲ့ region (အစိမ်း) ထဲက အစိမ်း အကွက်လေးတွေ — ထပ်မပြ */
+  var rk=out.filter(function(x){ return !x.cut && x.kind==="r" });
+  out=out.filter(function(v){
+    return v.cut || v.kind==="r" || !rk.some(function(r){ return v.a>=r.a-0.001 && v.b<=r.b+0.001 }) });
   /* ⚠️ ဖြတ်ချက်ထဲ **အပြည့် ကျနေတဲ့** အစိမ်း (ဥပမာ ဖျက်ထားတဲ့ စာကြောင်းထဲက အနားယူ) —
      ပြန်ထည့်ထားပေမယ့် တကယ် မပါ ⇒ ပြလျှင် လှည့်စားရာ ကျ ⇒ မပြ */
   out=out.filter(function(v){
@@ -3463,10 +3508,34 @@ function tcRegions(){
     var lo = i ? K[i-1].end : 0, hi = i<K.length ? K[i].start : dur;
     if(!(hi>lo)) continue;
     var hasDel=S.some(function(x){ return DEL[x.n] && x.start<hi && x.end>lo });
-    if(!hasDel) continue;
+    /* ⚠️ ဗီဒီယို **အစ** (ပထမ အစိမ်း မတိုင်ခင်) နဲ့ **အဆုံး** (နောက်ဆုံး အစိမ်း နောက်) —
+       ချန်ထားတဲ့ စကား မရှိ ⇒ အမြဲ ဖြတ် (Zin 「အနောက်မှာ မလိုတဲ့ဟာတွေ ပါနေသေး」) */
+    var edge=(i===0 || i===K.length) && K.length>0;
+    if(!hasDel && !edge) continue;
     var a=lo+(i?REG_PAD:0), b=hi-(i<K.length?REG_PAD:0);
     if(b-a>0.05) out.push([+a.toFixed(3), +b.toFixed(3)]);
   }
+  /* ⚠️ သုံးစွဲသူ **ကိုယ်တိုင် ပြန်ထည့်ထားတဲ့** အစိမ်း (TCRES · SKEEP) — region ထဲမှာ
+     ရှိလျှင် အပေါက်ဖောက် (အဲဒီ အနားအထိ ဖြတ် · အစိမ်းကို မဖြတ်) */
+  var keep=[];
+  Object.keys(TCRES).forEach(function(k){ var r=TCRES[k];
+    if(r.kind==="d"){ var x=S.find(function(z){ return z.n===r.n }); if(x && !DEL[x.n]) keep.push([x.start,x.end]) }
+    else if(r.kind==="t" && r.p) keep.push([r.p[0], r.p[1]]);
+    else if(r.a!=null) keep.push([r.a, r.b]);
+  });
+  ((D&&D.events)||[]).forEach(function(e){
+    var k=e.start.toFixed(2)+":"+e.end.toFixed(2);
+    if(e.type==="silence" && SKEEP[k]) keep.push([e.start, e.end]);
+  });
+  keep.forEach(function(kp){
+    var nx=[];
+    out.forEach(function(r){
+      if(kp[1]<=r[0] || kp[0]>=r[1]){ nx.push(r); return }
+      if(kp[0]-r[0]>0.05) nx.push([r[0], +kp[0].toFixed(3)]);
+      if(r[1]-kp[1]>0.05) nx.push([+kp[1].toFixed(3), r[1]]);
+    });
+    out=nx;
+  });
   return out;
 }
 function tcBridges(){
@@ -3487,6 +3556,9 @@ function tcToggle(key){
   if(it.kind==="g"){
     var t0=it.a;
     it.members.slice().forEach(function(m){ if(tcFind1(m.key)) tcToggle1(m.key) });
+    /* region (အစ/အဆုံး · အစိမ်းမှ အစိမ်း) — အပိုင်းလိုက် ချန် (မဟုတ်လျှင် region က ပြန်ဖြတ်) */
+    if(it.region) TCRES["r|"+it.a.toFixed(3)+":"+it.b.toFixed(3)]={kind:"r", a:it.a, b:it.b,
+      mem:it.members.map(function(m){ return m.key })};
     counts(); TCSEL=null; tlCuts();
     tip("↩ ဆက်နေတဲ့ ဖြတ်ချက် "+it.members.length+" ခု အကုန် ပြန်ထည့်ပြီး");
     return;
@@ -3501,6 +3573,13 @@ function tcToggle(key){
 }
 function tcToggle1(key){
   var it=tcFind1(key); if(!it) return;
+  if(it.kind==="r"){
+    /* ⚠️ region ပြန်ဖြတ် ⇒ အထဲက ပြန်ထည့်ခဲ့တဲ့ ဖြတ်ချက်တွေပါ ပြန်ဖြတ် (မဟုတ်လျှင် အပေါက် ကျန်) */
+    var mem=(TCRES[key]&&TCRES[key].mem)||[];
+    delete TCRES[key];
+    mem.forEach(function(k){ var m=tcFind1(k); if(m && !m.cut) tcToggle1(k) });
+    return;
+  }
   if(it.kind==="s"){
     if(SKEEP[it.k]) delete SKEEP[it.k]; else SKEEP[it.k]=1;
     var pel=document.querySelector('.pau[data-pk="'+it.k+'"]');
@@ -4274,6 +4353,112 @@ function tlZoom(dir){
   };
 })();
 
+/* ══ ဖြတ် → ✨ Motion·SFX → 👁 Preview → ✅ Export (Zin ၂၀၂၆-၁၀-၀၅) ════════════════════
+   ⚠️ server အဆင့်တွေ (approve → cut → cutok → prev/go) **မပြောင်း** — ဖြတ်ချက် ထုတ်တဲ့
+      အဆင့်ကို သုံးစွဲသူ မမြင်ရအောင် client က အလိုလို ကျော်သည် (plan = sessionStorage)。 */
+function planGet(jid){ try{ return JSON.parse(sessionStorage.getItem("ikki_plan_"+jid)||"null") }catch(e){ return null } }
+function planSet(jid,p){ try{ sessionStorage.setItem("ikki_plan_"+jid, JSON.stringify(p)) }catch(e){} }
+function planDel(jid){ try{ sessionStorage.removeItem("ikki_plan_"+jid) }catch(e){} }
+var SFXLV="auto";
+function sfxOpen(){
+  if(!JOB){ tip("demo — job မရှိ၍ မထုတ်နိုင်ပါ"); return }
+  var el=document.getElementById("sfxp");
+  if(el){ el.scrollIntoView({block:"nearest",behavior:"smooth"}); return }
+  stopAll();
+  el=document.createElement("div"); el.id="sfxp"; el.className="done";
+  var pv=Math.max(0, (+(JOBROW&&JOBROW.prev_free)||3) - (+(JOBROW&&JOBROW.prev_used)||0));
+  el.innerHTML='<b>✨ Motion · SFX</b>'
+    +'<p class="vpn" style="margin:4px 0 0">ဖြတ်ချက် ပြီးပါပြီ — ဗီဒီယိုရဲ့ အလှအပကို ရွေးပြီး Preview နဲ့ စစ်ပါ</p>'
+    +'<div class="vmo"><div class="vrow">'
+    +'<button class="vlv" data-lv="auto" aria-pressed="true"><b>AI ရွေးပေး</b><s>အကြံပြု</s></button>'
+    +'<button class="vlv" data-lv="minimal" aria-pressed="false"><b>အနည်းဆုံး</b><s>စာတန်း + မရှိမဖြစ်</s></button>'
+    +'<button class="vlv" data-lv="balanced" aria-pressed="false"><b>အလယ်အလတ်</b><s>ပုံမှန် အနှုန်း</s></button>'
+    +'<button class="vlv" data-lv="high" aria-pressed="false"><b>အရှိန်မြင့်</b><s>punch-in · SFX ပို</s></button>'
+    +'</div></div>'
+    +'<details class="ft"><summary>x</summary><div class="ftb">'
+    +'<label>စာတန်း အရွယ်<select id="ftcap"><option value="">ပုံစံ ပုံသေ</option></select></label>'
+    +'<label class="ck"><input type="checkbox" id="ftmus">ဒီပုဒ်မှာ တီးလုံး မလိုပါ</label>'
+    +'<button class="btn ghost" id="ftsave">သိမ်း</button><span class="vpn" id="ftmsg"></span>'
+    +'</div></details>'
+    +'<details class="lk" id="lkbox"><summary>x</summary><div class="lkb" id="lkrows"></div></details>'
+    +'<div class="acts2">'
+    +(pv>0?'<button class="btn primary" id="sfxpv">👁 Preview ကြည့် (အခမဲ့ '+pv+' ခါ)</button>':'')
+    +'<button class="btn '+(pv>0?'ghost':'primary')+'" id="sfxgo">✅ Export (HD)</button>'
+    +'<button class="btn ghost" id="sfxback">← ဖြတ်ချက် ပြန်ပြင်</button></div>'
+    +'<p class="vpn">Preview က မိနစ် မကုန်ပါ (540p · စာတန်း · ဂရပ်ဖစ် · SFX ပါ) · Export က မိနစ် ကောက်ပါမယ်</p>';
+  dnPlace(el);
+  /* စာတန်း အရွယ် · တီးလုံး */
+  var sel=document.getElementById("ftcap"), mus=document.getElementById("ftmus"), msg=document.getElementById("ftmsg");
+  fetch("/api/capsizes",{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){return r.json()}).then(function(d){
+     (d.sizes||[]).forEach(function(c){ var o=document.createElement("option"); o.value=c.id; o.textContent=c.my||c.en; sel.appendChild(o) });
+     if(JOBROW && JOBROW.cap) sel.value=JOBROW.cap;
+   }).catch(function(){});
+  try{ var ov=typeof JOBROW.over==="string"?JSON.parse(JOBROW.over||"{}"):(JOBROW.over||{}); mus.checked=!!ov.music_off }catch(e){}
+  function ftSave(){
+    if(msg) msg.textContent="သိမ်းနေသည်…";
+    return fetch("/api/jobs/"+JOB+"/finetune",{method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+      body:JSON.stringify({cap:sel.value, music_off:mus.checked})})
+     .then(function(r){ if(msg) msg.textContent=r.ok?"သိမ်းပြီး ✓":"မရပါ" }).catch(function(){ if(msg) msg.textContent="မရပါ" });
+  }
+  document.getElementById("ftsave").onclick=ftSave;
+  el.querySelectorAll(".vlv").forEach(function(b){
+    b.onclick=function(){ SFXLV=b.getAttribute("data-lv");
+      el.querySelectorAll(".vlv").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false") }) };
+  });
+  function go(prev){
+    var bs=[document.getElementById("sfxpv"),document.getElementById("sfxgo")].filter(Boolean);
+    bs.forEach(function(b){ b.disabled=true });
+    (prev?bs[0]:bs[bs.length-1]).textContent="စနေပါပြီ…";
+    var saves=[ftSave()];
+    if(LOOK && LKJID){ try{ lkSave(LKJID) }catch(e){} }
+    Promise.all(saves).then(function(){
+      planSet(JOB, {motion:SFXLV, preview:!!prev});
+      try{ el.remove() }catch(e){}
+      window._autoGo=true;
+      document.getElementById("bok").click();
+    });
+  }
+  var pvb=document.getElementById("sfxpv"); if(pvb) pvb.onclick=function(){ go(true) };
+  document.getElementById("sfxgo").onclick=function(){ go(false) };
+  document.getElementById("sfxback").onclick=function(){ try{ el.remove() }catch(e){} };
+  try{ cutPanelTabs(el, JOB, true) }catch(e){}
+  setTimeout(function(){ try{ el.scrollIntoView({block:"start",behavior:"smooth"}) }catch(e){} }, 80);
+}
+/* preview ထုတ်ပြီး (done · mode=prev) ⇒ 「✅ Export」 */
+function exportAfterPreview(){
+  if(!JOB) return;
+  var b=document.getElementById("donexp"); if(b){ b.disabled=true; b.textContent="စနေပါပြီ…" }
+  var pl=planGet(JOB)||{};
+  fetch("/api/jobs/"+JOB+"/cutok",{method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+    body:JSON.stringify({motion:pl.motion||"auto", preview:false})})
+   .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
+   .then(function(y){
+     if(!y.ok){ if(b){ b.disabled=false; b.textContent="✅ Export (HD)" } tip("Export မရပါ — "+(y.d.detail||"")); return }
+     planDel(JOB);
+     location.reload();
+   })
+   .catch(function(e){ if(b){ b.disabled=false; b.textContent="✅ Export (HD)" } tip("Export မရပါ — "+(e.message||e)) });
+}
+setInterval(function(){
+  var dn=document.getElementById("donote");
+  if(!dn || !JOBROW) return;
+  var prev=document.body.classList.contains("done") && (JOBROW.mode==="prev");
+  var b=document.getElementById("donexp");
+  if(prev && !b){
+    b=document.createElement("button"); b.className="btn primary"; b.id="donexp";
+    b.textContent="✅ Export (HD)"; b.onclick=exportAfterPreview;
+    dn.insertBefore(b, dn.firstChild.nextSibling);
+    var t=dn.querySelector("b"); if(t) t.textContent="👁 Preview — စစ်ပြီး အဆင်ပြေရင် Export";
+  } else if(!prev && b){ b.remove() }
+  /* preview (540p) ကို ဒေါင်းစရာ မလို — Export ပြီးမှ ⬇ */
+  ["dondl","donnew"].forEach(function(id){ var x=document.getElementById(id); if(x) x.hidden=prev });
+  var bk=document.getElementById("bok");
+  if(prev && bk && bk.textContent!=="✅ Export →"){ bk.textContent="✅ Export →"; bk.disabled=false; bk.onclick=exportAfterPreview }
+}, 700);
+
 /* ══ ဖြတ်ချက် panel ကို tab menu နဲ့ စနစ်တကျ (Zin ၂၀၂၆-၁၀-၀၅ 「ဒီ ရွေးချယ်စရာတွေကို
    menu button နဲ့ စနစ်တကျ Professional ဆန်ဆန် · မလိုတာ ဖြုတ်」) ══════════════════════
    ယခင်: ခေါင်းစဉ် ၄ ခု · details ၂ ခု · slider ၉ ခု · ခလုတ် ၅ ခု · မှတ်ချက် ၃ ခု
@@ -4293,17 +4478,20 @@ function lkFilter(){
   box.querySelectorAll(".lkr").forEach(function(r){
     r.hidden = (LK_GROUP[r.getAttribute("data-lk")]||"motion")!==g });
 }
-function cutPanelTabs(el, jid){
+function cutPanelTabs(el, jid, noCut){
   if(el.querySelector(".ptabs")) return;
   var q=function(s){ return el.querySelector(s) };
   var T=[["cut","✂ ဖြတ်ချက်"],["motion","✨ Motion"],["sound","🔊 အသံ"],["caps","T စာတန်း"]];
+  if(noCut) T=T.slice(1);
   var bar=document.createElement("div"); bar.className="ptabs"; bar.setAttribute("role","tablist");
   bar.innerHTML=T.map(function(t){ return '<button type="button" role="tab" data-pt="'+t[0]+'">'+t[1]+'</button>' }).join("");
   var S={}, wrap=document.createElement("div"); wrap.className="pbody";
   T.forEach(function(t){ var d=document.createElement("div"); d.className="psec"; d.setAttribute("data-ps",t[0]); S[t[0]]=d; wrap.appendChild(d) });
   // ✂ ဖြတ်ချက်
-  [".cutsum",".cnote",".syn"].forEach(function(s2){ var e=q(s2); if(e) S.cut.appendChild(e) });
-  var crc=q("#crc"); if(crc){ crc.classList.add("ghost"); S.cut.appendChild(crc) }
+  if(S.cut){
+    [".cutsum",".cnote",".syn"].forEach(function(s2){ var e=q(s2); if(e) S.cut.appendChild(e) });
+    var crc=q("#crc"); if(crc){ crc.classList.add("ghost"); S.cut.appendChild(crc) }
+  }
   // ✨ Motion — အဆင့် ၄ မျိုး + slider
   var vmo=q(".vmo"); if(vmo){ var h5=vmo.querySelector("h5"); if(h5) h5.remove(); S.motion.appendChild(vmo) }
   // 🔊 အသံ — တီးလုံး ပိတ်
@@ -4414,8 +4602,8 @@ function tcApply(){
      document.body.classList.remove("rv","rvcut","cutrev");
      var d0=document.getElementById("dn"); if(d0) d0.remove();
      var bk=document.getElementById("bok");
-     bk.disabled=false; bk.textContent="ဖြတ်ချက် စစ်မယ် →";
-     REV=false; bk.click(); bk.click();      // ⇒ 「ဗီဒီယို ထုတ်မလား?」 → approve
+     bk.disabled=false; bk.textContent="✨ Motion · SFX →";
+     REV=false; sfxOpen();                   // ⇒ Motion · SFX → Preview/Export
    })
    .catch(function(e){ b.disabled=false; b.textContent="💾 ပြောင်းတာ သိမ်းပြီး ပြန်ထုတ်မယ်";
      tip("သိမ်း၍ မရပါ — "+(e.message||e)) });
@@ -4500,7 +4688,7 @@ function prepExit(after){
   });
   try{ sessionStorage.removeItem("ikki_poster_"+JOB) }catch(e){}
   var bk=document.getElementById("bok");
-  if(bk){ bk.disabled=false; bk.textContent="ဖြတ်ချက် စစ်မယ် →" }
+  if(bk){ bk.disabled=false; bk.textContent="✨ Motion · SFX →" }
   fetch("/api/script/"+JOB,
     {headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
    .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
