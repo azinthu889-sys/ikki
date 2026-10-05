@@ -58,6 +58,14 @@ class AutoJoin(unittest.TestCase):
         self.assertIn('if(it.kind==="g"){', self.s)
         self.assertIn("ဆက်နေတဲ့ ဖြတ်ချက်", self.s)
 
+    def test_green_to_green_when_a_sentence_is_deleted(self):
+        # 「အနီတွေ အဝါတွေ အကုန် ဖျက်ချမှာ ⇒ အစိမ်းအထိ ကွာဟချက် မရှိအောင်」
+        i = self.s.find("function tcRegions()")
+        w = self.s[i:i + 900]
+        self.assertIn("var hasDel=S.some(function(x){ return DEL[x.n] && x.start<hi && x.end>lo });", w)
+        self.assertIn("return br.concat(tcRegions());", self.s)
+        self.assertIn('skipList().forEach(function(r){ band(r[0], r[1], "rgba(239,68,68,.34)") })', self.s)
+
     def test_red_green_gap_goes_to_the_kept_side(self):
         i = self.s.find("function tcView()")
         w = self.s[i:i + 3200]

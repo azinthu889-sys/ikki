@@ -194,7 +194,9 @@ class Summary(unittest.TestCase):
         s = _src("web", "script.html")
         i = s.find('var inf=document.getElementById("tlinfo")')
         self.assertGreater(i, 0)
-        self.assertIn("tlDrops()", s[i:i + 500])
+        # ၂၀၂၆-၁၀-၀၅: preview က တကယ် ကျော်တဲ့ skipList (ပေါင်းထားတဲ့ ဖြတ်ချက် · အစိမ်းမှ
+        #   အစိမ်း ပါ) နဲ့ တွက် — header ကိန်းနဲ့ တူရမည်
+        self.assertIn("skipList()", s[i:i + 500])
 
 
 if __name__ == "__main__":
