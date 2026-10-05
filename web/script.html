@@ -697,6 +697,41 @@ body.prep #vid,body.prep .vbtns,body.prep #vnote{display:none}
 body.prep #tlbody,body.prep .tlleg,body.prep .tlbz,body.prep #tlbmin{display:none}
 #tlwait{color:var(--mute);font-size:13px;margin-left:10px}
 #dn .pcancel{margin-top:10px}
+/* ══ Professional pass (Zin ၂၀၂၆-၁၀-၀၅) ══════════════════════════════════════ */
+.ptitle{display:none}
+#nai{display:none}   /* 「ဤထဲ N က ငါ အကြံပြုထား」 — ရှုပ် · header မှာ မလို */
+#keys{position:fixed;z-index:200;top:64px;right:16px;width:340px;background:#fff;
+  border:1px solid #ECEAE6;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.16);
+  padding:14px 16px;font-size:13px}
+#keys dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:10px 0 0}
+#keys dt{font-weight:600;white-space:nowrap}
+.cnote{margin:6px 0;font-size:12.5px;color:#78716C}
+.cnote summary{cursor:pointer}
+.cnote div{margin-top:4px;line-height:1.6}
+#keys dd{margin:0;color:#57534E}
+.btn.ib{padding:7px 11px !important;font-size:15px;line-height:1}
+.tlzm{display:inline-flex;gap:0;border:1px solid #E7E5E4;border-radius:999px;overflow:hidden}
+.tlbh .tlzm button{border:0;border-radius:0;padding:3px 10px;background:#fff}
+.tlbh .tlzm button+button{border-left:1px solid #E7E5E4}
+.tlclips.solid i{background:#EDE9FE;border-color:#C4B5FD;color:#5B21B6;
+  display:flex;align-items:center;justify-content:center;font-weight:600}
+#tlbody{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+#tlbody .tlrow{min-width:calc(var(--tlz,1) * 100%)}
+#tlbody .tlrow>s{position:sticky;left:0;z-index:4;background:#fff}
+@media(min-width:860px){
+  .ptitle{display:flex;align-items:center;gap:10px;min-width:0;max-width:34%}
+  .ptitle .pback{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;
+    border:1px solid #ECEAE6;color:#1C1917;text-decoration:none;font-size:20px;line-height:1}
+  .ptitle .pback:hover{background:#F5F5F4}
+  .ptitle b{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ptitle s{text-decoration:none;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;
+    background:#F5F3FF;color:#6D28D9;white-space:nowrap}
+  .bar .tm{margin-left:8px;padding-left:16px;border-left:1px solid #ECEAE6}
+  #bhome{display:none}
+  .editnote{display:none}
+  #rvnote{padding:8px 12px !important;font-size:13px}
+  #rvnote b{font-size:13px}
+}
 /* ── ညာ pane ထဲက အခြေအနေ ကတ် ── */
 main.editor>.vbar>#dn{margin:14px 0 4px;width:100%;box-shadow:none !important;
   background:#FCFCFB;border:1px solid var(--line,#ECEAE6)}
@@ -762,13 +797,19 @@ body.prep .bar .acts{margin-top:0}
 </head>
 <body>
 <div class="bar"><div class="in">
+  <!-- ⚠️ Zin ၂၀၂၆-၁၀-၀၅ 「Professional မဆန်သေး」 ⇒ Descript/CapCut လို project နာမည် +
+       အဆင့် badge (ဘယ်အဆင့်မှာ ရောက်နေလဲ တစ်ချက်ကြည့်ရုံနဲ့ သိ) -->
+  <div class="ptitle"><a class="pback" href="/" title="ဗီဒီယိုများ">‹</a>
+    <b id="ptname">—</b><s id="ptstate"></s></div>
   <div class="tm">
     <b id="t0">—</b><span class="arw">→</span><b id="t1">—</b>
     <span class="sub"><span id="nd">0</span> ဖျက် · <span id="nk">0</span> ချန်<span id="nai"></span></span>
   </div>
   <div class="acts">
     <!-- ⚠️ ပြန်ထွက်လမ်း — မရှိလျှင် သုံးစွဲသူ ဒီစာမျက်နှာမှာ ပိတ်မိသည် -->
-    <a class="btn ghost" href="/" style="text-decoration:none">← IKKI</a>
+    <a class="btn ghost" id="bhome" href="/" style="text-decoration:none">← IKKI</a>
+    <button type="button" class="btn ghost ib" id="bundo" title="နောက်ပြန် (⌘Z)">↶</button>
+    <button type="button" class="btn ghost ib" id="bkeys" title="ကီးဘုတ် shortcut">⌨</button>
     <button class="btn warn" id="bsec">🔴 <span id="nsec">0</span> ခု စစ်ရန် ↓</button>
     <!-- ⚠️⚠️ **ချိန်ညှိချက် အားလုံး တစ်နေရာထဲ** (၂၀၂၆-၁၀-၀၄ Zin:
          「မင်းလုပ်ပေးတဲ့ပုံစံက user ကို ပိုပြီး ရှုပ်ထွေးသွားစေတယ်」)。
@@ -807,6 +848,21 @@ body.prep .bar .acts{margin-top:0}
       </div></details>
   </div>
 </div></div>
+<div id="keys" hidden>
+  <b>ကီးဘုတ် · mouse</b>
+  <dl>
+    <dt>စာကြောင်း နှိပ်</dt><dd>ဖြတ် / ပြန်ထည့်</dd>
+    <dt>စာလုံး ဆွဲရွေး → ⌫</dt><dd>ရွေးထားတဲ့ စာလုံးပဲ ဖြတ်</dd>
+    <dt>↑ ↓</dt><dd>စာကြောင်း ရွေး</dd>
+    <dt>X</dt><dd>ရွေးထားတဲ့ စာကြောင်း ဖြတ် / ပြန်ထည့်</dd>
+    <dt>Space</dt><dd>ရွေးထားတဲ့ စာကြောင်း နားထောင်</dd>
+    <dt>⌘Z</dt><dd>နောက်ပြန်</dd>
+    <dt>Timeline ✂ အကွက် နှိပ်</dt><dd>ဖြတ် / ပြန်ထည့်</dd>
+    <dt>✂ အကွက် အနား ဆွဲ</dt><dd>ဖြတ်ချက် ချိန်ညှိ</dd>
+    <dt>⌘ + scroll</dt><dd>timeline ချဲ့ / ချုံ့</dd>
+    <dt>Esc</dt><dd>ပိတ်</dd>
+  </dl>
+</div>
 <main class="wrap editor">
 <div class="vbar" id="vbar" hidden>
   <video id="vid" playsinline preload="metadata"></video>
@@ -888,6 +944,10 @@ body.prep .bar .acts{margin-top:0}
       <span id="tlbpos">0:00</span>
     </span>
     <!-- ⚠️ Zin ၂၀၂၆-၁၀-၀၅: 「ပြီးတာနဲ့ motion SFX ဘက်ကို ဆက်သွားတဲ့ ခလုတ်」 -->
+    <span class="tlzm" title="Timeline ချဲ့/ချုံ့ (⌘ + scroll)">
+      <button type="button" data-z="-1" aria-label="ချုံ့">−</button>
+      <button type="button" data-z="0" aria-label="အပြည့်">Fit</button>
+      <button type="button" data-z="1" aria-label="ချဲ့">+</button></span>
     <button type="button" id="tlnext" title="ဖြတ်ချက် ပြီးပြီ — Motion · SFX ရွေးဖို့ ဆက်သွား">✓ ဖြတ်ပြီး · Motion · SFX →</button>
     <button type="button" id="tlbmin" title="ချုံ့/ချဲ့">▾</button>
   </div>
@@ -2764,7 +2824,11 @@ function watchJob(jid, el){
            +'<s>ဖြုတ် <b>'+_ms(_rm)+'</b></s>'
            +'<s>ဖြတ်မှတ် <b>'+(j.cut_n||0)+'</b></s></div>'
            +'<div class="nyet">ဂရပ်ဖစ် · တီးလုံး · SFX · စာတန်း <b>မပါသေးပါ</b></div>'
-           +(j.cut_note?'<div class="nyet">ⓘ '+esc(j.cut_note)+'</div>':'')
+           /* ⚠️ `cut_note` က ဖျက်ချက် အသေးစိတ် (ဘေးစကားလုံး ပါသွားနိုင်ကြောင်း ·
+              micro clip …) — အရေးကြီးပေမယ့် နည်းပညာ စကား ⇒ **ချုံ့ထား** (Zin
+              「Professional မဆန်」)。 ဖွင့်ကြည့်မှ ပေါ် */
+           +(j.cut_note?'<details class="cnote"><summary>ⓘ ဖြတ်ချက် အသေးစိတ်</summary>'
+             +'<div>'+esc(j.cut_note)+'</div></details>':'')
            +syncNote(j)
            /* ── Visuals & Motion — **ဒီအဆင့်မှာသာ** ရွေးသည် (Zin ရဲ့ §4)。
                 ဂရပ်ဖစ်/SFX/B-roll ရှာဖွေမှုက ဖြတ်ချက် အတည်ပြုပြီးမှ စသည် ⇒
@@ -3112,8 +3176,7 @@ function tlFilm(){
   var dur=tlDur();
   if(!VPROX || !dur){
     // ⚠️ proxy မရှိလျှင် **ဗလာ ပြရမည်** — အတုအယောင် ပုံ မပြရ
-    g.fillStyle="#A8A29E"; g.font="20px Inter,sans-serif";
-    g.fillText("ဗီဒီယို proxy မရှိပါ (အသံနဲ့ ဆက်သုံးနိုင်သည်)", 10, H/2+7);
+    // ⚠️ developer စာ (「proxy မရှိ」) မပြ — clip အတန်းကို အရောင်ဖြည့်ပြသည် (tlClips)
     return;
   }
   if(FILM.busy || FILM.done) return;
@@ -3162,6 +3225,8 @@ function tlClips(){
     else { cur={start:x.start, end:x.end}; runs.push(cur) }
   });
   var h="";
+  // ⚠️ ဖရိမ်း မရှိလျှင် ဘောင်ဗလာ ⇒ 「ပျက်နေ」 ထင်ရ ⇒ အရောင်ဖြည့် clip
+  box.classList.toggle("solid", !VPROX);
   runs.forEach(function(r,i){
     var _a=tlX(r.start), _b=tlX(r.end);
     var L=(_a/dur)*100, W=Math.max(0.5, ((_b-_a)/dur)*100);
@@ -3596,7 +3661,13 @@ function tlHead(t){
   var tr=body.querySelector(".tltr"); if(!tr) return;
   var br=body.getBoundingClientRect(), rr=tr.getBoundingClientRect();
   e.hidden=false;
-  e.style.left=((rr.left-br.left) + Math.max(0, Math.min(1, t/dur))*rr.width)+"px";
+  var _x=(rr.left-br.left+body.scrollLeft) + Math.max(0, Math.min(1, t/dur))*rr.width;
+  e.style.left=_x+"px";
+  /* zoom ထားလျှင် ဖွင့်နေစဉ် playhead ကို မြင်ကွင်းထဲ ထား */
+  if(TLZ>1 && PLAYALL){
+    var _v=_x-body.scrollLeft;
+    if(_v<90 || _v>body.clientWidth-40) body.scrollLeft=Math.max(0,_x-body.clientWidth*0.3);
+  }
   var p=document.getElementById("tlbpos");
   if(p) p.textContent=mm(t)+" / "+mm(dur);
   var b=document.getElementById("tlbplay");
@@ -3612,7 +3683,7 @@ function tlSel(a, b){
   if(!e){ e=document.createElement("div"); e.id="tlsel"; e.innerHTML="<b></b>"; body.appendChild(e) }
   var br=body.getBoundingClientRect(), rr=tr.getBoundingClientRect();
   var x0=Math.max(0,Math.min(1,tlX(a)/dur)), x1=Math.max(0,Math.min(1,tlX(b)/dur));
-  e.style.left=((rr.left-br.left)+x0*rr.width)+"px";
+  e.style.left=((rr.left-br.left+body.scrollLeft)+x0*rr.width)+"px";
   e.style.width=Math.max(2,(x1-x0)*rr.width)+"px";
   e.firstChild.textContent=(b-a).toFixed(1)+"s";
 }
@@ -3934,6 +4005,55 @@ document.addEventListener("keydown",function(e){
     toggle(+rows[SEL].getAttribute("data-n"))}
   else if(e.key===" "&&SEL>=0){e.preventDefault();play(+rows[SEL].getAttribute("data-n"))}
 });
+
+/* ══ Professional pass — project နာမည် · အဆင့် badge · ↶ · ⌨ · timeline zoom ══ */
+var TLZ=1;
+function ptPaint(){
+  var n=document.getElementById("ptname"), st=document.getElementById("ptstate");
+  if(!n||!st) return;
+  var t=(D&&D.title)||(JOBROW&&JOBROW.title)||"";
+  n.textContent=String(t||"ဗီဒီယို").replace(/\.(mp4|mov|m4v|webm|mkv)$/i,"");
+  n.title=t;
+  var b=document.body.classList, s2=(JOBROW&&JOBROW.status)||(D&&D.status)||"";
+  st.textContent = PREP ? "ပြင်ဆင်နေ"
+    : b.contains("done") ? "ထုတ်ပြီး"
+    : s2==="cut_review" ? "ဖြတ်ချက် ကြည့်ရန်"
+    : (s2==="running"||s2==="cutting"||s2==="queued") ? "ထုတ်နေ"
+    : s2==="failed" ? "ကျသွား"
+    : "စာသား တည်းဖြတ်";
+}
+setInterval(ptPaint, 1500);
+function tlZoom(dir){
+  var body=document.getElementById("tlbody"); if(!body) return;
+  var steps=[1,1.5,2,3,4,6], i=steps.indexOf(TLZ); if(i<0) i=0;
+  var nz = dir===0 ? 1 : steps[Math.max(0,Math.min(steps.length-1,i+dir))];
+  if(nz===TLZ) return;
+  var mid=(body.scrollLeft+body.clientWidth/2)/Math.max(1,body.scrollWidth);
+  TLZ=nz; body.style.setProperty("--tlz", TLZ);
+  FILM.done=false;
+  try{ tlAll() }catch(e){}
+  body.scrollLeft=Math.max(0, mid*body.scrollWidth-body.clientWidth/2);
+}
+(function(){
+  var u=document.getElementById("bundo"); if(u) u.onclick=function(){ undo() };
+  var k=document.getElementById("bkeys"), kp=document.getElementById("keys");
+  if(k&&kp){
+    k.onclick=function(e){ e.stopPropagation(); kp.hidden=!kp.hidden };
+    document.addEventListener("click", function(e){ if(!kp.hidden && !kp.contains(e.target)) kp.hidden=true });
+    document.addEventListener("keydown", function(e){ if(e.key==="Escape") kp.hidden=true });
+  }
+  var zm=document.querySelector(".tlzm");
+  if(zm) zm.addEventListener("click", function(e){
+    var b=e.target.closest("[data-z]"); if(b){ e.stopPropagation(); tlZoom(+b.getAttribute("data-z")) } });
+  var tb=document.getElementById("tlbody");
+  if(tb) tb.addEventListener("wheel", function(e){
+    if(!(e.metaKey||e.ctrlKey)) return;
+    e.preventDefault(); tlZoom(e.deltaY<0?1:-1);
+  }, {passive:false});
+  /* Script ညှိ box — ခဏခဏ မသုံး ⇒ ⚙ ထဲ ရွှေ့ (စာတမ်း ထိပ်က နေရာ ပြန်ရ) */
+  var sc=document.getElementById("scrp"), sb=document.querySelector("#setbox .setb");
+  if(sc&&sb) sb.appendChild(sc);
+})();
 
 /* ── ✂ inspector · Motion/SFX ဆက်သွား ခလုတ် ── */
 (function(){

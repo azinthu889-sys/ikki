@@ -66,7 +66,8 @@ class Rows(unittest.TestCase):
         i = self.s.find("function tlFilm(")
         w = self.s[i:i + 900]
         self.assertIn("if(!VPROX || !dur)", w)
-        self.assertIn("proxy မရှိပါ", w)
+        # ၂၀၂၆-၁၀-၀၅: developer စာ (「proxy မရှိပါ」) အစား clip အတန်းကို အရောင်ဖြည့်
+        self.assertIn('box.classList.toggle("solid", !VPROX)', self.s)
 
 
 class Offscreen(unittest.TestCase):
