@@ -256,22 +256,23 @@ class OneClickCut(unittest.TestCase):
 
     def test_it_reuses_the_existing_keep_mechanism(self):
         """⚠️⚠️ အသစ် ဆောက်လျှင် တစ်ခုက နောက်ကျကျန်ပြီး server ဆီ မရောက်"""
-        i = self.s.find("function go(ev){")
+        # ၂၀၂၆-၁၀-၀၅: ✂ အတန်းက ဖြတ်ချက် အမျိုး ၅ မျိုး ⇒ `tcToggle()` ထဲ ရွှေ့
+        i = self.s.find("function tcToggle(")
         w = self.s[i:i + 1400]
-        self.assertIn("if(SKEEP[k]) delete SKEEP[k]; else SKEEP[k]=1;", w)
+        self.assertIn("if(SKEEP[it.k]) delete SKEEP[it.k]; else SKEEP[it.k]=1;", w)
 
     def test_the_transcript_chip_stays_in_sync(self):
         """⚠️⚠️ `paint()` က ⏸ ကတ်တွေ ပြန်မဆောက်ပါ (`render()` မှာ ဆောက်ထား)
            ⇒ timeline က 「ချန်」 ပြနေပြီး ကတ်က 「ဖြတ်」 ပြနေမည်
            (စမ်းစဉ် တကယ် တွေ့: `pau_chips_kept=0`)。"""
-        i = self.s.find("function go(ev){")
+        i = self.s.find("function tcToggle(")
         w = self.s[i:i + 1600]
         self.assertIn('.pau[data-pk="', w)
         self.assertIn('pel.classList.toggle("kept", on)', w)
 
     def test_only_pauses_long_enough_to_hit_are_shown(self):
         """⚠️ ၀.၆s အောက်မှာ အကွက်က ၂px ⇒ နှိပ်လို့ မရ"""
-        i = self.s.find("function tlCuts(")
+        i = self.s.find("function tcItems(")
         self.assertIn("e.dur<PAU_MIN", self.s[i:i + 900])
 
 

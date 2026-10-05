@@ -1,0 +1,46 @@
+# -*- coding: utf-8 -*-
+"""timeline ✂ အတန်း — ဖြတ်ချက် အားလုံး · တစ်ချက်နှိပ် ဖြတ်/ပြန်ထည့် · ချိန်ညှိ
+(Zin ၂၀၂၆-၁၀-၀၅) + 「ဖြတ်ပြီး · Motion · SFX →」 ခလုတ်"""
+import os
+import unittest
+
+R = os.path.join(os.path.dirname(__file__), "..", "web", "script.html")
+
+
+class TimelineCuts(unittest.TestCase):
+    def setUp(self):
+        with open(R, encoding="utf-8") as f:
+            self.s = f.read()
+
+    def test_all_cut_kinds_listed(self):
+        i = self.s.find("function tcItems()")
+        w = self.s[i:i + 3000]
+        for k in ('kind:"s"', 'kind:"d"', 'kind:"t"', 'kind:"x"', 'kind:"u"'):
+            self.assertIn(k, w)
+
+    def test_restored_stay_visible_for_readd(self):
+        self.assertIn('TCRES["d|"+x.n]', self.s)
+        self.assertIn("cut:false", self.s)
+
+    def test_click_toggles_edge_drags(self):
+        self.assertIn("if(_eg){ tcDrag(ev, _eg); return }", self.s)
+        self.assertIn('tcToggle(t.getAttribute("data-tc"))', self.s)
+
+    def test_adjusted_silence_sent_as_keep_then_drop(self):
+        i = self.s.find("Object.keys(SADJ).forEach(function(k){")
+        w = self.s[i:i + 300]
+        self.assertIn("ks.push([+o[0], +o[1]])", w)
+        self.assertIn("ds.push(", w)
+
+    def test_next_button_uses_the_same_path(self):
+        self.assertIn('id="tlnext"', self.s)
+        i = self.s.find('var nx=document.getElementById("tlnext")')
+        w = self.s[i:i + 900]
+        self.assertIn("bk.click()", w)
+
+    def test_motion_section_open_in_cut_review(self):
+        self.assertIn("bx.open=true;", self.s)
+
+
+if __name__ == "__main__":
+    unittest.main()
