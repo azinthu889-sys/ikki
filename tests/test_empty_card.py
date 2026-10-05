@@ -85,9 +85,9 @@ class Catalog(unittest.TestCase):
     def test_the_guard_is_not_a_blanket_refusal(self):
         """⚠️ catalog ရဲ့ **အများစု**ကို မိလျှင် ဂရပ်ဖစ် မကျန်တော့"""
         n = sum(1 for cid in self.cat if self._wants(cid))
-        self.assertEqual(len(self.cat), 617)
-        # တိုင်းချက် ၂၀၂၆-၁၀-၀၂: ၅၀၄/၆၁၇ (၈၂%)
-        self.assertEqual(n, 504)
+        self.assertEqual(len(self.cat), 623)
+        # တိုင်းချက် ၂၀၂၆-၁၀-၀၂: ၅၀၄/၆၁၇ (၈၂%) · ၂၀၂၆-၁၀-၀၅ modern.mt_* ၆ ခု (စာသား param) ⇒ ၅၁၀/၆၂၃
+        self.assertEqual(n, 510)
         self.assertEqual(len(self.cat) - n, 113)
 
 

@@ -42,7 +42,7 @@ def main():
               set((m or {}).get("aspects") or []) == {"16:9", "9:16"})
         check(f"{tid.split('.')[-1]} fallback ရှိ", bool((m or {}).get("fallback")))
     check("intent နဲ့ ရွေးနိုင်", PK.by_intent("emphasis") ==
-          ["headtop.ht_outline_title"], PK.by_intent("emphasis"))
+          ["headtop.ht_outline_title", "modern.mt_neon_box"], PK.by_intent("emphasis"))
     check("မရှိသော intent ⇒ ဗလာ", PK.by_intent("nope") == [])
 
     print("\n── ၂ · concept_card — aspect ၂ မျိုး ──")
