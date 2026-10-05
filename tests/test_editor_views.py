@@ -114,8 +114,9 @@ class Banners(unittest.TestCase):
         """⚠️ banner က 「ဒါက ဖြတ်ပြီးသား ရလဒ်ပါ」 ⇒ ထုတ်နေဆဲ · ကျဘမ်း မှာ
            ပြလျှင် **မမှန်** (၂၀၂၆-၁၀-၀၅ queued · failed နှစ်ခုလုံးမှာ တွေ့)。"""
         self.assertIn("body.rv.rvcut #rvnote{display:flex", self.s)
-        self.assertIn('if(j.status==="cut_review") document.body.classList.add("rvcut")',
-                      self.s)
+        # ၂၀၂၆-၁၀-၀၅: cut_review မှာ စာတမ်း တိုက်ရိုက် ပြင်လို့ရ ⇒ banner/rv မထား
+        #   (「script မှာလဲ ဖျက်လို့ရအောင်」) — queued/failed မှာလည်း မပေါ်ရ (rvcut မထည့်)
+        self.assertNotIn('document.body.classList.add("rvcut")', self.s)
         self.assertIn('document.body.classList.add("rv","rvcut")', self.s)
 
     def test_only_one_banner_at_a_time(self):

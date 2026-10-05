@@ -46,6 +46,10 @@ class LivePreview(unittest.TestCase):
         for k in ('["cut","✂ ဖြတ်ချက်"]', '["motion","✨ Motion"]', '["sound","🔊 အသံ"]', '["caps","T စာတန်း"]'):
             self.assertIn(k, self.s)
 
+    def test_script_is_editable_in_cut_review(self):
+        # 「script မှာလဲ ဖျက်လို့ရအောင်」 — cut_review မှာ rv (အေးခဲ) မထား
+        self.assertIn('if(j.status!=="cut_review") document.body.classList.add("rv");', self.s)
+
     def test_header_button_exports_in_cut_review(self):
         self.assertIn("function bokCutPaint()", self.s)
 

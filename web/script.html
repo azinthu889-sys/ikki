@@ -4287,6 +4287,8 @@ setInterval(function(){ try{ tcDirtyPaint() }catch(e){} try{ bokCutPaint() }catc
    အဲဒီနေရာက **Export**。 ⇒ panel ထဲက ခလုတ်ကို လွှဲပြီး နှိပ်ပေး (လမ်း ၂ ခု မခွဲ) */
 function bokCutPaint(){
   var bk=document.getElementById("bok"); if(!bk) return;
+  var nx=document.getElementById("tlnext");
+  if(nx) nx.hidden = !!(JOBROW && JOBROW.status==="cut_review");
   if(!(JOBROW && JOBROW.status==="cut_review" && document.getElementById("dn"))) return;
   var dirty=!!document.getElementById("tcdirty"), ok=document.getElementById("cok");
   var want = dirty ? "💾 သိမ်းပြီး ပြန်ထုတ်" : "ထုတ်မယ် →";
@@ -4411,9 +4413,13 @@ if(JOB) fetch("/api/jobs/"+JOB,
     if(window._prepMaybe && ["queued","running"].indexOf(j.status)>-1) prepEnter();
     var el=document.getElementById("dn")||document.createElement("div");
     el.id="dn"; el.className="done"; dnPlace(el);
-    document.body.classList.add("rv");
-    // ⚠️ ဖြတ်ပြီးမှသာ 「✏️ ပြန်ပြင်မယ်」 banner ပြရမည် (အထက် CSS မှတ်ချက်)
-    if(j.status==="cut_review") document.body.classList.add("rvcut");
+    /* ⚠️⚠️ cut_review မှာ စာတမ်းကို **အေးခဲ မထားတော့** (Zin ၂၀၂၆-၁၀-၀၅ 「script မှာလဲ
+       ဖျက်လို့ရအောင်」)。 ယခင်က 「✏️ ပြန်ပြင်မယ်」 နှိပ် ⇒ page reload ⇒ ပြန်ပြင်ရ。
+       ယခု timeline လိုပဲ စာတမ်းမှာ တိုက်ရိုက် ဖျက်/ပြန်ထည့် ⇒ preview ချက်ချင်း
+       ပြောင်း ⇒ 「💾 သိမ်းပြီး ပြန်ထုတ်」 (tcApply · recut → approve)。
+       ⚠️ ဖြတ်ချက် ပြန်ဖတ်ပြီးမှ (restoreDecisions) ပြင်လို့ ရ — မဟုတ်လျှင် engine
+          ပုံသေနဲ့ ပြင်ပြီး သုံးစွဲသူ ဆုံးဖြတ်ချက် ပျောက်မည်。 */
+    if(j.status!=="cut_review") document.body.classList.add("rv");
     /* ⚠️ `review` မဟုတ်လျှင် **ခလုတ် ပိတ်ရမည်** — မပိတ်လျှင် ထပ်နှိပ်ပြီး
        409 ရမည် (Zin တကယ် ဖြစ်ခဲ့)。 */
     var _bk=document.getElementById("bok");
