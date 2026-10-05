@@ -47,6 +47,13 @@ class SfxFlow(unittest.TestCase):
         self.assertIn("function nextAction()", self.s)
         self.assertIn("var _na=nextAction(); if(_na && _na.el){ _na.el.click(); return }", self.s)
 
+    def test_short_shot_refusal_fixes_itself(self):
+        # 「ထုတ်လို့ မရသေး · Premium export ကို ခဏရပ်ထား」 — recut → approve → ဆက် (တစ်ကြိမ်)
+        self.assertIn("function autoFix(pl)", self.s)
+        self.assertIn("var MERGE_GAP=0.60;", self.s)
+        self.assertIn('id="cgfix"', self.s)
+        self.assertIn("autoFix({motion:_lv, preview:!!prev}); return;", self.s)
+
     def test_preview_then_export(self):
         self.assertIn("function exportAfterPreview()", self.s)
         self.assertIn('JOBROW.mode==="prev"', self.s)

@@ -1089,10 +1089,14 @@ function showCutGate(host, detail, jid){
   box.innerHTML='<b>Premium export ကို ခဏရပ်ထားပါတယ်</b>'
     +'<p>'+n+' ခုက 0.60s အောက်တိုနေပါတယ်။ Final ထဲမှာ flash / မျက်နှာခုန်မှု မဖြစ်အောင် '
     +'အောက်က Transcript Editor မှာပဲ ပြန်စစ်ပြီး ပေါင်း သို့မဟုတ် ပြန်ချန်ပေးပါ။</p>'
-    +'<div class="acts2"><button type="button" class="btn primary" id="cgrefresh">↻ ဒီဆုံးဖြတ်ချက်နဲ့ Preview ပြန်ထုတ်</button>'
+    +'<div class="acts2"><button type="button" class="btn primary" id="cgfix">🔧 အလိုလို ပြင်ပြီး ဆက်ထုတ်မယ်</button>'
+    +'<button type="button" class="btn ghost" id="cgrefresh">↻ ဒီဆုံးဖြတ်ချက်နဲ့ Preview ပြန်ထုတ်</button>'
     +'<button type="button" class="btn ghost" id="cgback">↩ ဖြတ်ချက် ပြန်ပြင်မယ်</button>'
     +'<button type="button" class="btn ghost" id="cgpreview">▶ Preview ပြန်ကြည့်မယ်</button></div>';
   host.appendChild(box);
+  box.querySelector("#cgfix").onclick=function(){
+    this.disabled=true; this.textContent="ပြင်နေသည်…"; autoFix(_curPlan());
+  };
   box.querySelector("#cgback").onclick=function(){
     var back=document.getElementById("crc");
     if(back) back.click();
@@ -1349,8 +1353,8 @@ function skipList(){
     var L=o[o.length-1];
     // ⚠️ ထပ်နေတာတွေ ပေါင်းရမည် — မပေါင်းလျှင် ခုန်ပြီးမှ နောက်တစ်ခုထဲ
     //    ပြန်ဝင်ကာ 「တုန်နေသလို」 ဖြစ်သည်。
-    // ⚠️ MERGE_GAP အောက် ကြားက အသံ အပိုင်းအစလေးကိုပါ ကျော် (ကပ်နေတဲ့ ဖြတ်ချက် အလိုလို ဆက်)
-    if(L && r[0]<=L[1]+MERGE_GAP) L[1]=Math.max(L[1], r[1]);
+    // ⚠️ ကြားအပိုင်းကို ကျော်တာက tcBridges() (ချန်ထားတဲ့ စာကြောင်း မပါမှ) — ဒီမှာ ထပ်နေတာသာ ပေါင်း
+    if(L && r[0]<=L[1]+0.02) L[1]=Math.max(L[1], r[1]);
     else o.push([r[0], r[1]]);
   });
   return o;
@@ -2906,7 +2910,11 @@ function watchJob(jid, el){
               if(!y.ok){
                 /* ⚠️ တိတ်တဆိတ် panel အဟောင်း ပြန်ပြလျှင် 「graphic ထုတ်နေလား」 မသိရ (Zin) ⇒
                    အကြောင်းရင်းကို အနီနဲ့ ပြ · ဖြတ်ချက် panel (↩ ပြန်ပြင်) ကို အောက်မှာ */
-                planDel(jid); el._autoSent=false; window._autoErr=String(y.d.detail||y.d.error||"");
+                var _why=String(y.d.detail||y.d.error||"");
+                if(/Premium export ကို ရပ်ထားသည်/.test(_why) && !window._autoFixed){
+                  window._autoFixed=true; el.innerHTML='<b>🔧 တိုလွန်းတဲ့ အပိုင်းတွေ ပေါင်းပြီး ဖြတ်ချက် ပြန်ထုတ်နေပါပြီ…</b>';
+                  autoFix(_pl); return }
+                planDel(jid); el._autoSent=false; window._autoErr=_why;
                 setTimeout(tick, 300); return }
               setTimeout(tick, 2500);
             })
@@ -3107,6 +3115,13 @@ function watchJob(jid, el){
               if(!y.ok){ _rearm();
                 var why=y.d.detail||"";
                 if(/Premium export ကို ရပ်ထားသည်/.test(why)){
+                  /* ⚠️ Zin 「ထုတ်လို့ မရ」 — ကိုယ်တိုင် ပြင်ခိုင်းမယ့်အစား **အလိုလို** ပြင်ပြီး ဆက် (တစ်ကြိမ်) */
+                  if(!window._autoFixed){
+                    window._autoFixed=true;
+                    el.innerHTML='<b>🔧 တိုလွန်းတဲ့ အပိုင်းတွေ ပေါင်းပြီး ဖြတ်ချက် ပြန်ထုတ်နေပါပြီ…</b>'
+                      +'<p class="vpn">ပြီးတာနဲ့ '+(prev?'👁 Preview':'✅ Export')+' ကို အလိုလို ဆက်ပါမယ်</p>';
+                    autoFix({motion:_lv, preview:!!prev}); return;
+                  }
                   showCutGate(el, why, jid); return;
                 }
                 tip("ဆက်လုပ်၍ မရပါ — "+why); return }
@@ -3475,7 +3490,7 @@ function tcFind1(key){ return tcItems().find(function(x){ return x.key===key }) 
       「တ」 ဆိုတဲ့ အသံ ပိုင်းကလေး ကြားရပြီး jump cut ညစ်သည် ⇒ ပါ ဖြတ် (preview ·
       ထုတ်မယ့် ဗီဒီယို နှစ်ခုလုံး) · timeline မှာ အကွက် **တစ်ခုတည်း**。
    group ကို နှိပ် ⇒ အကုန် ပြန်ထည့် · အနား ဆွဲ ⇒ ပထမ/နောက်ဆုံး ဖြတ်ချက်ကို ညှိ。 */
-var MERGE_GAP=0.35;
+var MERGE_GAP=0.60;   /* = server CUT_FINAL_MIN_SHOT — ဒီထက် တိုတဲ့ ကြားအပိုင်း ချန်လျှင် export က ငြင်း (flash) */
 function tcView(){
   var all=tcItems(), cut=all.filter(function(x){ return x.cut }).sort(function(x,y){ return x.a-y.a });
   var out=all.filter(function(x){ return !x.cut }), run=null;
@@ -3486,9 +3501,11 @@ function tcView(){
                    a:run[0].a, b:Math.max.apply(null, run.map(function(m){ return m.b })), cut:true});
     run=null;
   }
+  var _K2=((D&&D.sentences)||[]).filter(function(x){ return !DEL[x.n] });
   cut.forEach(function(it){
     if(run){ var e=Math.max.apply(null, run.map(function(m){ return m.b }));
-      if(it.a <= e+MERGE_GAP){ run.push(it); return } }
+      var _sp=_K2.some(function(x){ return x.start<it.a-0.02 && x.end>e+0.02 });
+      if(it.a <= e+MERGE_GAP && !_sp){ run.push(it); return } }
     flush(); run=[it];
   });
   flush();
@@ -3589,8 +3606,10 @@ function tcRegions(){
 function tcBridges(){
   var d=(tlDrops()||[]).filter(function(r){ return r && r[1]>r[0] }).sort(function(x,y){ return x[0]-y[0] });
   var br=[], runs=[], end=null;
+  var _K=((D&&D.sentences)||[]).filter(function(x){ return !DEL[x.n] });
+  var _spk=function(a,b){ return _K.some(function(x){ return x.start<b-0.02 && x.end>a+0.02 }) };
   d.forEach(function(r){
-    if(end!==null && r[0]<=end+MERGE_GAP){
+    if(end!==null && r[0]<=end+MERGE_GAP && !_spk(end, r[0])){
       if(r[0]>end+0.005) br.push([+end.toFixed(3), +r[0].toFixed(3)]);
       runs[runs.length-1][1]=Math.max(runs[runs.length-1][1], r[1]);
     } else runs.push([r[0], r[1]]);
@@ -4428,6 +4447,34 @@ function tlZoom(dir){
     if(REV) bk.click();
   };
 })();
+
+/* ══ 「0.60s အောက် shot」 အလိုလို ပြင် (Zin ၂၀၂၆-၁၀-၀၆ 「ထုတ်လို့ မရသေး」) ═══════════
+   ဖြတ်ချက် အဟောင်း (သို့) worker က ငြင်းခဲ့တဲ့ ဖြတ်ချက်ကြောင့် တိုတဲ့ အပိုင်းအစ ကျန်လျှင်
+   export က 422 နဲ့ ပိတ်သည်。 ⇒ recut → လက်ရှိ ဆုံးဖြတ်ချက် (ကြားအပိုင်း ပေါင်းပြီး) နဲ့
+   approve ပြန် → ဖြတ်ချက် → plan အတိုင်း Preview/Export အလိုလို ဆက်。 */
+function autoFix(pl){
+  if(!JOB) return;
+  planSet(JOB, pl||{motion:"auto", preview:true});
+  fetch("/api/jobs/"+JOB+"/recut",{method:"POST",
+    headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d} }) })
+   .then(function(y){
+     if(!y.ok){ tip("ပြင်၍ မရပါ — "+(y.d.detail||"")); return }
+     if(JOBROW) JOBROW.status="review"; D.status="review";
+     document.body.classList.remove("rv","rvcut","cutrev");
+     var d0=document.getElementById("dn"); if(d0) d0.remove();
+     window._sent=false; REV=false; BUSY=false;
+     var bk=document.getElementById("bok"); bk.disabled=false;
+     window._autoGo=true; bk.click();
+   })
+   .catch(function(e){ tip("ပြင်၍ မရပါ — "+(e.message||e)) });
+}
+function _curPlan(prev){
+  var lv=(document.querySelector('#dn .vlv[aria-pressed="true"]')||{}).getAttribute
+        ? document.querySelector('#dn .vlv[aria-pressed="true"]').getAttribute("data-lv") : "auto";
+  var left=(+(JOBROW&&JOBROW.prev_free)||0)-(+(JOBROW&&JOBROW.prev_used)||0);
+  return {motion:lv||"auto", preview: prev===undefined ? left>0 : !!prev};
+}
 
 /* ══ ဖြတ် → ✨ Motion·SFX → 👁 Preview → ✅ Export (Zin ၂၀၂၆-၁၀-၀၅) ════════════════════
    ⚠️ server အဆင့်တွေ (approve → cut → cutok → prev/go) **မပြောင်း** — ဖြတ်ချက် ထုတ်တဲ့
