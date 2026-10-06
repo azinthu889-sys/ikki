@@ -71,6 +71,10 @@ def main():
               and "dur" not in DR._modern_dur("modern.mt_counter", {"value": "1"}, None)
               and DR._modern_dur("prem7.compare_bar", {"a": 1}, 1.0) == {"a": 1},
               "dress `hold` ⇒ modern `dur` (အနည်းဆုံး ချိန်ချက်)")
+        check(DR._ev_hold({"kind": "modern.mt_neon_box", "hold": 3.2}, 1.4) == 1.4
+              and DR._ev_hold({"kind": "prem7.compare_bar", "hold": 3.2}, 1.4) == 3.2
+              and DR._ev_hold({"kind": "modern.mt_neon_box", "hold": 3.2}, None) == 3.2,
+              "modern ⇒ worker coverage ရပ်ချိန် ဦးစား (plan event 3.2s မဟုတ်)")
 
         for asp in ("16:9", "9:16"):
             TH.use("ikki", asp)

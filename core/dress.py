@@ -661,6 +661,7 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
     subprocess.run(["ffmpeg","-v","error","-y","-f","lavfi",
         "-i",f"color=c=black:s=16x16:d=1","-frames:v","1","-pix_fmt","rgba",blank],check=True)
     made=[]
+    _hold0 = hold
     LAST.clear()
     LAST.update(want=len(gfx), no_template=0, build_fail=0,
                 no_room=0, out_of_frame=0, overlap=0, moved=0, placed=0,
@@ -804,7 +805,7 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    non-int" · "invalid literal for int()" — တကယ် ဖြစ်ခဲ့)。
             # ⚠️ renderer v2 (60fps · motion blur) သုံးမည်ဆိုလျှင် builder ကိုပါ
             #    60fps နဲ့ ဆောက်ရသည် — 30fps ဖရိမ်တွေနဲ့ blur မထွက်。
-            a = _modern_dur(g["kind"], a, g.get("hold") or hold)
+            a = _modern_dur(g["kind"], a, _ev_hold(g, _hold0) or _hold0)
             _r = _r2()
             if _r is not None:
                 with _r.hifps(60):
@@ -1113,8 +1114,12 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
         # ⚠️ **event တစ်ခုချင်း** ရပ်ချိန် ပေးလို့ ရရမည် — plan (`execute.py`)
         #    က event တစ်ခုချင်း `startTime`/`endTime` ပေးသည်。 မရှိလျှင်
         #    ယခင်အတိုင်း global `hold`。
-        _h = g.get("hold")
-        hold = float(_h) if _h else hold
+        # ⚠️ modern card က worker ရဲ့ coverage ရပ်ချိန် (`_hold0`) ကို ယူသည် —
+        #    plan ရဲ့ event ရပ်ချိန် (~၃.၂s) က ၆၀s မှာ share ၀.၄၆ ⇒ ၅ ခု ဖယ်ခံရ
+        #    (j_d96beb16229d)。 ⚠️ fallback က `_hold0` — ယခင်က ရှေ့ event ရဲ့
+        #    ရပ်ချိန် ကူးလာသည်。
+        _h = _ev_hold(g, _hold0)
+        hold = float(_h) if _h else _hold0
         if _is_pack:
             # Pack ရဲ့ hold ကိုအပေါ်က concat ထဲမှာပြီးသား ဆောက်ထားသည်။
             hold = None
@@ -1686,6 +1691,13 @@ def _modern_dur(kind, args, hold):
     if lo is None or "dur" in args:
         return args
     return dict(args, dur=round(max(lo, float(hold)), 2))
+
+
+def _ev_hold(g, hold0):
+    """event ရပ်ချိန် — modern card ဆိုလျှင် worker ရဲ့ coverage `hold0` က ဦးစား。"""
+    if hold0 and str(g.get("kind", "")).startswith("modern."):
+        return hold0
+    return g.get("hold")
 
 
 def _call_template(fn, kind, tag, args):
