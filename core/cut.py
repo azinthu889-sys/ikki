@@ -558,6 +558,31 @@ MIN_DROP = 0.08          # ဒီထက် တိုသော ဖျက်ချ
 MIN_LEFT = 1.0           # ဗီဒီယိုမှာ အနည်းဆုံး ကျန်ရမည့် စက္ကန့်
 
 
+def merge_drops(drops, gap=0.03):
+    """ထပ်/ကပ်နေသော ဖျက်ချက်များကို **ပေါင်း**သည် — `[[a, b], …]` (အစဉ်လိုက်)
+
+    ⚠️ Zin ၂၀၂၆-၁၀-၀၆ 「စာသားဖျက်ပေမယ့် timeline/ထွက်ဖိုင်မှာ မပျက်」 — j_4dd59bb90b5a:
+       editor ဖျက်ချက် ၂၇ ခုထဲ **၁၂ ခု ငြင်း**ခံရ。 ဝါကျ ဖျက်ချက်နဲ့ ချိန်ညှိချက်ကြားက
+       ၀.၁၅–၀.၂၇s အပိုင်းအစတွေကို **တစ်ခုချင်း** စစ်တော့ အစွန်းက စကားထဲ ကျသလို
+       ဖြစ်ခဲ့ (တကယ်က ဘေးက ဖျက်ချက်နဲ့ ဆက်နေ ⇒ ပေါင်းလျှင် အပြင်အစွန်း တိတ်ဆိတ်ရာ)。
+       ⇒ စစ်ဆေးချက် (`validate_drops`) **မတိုင်ခင်** ပေါင်းရမည် · စစ်ချက်ကို မလျှော့ပါ。
+    """
+    out, xs = [], []
+    for d in (drops or []):
+        try:
+            a, b = float(d[0]), float(d[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if b > a:
+            xs.append((a, b))
+    for a, b in sorted(xs):
+        if out and a <= out[-1][1] + gap:
+            out[-1][1] = max(out[-1][1], b)
+        else:
+            out.append([a, b])
+    return [[round(a, 3), round(b, 3)] for a, b in out]
+
+
 def validate_drops(drops, sp, dur, edge=EDGE_PAD, min_drop=MIN_DROP,
                    min_left=MIN_LEFT, kept=None, spans=None):
     """`(ok, bad)` — `ok` က ဖြတ်လို့ရသော အပိုင်း · `bad` က `(အပိုင်း, အကြောင်းရင်း)`

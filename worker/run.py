@@ -1724,6 +1724,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    ⚠️ မလုံခြုံသည်ကို **ပိတ်ပြီး အကြောင်းရင်း ပြ**ရမည် —
             #       တိတ်တဆိတ် ကျော်သွားလျှင် သုံးစွဲသူ ဘယ်တော့မှ မသိရ。
             _kept = sum(b - a for a, b in spans)
+            # ⚠️ ထပ်/ကပ် ဖျက်ချက်ကို **အရင် ပေါင်း** (အပိုင်းအစ ၁၂/၂၇ ငြင်းခံရမှု · ၂၀၂၆-၁၀-၀၆)
+            if hasattr(CUT, "merge_drops"):
+                _n0 = len(user_drop_exact)
+                user_drop_exact = CUT.merge_drops(user_drop_exact)
+                if len(user_drop_exact) != _n0:
+                    log(f"  ⧉ ဖျက်ချက် ထပ်/ကပ် ပေါင်း · {_n0} → {len(user_drop_exact)}")
             _dok, _dbad = CUT.validate_drops(user_drop_exact, MEAS[0], m["dur"],
                                              kept=_kept, spans=spans)
             # 2026-09-30 (Zin: "the bits I cut inside a phrase must really go"):

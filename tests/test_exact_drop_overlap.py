@@ -39,5 +39,25 @@ class Overlap(unittest.TestCase):
             self.assertIn("kept=_kept, spans=spans)", f.read())
 
 
+
+
+class MergeDrops(unittest.TestCase):
+    """ထပ်/ကပ် ဖျက်ချက် ပေါင်း (j_4dd59bb90b5a — ၁၂/၂၇ ငြင်းခံရမှု · ၂၀၂၆-၁၀-၀၆)"""
+    def test_merge(self):
+        m = C.merge_drops([[114.46, 114.73], [114.0, 114.46], [120, 121], [121.02, 121.5], [130, 131]])
+        self.assertEqual(m, [[114.0, 114.73], [120.0, 121.5], [130.0, 131.0]])
+
+    def test_merged_edges_validated_outside(self):
+        # အပိုင်းအစ (အစက စကားထဲ) + ဘေးက ဝါကျ ဖျက်ချက် ⇒ ပေါင်း ⇒ အပြင်အစွန်း တိတ်ဆိတ်ရာ ⇒ ok
+        sp = [(1.0, 3.0), (5.0, 7.0)]
+        piece, sent = [6.5, 7.2], [4.8, 6.5]
+        ok1, bad1 = C.validate_drops([piece], sp, 10.0)
+        self.assertFalse(ok1)
+        ok2, bad2 = C.validate_drops(C.merge_drops([piece, sent]), sp, 10.0)
+        self.assertEqual(ok2, [[4.8, 7.2]])
+
+    def test_garbage(self):
+        self.assertEqual(C.merge_drops([None, [3, 2], ["a", 1]]), [])
+
 if __name__ == "__main__":
     unittest.main()
