@@ -112,12 +112,18 @@ class Ui(unittest.TestCase):
     def setUp(self):
         self.s = _src("web", "script.html")
 
-    def test_corrected_text_disables_word_spans(self):
-        """⚠️⚠️ `FIX[n]` ရှိလျှင် စာသားက ပြောင်းသွားပြီဖြစ်၍ `words` အချိန်နဲ့
-           မကိုက်တော့ — အတင်း တွဲလျှင် **မှားတဲ့ နေရာ** ဖြတ်မည်。"""
+    def test_corrected_text_keeps_word_spans(self):
+        """⚠️⚠️ (၂၀၂၆-၁၀-၀၆ ပြောင်း) `FIX[n]` ⇒ span **မဖြုတ်ရ** — ဖြုတ်ခဲ့ရာ script ✓ ပြီး
+           ဝါကျမှာ စာလုံးလိုက် ဖြတ်လို့ မရ (Zin 「စာသားဖျက်ပေမယ့် timeline မပျက်」)。
+           ⇒ စကားလုံး အရေ တူ ⇒ ASR အချိန် · မတူ ⇒ **ခန့်မှန်း (`est`)** · ဖြတ်ချိန် တိတ်ဆိတ်ရာ snap。"""
         i = self.s.find("function txHtml(")
         w = self.s[i:i + 700]
-        self.assertIn("if(FIX[s.n] ||", w)
+        self.assertIn("wordsOf(s)", w)
+        j = self.s.find("function wordsOf(")
+        v = self.s[j:j + 1600]
+        self.assertIn("toks.length===ws.length", v)      # အရေ တူ ⇒ ASR အချိန် ပြန်သုံး
+        self.assertIn("est:1", v)                         # မတူ ⇒ ခန့်မှန်း အမှတ်
+        self.assertIn("snapQuiet(raw0", self.s)           # ဖြတ်ချိန် snap ဆက်ရှိ
 
     def test_selecting_a_whole_sentence_deletes_the_line(self):
         """⚠️ ✂ အပိုင်းနဲ့ ဖုံးလျှင် ရေတွက်မှု · အစီရင်ခံစာ နှစ်ခု ကွဲမည်"""

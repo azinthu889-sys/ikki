@@ -249,6 +249,8 @@ body.rv #tlnext,body.done #tlnext,body.prep #tlnext{display:none}
 /* ⚠️ စာလုံး ဆွဲရွေးလို့ရကြောင်း **မြင်ရမည်** — မမြင်ရလျှင် ဘယ်သူမှ မစမ်းကြည့်。 */
 .row .tx .w{border-radius:3px;padding:0 .5px}
 .row .tx .w:hover{background:#F5F5F4}
+/* ခန့်မှန်းအချိန် စကားလုံး — ဖြတ်ရင် တိတ်ဆိတ်ရာ ညှိ (hover မှာ သိသာ) */
+.row .tx .w.est:hover{background:#FEF9C3}
 .row.del .tx .w:hover{background:transparent}
 /* ✂ စာလုံး ဖြတ်ချက်ကို **စာသားပေါ်မှာ** ပြရမည် — ရိုးရှင်း mode မှာ လှိုင်း canvas
    ပိတ်ထား (width 0) ⇒ အရင်က ဖြတ်ပြီးသားကို မမြင်ရ (၂၀၂၆-၁၀-၀၄ စမ်းစဉ် တွေ့) */
@@ -1059,6 +1061,8 @@ var SDEL={}, TRIM={};
    ပုံသေက **ချန်** — 「user အတည်ပြုမှ ဖျက်ပေး」(Zin)。 engine က ဒီပိုင်းတွေကို
    မဖြတ်ပါ · နားထောင်ပြီး သုံးစွဲသူ ဆုံးဖြတ်ရမည်。 */
 var UDEL={};
+/* timeline waveform ပေါ် ဆွဲရွေးပြီး ဖြတ် (Zin ၂၀၂၆-၁၀-၀၆ C) — key "a:b" (မူရင်း အချိန်) */
+var RDEL={}, TLRANGE=null;
 // ⚠️ SKEEP = **ချန်ခိုင်းသော အနားယူချက်** (engine က ပုံသေ ဖြတ်သည်)。
 //    `PAU_MIN` — ဒီထက် တိုသော အနားယူချက်ကို အကွက် မပြပါ (တစ်ခုချင်း
 //    ပြလျှင် ဝါကျတိုင်းကြား အကွက် ၂၀ ကျော် ဖြစ်ပြီး ဖတ်ရ မရ)。
@@ -1225,7 +1229,7 @@ function undo(){
   //    မခွဲဘဲ `DEL=UNDO.pop()` လုပ်လျှင် DEL က wrapper object ဖြစ်သွားပြီး
   //    ဝါကျတိုင်း ဖျက်ထားသလို ဖြစ်မည် (၂၀၂၆-၁၀-၀၄ စမ်းစဉ် တွေ့)。
   var _u=UNDO.pop();
-  if(_u && _u.__both){ DEL=_u.DEL; TRIM=_u.TRIM } else { DEL=_u||{} }
+  if(_u && _u.__both){ DEL=_u.DEL; TRIM=_u.TRIM; if(_u.RDEL) RDEL=_u.RDEL } else { DEL=_u||{} }
   cutAdjHide();
   _SKT=0; paint(); counts(); tip("ပြန်ပြင်ပြီး");
 }
@@ -1749,6 +1753,32 @@ function snapQuiet(t, dir, lo, hi){
   return best===null ? t : +best.toFixed(3);
 }
 /* ရွေးထားသော စာလုံးများ → ဝါကျအလိုက် အပိုင်း (snap ပြီးသား) */
+/* ══ စကားလုံးအချိန် (Zin ၂၀၂၆-၁၀-၀၆ 「စာသားဖျက်ပေမယ့် timeline မပျက်」) ══
+   ⚠️ span မရှိသော ဝါကျ ၂ မျိုး — ASR `words` မရှိ · script နဲ့ စာလုံးပေါင်း ပြင်ပြီး (`FIX`)
+      ⇒ ယခင်က **ရွေး/ဖြတ်လို့ မရ** (စာသားကို ဖျက်ပေမယ့် timeline မပြောင်း)。
+   ⇒ ① FIX နဲ့ စကားလုံး အရေအတွက် တူ ⇒ ASR အချိန်ကို ပြန်သုံး
+     ② မဟုတ် ⇒ parts (ရှိလျှင်) · မရှိ ⇒ ဝါကျ အရှည်ကို **စာလုံးအရေ အချိုးကျ** ဝေ
+        (`est` · ဖြတ်ချိန်မှာ `snapQuiet` က တိတ်ဆိတ်ရာ ညှိသည်) */
+function wordsOf(s){
+  if(!s) return [];
+  var t=String(FIX[s.n]||s.text||""), key=t+"|"+s.start+"|"+s.end;
+  if(s._wk===key) return s._ww;
+  var toks=t.split(/\s+/).filter(Boolean), ws=(s.words&&s.words.length)?s.words:null, out=[];
+  if(ws && !FIX[s.n]) out=ws.map(function(w){return {w:w.w, s:+w.s, e:+w.e}});
+  else if(ws && toks.length===ws.length) out=toks.map(function(x,i){return {w:x, s:+ws[i].s, e:+ws[i].e, est:1}});
+  else if(toks.length){
+    var spans=[];
+    (s.parts||[]).forEach(function(p){ if(p && p.text && !FIX[s.n]) spans.push({a:+p.start, b:+p.end,
+      tk:String(p.text).split(/\s+/).filter(Boolean)}) });
+    if(!spans.length) spans=[{a:+s.start, b:+s.end, tk:toks}];
+    spans.forEach(function(sp){
+      var tot=sp.tk.reduce(function(a,x){return a+x.length+1},0)||1, c=sp.a;
+      sp.tk.forEach(function(x){ var d=(sp.b-sp.a)*(x.length+1)/tot;
+        out.push({w:x, s:c, e:c+d, est:1}); c+=d });
+    });
+  }
+  s._wk=key; s._ww=out; return out;
+}
 function selWords(){
   var sel=window.getSelection();
   if(!sel||sel.isCollapsed||!sel.rangeCount) return null;
@@ -1768,7 +1798,7 @@ function selWords(){
     var raw0=+es[0].getAttribute("data-ws"), raw1=+es[es.length-1].getAttribute("data-we");
     es.forEach(function(e){ raw0=Math.min(raw0,+e.getAttribute("data-ws"));
                             raw1=Math.max(raw1,+e.getAttribute("data-we")) });
-    var whole = (S.words && idx.length===S.words.length);
+    var whole = (idx.length===wordsOf(S).length);
     // ⚠️ ဝါကျတစ်ခုလုံး ရွေးလျှင် **ဝါကျ ဖျက်ချက်** အဖြစ် သတ်မှတ်ရမည် —
     //    ✂ အပိုင်းနဲ့ ဖုံးလျှင် ရေတွက်မှု · အစီရင်ခံစာ နှစ်ခု ကွဲမည်。
     var a=raw0, b=raw1;
@@ -2029,7 +2059,10 @@ document.addEventListener("click",function(ev){
     var n=g.i+1, cur=FIX[n]||((D.sentences[g.i]||{}).text||"");
     FIX[n] = cur.indexOf(g.base)>-1 ? cur.replace(g.base,g.new) : g.text;
     var tx=document.querySelector('#list .row[data-n="'+n+'"] .tx');
-    if(tx && tx.firstChild) tx.firstChild.nodeValue=FIX[n];
+    // ⚠️ span ပြန်ထုတ် — စာလုံးပေါင်း ပြင်ပြီးလည်း စာလုံးလိုက် ဖြတ်လို့ ရရမည်
+    var _S=(D.sentences||[]).find(function(z){return z.n===n});
+    if(tx && _S && window._txHtml) tx.innerHTML=window._txHtml(_S);
+    else if(tx && tx.firstChild) tx.firstChild.nodeValue=FIX[n];
   }
   placeSug();
 }, true);
@@ -2222,15 +2255,16 @@ function render(d){
         မှားတဲ့ နေရာ ဖြတ်မည်。
      ⚠️ `white-space` မပျက်စေရန် စကားလုံးကြားမှာ ရိုးရိုး space ထားသည်。 */
   function txHtml(s){
-    var t=FIX[s.n]||s.text;
-    if(FIX[s.n] || !s.words || !s.words.length) return esc(t);
+    var t=FIX[s.n]||s.text, ws=wordsOf(s);
+    if(!ws.length) return esc(t);
     var o='';
-    s.words.forEach(function(w,i){
-      o+='<span class="w" data-wn="'+s.n+'" data-wi="'+i+'" data-ws="'+(+w.s).toFixed(3)
-        +'" data-we="'+(+w.e).toFixed(3)+'">'+esc(w.w)+'</span>'+(i<s.words.length-1?' ':'');
+    ws.forEach(function(w,i){
+      o+='<span class="w'+(w.est?' est':'')+'" data-wn="'+s.n+'" data-wi="'+i+'" data-ws="'+(+w.s).toFixed(3)
+        +'" data-we="'+(+w.e).toFixed(3)+'">'+esc(w.w)+'</span>'+(i<ws.length-1?' ':'');
     });
     return o;
   }
+  window._txHtml=txHtml;
   // ⚠️ cat ကို class အဖြစ် မထည့်တော့ပါ — အုပ်စုကို အရောင်နဲ့ မပြရ (Zin ၂၀၂၆-၀၉-၁၈)
   /* စာပိုဒ် ခွဲမှတ် — ခဏရပ် ≥၁.၂s (သို့) ဝါကျ ၆ ကြောင်း (စာအုပ်လို ဖတ်ရလွယ်ရန်) */
   var _PBC=0;
@@ -2530,6 +2564,10 @@ document.getElementById("bok").onclick=function(){
   });
   /* ⚠️ စာတမ်းမှာ မပါသော ပိုင်းကနေ ဖျက်ခိုင်းထားတာ */
   Object.keys(UDEL).forEach(function(k){
+    var a=k.split(":"); ds.push([+a[0], +a[1]]);
+  });
+  /* timeline waveform ပေါ် ဆွဲရွေး ဖြတ်ချက် */
+  Object.keys(RDEL).forEach(function(k){
     var a=k.split(":"); ds.push([+a[0], +a[1]]);
   });
   /* ⚠️ **အသံလိုင်းပေါ် ကိုယ်တိုင် ရွေးပြီး ဖြတ်ခိုင်းထားတာ**。 ဝါကျ ရှိမရှိ
@@ -3302,6 +3340,7 @@ function tlDrops(){
   (D.sentences||[]).forEach(function(x){ if(DEL[x.n]) d.push([x.start, x.end]) });
   Object.keys(SDEL).forEach(function(k){ var a=k.split(":"); d.push([+a[0], +a[1]]) });
   Object.keys(UDEL).forEach(function(k){ var a=k.split(":"); d.push([+a[0], +a[1]]) });
+  Object.keys(RDEL).forEach(function(k){ var a=k.split(":"); d.push([+a[0], +a[1]]) });
   Object.keys(TRIM).forEach(function(n){
     if(DEL[n]) return; (TRIM[n]||[]).forEach(function(r){ d.push([r[0], r[1]]) }) });
   Object.keys(PDEL).forEach(function(k){
@@ -3476,15 +3515,17 @@ function tcItems(){
     out.push({key:"x|"+k, kind:"x", k:k, a:+a[0], b:+a[1], cut:true}) });
   Object.keys(UDEL).forEach(function(k){ var a=k.split(":");
     out.push({key:"u|"+k, kind:"u", k:k, a:+a[0], b:+a[1], cut:true}) });
+  Object.keys(RDEL).forEach(function(k){ var a=k.split(":");
+    out.push({key:"g|"+k, kind:"g", k:k, a:+a[0], b:+a[1], cut:true}) });
   Object.keys(TCRES).forEach(function(key){
     var r=TCRES[key];
     if(r.kind==="r") out.push({key:key, kind:"r", a:r.a, b:r.b, cut:false});
-    if((r.kind==="x" && !SDEL[r.k]) || (r.kind==="u" && !UDEL[r.k]))
+    if((r.kind==="x" && !SDEL[r.k]) || (r.kind==="u" && !UDEL[r.k]) || (r.kind==="g" && !RDEL[r.k]))
       out.push({key:key, kind:r.kind, k:r.k, a:r.a, b:r.b, cut:false});
   });
   return out;
 }
-var TC_NAME={s:"အနားယူ", d:"စာကြောင်း", t:"စာလုံး", x:"အသံ", u:"စာတမ်းမှာ မပါ", r:"အပိုင်း"};
+var TC_NAME={s:"အနားယူ", d:"စာကြောင်း", t:"စာလုံး", x:"အသံ", u:"စာတမ်းမှာ မပါ", r:"အပိုင်း", g:"ရွေးဖြတ်"};
 function tlCuts(){
   var box=document.getElementById("tlcuts"); if(!box) return;
   var dur=tlDur(); if(!dur){ box.innerHTML=""; return }
@@ -3697,6 +3738,10 @@ function tcToggle1(key){
     if(it.cut){ if(ix>-1) arr.splice(ix,1); TCRES[key]={kind:"t", n:it.n, p:it.p} }
     else { arr.push(it.p); arr.sort(function(x,y){return x[0]-y[0]}); delete TCRES[key] }
     _SKT=0; paintTrim(it.n);
+  } else if(it.kind==="g"){
+    UNDO.push({__both:true, DEL:Object.assign({},DEL), TRIM:JSON.parse(JSON.stringify(TRIM)), RDEL:Object.assign({},RDEL)});
+    if(RDEL[it.k]){ delete RDEL[it.k]; TCRES[key]={kind:"g", k:it.k, a:it.a, b:it.b} }
+    else { RDEL[it.k]=1; delete TCRES[key] }
   } else {
     var sel = it.kind==="x" ? '.snd[data-sk="'+it.k+'"] [data-sdel]' : '.unl[data-uk="'+it.k+'"] [data-udel]';
     var btn=document.querySelector(sel);
@@ -3990,6 +4035,20 @@ function tlBind(){
        ပေးလျှင် `s2o()` ကို နှစ်ထပ် ခံပြီး **အများကြီး လွဲ**မည်。 */
     ev.preventDefault();
     var _t=tOf(ev);
+    /* ══ C: ဆွဲရွေး ⇒ ဖြတ် (Descript) — နှိပ်ရုံ ⇒ ခုန် (ယခင်အတိုင်း) ══
+       ⚠️ ဖြတ်ချက် မရွေ့နိုင်သော ထုတ်ပြီး (OUT) မှာ မလုပ် · touch မှာ scroll နဲ့ မရော */
+    if(!OUT.on && !ev.touches && !document.body.classList.contains("rv")){
+      var _t0=_t, _mv=false;
+      var mv=function(e2){ var t1=tOf(e2);
+        if(Math.abs(t1-_t0)>0.06){ _mv=true; tlSel(Math.min(_t0,t1), Math.max(_t0,t1)) } };
+      var up=function(e2){
+        document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up);
+        if(!_mv){ seekTo(_t0); return }
+        var t1=tOf(e2); tlRangeBar(Math.min(_t0,t1), Math.max(_t0,t1), e2);
+      };
+      document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+      return;
+    }
     seekTo(OUT.on ? o2s(_t) : _t);
   }
   body.addEventListener("mousedown", go);
@@ -4039,6 +4098,43 @@ function tlHead(t){
 
 /* စာတမ်းမှာ ရွေးထားတာကို timeline ပေါ် ခရမ်းရောင်နဲ့ ပြသည် — ဘယ်နေရာ · ဘယ်လောက်
    ကြာတာ ဖြတ်မလဲ စာဖတ်ရင်းပဲ မြင်ရသည် (Descript)。 a===null ⇒ ဖျောက်。 */
+/* ══ C: timeline ဆွဲရွေး — အစွန်းကို စကားလုံး (≤၀.၁၅s) · မရလျှင် တိတ်ဆိတ်ရာ snap ══ */
+function tlSnap(t, dir){
+  var best=null, bd=0.15;
+  (D.sentences||[]).forEach(function(s){
+    if(t<s.start-1||t>s.end+1) return;
+    wordsOf(s).forEach(function(w){
+      var b = dir<0 ? w.s : w.e, d=Math.abs(b-t);
+      if(d<bd){ bd=d; best=b }
+    });
+  });
+  if(best!==null) return best;
+  try{ return snapQuiet(t, dir, Math.max(0,t-0.25), t+0.25) }catch(e){ return t }
+}
+function tlRangeBar(a, b, ev){
+  var x=document.getElementById("tlrbar"); if(x) x.remove();
+  var a2=tlSnap(a,-1), b2=tlSnap(b,+1);
+  if(b2-a2<0.05){ TLRANGE=null; tlSel(null); return }
+  TLRANGE=[+a2.toFixed(3), +b2.toFixed(3)]; tlSel(TLRANGE[0], TLRANGE[1]);
+  var el=document.createElement("div"); el.className="wsel"; el.id="tlrbar";
+  el.innerHTML='<span>'+(b2-a2).toFixed(2)+'s ရွေးထား</span><small>⌫ / X နဲ့လည်း ဖြတ်လို့ရ · စကားလုံး/တိတ်ဆိတ်ရာ ညှိပြီး</small>'
+    +'<button type="button" id="tlrdo">✕ ဖြတ်မယ်</button><button type="button" class="x" id="tlrno">✗</button>';
+  document.body.appendChild(el);
+  var w=el.offsetWidth, h=el.offsetHeight;
+  el.style.left=Math.max(8, Math.min(innerWidth-w-8, ev.clientX-w/2))+"px";
+  el.style.top=Math.max(8, ev.clientY-h-18)+"px";
+  document.getElementById("tlrdo").onclick=tlRangeCut;
+  document.getElementById("tlrno").onclick=function(){ TLRANGE=null; el.remove(); tlSel(null) };
+}
+function tlRangeCut(){
+  if(!TLRANGE) return;
+  UNDO.push({__both:true, DEL:Object.assign({},DEL), TRIM:JSON.parse(JSON.stringify(TRIM)), RDEL:Object.assign({},RDEL)});
+  RDEL[TLRANGE[0].toFixed(3)+":"+TLRANGE[1].toFixed(3)]=1;
+  var d=TLRANGE[1]-TLRANGE[0];
+  TLRANGE=null; var x=document.getElementById("tlrbar"); if(x) x.remove(); tlSel(null);
+  _SKT=0; paint(); counts(); try{ tlRefresh() }catch(e){}
+  tip("✂ "+d.toFixed(2)+"s ဖြတ်ပြီး · ⌘Z နဲ့ ပြန်ယူ");
+}
 function tlSel(a, b){
   var body=document.getElementById("tlbody"), e=document.getElementById("tlsel");
   if(a===null||a===undefined||!body){ if(e) e.remove(); return }
@@ -4360,8 +4456,14 @@ document.addEventListener("keydown",function(e){
   if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z"){e.preventDefault();undo();return}
   if(e.key==="Escape" && CADJ){ stopAll(); cutAdjHide(); return }
   // ⌫ / Delete ⇒ ဆွဲရွေးထားသော စာလုံးကို ဖြတ် (Descript အတိုင်း — bar ခလုတ် မရှာရ)
-  if((e.key==="Backspace"||e.key==="Delete") && !document.body.classList.contains("rv")){
-    var _g=selWords(); if(_g){ e.preventDefault(); selCut(_g); return }
+  if(TLRANGE && (e.key==="Backspace"||e.key==="Delete"||e.key.toLowerCase()==="x")){
+    e.preventDefault(); tlRangeCut(); return }
+  if(e.key==="Backspace"||e.key==="Delete"){
+    var _g=selWords();
+    // ⚠️ ထုတ်ပြီး (rv) မှာ **တိတ်တဆိတ် မလျစ်လျူရှုရ** — ဘာကြောင့် မဖြတ်လဲ ပြော
+    if(_g && document.body.classList.contains("rv")){ e.preventDefault();
+      tip("ထုတ်ပြီးသား ဗီဒီယိုပါ — ဖြတ်ချက်ပြင်ဖို့ 「↩ ပြန်ဖြတ်မယ်」 ကို အရင် နှိပ်ပါ"); return }
+    if(_g){ e.preventDefault(); selCut(_g); return }
   }
   var rows=[].slice.call(document.querySelectorAll(".row[data-n]"));
   if(e.key==="ArrowDown"){e.preventDefault();select(SEL+1)}

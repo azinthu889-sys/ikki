@@ -970,6 +970,79 @@ def japanese(wav, log=print):
 
 def _ts(ms): return round(ms/1000.0, 2)
 
+# ══ MMS forced alignment (Zin ၂၀၂၆-၁၀-၀၆ 「cut engine ပိုတိကျ」 B) ══════════════
+#    Gemini စကားလုံးအချိန်က ခန့်မှန်းချက် — တိုင်းချက် (WU job ၃၁ လုံး): စကားလုံး
+#    စချိန်မှာ အသံ ကျယ်တက်မှု Gemini **၀.၀ dB** · MMS **+၂.၈ dB** · Gemini က ဝါကျ
+#    နောက်ပိုင်း ၀.၂–၀.၉s စော ⇒ ဖြတ်ရင် စကားထဲ ဝင်ဖြတ် / ကျန်。
+#    ⇒ `tools/align_mms.py` (သီးသန့် venv · torch) နဲ့ ပြန်ချိန် · score နိမ့်/မမှန်ရင် Gemini ထား。
+MMS_PY = os.environ.get("IKKI_MMS_PY", os.path.expanduser("~/ikki-align/.venv/bin/python"))
+MMS_TOOL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "align_mms.py")
+MMS_MIN_SCORE = 0.45
+
+
+def mms_refine(segs, wav, log=print):
+    """`segs[i]["words"]` ရဲ့ s/e ကို MMS နဲ့ အစားထိုး (ဝါကျ ဘောင် မကျော် · အစဉ် မပြောင်း)。"""
+    if os.environ.get("IKKI_MMS", "1") == "0" or not os.path.exists(MMS_PY) or not segs:
+        return segs
+    import tempfile, statistics
+    td = tempfile.mkdtemp(prefix="mms_")
+    sj, oj = os.path.join(td, "s.json"), os.path.join(td, "o.json")
+    rows = []
+    for i, s in enumerate(segs):
+        ws = s.get("words") or []
+        if ws and s.get("start") is not None:
+            rows.append(dict(n=i, start=float(s["start"]), end=float(s["end"]),
+                             text=" ".join(str(w.get("w") or "") for w in ws)))
+    if not rows:
+        return segs
+    json.dump(rows, open(sj, "w"), ensure_ascii=False)
+    dur = max(float(r["end"]) for r in rows)
+    t0 = time.time()
+    try:
+        r = subprocess.run([MMS_PY, MMS_TOOL, wav, sj, oj], capture_output=True, text=True,
+                           timeout=300 + dur * 1.5)
+        out = json.load(open(oj)) if r.returncode == 0 and os.path.exists(oj) else None
+    except Exception as e:  # noqa: BLE001
+        out = None
+        log(f"  ⚠️ MMS alignment မရ ({type(e).__name__}) — Gemini အချိန် ဆက်သုံး")
+    if not out:
+        return segs
+    nrep = ntot = 0
+    shifts = []
+    for i, s in enumerate(segs):
+        al = out.get(str(i)) or []
+        ws = s.get("words") or []
+        a0, b0 = float(s.get("start") or 0) - 0.4, float(s.get("end") or 0) + 0.4
+        j = 0
+        last = -1.0
+        for w in ws:
+            ntot += 1
+            # ⚠️ romanize မရသော စကားလုံး (「၅」) ကို MMS က ချန်သည် ⇒ **မတွေ့လျှင် ကျော်ရုံ**
+            #    (ယခင်က break ⇒ ဝါကျ ကျန်တာ အကုန် မချိန်ခဲ့ · ၅/၁၆)
+            k = j
+            while k < len(al) and al[k]["w"] != w.get("w"):
+                k += 1
+            if k >= len(al):
+                continue
+            q = al[k]; j = k + 1
+            if (q.get("score") or 0) < MMS_MIN_SCORE or not (a0 <= q["s"] < q["e"] <= b0) or q["s"] < last:
+                continue
+            shifts.append(q["s"] - float(w.get("s") or q["s"]))
+            w["s"], w["e"], w["mms"] = q["s"], q["e"], q.get("score")
+            last = q["s"]; nrep += 1
+    if ntot:
+        md = statistics.median(shifts) if shifts else 0.0
+        log(f"  🎯 MMS စကားလုံးအချိန် · {nrep}/{ntot} ပြန်ချိန် · ရွှေ့ med {md:+.2f}s · "
+            f"{time.time() - t0:.0f}s")
+    return segs
+
+
 def run(wav, lang="my", log=print, meas=None, align_cfg=None):
-    return (burmese(wav, log, meas=meas, align_cfg=align_cfg)
-            if lang == "my" else japanese(wav, log))
+    if lang == "my":
+        segs = burmese(wav, log, meas=meas, align_cfg=align_cfg)
+        try:
+            return mms_refine(segs, wav, log)
+        except Exception as e:  # noqa: BLE001 — job မကျစေရ
+            log(f"  ⚠️ MMS ({type(e).__name__}: {e}) — Gemini အချိန် ဆက်သုံး")
+            return segs
+    return japanese(wav, log)
