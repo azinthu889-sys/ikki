@@ -71,6 +71,11 @@ class ModernPlan(unittest.TestCase):
         seg2 = {"words": [{"w": "a", "s": 1.0}, {"w": "KBZ", "s": 8.9}]}
         self.assertEqual(PL._word_anchor(seg2, {"text": "KBZ"}, 1.0, 9.2), 1.0)
 
+    def test_neon_date_range(self):
+        self.assertEqual(PL._modern_props("modern.mt_neon_box", "number",
+                         "ဒီအစီအစဉ်ကာလကတော့ စက်တင်ဘာလ ၂၉ ရက်နေ့မှာ စပြီးတော့ အောက်တိုဘာလ ၃၁ ရက်နေ့ထိ ဖြစ်ပါတယ်။")["text"],
+                         "စက်တင်ဘာ ၂၉ – အောက်တိုဘာ ၃၁")
+
     def test_section_text_not_asr_lowercase(self):
         pr = PL._modern_props("modern.mt_section", "statement",
                               "price fee ကို ချက်ချင်းလှည့်ကန်ဆန်းခွင့် တစ်ကြိမ်ရရှိမှာ ဖြစ်ပါတယ်။")

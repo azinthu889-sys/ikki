@@ -3052,7 +3052,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    `motion_exit` (၀.၁၀၀s) · `motion_ease` (၀.၁၅) ကျမည်ဂ
             if gmov:
                 _ez0 = time.time()
-                gmov = [(a_, _ease_clip(m_, d_, log=log), d_, y0_, y1_)
+                # ⚠️ **modern card ကို ease ပြန်မချိန်ရ** — `curve` နည်းက alpha ×k
+                #    မြှောက်သဖြင့် section ရဲ့ ပါးပါး gradient (alpha ~၀.၆) က
+                #    **အမည်း band အပြည့်** ဖြစ်ပြီး မျက်နှာ ဖုံးသည် (j_d96beb16229d
+                #    ၂.၃s)。 modern က ကိုယ်ပိုင် ease (motmeas အောင်ပြီး) ပါသည်。
+                _mod_at = {k_ for k_, v_ in (locals().get("_vp_meta") or {}).items()
+                           if str(v_[0]).startswith("modern.")}
+                gmov = [(a_, (m_ if round(float(a_), 2) in _mod_at
+                              else _ease_clip(m_, d_, log=log)), d_, y0_, y1_)
                         for a_, m_, d_, y0_, y1_ in gmov]
                 log(f"  ↩ ease ပြန်ချိန် · ဂရပ်ဖစ် {len(gmov)} ခု "
                     f"(ဝင် {EASE_ENT}s · pw {EASE_PW2:.0f} · ထွက် {EASE_EX}s) · "

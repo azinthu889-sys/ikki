@@ -1637,6 +1637,10 @@ def _word_anchor(seg, props, a, b):
     return a
 
 
+_MY_MONTHS = ("ဇန်နဝါရီ", "ဖေဖော်ဝါရီ", "မတ်", "ဧပြီ", "မေ", "ဇွန်", "ဇူလိုင်",
+              "ဩဂုတ်", "သြဂုတ်", "စက်တင်ဘာ", "အောက်တိုဘာ", "နိုဝင်ဘာ", "ဒီဇင်ဘာ")
+
+
 def _proper_kw(t):
     """`keyword()` ထဲက **နာမည်/ကိန်း** ကိုသာ ယူသည် — 「Western Union」「KBZ Pay」「၅ သိန်း」。
     ⚠️ ASR ရဲ့ အင်္ဂလိပ် စာလုံးသေး (「price fee」 = prize) ကို ခေါင်းစဉ် မလုပ်ရ
@@ -1701,6 +1705,13 @@ def _modern_props(tid, lab, txt):
             out["head"] = _words(head, 4)
         return out
     if fn == "mt_neon_box":
+        # ⚠️ ရက်စွဲ ⇒ 「စက်တင်ဘာ ၂၉ – အောက်တိုဘာ ၃၁」 (ဝါကျ အစ ၃ လုံး
+        #    「ဒီအစီအစဉ်ကာလကတော့ စက်တင်ဘာလ ၂၉」 က ရှည်ပြီး အဓိပ္ပာယ် မပြည့် ·
+        #    j_d96beb16229d ၉.၉s)
+        _ds = _re.findall(r"(\S+?)လ\s*([0-9၀-၉]{1,2})\s*ရက်", t)
+        _ds = [(m_, d_) for m_, d_ in _ds if m_ in _MY_MONTHS]
+        if _ds:
+            return {"text": " – ".join(f"{m_} {d_}" for m_, d_ in _ds[:2])}
         # warning ⇒ စာကြောင်း အစ (「သတိထားရမှာ … KBZ Pay」) · ကျန် ⇒ အဓိက စကားလုံး
         if lab == "warning":
             return {"text": _words(t, 3)}
