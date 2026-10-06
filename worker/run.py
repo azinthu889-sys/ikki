@@ -151,7 +151,7 @@ def _premium_sfx_checks(cues, mixed, audible, silent, policy, dur):
     tracks are still one perceived sound moment.
     """
     p = policy or {}
-    want = max(1, int(float(p.get("per_min") or 0) * float(dur or 0) / 60.0))
+    want = max(1, int(float(p.get("floor") or p.get("per_min") or 0) * float(dur or 0) / 60.0))
     # ⚠️ **ထုတ်သူ ခွင့်ပြုထက် ပို မတောင်းရ**。 `per_min` က ဤဂိတ်မှာ အနည်းဆုံး ·
     #    `_fit_gfx`/SFX ချိန်ချက်မှာ အမြင့်ဆုံး ⇒ ကိန်း တစ်ခုတည်းက အထက်ရော
     #    အောက်ရော ကန့်သတ်နေသည်。 ၂ ဖက်က **မတူသော အရှည်** နဲ့ တွက်လျှင်
@@ -1262,9 +1262,18 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ သုံးစွဲသူ ကိုယ်တိုင် ပေးထားသော override က **အထက်တန်း** ⇒
             #    reference က လွှမ်းလို့ မရ (Zin: 「explicit user override must
             #    persist」)。
+            # ⚠️ recipe က `music_lock` ဆိုလျှင် reference က တီးလုံး မပိတ်ရ
+            #    (Zin ၂၀၂၆-၁၀-၀၆ 「music ထည့်ပေးပါ」 — headtop premium)
+            try:
+                _mlock = bool(RC.apply(job.get("recipe"), {}).get("music_lock"))
+            except Exception:
+                _mlock = False
             for k in list(_rov):
                 if k in over:
                     ref_notes.append(f"{k}: သုံးစွဲသူ ရွေးချက် ရှိပြီး ⇒ reference မလွှမ်း")
+                    _rov.pop(k)
+                elif k == "music" and _mlock:
+                    ref_notes.append("music: style က lock ⇒ reference မလွှမ်း")
                     _rov.pop(k)
             over.update(_rov)
             log(f"  ✦ reference «{ref_meta.get('name') or '—'}» v{ref_meta.get('ver')} ⇒ "
@@ -4335,8 +4344,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             import camove as CM
             _avoid = [(float(a), float(a) + float(d)) for a, _p, d, _t in (bmov or [])]
-            _avoid += [(float(a), float(a) + float(d)) for a, _m, d, _y0, _y1 in (gmov or [])]
-            _cmv = CM.plan(float(probe(cutv)["dur"]), caps or [], _avoid)
+            # ⚠️ `cam_soft_gfx` — ဘေးကတ်က move ကို မတားရ (headtop မှာ ကတ် ၉ ခုက
+            #    window အားလုံး ပိတ်ပြီး move ၀ ခု ⇒ ဘောင် ငြိမ်လွန်း)。 zoom ပါးပါး
+            #    (`cam_zin` ~၁.၀၈) ဆိုလျှင် ကတ်နဲ့ မျက်နှာ မထိ。
+            if not rc.get("cam_soft_gfx"):
+                _avoid += [(float(a), float(a) + float(d)) for a, _m, d, _y0, _y1 in (gmov or [])]
+            _ckw = {k2: float(rc[k1]) for k1, k2 in (("cam_gap", "gap"), ("cam_zin", "z_in"),
+                                                     ("cam_budget", "budget")) if rc.get(k1)}
+            _cmv = CM.plan(float(probe(cutv)["dur"]), caps or [], _avoid, **_ckw)
             _piv = CM.pivot_from_pose(locals().get("_pose_fr"))
             _bz = os.path.join(work, "cutz.mp4")
             CM.render(cutv, _bz, rc["fps"], _cmv, TH["W"], TH["H"], pivot=_piv, log=log)
@@ -4685,6 +4700,41 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #       နဲ့ ဖြေခဲ့သည်、ဒီဟာကို **map ပြီးမှ ပြန်ခြား**ခြင်းနဲ့ ဖြေသည်。
     #    ⚠️ **ဂိတ် မလျှော့ပါ** — ပေါလစီရဲ့ gap ကိုသာ တကယ် အတိုင်းအတာ
     #       ဖြစ်စေသည် (နီးလွန်းသော cue ကို ဖယ်)。
+    # ══ accent SFX (Zin ၂၀၂၆-၁၀-၀၆ 「SFX နည်း · ၄/၁၀ ⇒ ၁၀/၁၀」) ══════════
+    #    ကတ် ဝင်ချိန်မှာသာ အသံ ရှိခဲ့ ⇒ jump cut · punch-in · B-roll ဝင်/ထွက် ·
+    #    camera move မှာ **အသံ မရှိ**。 premium talking-head မှာ ဖြတ်ဆက်တိုင်း
+    #    swish ပါးပါး · punch မှာ deep whoosh · B-roll whip · push-in riser。
+    #    ⚠️ ကတ် cue နဲ့ ၀.၅၅s အတွင်း မထပ် (ကတ်ကို ဦးစား) · respacing/cap ကို
+    #      ဆက်ဖြတ်သည် · sync QC အတွက် `_acc_vis` မှတ်。
+    _acc_vis = []
+    if rc.get("sfx_accents") and cues is not None:
+        try:
+            _acc, _tc = [], 0.0
+            _zz = locals().get("_zooms") or {}
+            for _i, (_a, _b) in enumerate(spans):
+                if _i > 0 and _a - spans[_i - 1][1] >= 0.40 and _tc > 0.6:
+                    _zc = _zz.get(_i, 1.0) != _zz.get(_i - 1, 1.0)
+                    _acc.append((max(0.0, _tc - 0.08), "deep_whoosh" if _zc else "swipe",
+                                 -19 if _zc else -21))
+                _tc += float(_b) - float(_a)
+            for _ba, _bp, _bd, _bt in (bmov or []):
+                _acc.append((max(0.0, float(_ba) - 0.15), "whoosh_in", -16))
+                _acc.append((float(_ba) + float(_bd) - 0.12, "swipe", -19))
+            for _mv in (locals().get("_cmv") or []):
+                if float(_mv[3]) > float(_mv[2]):
+                    _acc.append((float(_mv[0]), "riser_soft", -19))
+            _ex = [float(c[0]) for c in cues]
+            _add2 = []
+            for _t, _r, _d in sorted(_acc):
+                if all(abs(_t - e) > 0.55 for e in _ex + [x[0] for x in _add2]):
+                    _add2.append((round(_t, 2), _r, int(_d)))
+            _acc_vis = [(t, t + 0.6) for t, _r, _d in _add2]
+            REPORT["sfx_accents"] = len(_add2)
+            cues = sorted(list(cues) + _add2, key=lambda x: x[0])
+            log(f"  🔊 accent SFX {len(_add2)} ခု · ဖြတ်ဆက် · punch · B-roll · camera "
+                f"({', '.join(f'{t:.1f}s {r}' for t, r, _d in _add2[:8])})")
+        except Exception as _ace:
+            log(f"  ⚠️ accent SFX မရ ({type(_ace).__name__}: {_ace})")
     if cues:
         try:
             import sfxpol as _SP2
@@ -4847,6 +4897,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    ⇒ ဂိတ် **မလျှော့ပါ** — မမီရင် မမီကြောင်း **အရင်ကတည်းက** ပြောသည်。
         try:
             _mnow = _sfx_moment_count(cues, LAYER_W)
+            # floor (headtop ၈/min) ရှိလျှင် အဲဒါနဲ့ စစ် — cap (၁၈) အောက်ဆိုတာ ကျခြင်း မဟုတ်
+            try:
+                _fl5 = float(_SP2.clamp(dict(per_min=1.0), style=rc.get("_id")).get("floor") or 0)
+            except Exception:
+                _fl5 = 0.0
+            if _fl5:
+                _cap5 = min(_cap5, int(_fl5 * _dur5 / 60.0))
             if _cap5 > 0 and _mnow < _cap5:
                 log(f"  ⚠️ SFX · ဖြစ်ရပ် {_mnow} ခု ထွက်ပြီး QC က "
                     f"အနည်းဆုံး {_cap5} ခု လိုသည် ({_pmx:.1f}/min × "
@@ -4879,6 +4936,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
         try:
             sv = os.path.join(work, "sfx.mp4")
             _pre2 = cutv
+            # ⚠️ **role အလိုက် အသံ မြှင့်** (headtop) — latch/click/swipe က
+            #    စကားထက် ၁၅–၂၅ dB တိုး ⇒ 「SFX မပါ」ဟု ခံစားရ (Zin ၂၀၂၆-၁၀-၀၆)。
+            #    ⚠️ ducking **မတိုင်ခင်** ⇒ စကားကို ဖုံးလျှင် duck က ပြန်လျှော့သည်。
+            _rg = rc.get("sfx_role_gain") or {}
+            if _rg:
+                cues = [(a, r, int(round(float(d) + float(_rg.get(r, 0.0)))))
+                        for a, r, d in cues]
+                log(f"  SFX role gain · " + " ".join(f"{k} {v:+g}" for k, v in _rg.items()))
             # ⚠️ **စကားကို မဖုံးစေရ** — cue တိုင်းကို ပုံသေ dB နဲ့ ထပ်ခဲ့သည်。
             #    တကယ့် ဖြတ်ထားသော အသံ (`cutv`) ကနေ စကားသံ အားကို တိုင်းပြီး
             #    စကားအောက် ၆ dB တွင် ထားသည်。 ⚠️ အချိန်ကို မရွှေ့ရ — ဂရပ်ဖစ်နဲ့ တွဲနေသည်。
@@ -5465,7 +5530,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
                 _vis = ([(float(a_), float(b_)) for _p, a_, b_, _l in (slides or [])]
                         + [(float(g[0]), float(g[0]) + float(g[2])) for g in (gmov or [])]
                         + [(float(x[0]), float(x[0]) + float(x[2])) for x in (pmov or [])]
-                        + [(float(x[0]), float(x[0]) + float(x[2])) for x in (bmov or [])])
+                        + [(float(x[0]), float(x[0]) + float(x[2])) for x in (bmov or [])]
+                        + [(float(a_), float(b_)) for a_, b_ in (locals().get("_acc_vis") or [])])
                 _sok, _stot, _sorph = _SYNC.check(cues, _vis)
                 REPORT["sfx_sync_check"] = dict(ok=_sok, total=_stot,
                                                 orphans=[round(o, 2) for o in _sorph])

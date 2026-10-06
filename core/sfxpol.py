@@ -80,7 +80,10 @@ def ceil():
 #    ကိုယ်ပိုင် ၆.၀ ရေးထားပြီးသား ဖြစ်၍ ဤပြောင်းလဲမှု မရောက်ပါ。
 #    headtop အတွက် သူ့နားက သူတို့အတွက် သက်သေ မဟုတ်ပါ (အမှား #၃၇)。
 MEASURED = {
-    "headtop":  dict(per_min=8.7, gap=2.0,
+    # ⚠️ ၂၀၂၆-၁၀-၀၆ Zin 「SFX နည်း · ၄/၁၀ ⇒ ၁၀/၁၀」 — ကတ် ၈.၇ ⇒ ကတ် + accent
+    #    (ဖြတ်ဆက် · punch · B-roll · camera)。 `per_min` = **အမြင့်ဆုံး** ၁၈ ·
+    #    `floor` = **အနည်းဆုံး** ၈ (ယခင် floor = cap ⇒ အတိအကျ မီမှ အောင်)。
+    "headtop":  dict(per_min=18.0, gap=1.0, floor=8.0,
                      src="⚠️ **Zin ရဲ့ နား ၂၀၂၆-၀၉-၂၈** (တိုင်းချက် မဟုတ်) — "
                          "မမြင်ရသော A/B ၃ ခု ၅.၃၄ · ၇.၃၃ · ၈.၆၈/min ထဲက "
                          "၈.၆၈ ကို ရွေး · n=၁ · reference band ၆.၂၅–၈.၅၀ ရဲ့ "
@@ -151,6 +154,8 @@ def clamp(p, style=None):
         # ⚠️ တိုင်းထားသော profile — ကိုယ်ပိုင် ကိန်းကို သုံးသည်
         q["per_min"] = float(m["per_min"])
         q["gap"] = float(m["gap"])
+        if m.get("floor"):
+            q["floor"] = float(m["floor"])
         q["src"] = m["src"]
         q["measured"] = True
         # ⚠️ **စမ်းသပ်ချက် အတွက်သာ** — Zin ၂၀၂၆-၀၉-၂၈: 「band ရဲ့ အလယ်

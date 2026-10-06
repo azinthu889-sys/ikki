@@ -186,7 +186,16 @@ R = {
      mmf="MasterpieceUniRound", latin="Figtree-Black",
      accent="#FFE000", stroke="#0A0A0A", stroke_w=0.06,
      gfx=16, gfx_share=(0.17, 0.25), broll=6, broll_pct=0.18,
-     music="calm", lufs=-14.0, sfx_per_min=1.5,
+     music="corporate", lufs=-14.0, sfx_per_min=1.5,
+     # ══ premium sound (Zin ၂၀၂၆-၁၀-၀၆ 「SFX ၄/၁၀ ⇒ ၁၀/၁၀ · music ထည့်」) ══
+     #    corporate bed −30 LUFS (စကားအောက် ~၁၆ LU) · duck 3:1 · reference က
+     #    「music မရှိ」ဟု ခန့်မှန်းပြီး ပိတ်ခဲ့ ⇒ `music_lock`。 accent SFX
+     #    (ဖြတ်ဆက်/punch/B-roll/camera) · တိုးနေသော role ကို မြှင့် (duck က ကာ)。
+     #    camera push-in ပါးပါး ၁.၀၈× · ဘေးကတ်က မတား。
+     music_lufs=-30.0, music_duck=3.0, music_lock=True,
+     sfx_accents=True,
+     sfx_role_gain={"latch": 8, "click": 7, "swipe": 4, "pop": 3, "type_tick": 6},
+     cam_moves=True, cam_soft_gfx=True, cam_gap=4.5, cam_zin=1.08, cam_budget=0.30,
      # ⚠️ `motion` · `broll_freq` ကို **အတိအလင်း ပေးရမည်** — None ဆိုလျှင်
      #    UI မှာ 「မရွေးရသေး」ဖြစ်ပြီး သုံးစွဲသူက ဘာ သက်ရောက်နေလဲ မသိပါ。
      motion="normal", broll_freq="normal",
