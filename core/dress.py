@@ -811,6 +811,12 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                 with _r.hifps(60):
                     el = _call_template(fn, g["kind"], f"g{i}",
                                         _shape_fix(g["kind"], a, [g.get("text") or ""]))
+                # ⚠️ **ဆောက်ခဲ့သော fps ကို မှတ်ရမည်** — `clip_alpha(src_fps=fps)`
+                #    (30) နဲ့ 60fps frame ကို ဖတ်လျှင် animation **တစ်ဝက်နှုန်း**
+                #    ဖြစ်ပြီး clip အဆုံး (`dur`) မှာ ထွက် fade **ဖြတ်ခံရ**သည်
+                #    (j_d96beb16229d · motion_exit 0.05s · modern card ease ပြန်မချိန်မှ ပေါ်)。
+                if isinstance(el, dict):
+                    el.setdefault("src_fps", 60)
             else:
                 el = _call_template(fn, g["kind"], f"g{i}",
                                         _shape_fix(g["kind"], a, [g.get("text") or ""]))
@@ -1150,7 +1156,8 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
                     #    ဟု hard-code လုပ်ခဲ့လို့ 30fps pack motion ကို နှစ်ဆ
                     #    မြန်ကာ exit 0.1s / linear ဆန်သွားခဲ့သည်。
                     _f2, _sub2 = _v2fps(fps)
-                    _r.clip_alpha(el2, base_mov, hold=0.02, fps=_f2, sub=_sub2, src_fps=fps,
+                    _r.clip_alpha(el2, base_mov, hold=0.02, fps=_f2, sub=_sub2,
+                                   src_fps=int(el.get("src_fps") or fps),
                                    look=dict(grain=1.1,
                                              tone=getattr(_r, "LOOK2026", {}).get("tone")),
                                    camera=(1.0, 1.015))

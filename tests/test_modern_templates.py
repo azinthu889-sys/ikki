@@ -116,6 +116,18 @@ def main():
                     check(not bad, f"{asp} {k} — motion QC in {me.get('in_s')} "
                                    f"out {me.get('out_s')} ease {me.get('ease')} {bad or ''}")
 
+        # ── dress.track ထွက် clip (60fps ဆောက် ⇒ src_fps 60) — ထွက် fade မပျောက်ရ ──
+        import tempfile
+        _wk = tempfile.mkdtemp(prefix="tmt_trk_")
+        _gg = [dict(at=5.0, kind="modern.mt_neon_box", args={"text": "Western Union"}, hold=3.2)]
+        _r = DR.track(_gg, None, _wk, 1920, 1080, 30, None, None, "", "x",
+                      lambda *a: None, hold=1.4)
+        for _at, _mov, _d, _y0, _y1 in (_r[0] or []):
+            _m = MM.measure(_mov)
+            check(MM.EXIT_BAND[0] <= (_m.get("out_s") or 0) <= MM.EXIT_BAND[1]
+                  and MM.ENTER_BAND[0] <= (_m.get("in_s") or 0) <= MM.ENTER_BAND[1],
+                  f"track clip — ဝင် {_m.get('in_s')} ထွက် {_m.get('out_s')} (60fps src)")
+
         # ── font guard ──
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
