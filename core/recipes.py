@@ -181,11 +181,17 @@ R = {
      plan=True, energy="standard", shot_grade=True,
      motionkit_profile="premium", broll_strict=True,
      keep_pause=0.30, min_sil=0.55,
-     captions="accent", cap_pct=0.050, cap_base=0.92, cap_max=0.93,
+     cap_pct=0.070, cap_base=0.86, cap_max=0.90,
      cap_cover=0.85, cap_typo=0.0,
-     mmf="MasterpieceUniRound", latin="Figtree-Black",
-     accent="#FFE000", stroke="#0A0A0A", stroke_w=0.06,
-     gfx=16, gfx_share=(0.17, 0.25), broll=6, broll_pct=0.18,
+     # ══ reference reel (Zin ၂၀၂၆-၁၀-၀၆ facebook.com/reel/2617491895271710) ══
+     #    caption: ၁–၃ လုံး · word pop · ကြီး · ထူ (MyanmarBlack) · brand အဝါ · box မပါ ·
+     #    ရင်ဘတ် · graphic **အနည်းဆုံး** — brand tile + ဂဏန်း (section/list မပါ)
+     #    ⇒ share ဘောင် ၀.၁၇–၀.၂၅ ⇒ ၀.၀၆–၀.၁၈ (reference ~၃ card / ၄၆s)。
+     captions="big", mmf="MyanmarBlack", latin="Figtree-Black",
+     cap_fill="#FFD60A", accent="#FFD60A", stroke="#0A0A0A", stroke_w=0.16,
+     cap_by_word=True, cap_timing="word_pop", cap_pop=1.25, cap_lines=1, cap_kw=0.0,
+     modern_allow=("modern.mt_neon_box", "modern.mt_counter"),
+     gfx=8, gfx_share=(0.06, 0.18), broll=6, broll_pct=0.18,
      music="corporate", lufs=-14.0, sfx_per_min=1.5,
      # ══ premium sound (Zin ၂၀၂၆-၁၀-၀၆ 「SFX ၄/၁၀ ⇒ ၁၀/၁၀ · music ထည့်」) ══
      #    corporate bed −30 LUFS (စကားအောက် ~၁၆ LU) · duck 3:1 · reference က

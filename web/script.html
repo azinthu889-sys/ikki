@@ -2726,7 +2726,11 @@ function saveVPlan(jid, rerender){
       .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})})
       .then(function(y){
         if(!y.ok){ if(m) m.textContent="ပြန်ထုတ်၍ မရ — "+(y.d.detail||""); return }
+        /* ⚠️ `#dn` မရှိသော အခြေအနေ (ထုတ်ပြီး view) မှာ null.innerHTML ⇒ ပြန်ထုတ်
+           **စပြီးသား**ဖြစ်လျက် 「မရပါ」ဟု မှားပြ ⇒ ထပ်ခါထပ်ခါ နှိပ်ရ (Zin ၂၀၂၆-၁၀-၀၆) */
         var el=document.getElementById("dn");
+        if(!el){ el=document.createElement("div"); el.id="dn"; el.className="done"; dnPlace(el) }
+        if(m) m.textContent="✅ ပြန်ထုတ်နေပါပြီ";
         el.innerHTML='<b>✅ အလှအပ ပြန်ထုတ်နေပါပြီ</b>'; watchJob(jid, el);
       });
    })

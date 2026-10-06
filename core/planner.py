@@ -1490,7 +1490,22 @@ MODERN_PREF = {"hook": ["modern.mt_section", "modern.mt_neon_box"],
                "steps": ["modern.mt_pill_list", "modern.mt_explainer_page"]}
 
 
+# ⚠️ recipe ရဲ့ `modern_allow` (ဥပမာ headtop ⇒ keyword/brand label + counter သာ) —
+#    Zin ၂၀၂၆-၁၀-၀၆ reference reel: graphic **အနည်းဆုံး** (brand card · app shot) ·
+#    section band/list/compare မပါ。 `plan()` က job တိုင်း ပြန်သတ်မှတ်သည်。
+_MODERN_ALLOW = None
+
+
 def _modern_ids(lab):
+    if not MODERN_LOOK:
+        return []
+    out = _modern_ids0(lab)
+    if _MODERN_ALLOW:
+        out = [x for x in out if x in _MODERN_ALLOW]
+    return out
+
+
+def _modern_ids0(lab):
     if not MODERN_LOOK:
         return []
     try:
@@ -1513,7 +1528,7 @@ def _modern_ids(lab):
 
 
 def _modern_on(profile):
-    return MODERN_LOOK and profile == "premium" and bool(_modern_ids("section"))
+    return MODERN_LOOK and profile == "premium" and bool(_modern_ids0("section"))
 
 
 def _pack_ids(lab):
@@ -1705,6 +1720,13 @@ def _modern_props(tid, lab, txt):
             out["head"] = _words(head, 4)
         return out
     if fn == "mt_neon_box":
+        # ⚠️ brand နာမည် ⇒ **brand tile** (reference reel — 「Western Union」「KBZ Pay」
+        #    ပြောချိန် brand card pop) · ဝါကျ ကျန်ကို မထည့်
+        _tl = " ".join(t.lower().replace("kbzpay", "kbz pay").split())
+        for _bn, _bd in (("western union", "Western Union"), ("kbz pay", "KBZ Pay"),
+                         ("kpay", "KBZ Pay"), ("wave pay", "Wave Pay"), ("aya pay", "AYA Pay")):
+            if _bn in _tl:
+                return {"text": _bd}
         # ⚠️ ရက်စွဲ ⇒ 「စက်တင်ဘာ ၂၉ – အောက်တိုဘာ ၃၁」 (ဝါကျ အစ ၃ လုံး
         #    「ဒီအစီအစဉ်ကာလကတော့ စက်တင်ဘာလ ၂၉」 က ရှည်ပြီး အဓိပ္ပာယ် မပြည့် ·
         #    j_d96beb16229d ၉.၉s)
@@ -2555,6 +2577,17 @@ def plan(segs, dur, opts=None, video_id="src", log=print):
     #    `None` ⇒ env ကို ကြည့်သည် (harness)。 job တိုင်း ပြန်သတ်မှတ်သဖြင့်
     #    ယိုစိမ့်မှု မဖြစ်。
     _o0 = dict(opts or {})
+    global _MODERN_ALLOW
+    _MODERN_ALLOW = None
+    try:
+        try:
+            import recipes as _RC0
+        except ImportError:
+            from core import recipes as _RC0
+        _ma = (_RC0.get(_o0.get("style")) or {}).get("modern_allow") if _o0.get("style") else None
+        _MODERN_ALLOW = set(_ma) if _ma else None
+    except Exception:
+        _MODERN_ALLOW = None
     for _k0, _n0 in (("rotate", "gfx_rotate"), ("alias", "gfx_alias")):
         _v0 = _o0.get(_n0)
         _FLAGS[_k0] = None if _v0 is None else bool(int(_v0))

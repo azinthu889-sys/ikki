@@ -116,6 +116,21 @@ def main():
                     check(not bad, f"{asp} {k} — motion QC in {me.get('in_s')} "
                                    f"out {me.get('out_s')} ease {me.get('ease')} {bad or ''}")
 
+        # ── brand tile (reference reel) — motion QC + ink ဇုန် ──
+        for asp in ("16:9", "9:16"):
+            TH.use("ikki", asp)
+            r = M.mt_neon_box(f"tmt_brand_{asp[0]}", text="Western Union", dur=1.4)
+            al = [np.asarray(Image.open(p).convert("RGBA").getchannel("A")) for p, _, _ in r["anim"]]
+            ys = np.nonzero(np.maximum.reduce(al).max(axis=1) > 8)[0]
+            v = [float(a.mean()) / 255.0 for a in al]
+            MM.alpha_series = lambda mov, small=None, v=v: (v, 30.0)
+            me = MM.measure("x")
+            bad = [c["key"] for c in MM.premium_checks(me)
+                   if isinstance(c, dict) and not c.get("ok", True) and c["key"] != "motion_measured"]
+            check(not bad and ys.max() <= 0.79 * al[0].shape[0],
+                  f"{asp} brand tile — in {me.get('in_s')} out {me.get('out_s')} "
+                  f"ease {me.get('ease')} bottom {ys.max() / al[0].shape[0]:.3f}H {bad or ''}")
+
         # ── dress.track ထွက် clip (60fps ဆောက် ⇒ src_fps 60) — ထွက် fade မပျောက်ရ ──
         import tempfile
         _wk = tempfile.mkdtemp(prefix="tmt_trk_")
