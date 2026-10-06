@@ -176,7 +176,7 @@ R = {
  #    ⇒ အကွာ ၄.၂–၆.၅s၊ IKKI က ၇.၅/min (၆၇%) သာ ရှိခဲ့သည်။ ၄.၂ က
  #    **reference ရဲ့ တိုင်းထားသော အောက်ဘောင်** — မှန်းဆချက် မဟုတ်။
  #    Zin: 「graphic များများပါလေ သဘောကျလေ」(၂၀၂၆-၀၉-၂၄)။
- "headtop": dict( gfx_gap_max=4.2, grade_look="premium",
+ "headtop": dict( gfx_gap_max=0, grade_look="premium",   # reel: ကွက်လပ်ဖြည့် ကတ် မထည့် (၄.၂s ⇒ ပိတ်)
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
      motionkit_profile="premium", broll_strict=True,
@@ -190,7 +190,11 @@ R = {
      captions="big", mmf="MyanmarBlack", latin="Figtree-Black",
      cap_fill="#FFD60A", accent="#FFD60A", stroke="#0A0A0A", stroke_w=0.16,
      cap_by_word=True, cap_timing="word_pop", cap_pop=1.25, cap_lines=1, cap_kw=0.0,
-     modern_allow=("modern.mt_neon_box", "modern.mt_counter"),
+     # Remotion cinematic scene (title · neon blur · white list · subscribe) — Zin ၂၀၂၆-၁၀-၀၆
+     #    「ဒီလိုပုံစံ (r3 01BnhfTaQoo)」 · Remotion မရှိလျှင် IKKI ကတ်အတိုင်း
+     engine="remotion",
+     modern_allow=("modern.mt_neon_box", "modern.mt_counter", "modern.mt_pill_list"),
+     kin_title=False, ref_lock=("kin_title",),   # word-pop caption နဲ့ ၂ ထပ် မဖြစ်စေ
      gfx=8, gfx_share=(0.06, 0.18), broll=6, broll_pct=0.18,
      music="corporate", lufs=-14.0, sfx_per_min=1.5,
      # ══ premium sound (Zin ၂၀၂၆-၁၀-၀၆ 「SFX ၄/၁၀ ⇒ ၁၀/၁၀ · music ထည့်」) ══

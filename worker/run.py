@@ -1265,15 +1265,19 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ recipe က `music_lock` ဆိုလျှင် reference က တီးလုံး မပိတ်ရ
             #    (Zin ၂၀၂၆-၁၀-၀၆ 「music ထည့်ပေးပါ」 — headtop premium)
             try:
-                _mlock = bool(RC.apply(job.get("recipe"), {}).get("music_lock"))
+                _rb0 = RC.apply(job.get("recipe"), {})
+                _mlock = bool(_rb0.get("music_lock"))
+                # ⚠️ `ref_lock` — reference က မလွှမ်းရသော key (headtop: kin_title ⇒
+                #    caption နဲ့ စာ ၂ ထပ် · j_d96beb16229d v9 ၁၀s)
+                _rlock = set(_rb0.get("ref_lock") or ())
             except Exception:
-                _mlock = False
+                _mlock, _rlock = False, set()
             for k in list(_rov):
                 if k in over:
                     ref_notes.append(f"{k}: သုံးစွဲသူ ရွေးချက် ရှိပြီး ⇒ reference မလွှမ်း")
                     _rov.pop(k)
-                elif k == "music" and _mlock:
-                    ref_notes.append("music: style က lock ⇒ reference မလွှမ်း")
+                elif (k == "music" and _mlock) or k in _rlock:
+                    ref_notes.append(f"{k}: style က lock ⇒ reference မလွှမ်း")
                     _rov.pop(k)
             over.update(_rov)
             log(f"  ✦ reference «{ref_meta.get('name') or '—'}» v{ref_meta.get('ver')} ⇒ "
@@ -2306,6 +2310,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
         #    မျက်နှာ ဖုံးမှုက တကယ့် ကန့်သတ်ချက် (၂၀၂၆-၀၉-၁၇ တိုင်းချက်) ⇒
         #    **ceiling** အဖြစ် ထားသည် · ရွေးချက်ကို မလွှမ်းပါ。
         CAP_H_MAX = 0.060
+        # ⚠️ word-pop (တစ်ကြိမ် ၁ လုံး) က band အပြည့် မဟုတ် ⇒ မျက်နှာ မဖုံး ⇒ reel
+        #    ပုံစံ စာလုံးကြီး ခွင့်ပြု (Zin ၂၀၂၆-၁၀-၀၆ reference reel)
+        if rc.get("cap_by_word") and rc.get("cap_timing") == "word_pop":
+            CAP_H_MAX = 0.075
         if TH["W"] > TH["H"] and pct > CAP_H_MAX:
             _old = pct; pct = CAP_H_MAX
             # ⚠️ baseline — QC ရဲ့ `cap_max` ၀.၈၃၃ အောက်မှာ ရှိရမည်。 BOT (၀.၇၆၉)
@@ -5231,7 +5239,23 @@ def render(job, brand, src, out, stage, log=print, over=None):
     # ⚠️ ease ramp ကို **clip ဖိုင်ကိုယ်တိုင်** မှာ တပ်ပြီးသား (`_ease_clip`) —
     #    QC က composite ထွက်ဖိုင် မဟုတ်ဘဲ **clip .mov ကို တိုက်ရိုက် တိုင်း**သဖြင့်
     #    ဒီမှာ တပ်လျှင် တိုင်းချက်ထဲ ဘယ်တော့မှ မပါ (၁၀၂၆-၀၉-၂၃ တွေ့)ဂ
+    # ══ Remotion cinematic (Zin ၂၀၂၆-၁၀-၀၆ · `engine="remotion"`) ══════════
+    #    brand/ဂဏန်း/စာရင်း ကတ်ကို IKKI က **မတင်** ⇒ ထုတ်ပြီးမှ Remotion scene
+    #    (title · neon blur · white list) က အစားထိုး。 Remotion မရှိလျှင် ယခင်အတိုင်း。
+    _remo_ev = None
+    try:
+        import remo as _REMO
+        if rc.get("engine") == "remotion" and _REMO.available():
+            _remo_ev = []
+    except Exception:
+        _REMO = None
+    _gat = {round(float(_g.get("at") or 0), 2): _g for _g in (locals().get("gfx") or [])}
     for at, mov, d, _y0, _y1 in (gmov or [])[:12]:
+        _g = _gat.get(round(float(at), 2)) or {}
+        _k = str(_g.get("kind") or "")
+        if _remo_ev is not None and _k.split(".")[-1] in ("mt_neon_box", "mt_counter", "mt_pill_list"):
+            _remo_ev.append((float(at), float(d), _k, dict(_g.get("args") or _g.get("props") or {})))
+            continue
         ins += ["-itsoffset",f"{at:.2f}","-i",mov]; n+=1
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass[v{n}]"); last=f"v{n}"
     # ══ keyword pop — **ဘေးတိုက် ရွှေ့ပြီး** ထပ်တင် ═══════════════
@@ -5608,6 +5632,13 @@ def render(job, brand, src, out, stage, log=print, over=None):
     REPORT["qc"] = "PASS" if not bad else ("FAIL: " + ", ".join(bad))
     if bad:
         raise RuntimeError("QC မအောင်: " + ", ".join(bad))
+    # ── Remotion cinematic scene — QC အောင်ပြီးမှ (မအောင်လျှင် IKKI ထွက်ဖိုင် အတိုင်း) ──
+    if locals().get("_remo_ev"):
+        try:
+            _sc = _REMO.plan_scenes(_remo_ev, caps, float(probe(out).get("dur") or 0))
+            REPORT["remotion"] = dict(scenes=len(_sc), ok=_REMO.compose(out, _sc, work, log=log))
+        except Exception as _rme:
+            log(f"  ⚠️ Remotion ({type(_rme).__name__}: {_rme}) — IKKI ထွက်ဖိုင် အတိုင်း")
     # ── ဂိတ် အောင်ပြီးမှ work/ ဖျက်သည် ──
     if not KEEP_WORK:
         subprocess.run(["rm","-rf",work])

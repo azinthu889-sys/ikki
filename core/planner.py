@@ -1539,7 +1539,9 @@ def _pack_ids(lab):
        valid」)。 ဒါကို မဖြတ်ရ。
     """
     _m = _modern_ids(lab)
-    if _m:
+    if _m or _MODERN_ALLOW:
+        # ⚠️ allowlist ရှိလျှင် **ဗလာ ဆိုလည်း ဗလာ** — headtop.* pack သို့ ပြန်မဆုတ်ရ
+        #    (ht_outline_title က gap-fill ကနေ ဝင်ခဲ့ · j_d96beb16229d v9)
         return _m
     it = PACK_INTENT.get(lab)
     if not it:
