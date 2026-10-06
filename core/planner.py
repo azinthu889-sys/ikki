@@ -1604,6 +1604,61 @@ _MY_DIG = str.maketrans("၀၁၂၃၄၅၆၇၈၉", "0123456789")
 _MY_UNIT = ("သိန်း", "သောင်း", "ထောင်", "ကျပ်", "ကြိမ်", "ယန်း", "ဒေါ်လာ", "ဘတ်", "%", "ရာခိုင်နှုန်း")
 
 
+# ကတ် ဝင်ချိန် = အဓိက စကားလုံး မပြောခင် ~၀.၁၅s (ဝင် animation ၀.၄၅s ရဲ့
+# အလယ်လောက်မှာ စကားလုံး ကျ ⇒ 「ပြောတာနဲ့ ပေါ်လာ」ဟု ခံစားရ)。
+WORD_LEAD = 0.15
+
+
+def _word_anchor(seg, props, a, b):
+    """ကတ်ရဲ့ အဓိက စာသားကို ပြောသော စကားလုံး အချိန် — မတွေ့လျှင် `a`。"""
+    import re as _re
+    ws = seg.get("words") or []
+    if not ws or not isinstance(props, dict):
+        return a
+    key = (props.get("value") or props.get("text") or props.get("head")
+           or props.get("left") or ((props.get("items") or [""])[0]) or "")
+    toks = [x for x in _re.split(r"\s+", str(key).strip()) if x]
+    if not toks:
+        return a
+    _dg = str.maketrans("၀၁၂၃၄၅၆၇၈၉", "0123456789")
+    t0 = toks[0].strip("။၊,.%").translate(_dg)
+    for w in ws:
+        ww = str(w.get("w") or w.get("word") or "").strip("။၊,.").translate(_dg)
+        if not ww or not t0:
+            continue
+        if t0 in ww or ww in t0 and len(ww) >= 2:
+            try:
+                ts = float(w.get("s") if w.get("s") is not None else w.get("start"))
+            except (TypeError, ValueError):
+                return a
+            at = max(a, ts - WORD_LEAD)
+            # ဝါကျ အဆုံးနား ကျလွန်းလျှင် ကတ် မမြင်ရ ⇒ ဝါကျ အစ
+            return a if (b and at > b - 0.8) else at
+    return a
+
+
+def _proper_kw(t):
+    """`keyword()` ထဲက **နာမည်/ကိန်း** ကိုသာ ယူသည် — 「Western Union」「KBZ Pay」「၅ သိန်း」。
+    ⚠️ ASR ရဲ့ အင်္ဂလိပ် စာလုံးသေး (「price fee」 = prize) ကို ခေါင်းစဉ် မလုပ်ရ
+       (j_d96beb16229d ၂၂.၅s)。"""
+    kw = keyword(t)
+    if not kw:
+        return None
+    if any(c.isdigit() or "\u1040" <= c <= "\u1049" for c in kw):
+        return kw
+    return kw if kw[:1].isupper() else None
+
+
+def _my_phrase(t):
+    """ဝါကျ အစက **အင်္ဂလိပ် စာလုံးသေး** နဲ့ ပစ္စည်း (ကို/နဲ့) ကို ဖြုတ်သည်。"""
+    import re as _re
+    w = [x for x in (t or "").replace("။", " ").split()
+         if not _re.fullmatch(r"[a-z][a-z\-]*", x)]
+    while w and w[0] in ("ကို", "နဲ့", "နှင့်", "က", "မှာ", "ဆိုတော့"):
+        w = w[1:]
+    return " ".join(w) or (t or "")
+
+
 def _modern_props(tid, lab, txt):
     """`modern.mt_*` အတွက် **အဓိပ္ပာယ် ပြည့်** props (Zin ၂၀၂၆-၁၀-၀၆ 「Premium Talking
     Head」)。 generic `_pack_props` က စာကြောင်းကို တစ်ဝက်ဖြတ် (split2) · ပထမ ၄ လုံး ·
@@ -1649,11 +1704,13 @@ def _modern_props(tid, lab, txt):
         # warning ⇒ စာကြောင်း အစ (「သတိထားရမှာ … KBZ Pay」) · ကျန် ⇒ အဓိက စကားလုံး
         if lab == "warning":
             return {"text": _words(t, 3)}
-        kw = keyword(t)
-        return {"text": kw or _words(t, 3)}
+        kw = _proper_kw(t)
+        return {"text": kw or _words(_my_phrase(t), 3)}
     if fn == "mt_section":
-        kw = keyword(t)
-        return {"head": kw or _words(t, 3), "sub": _words(t, 5) if kw else ""}
+        kw = _proper_kw(t)
+        if kw:
+            return {"head": kw, "sub": _words(_my_phrase(t), 4)}
+        return {"head": _words(_my_phrase(t), 2), "sub": ""}
     if fn == "mt_compare":
         two = split2(t)
         if len(two) < 2:
@@ -2245,8 +2302,14 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             _e1 = min(a + _FF_LEN, dur) if dur else a + _FF_LEN
         else:
             _e1 = min(b, a + 3.2, dur if dur else a + 3.2)
+        # ⚠️ **စကားလုံးနဲ့ ကိုက်အောင်** (Zin ၂၀၂၆-၁၀-၀၆ 「timing ညှိ」) — ဝါကျ
+        #    အစ မဟုတ်ဘဲ ကတ်ရဲ့ အဓိက စာသား (ကိန်း · နာမည် · ခေါင်းစဉ်) ကို
+        #    **ပြောသော အချိန်** မှာ ဝင်ရမည်。 ဘေးကတ်သာ (ဘောင်အပြည့် မဟုတ်)。
+        _a2 = a if _ff else _word_anchor(s, pr, a, b)
+        if _a2 > a:
+            _e1 = min(max(_e1, _a2 + 1.4), dur if dur else _a2 + 3.2)
         p["templateEvents"].append(dict(
-            id=f"tpl{n:03d}", startTime=a,
+            id=f"tpl{n:03d}", startTime=round(_a2, 2),
             endTime=_e1,
             layer="template", type="template", motionKitTemplateId=cid,
             # ⚠️ **semantic label ကို ပါသွားစေရမည်**。 အရင်က `style={}` ဖြစ်နေသဖြင့်

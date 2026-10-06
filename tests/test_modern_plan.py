@@ -59,6 +59,26 @@ class ModernPlan(unittest.TestCase):
         finally:
             PL.MODERN_LOOK = True
 
+    def test_word_anchor_timing(self):
+        """ကတ်က အဓိက စကားလုံး ပြောချိန် (−၀.၁၅s) မှာ ဝင် — ဝါကျ အစ မဟုတ် (Zin 「timing ညှိ」)"""
+        seg = {"start": 49.56, "end": 54.36,
+               "words": [{"w": "တစ်ကြိမ်ကို", "s": 49.56}, {"w": "အနည်းဆုံး", "s": 49.87},
+                         {"w": "၅", "s": 50.37}, {"w": "သိန်းကျပ်လွှဲပြီး", "s": 50.67}]}
+        self.assertAlmostEqual(PL._word_anchor(seg, {"value": "5", "label": "သိန်းကျပ်"},
+                                               49.56, 54.36), 50.22, places=2)
+        self.assertEqual(PL._word_anchor({"words": []}, {"text": "x"}, 3.0, 9.0), 3.0)
+        # ဝါကျ အဆုံးနား ⇒ ဝါကျ အစ
+        seg2 = {"words": [{"w": "a", "s": 1.0}, {"w": "KBZ", "s": 8.9}]}
+        self.assertEqual(PL._word_anchor(seg2, {"text": "KBZ"}, 1.0, 9.2), 1.0)
+
+    def test_section_text_not_asr_lowercase(self):
+        pr = PL._modern_props("modern.mt_section", "statement",
+                              "price fee ကို ချက်ချင်းလှည့်ကန်ဆန်းခွင့် တစ်ကြိမ်ရရှိမှာ ဖြစ်ပါတယ်။")
+        self.assertNotIn("price", pr["head"])
+        self.assertEqual(PL._modern_props("modern.mt_neon_box", "statement",
+                                          "ပြည်ပကနေ ချစ်ရသူတွေကို Western Union နဲ့")["text"],
+                         "Western Union")
+
 
 if __name__ == "__main__":
     unittest.main()

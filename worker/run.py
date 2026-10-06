@@ -5051,6 +5051,21 @@ def render(job, brand, src, out, stage, log=print, over=None):
         if _scrim_wins:
             log(f"  ▦ B-roll ပေါ် ဂရပ်ဖစ် {len(_scrim_wins)} နေရာ ⇒ scrim ခံမည် "
                 f"(ဖတ်ရအောင်)")
+    # ⚠️ **modern card ပေါ် scrim မခံရ** — `modern.mt_*` က ကိုယ်ပိုင် နောက်ခံ
+    #    (section gradient · neon/counter panel) ပါပြီးသား。 ထပ်ခံလျှင်
+    #    ဘောင်အပြည့် အမည်း band ဖြစ်ပြီး ပြောသူရဲ့ မျက်နှာ/မေးစေ့ကို ဖုံးသည်
+    #    (j_d96beb16229d · ၂.၅s · ၂၂.၅s)。
+    _own = {round(float(_g.get("at") or 0), 2) for _g in (locals().get("gfx") or [])
+            if str(_g.get("kind", "")).startswith("modern.")}
+    _ownw = [(float(x[0]), float(x[0]) + float(x[2])) for x in (gmov or [])
+             if round(float(x[0]), 2) in _own]
+    if _ownw and _scrim_wins:
+        _n0 = len(_scrim_wins)
+        _scrim_wins = [w for w in _scrim_wins
+                       if not any(min(w[1], b) - max(w[0], a) > 0.05 for a, b in _ownw)]
+        if len(_scrim_wins) != _n0:
+            log(f"  ▦ scrim · modern card {_n0 - len(_scrim_wins)} နေရာ ကျော် "
+                f"(ကိုယ်ပိုင် နောက်ခံ ပါ)")
     # ⚠️ **B-roll အတွက် `drawbox` ကို သုံးသည် — `SC.track` မဟုတ်**。
     #    ၂၀၂၆-၀၉-၂၄ v10 render: `SC.track` က ဖိုင် ဆောက်ပြီး overlay လည်း
     #    ထည့်ခဲ့သော်လည်း **ထွက်ဖိုင်ပေါ် လုံးဝ မသက်ရောက်**ခဲ့ (v9 ↔ v10
