@@ -2713,13 +2713,108 @@ function _tplname(id){
   return String(id||"").split(".").pop().replace(/_/g," ");
 }
 
+/* ══ Beats — AI director infographic (Zin ၂၀၂၆-၁၀-၀၇ 「preview · swap/remove · စာ/ဂဏန်း ပြင် · style」) ══
+   ⚠️ ဖြုတ် = `_ev[id].mode="none"` (Visual Plan နဲ့ တူ) · ပြင်/လဲ = `/api/jobs/{id}/beats` (`_beats.edits`)
+   ⚠️ registry ကို API က ပေး (worker/Remotion နဲ့ တစ်ခုတည်း) ⇒ type · param စစ်ချက် မကွဲ */
+var BREG=null, BED={}, BOPEN=null, BED_JOB=null;
+function _breg(cb){
+  if(BREG) return cb(BREG);
+  fetch("/api/beats/registry",{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+   .then(function(r){return r.json()}).then(function(d){ BREG=d.types||{}; cb(BREG) })
+   .catch(function(){ BREG={}; cb(BREG) });
+}
+function _bname(t){ return (BREG&&BREG[t]&&BREG[t].my) || String(t||"").replace(/_/g," ") }
+function _bval(kind, v){
+  kind=String(kind).replace("?","");
+  if(v==null) return "";
+  if(kind==="str[]") return (v||[]).join("\n");
+  if(kind.charAt(0)==="[") return (v||[]).map(function(r){return (r||[]).join(" | ")}).join("\n");
+  if(kind==="num[]") return (v||[]).join(", ");
+  return String(v);
+}
+function _bparse(kind, raw){
+  kind=String(kind).replace("?",""); raw=String(raw||"").trim();
+  if(!raw) return null;
+  if(kind==="num") return +raw.replace(/,/g,"");
+  if(kind==="str[]") return raw.split(/\n+/).map(function(x){return x.trim()}).filter(Boolean);
+  if(kind==="num[]") return raw.split(/[,\s]+/).filter(Boolean).map(Number);
+  if(kind.charAt(0)==="[") return raw.split(/\n+/).map(function(l){ var p=l.split("|").map(function(x){return x.trim()});
+    return kind.indexOf("num]")>0 ? [p[0], +(p[1]||0)] : [p[0], p[1]||""] }).filter(function(r){return r[0]});
+  return raw;
+}
+function beatRow(e){
+  var d=VEV[e.id]||{mode:"auto"}, gone=d.mode==="none", ed=BED[e.id];
+  var b=ed||e.beat||{}, ty=b.type||String(e.tpl).slice(5);
+  var pv="/tplprev/beat."+encodeURIComponent(ty);
+  var h='<div class="vpr'+(gone?" off":"")+'" data-ev="'+e.id+'">'
+    +'<s class="t">'+_mmss(e.at)+'</s>'
+    +'<video class="bpv" muted loop playsinline autoplay preload="none" poster="'+pv+'.jpg" src="'+pv+'.mp4" '
+    +'style="width:96px;height:54px;border-radius:6px;object-fit:cover;flex:none;margin-right:8px;background:#111"></video>'
+    +'<span class="nm">✦ '+esc(_bname(ty))+(ed?' <i>ကိုယ်တိုင်</i>':'')
+    +'<b>'+(e.dur?(+e.dur).toFixed(1)+"s":"")+(e.text?' · '+esc(String(e.text).slice(0,40)):'')+'</b></span>'
+    +'<span class="ac">'
+    +'<button class="vb'+(!gone&&!ed?" on":"")+'" data-va="auto" data-ev="'+e.id+'">ဒီအတိုင်း</button>'
+    +'<button class="vb'+(ed?" on":"")+'" data-va="bedit" data-ev="'+e.id+'">ပြင်မယ်</button>'
+    +'<button class="vb'+(gone?" on":"")+'" data-va="none" data-ev="'+e.id+'">ဖြုတ်</button>'
+    +'</span></div>';
+  if(BOPEN===e.id) h+=beatForm(e, b, ty);
+  return h;
+}
+function beatForm(e, b, ty){
+  var T=BREG||{}, meta=T[ty]||{params:{}}, src=(b.type===ty)?b:(meta.example||{});
+  var opts=Object.keys(T).map(function(k){ return '<option value="'+k+'"'+(k===ty?' selected':'')+'>'+esc(T[k].my||k)+'</option>' }).join("");
+  var f='<div class="bform" data-ev="'+e.id+'" style="margin:6px 0 12px 0;padding:12px;border-radius:12px;background:rgba(127,127,127,.08)">'
+    +'<label class="vpn">ပုံစံ <select class="bty">'+opts+'</select></label> '
+    +'<label class="vpn">နေရာ <select class="bpos">'+["","right","left","center"].map(function(p){
+        return '<option value="'+p+'"'+((b.pos||"")===p?' selected':'')+'>'+(p||"auto")+'</option>' }).join("")+'</select></label> '
+    +'<label class="vpn">style <select class="bvar">'+["","glass","light","neon"].map(function(p){
+        return '<option value="'+p+'"'+((b.variant||"")===p?' selected':'')+'>'+(p||"auto")+'</option>' }).join("")+'</select></label>';
+  Object.keys(meta.params||{}).forEach(function(k){
+    var kind=meta.params[k], multi=/\[\]/.test(kind);
+    var val=esc(_bval(kind, src[k]));
+    f+='<div style="margin-top:8px"><span class="vpn">'+esc(k)+(kind.slice(-1)==="?"?' (မထည့်လည်းရ)':'')+'</span><br>'
+      +(multi?'<textarea class="bp" data-k="'+k+'" data-kind="'+kind+'" rows="3" style="width:100%">'+val+'</textarea>'
+             :'<input class="bp" data-k="'+k+'" data-kind="'+kind+'" value="'+val+'" style="width:100%">')+'</div>';
+  });
+  f+='<div class="acts2"><button class="btn primary bsave">သိမ်း</button> <button class="btn ghost bcancel">ပိတ်</button>'
+    +' <span class="vpn">'+(/\[\]/.test(JSON.stringify(meta.params||{}))?'စာရင်း — တစ်ကြောင်း တစ်ခု · တွဲ = «a | b»':'')+'</span></div></div>';
+  return f;
+}
+function _bindBeats(box, jid, j){
+  Array.prototype.forEach.call(box.querySelectorAll(".bform"), function(fm){
+    var id=fm.getAttribute("data-ev");
+    fm.querySelector(".bty").onchange=function(){
+      var t=this.value; BED[id]=Object.assign({type:t}, (BREG[t]||{}).example||{}); paintVPlan(jid, j) };
+    fm.querySelector(".bcancel").onclick=function(){ BOPEN=null; paintVPlan(jid, j) };
+    fm.querySelector(".bsave").onclick=function(){
+      var t=fm.querySelector(".bty").value, o={type:t};
+      Array.prototype.forEach.call(fm.querySelectorAll(".bp"), function(x){
+        var v=_bparse(x.getAttribute("data-kind"), x.value); if(v!==null && v!=="") o[x.getAttribute("data-k")]=v });
+      var ps=fm.querySelector(".bpos").value, vr=fm.querySelector(".bvar").value;
+      if(ps) o.pos=ps; if(vr) o.variant=vr;
+      BED[id]=o; delete VEV[id]; BOPEN=null; paintVPlan(jid, j);
+      var m=document.getElementById("vmsg"); if(m) m.textContent="ပြင်ပြီး — «အလှအပ ပြန်ထုတ်» နှိပ်ပါ";
+    };
+  });
+}
+function saveBeats(jid){
+  return fetch("/api/jobs/"+jid+"/beats",{method:"POST",
+    headers:{"Content-Type":"application/json", Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")},
+    body:JSON.stringify({edits:BED})})
+   .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d}})});
+}
+
 function paintVPlan(jid, j){
   var box=document.getElementById("vplan"); if(!box) return;
   var pl=[]; try{ pl = typeof j.vplan==="string" ? JSON.parse(j.vplan||"[]") : (j.vplan||[]) }catch(e){ pl=[] }
   if(!pl.length){ box.innerHTML=""; return }
   try{ var ov = typeof j.over==="string" ? JSON.parse(j.over||"{}") : (j.over||{});
-       VEV = ov._ev || {} }catch(e){ VEV={} }
+       VEV = ov._ev || {};
+       if(BED_JOB!==jid){ BED_JOB=jid; BED=((ov._beats||{}).edits)||{}; BOPEN=null } }catch(e){ VEV={} }
+  var _hasB = pl.some(function(x){ return String(x.tpl||"").indexOf("beat.")===0 });
+  if(_hasB && !BREG){ _breg(function(){ paintVPlan(jid, j) }); }
   function row(e){
+    if(String(e.tpl||"").indexOf("beat.")===0) return beatRow(e);
     var d = VEV[e.id] || {mode:"auto"};
     var gone = d.mode==="none";
     /* ⚠️ **မထွက်ခဲ့တာကို ဖုံးမထားရ** — engine က စီစဉ်ပြီး ဆောက်မရခဲ့လျှင်
@@ -2751,12 +2846,21 @@ function paintVPlan(jid, j){
   Array.prototype.forEach.call(box.querySelectorAll(".vb"), function(b){
     b.onclick=function(){
       var id=b.getAttribute("data-ev"), a=b.getAttribute("data-va");
-      if(a==="auto"){ delete VEV[id] } else if(a==="none"){ VEV[id]={mode:"none"} }
+      if(a==="bedit"){ BOPEN = BOPEN===id ? null : id; paintVPlan(jid, j); return }
+      if(a==="auto"){ delete VEV[id]; delete BED[id] } else if(a==="none"){ VEV[id]={mode:"none"} }
       else { openLib(id, jid, j); return }
       paintVPlan(jid, j);
     };
   });
-  document.getElementById("vgo").onclick=function(){ saveVPlan(jid, true) };
+  _bindBeats(box, jid, j);
+  document.getElementById("vgo").onclick=function(){
+    if(!_hasB){ saveVPlan(jid, true); return }
+    var m=document.getElementById("vmsg"); if(m) m.textContent="beat သိမ်းနေသည်…";
+    saveBeats(jid).then(function(z){
+      if(!z.ok){ if(m) m.textContent="beat သိမ်း၍ မရ — "+(z.d.detail||""); return }
+      saveVPlan(jid, true);
+    }).catch(function(e){ if(m) m.textContent="မရပါ — "+(e.message||e) });
+  };
 }
 
 function saveVPlan(jid, rerender){

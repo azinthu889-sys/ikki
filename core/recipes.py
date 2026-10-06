@@ -192,7 +192,10 @@ R = {
      cap_by_word=True, cap_timing="word_pop", cap_pop=1.25, cap_lines=1, cap_kw=0.0,
      # Remotion cinematic scene (title · neon blur · white list · subscribe) — Zin ၂၀၂၆-၁၀-၀၆
      #    「ဒီလိုပုံစံ (r3 01BnhfTaQoo)」 · Remotion မရှိလျှင် IKKI ကတ်အတိုင်း
-     engine="remotion",
+     # ══ Beats (Zin ၂၀၂၆-၁၀-၀၇ 「စကားလုံးအလိုက် infographic · realistic UI · 2026」) ══
+     #    AI director ⇒ registry ၃၃ မျိုး · word-synced SFX · brand kit。 worker patch
+     #    (`worker-run-beats.patch`) မတပ်ရသေးလျှင် engine ကို မသိ ⇒ IKKI ကတ်အတိုင်း (ဘေးကင်း)
+     engine="beats", beat_pack="default", director_ai=True, beat_cta=True, beat_sfx_gain=1.0,
      modern_allow=("modern.mt_neon_box", "modern.mt_counter", "modern.mt_pill_list"),
      kin_title=False, ref_lock=("kin_title",),   # word-pop caption နဲ့ ၂ ထပ် မဖြစ်စေ
      gfx=8, gfx_share=(0.06, 0.18), broll=6, broll_pct=0.18,

@@ -1238,6 +1238,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    မအောင်လျှင် AI ဆီ ပြန်ဆုတ်**ရမည် — job တစ်ခုလုံး မကျစေရ။
     user_ev = over.pop("_ev", None) or {}
     if not isinstance(user_ev, dict): user_ev = {}
+    # ⚠️ **Beats ပြင်ချက်** (Zin ၂၀၂၆-၁၀-၀၇ · editor) — `{"edits": {id: beat}, "add": [beat]}`。
+    #    ဖြုတ်ခြင်းက `_ev[id] = {"mode":"none"}` (Visual Plan နဲ့ အတူ)。
+    user_beats = over.pop("_beats", None) or {}
+    if not isinstance(user_beats, dict): user_beats = {}
     # ── Reference **Style DNA** ────────────────────────────────────
     # ⚠️ **နှစ်ပိုင်း ခွဲရမည်** (Zin ရဲ့ §4):
     #      ဖြတ်ချက် ပိုင်း (`cut`) ⇒ **cut preview မတိုင်မီ** — မဟုတ်လျှင်
@@ -5251,10 +5255,11 @@ def render(job, brand, src, out, stage, log=print, over=None):
     _remo_ev = None
     try:
         import remo as _REMO
-        if rc.get("engine") == "remotion" and _REMO.available():
+        if rc.get("engine") in ("remotion", "beats") and _REMO.available():
             _remo_ev = []
     except Exception:
         _REMO = None
+    _gbusy = []   # IKKI က တင်သော ကတ် ဝင်းဒိုး ⇒ beats director ရှောင်
     _gat = {round(float(_g.get("at") or 0), 2): _g for _g in (locals().get("gfx") or [])}
     for at, mov, d, _y0, _y1 in (gmov or [])[:12]:
         _g = _gat.get(round(float(at), 2)) or {}
@@ -5262,6 +5267,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         if _remo_ev is not None and _k.split(".")[-1] in ("mt_neon_box", "mt_counter", "mt_pill_list"):
             _remo_ev.append((float(at), float(d), _k, dict(_g.get("args") or _g.get("props") or {})))
             continue
+        _gbusy.append((float(at) - 0.3, float(at) + float(d) + 0.3))
         ins += ["-itsoffset",f"{at:.2f}","-i",mov]; n+=1
         fc.append(f"[{last}][{n}:v]overlay=0:0:eof_action=pass[v{n}]"); last=f"v{n}"
     # ══ keyword pop — **ဘေးတိုက် ရွှေ့ပြီး** ထပ်တင် ═══════════════
@@ -5639,6 +5645,59 @@ def render(job, brand, src, out, stage, log=print, over=None):
     if bad:
         raise RuntimeError("QC မအောင်: " + ", ".join(bad))
     # ── Remotion cinematic scene — QC အောင်ပြီးမှ (မအောင်လျှင် IKKI ထွက်ဖိုင် အတိုင်း) ──
+    # ══ Beats (Zin ၂၀၂၆-၁၀-၀၇ · `engine="beats"`) — AI director ⇒ စကားလုံး ချိန်ကိုက်
+    #    realistic-UI infographic + SFX。 IKKI modern ကတ် နေရာကိုလည်း beat က ယူ。
+    #    မအောင်လျှင် IKKI ထွက်ဖိုင် အတိုင်း (job မကျ)。
+    if rc.get("engine") == "beats" and locals().get("_remo_ev") is not None:
+        try:
+            import director as _DIR
+            _bd = float(probe(out).get("dur") or 0)
+            _fx = _DIR.face_x_of(locals().get("_pose_fr"))
+            _bt = _DIR.direct(st.get("segs") or [], _bd, pack=rc.get("beat_pack") or "default",
+                              busy=locals().get("_gbusy") or [], face_x=_fx, log=log,
+                              ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
+            # ── editor ပြင်ချက် — ဖြုတ် (`_ev` none) · ပြင် (`_beats.edits`) · ထည့် (`_beats.add`) ──
+            _bid = lambda _b: "b%.2f" % float(_b["at"])
+            _bt = [_b for _b in _bt if ((user_ev or {}).get(_bid(_b)) or {}).get("mode") != "none"]
+            _ed = (user_beats or {}).get("edits") or {}
+            for _i, _b in enumerate(list(_bt)):
+                _e = _ed.get(_bid(_b))
+                _v = _DIR.validate(dict(_e)) if isinstance(_e, dict) else None
+                if _v:
+                    _v.update(at=_b["at"], dur=_b.get("dur"), pos=_e.get("pos") or _b.get("pos"))
+                    if _e.get("variant"): _v["variant"] = _e["variant"]
+                    _bt[_i] = _v
+            for _e in ((user_beats or {}).get("add") or [])[:20]:
+                _v = _DIR.validate(dict(_e)) if isinstance(_e, dict) else None
+                try: _at = float(_e.get("at"))
+                except (TypeError, ValueError, AttributeError): _at = -1
+                if _v and 0.5 <= _at <= _bd - 1.5:
+                    _v.update(at=round(_at, 3), dur=float(_DIR.types()[_v["type"]]["dur"][1]),
+                              pos=_e.get("pos") or "right")
+                    _bt.append(_v)
+            _bt.sort(key=lambda _b: _b["at"])
+            import brandkit as _BK
+            _brep = {}
+            _bk = rc.get("brand_kit") or _BK.kit(locals().get("bd"), rc, seed=(locals().get("bd") or {}).get("id"))
+            REPORT["beats"] = dict(n=len(_bt), types=[b["type"] for b in _bt], face_x=_fx, kit=_bk,
+                                   ok=_REMO.compose_beats(out, _bt, work, brand=_bk,
+                                                          sfx_gain=float(rc.get("beat_sfx_gain") or 1.0), log=log,
+                                                          report=_brep))
+            REPORT["beats"]["qc"] = {k: v for k, v in _brep.items() if k != "beats"}
+            REPORT["beats"]["final"] = [dict(type=b["type"], at=b["at"], pos=b.get("pos")) for b in _brep.get("beats") or []]
+            # ⚠️ Visual Plan ထဲ ထည့် ⇒ editor မှာ ကြည့်/ဖြုတ်/ပြင် နိုင်
+            _vp0 = [x for x in (st.get("vplan") or []) if not str(x.get("tpl", "")).startswith("beat.")]
+            for _b in _brep.get("beats") or []:
+                _par = {k: v for k, v in _b.items() if k not in ("at", "dur")}
+                _txt = " · ".join(str(v) for k, v in _par.items()
+                                  if k not in ("type", "pos", "variant") and isinstance(v, (str, int, float)))
+                _vp0.append(dict(id=_bid(_b), at=round(float(_b["at"]), 2), dur=round(float(_b.get("dur") or 0), 2),
+                                 tpl="beat." + _b["type"], text=_txt[:60], user=bool(_ed.get(_bid(_b))), beat=_par))
+            st["vplan"] = sorted(_vp0, key=lambda x: x["at"])
+            _remo_ev = None
+        except Exception as _bte:
+            log(f"  ⚠️ beats ({type(_bte).__name__}: {_bte}) — IKKI ထွက်ဖိုင် အတိုင်း")
+            _remo_ev = None
     if locals().get("_remo_ev"):
         try:
             _sc = _REMO.plan_scenes(_remo_ev, caps, float(probe(out).get("dur") or 0))

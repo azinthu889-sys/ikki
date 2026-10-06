@@ -718,7 +718,7 @@ def job_quality_recheck(jid: str, authorization: str = Header(None)):
     # recreate short flash cuts, or put graphics at obsolete timestamps.
     derived = {
         "_drop", "_drop_exact", "_spans", "_cuthash", "_keep", "_take_map",
-        "_ev", "_motion", "_speed_applied",
+        "_ev", "_motion", "_speed_applied", "_beats",
     }
     over = {k: v for k, v in old_over.items() if k not in derived}
 
@@ -2332,6 +2332,68 @@ async def job_vplan(jid: str, req: Request, authorization: str = Header(None)):
     db.run("UPDATE jobs SET over=? WHERE id=?",
            json.dumps(over, ensure_ascii=False) if over else None, jid)
     return {"ok": True, "n": len(clean)}
+
+
+@app.post("/api/jobs/{jid}/beats")
+async def job_beats(jid: str, req: Request, authorization: str = Header(None)):
+    """Beats (AI director infographic) ပြင်ချက် သိမ်း (Zin ၂၀၂၆-၁၀-၀၇)。
+
+    body: `{"edits": {"b17.99": {"type":"stat","value":"500,000","unit":"ကျပ်","label":"…"}},
+            "add": [{"type":"notify","at":12.3,…}]}`
+    ⚠️ registry schema (`core/beat_registry.json`) နဲ့ စစ် — မမှန်လျှင် 400 (worker မှာ တိတ်တဆိတ် မပျောက်စေ)。
+    ⚠️ ဖြုတ်ခြင်းက `/vplan` (`mode: none`) နဲ့။ သိမ်းရုံသာ — ပြန်ထုတ်မှ သက်ဝင်。
+    """
+    auth(authorization, UTOKEN)
+    j = mine(authorization, jid)
+    b = await req.json() or {}
+    try:
+        import director as _DIR
+    except Exception:
+        raise HTTPException(503, "beat registry မရှိ")
+    edits, add = b.get("edits") or {}, b.get("add") or []
+    if not isinstance(edits, dict) or not isinstance(add, list):
+        raise HTTPException(400, "edits/add ပုံစံ မမှန်")
+    if len(edits) > 60 or len(add) > 20:
+        raise HTTPException(400, "အရေအတွက် များလွန်း")
+    ce, ca = {}, []
+    for k, v in edits.items():
+        vv = _DIR.validate(dict(v or {})) if isinstance(v, dict) else None
+        if not vv:
+            raise HTTPException(400, f"{str(k)[:12]} — «{str((v or {}).get('type'))[:20]}» ပုံစံ/စာ မပြည့်စုံ")
+        for o in ("pos", "variant"):
+            if (v or {}).get(o) in ("left", "right", "center", "glass", "light", "neon"):
+                vv[o] = v[o]
+        ce[str(k)[:16]] = vv
+    for v in add:
+        vv = _DIR.validate(dict(v or {})) if isinstance(v, dict) else None
+        try: at = float((v or {}).get("at"))
+        except (TypeError, ValueError): at = -1
+        if not vv or at < 0:
+            raise HTTPException(400, "ထည့်မည့် beat ပုံစံ/အချိန် မမှန်")
+        vv["at"] = round(at, 3)
+        if (v or {}).get("pos") in ("left", "right", "center"): vv["pos"] = v["pos"]
+        ca.append(vv)
+    over = {}
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    over.pop("_beats", None)
+    if ce or ca: over["_beats"] = {"edits": ce, "add": ca}
+    db.run("UPDATE jobs SET over=? WHERE id=?",
+           json.dumps(over, ensure_ascii=False) if over else None, jid)
+    return {"ok": True, "edits": len(ce), "add": len(ca)}
+
+
+@app.get("/api/beats/registry")
+async def beats_registry(authorization: str = Header(None)):
+    """editor အတွက် beat type · params · label (registry)"""
+    auth(authorization, UTOKEN)
+    try:
+        import director as _DIR
+        T = _DIR.types()
+    except Exception:
+        raise HTTPException(503, "beat registry မရှိ")
+    return {"types": {k: {"my": v.get("my"), "cat": v.get("cat"), "params": v.get("params"),
+                          "example": v.get("example")} for k, v in T.items()}}
 
 
 @app.post("/api/jobs/{jid}/cutok")
