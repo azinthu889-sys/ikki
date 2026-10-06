@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.join(HERE, "..", "core"))
 import manifest as MF        # noqa: E402
 import plan_schema as PS     # noqa: E402
 import planner as PL         # noqa: E402
+# ⚠️ ၂၀၂၆-၁၀-၀၆ modern look (premium = modern.mt_* သာ) — ဒီဖိုင်က legacy လမ်းကြောင်း
+#    (catalog · pop · UI pool) ကို စစ်သည် ⇒ ပိတ်ထားပြီး စစ် · modern ကို test_modern_plan.py မှာ
+PL.MODERN_LOOK = False
 
 FAILED = []
 

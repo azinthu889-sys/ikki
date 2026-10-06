@@ -28,6 +28,8 @@ os.environ.setdefault("ZJL_FORCE_PROXY", "1")
 os.environ["ZJL_GEMINI_PROXY"] = "http://127.0.0.1:9/disabled-in-test"
 
 import planner as PL          # noqa: E402
+# ⚠️ ၂၀၂၆-၁၀-၀၆ modern look — legacy pool/cutaway စစ်ချက် ⇒ ပိတ်ထား (modern: test_modern_plan.py)
+PL.MODERN_LOOK = False
 
 SENT = ["ဒီနေ့ ဂျပန်စာ N5 အတွက် ဘာလုပ်ရမလဲ ပြောပြမယ်",
         "ပထမဆုံး ဟိရဂနနဲ့ ခတခန ကို အလွတ်ရရမယ်",

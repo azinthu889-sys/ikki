@@ -49,9 +49,10 @@ class AutoJoin(unittest.TestCase):
             self.s = f.read()
 
     def test_adjacent_cuts_join_in_view_preview_and_export(self):
-        self.assertIn("var MERGE_GAP=0.35;", self.s)
+        self.assertIn("var MERGE_GAP=0.60;", self.s)
         self.assertIn("function tcView()", self.s)
-        self.assertIn("if(L && r[0]<=L[1]+MERGE_GAP)", self.s)
+        # ၂၀၂၆-၁၀-၀၆: ကြားအပိုင်း ကျော်တာက tcBridges() (ချန်ထားတဲ့ စာကြောင်း ပါလျှင် မပေါင်း)
+        self.assertIn("if(end!==null && r[0]<=end+MERGE_GAP && !_spk(end, r[0])){", self.s)
         self.assertIn("try{ tcBridges().forEach(function(r){ ds.push(r) }) }catch(e){}", self.s)
 
     def test_group_click_restores_all(self):

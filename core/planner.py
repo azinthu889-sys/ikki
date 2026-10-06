@@ -1467,6 +1467,55 @@ PACK_INTENT = {"hook": "hook", "section": "section", "fact": "statement",
                "steps": "steps", "compare": "compare"}
 
 
+# ══ Modern look (Zin ၂၀၂၆-၁၀-၀၆ 「လက်ရှိ motion တွေက သဘာဝ မကျ · modern မဆန် ·
+#    modern ဆန်ဆန် အမိုက်စား」) ══════════════════════════════════════════════════
+# ⚠️ တိုင်းချက် (j_d96beb16229d): ၁ မိနစ်ထဲ template family **၇ မျိုး** ရော —
+#    headtop · maps.stat_map (「၂၉」 ရက်စွဲကို stat) · infogfx.big_number (「၅」) ·
+#    prem4.stop_scroll (အမည်း ဘောင်အပြည့်) · thm.cut_grid (ဗလာ အကွက်) ·
+#    thm.type_stack · kinetic.* (ခေါင်းပေါ် အဝါ စာလုံးရိုး)。 ပုံစံ မတူတာတွေ
+#    ဆက်တိုက် ⇒ 「သဘာဝ မကျ」。 reference ၆ ပုဒ် (modern-th-spec) အားလုံး
+#    **accent တစ်ရောင် · family တစ်ခု** ⇒ premium profile မှာ `modern.mt_*` သာ。
+# ⚠️ modern template မရှိ (motionkit မတင်ရ) ⇒ ယခင် လမ်းကြောင်း (ပျက်မသွားစေရ)。
+MODERN_LOOK = True
+MODERN_CAP = 3          # template တစ်ခု — တစ်ပုဒ်လျှင် အများဆုံး
+MODERN_LAB = {"hook": ["hook", "section"], "section": ["section"], "fact": ["statement"],
+              "number": ["number", "statement"], "checklist": ["checklist"], "steps": ["steps"],
+              "compare": ["compare"], "warning": ["statement"], "plain": ["statement"],
+              "card": ["statement"]}
+
+
+# label အလိုက် ဦးစားပေး အစဉ် (ပထမ = အကောင်းဆုံး)
+MODERN_PREF = {"hook": ["modern.mt_section", "modern.mt_neon_box"],
+               "section": ["modern.mt_section", "modern.mt_explainer_page"],
+               "steps": ["modern.mt_pill_list", "modern.mt_explainer_page"]}
+
+
+def _modern_ids(lab):
+    if not MODERN_LOOK:
+        return []
+    try:
+        try:
+            import pack as _PK
+        except ImportError:
+            from core import pack as _PK
+        ok = set(_PK.selectable())
+        out = []
+        for it in MODERN_LAB.get(lab, []):
+            for x in _PK.by_intent(it):
+                if x.startswith("modern.") and x in ok and x not in out:
+                    out.append(x)
+        pref = MODERN_PREF.get(lab)
+        if pref:
+            out = [x for x in pref if x in out] + [x for x in out if x not in pref]
+        return out
+    except Exception:
+        return []
+
+
+def _modern_on(profile):
+    return MODERN_LOOK and profile == "premium" and bool(_modern_ids("section"))
+
+
 def _pack_ids(lab):
     """label အတွက် **verify ပြီးသား** pack template များ — မရှိလျှင် ဗလာ
 
@@ -1474,6 +1523,9 @@ def _pack_ids(lab):
        (spec §5: 「No planner may select a template until its manifest is
        valid」)。 ဒါကို မဖြတ်ရ。
     """
+    _m = _modern_ids(lab)
+    if _m:
+        return _m
     it = PACK_INTENT.get(lab)
     if not it:
         return []
@@ -1546,12 +1598,83 @@ def _full_frame(tid):
 PACK_TEXT_WORDS = 4
 
 
+_MY_DIG = str.maketrans("၀၁၂၃၄၅၆၇၈၉", "0123456789")
+# ⚠️ ငွေ/အကြိမ် ယူနစ် — 「၅ သိန်း」 ဆိုလျှင် ဂဏန်းက ၁ လုံး ဖြစ်ပေမယ့် အဓိပ္ပာယ် ပြည့် (၅ သိန်း
+#    = ၅၀၀,၀၀၀ ကျပ်)。 ရက်စွဲ (ရက် · လ · ခုနှစ်) မပါ — 「၂၉ ရက်」 ကို stat မပြရ。
+_MY_UNIT = ("သိန်း", "သောင်း", "ထောင်", "ကျပ်", "ကြိမ်", "ယန်း", "ဒေါ်လာ", "ဘတ်", "%", "ရာခိုင်နှုန်း")
+
+
+def _modern_props(tid, lab, txt):
+    """`modern.mt_*` အတွက် **အဓိပ္ပာယ် ပြည့်** props (Zin ၂၀၂၆-၁၀-၀၆ 「Premium Talking
+    Head」)。 generic `_pack_props` က စာကြောင်းကို တစ်ဝက်ဖြတ် (split2) · ပထမ ၄ လုံး ·
+    ဂဏန်း ၁ လုံး ငြင်း ⇒ 「ဘယ်လိုဆုတွေရမှာလဲဆိုရင် Casper」 လို item ဖြစ်ခဲ့。"""
+    import re as _re
+    t = (txt or "").strip()
+    if not t:
+        return None
+    fn = tid.split(".", 1)[1]
+    def _words(x, n):
+        w = x.split()
+        return " ".join(w[:n])
+    if fn == "mt_counter":
+        m = _re.search(r"([0-9၀-၉][0-9၀-၉,\.]*)\s*(" + "|".join(_MY_UNIT) + r")(\S*)", t)
+        if not m:
+            return None
+        v = m.group(1).translate(_MY_DIG).replace(",", "")
+        try:
+            float(v)
+        except ValueError:
+            return None
+        unit, rest = m.group(2), m.group(3)
+        # 「သိန်းကျပ်လွှဲပြီး」⇒「သိန်းကျပ်」 · 「သိန်းနှင့်」⇒「သိန်း」 (ပစ္စည်း မပါ)
+        lab2 = unit + ("ကျပ်" if rest.startswith("ကျပ်") and unit != "ကျပ်" else "")
+        return {"value": v, "label": lab2}
+    if fn == "mt_pill_list":
+        body = t
+        head = ""
+        hm = _re.match(r"^(.{4,40}?(?:ဆိုရင်|ကတော့|ကတော့|များ|တွေ))\s+(.*)$", body)
+        if hm:
+            head, body = hm.group(1), hm.group(2)
+        parts = [x.strip(" ။၊,") for x in _re.split(r"[၊,]|\s+နဲ့\s+|\s+နှင့်\s+", body)]
+        # ⚠️ အမြီး ပစ္စည်း/ကြိယာ ဖြုတ် — 「ဖုန်းဘေစတဲ့ဆုတွေရရှိမှာဖြစ်ပါတယ်」⇒「ဖုန်းဘေ」
+        parts = [_re.sub(r"(စတဲ့.*|ရရှိမှာ.*|ဖြစ်ပါတယ်.*|ရယ်|တွေ)$", "", x).strip() for x in parts]
+        parts = [_words(x, 4) for x in parts if len(x) >= 2]
+        if len(parts) < 2:
+            return None
+        out = {"items": parts[:4]}
+        if head:
+            out["head"] = _words(head, 4)
+        return out
+    if fn == "mt_neon_box":
+        # warning ⇒ စာကြောင်း အစ (「သတိထားရမှာ … KBZ Pay」) · ကျန် ⇒ အဓိက စကားလုံး
+        if lab == "warning":
+            return {"text": _words(t, 3)}
+        kw = keyword(t)
+        return {"text": kw or _words(t, 3)}
+    if fn == "mt_section":
+        kw = keyword(t)
+        return {"head": kw or _words(t, 3), "sub": _words(t, 5) if kw else ""}
+    if fn == "mt_compare":
+        two = split2(t)
+        if len(two) < 2:
+            return None
+        return {"left": _words(two[0], 3), "right": _words(two[1], 3)}
+    if fn == "mt_explainer_page":
+        parts = [x.strip(" ။၊,") for x in _re.split(r"[၊,။]", t) if x.strip(" ။၊,")]
+        if len(parts) < 3:
+            return None
+        return {"items": [_words(x, 5) for x in parts[:4]]}
+    return None
+
+
 def _pack_props(tid, lab, txt):
     """pack template ရဲ့ **required props** ဖြည့်သည် — မရလျှင် `None`
 
     ⚠️ manifest ရဲ့ `maxChars` ကို လိုက်နာရမည် — ကျော်လျှင် စာလုံး ပြတ်ပြီး
        မြန်မာစာ ဗျည်းတွဲ ပျက်နိုင်သည် ⇒ `_short()` (cluster-safe) နဲ့ ဖြတ်。
     """
+    if str(tid).startswith("modern."):
+        return _modern_props(tid, lab, txt)
     try:
         try:
             import pack as _PK
@@ -2019,7 +2142,9 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         #    catalog မှာ ၃ ခု ရှိပါလျက် ဘယ်တော့မှ မရောက်ခဲ့。
         #    ⇒ အဆင့် ၃ ဆင့်: ① pack (ကြာသေးတာ ကျော်) ② catalog
         #      ③ pack (ကျော်ခဲ့တာ ပြန်ယူ — ဂရပ်ဖစ် မပျောက်စေရန်)
-        _recent = set(_used_tpl[-NOREPEAT:])
+        _recent = (set(x.get('motionKitTemplateId') for x in p['templateEvents']
+                       if abs(float(x.get('startTime') or 0) - a) < 12.0)
+                   if _modern_on(profile) else set(_used_tpl[-NOREPEAT:]))
         _pack_c = (_rotate(_pack_ids(lab), _used_tpl, video_id)
                    if profile == "premium" else [])
         # ⚠️ ဤအပိုင်းမှာ ဘောင်အပြည့် **သင့်မသင့်** — ဘတ်ဂျက် လွတ်ရမည်၊
@@ -2059,6 +2184,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             if _cap_px:
                 pr["size"] = _cap_px
         _pack_c = _ff_order(_pack_c) if not cid else []
+        if _modern_on(profile):
+            # ⚠️ ပုံစံတူ တစ်ပုဒ်လျှင် ၃ ကြိမ် အများဆုံး · အသုံးနည်းတာ ရှေ့ (ငြီးငွေ့ မဖြစ်စေ)
+            _pack_c = sorted([x for x in _pack_c if _used_tpl.count(x) < MODERN_CAP],
+                             key=lambda x: _used_tpl.count(x))
         _stale = []
         for _pid in _pack_c:
             if _pid in _recent:
@@ -2067,7 +2196,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             if _pp is not None:
                 cid, pr = _pid, _pp
                 break
-        if not cid:
+        if not cid and not (_modern_on(profile) and lab in MODERN_LAB):
             cands = _rotate(_profile_candidates(lab, profile, last_id),
                             _used_tpl, video_id)
             # ⚠️ catalog လမ်းကြောင်းမှာလည်း အတူတူ စီရမည် — ယခင်က pack
@@ -2081,6 +2210,9 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         if not cid:
             # ⚠️ **ဂရပ်ဖစ် မပျောက်စေရ** — ကွဲပြားမှုထက် ရှိတာက ကောင်းသည်
             for _pid in _ff_order(_stale):
+                # ⚠️ modern — ကတ်တူ ဆက်တိုက် မထုတ် (ကတ် မရှိတာက ထပ်နေတာထက် သာ)
+                if _modern_on(profile) and _pid == last_id and (a - last_change) < 12.0:
+                    continue
                 _pp = _pack_props(_pid, lab, txt)
                 if _pp is not None:
                     cid, pr = _pid, _pp
@@ -2174,7 +2306,8 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             #    ၂ နေရာ လှည့်ပြီးမှ တိုင်းကြည့်တော့ `ht_stat_ring` က ၄ ခါ
             #    ပေါ်နေဆဲ ဖြစ်ခဲ့သည် — event အများစုက **ဒီ gap-fill** ကနေ
             #    လာသဖြင့်。 (တိုင်းပြီးမှ တွေ့ — code ဖတ်ရုံနဲ့ မရ)
-            _pack_fill = (_rotate(_pack_ids(_lab2) or _pack_ids("section"),
+            _pack_fill = (_rotate((_pack_ids(_lab2) + [x for x in _pack_ids("section") if x not in _pack_ids(_lab2)])
+                                  if _modern_on(profile) else (_pack_ids(_lab2) or _pack_ids("section")),
                                   _used_tpl, video_id)
                           if profile == "premium" else [])
             # ⚠️ **ကြာသေးတာကို ကျော်ရမည်** — main loop မှာ `_recent` စစ်ချက်
@@ -2182,7 +2315,12 @@ def build(segs, labels, dur, opts=None, video_id="src"):
             #    id **တစ်ခုတည်း** (`headtop.ht_outline_title`) သာ ရှိသဖြင့်
             #    `plain` ဝါကျတိုင်းရဲ့ ဖြည့်ကတ်က **အတူတူ** ဖြစ်ခဲ့သည် —
             #    တစ်ပုဒ်တည်းမှာ ၆ ကြိမ် (Zin ၂၀၂၆-၀၉-၂၅: 「မထပ်အောင်」)。
-            _recent2 = set(_used_tpl[-NOREPEAT:])
+            if _modern_on(profile):
+                _pack_fill = sorted([x for x in _pack_fill if _used_tpl.count(x) < MODERN_CAP],
+                                    key=lambda x: _used_tpl.count(x))
+            _recent2 = (set(x.get('motionKitTemplateId') for x in p['templateEvents']
+                            if abs(float(x.get('startTime') or 0) - a2) < 12.0)
+                        if _modern_on(profile) else set(_used_tpl[-NOREPEAT:]))
             for _pid2 in _pack_fill:
                 if _full_frame(_pid2) or _pid2 in _recent2:
                     continue
@@ -2190,7 +2328,7 @@ def build(segs, labels, dur, opts=None, video_id="src"):
                 if _pp2 is not None:
                     _cid2, _pr2 = _pid2, _pp2
                     break
-            if not _cid2:
+            if not _cid2 and not _modern_on(profile):
                 # Non-pack profile တွေအတွက်လည်း cadence fill ရှိရမည်၊ ဒါပေမယ့်
                 # profile ပြင်ပ template ဆီ တိတ်တဆိတ် ပြန်မကျစေရ။
                 for _cid_try in _rotate(
@@ -2274,7 +2412,10 @@ def build(segs, labels, dur, opts=None, video_id="src"):
         for x in p["templateEvents"]
         if (x.get("style") or {}).get("layout") == "full"
     ]
-    for i, s2 in enumerate(segs if _lvl != "minimal" else []):
+    # ⚠️ modern look — ခေါင်းပေါ် အဝါ စာလုံးရိုး (kinetic.*) မထည့် · အဓိက စကားလုံးကို
+    #    စာတန်း highlight (capt.hl_phrase) က ပြပြီးသား ⇒ နှစ်ထပ် မဖြစ်စေ
+    _no_pop = _modern_on(profile)
+    for i, s2 in enumerate(segs if (_lvl != "minimal" and not _no_pop) else []):
         a = float(s2.get("start") or 0.0)
         b = float(s2.get("end") or a + 1.0)
         if dur and dur > 0:

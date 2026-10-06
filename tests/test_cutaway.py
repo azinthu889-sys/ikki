@@ -31,6 +31,8 @@ def ck(name, cond, extra=""):
 
 
 import planner as PL
+# ⚠️ ၂၀၂၆-၁၀-၀၆ modern look — legacy pool/cutaway စစ်ချက် ⇒ ပိတ်ထား (modern: test_modern_plan.py)
+PL.MODERN_LOOK = False
 
 # ── ④ တိုင်းပြီးသော စာရင်းကိုသာ ဖတ်ရမည် ──────────────────────────
 src = open(os.path.join(R, "core", "planner.py"), encoding="utf-8").read()
