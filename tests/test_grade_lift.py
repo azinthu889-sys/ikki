@@ -44,7 +44,16 @@ class LumaFilter(unittest.TestCase):
 
     def test_knee_present(self):
         # အနက် knee — မထားလျှင် p05 ၃၄ → ၉၀ (နို့ရည်ရောင်)
-        self.assertIn("lt(val,20.0)", GR.luma_filter(_rc()))
+        # premium (headtop) — အနက်ကို ×၀.၇၅ နက်စေသော knee (ဆွဲမတင်)
+        f = GR.luma_filter(_rc())
+        self.assertTrue("lt(val,20.0)" in f or "val*0.75" in f, f)
+        r = _rc(); r["grade_look"] = None
+        self.assertIn("lt(val,20.0)", GR.luma_filter(r))
+
+    def test_premium_look_once(self):
+        # look (RGB) က chain(lift=True) မှာ တစ်ခါ · lift=False မှာ မပါ
+        self.assertEqual(GR.chain(_rc()).count("colortemperature"), 1)
+        self.assertNotIn("colortemperature", GR.chain(_rc(), lift=False))
 
 
 class ChainLift(unittest.TestCase):
@@ -62,11 +71,13 @@ class ChainLift(unittest.TestCase):
         b = GR.chain(_rc(), lift=False)
         lf = GR.luma_filter(_rc())
         self.assertIn(lf, a)
-        self.assertEqual(a.replace("," + lf, "").replace(lf, ""), b)
+        lk = GR.look_filter(_rc())     # premium look လည်း lift နဲ့ အတူ「အဆုံးမှာ တစ်ခါ」ဘက်
+        self.assertEqual(a.replace("," + lf, "").replace(lf, "").replace("," + lk, ""), b)
 
     def test_no_lift_recipe_unchanged(self):
         r = _rc(); r["luma_lift"] = None
-        self.assertEqual(GR.chain(r), GR.chain(r, lift=False))
+        lk = GR.look_filter(r)
+        self.assertEqual(GR.chain(r).replace("," + lk, ""), GR.chain(r, lift=False))
 
 
 class SegmentedChain(unittest.TestCase):

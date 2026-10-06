@@ -4462,6 +4462,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
                             _sg = _sg + "," + _lf
                             log("  grade · အသားရေ အလင်းကို အဆုံးမှာ "
                                 "**တစ်ခါတည်း** (အပိုင်းလိုက် မထည့်)")
+                        # premium look (နွေး · vibrance · vignette) — RGB ⇒
+                        # lift နဲ့ အတူ **အဆုံးမှာ တစ်ခါတည်း**
+                        _lk = GR.look_filter(rc) if hasattr(GR, "look_filter") else ""
+                        if _lk:
+                            _sg = _sg + "," + _lk
+                            log(f"  grade · premium look ({_lk})")
             except Exception as _e:
                 log(f"  ⚠️ အပိုင်းလိုက် grade မရ ({type(_e).__name__}: {_e})")
         if _sg:

@@ -176,7 +176,7 @@ R = {
  #    ⇒ အကွာ ၄.၂–၆.၅s၊ IKKI က ၇.၅/min (၆၇%) သာ ရှိခဲ့သည်။ ၄.၂ က
  #    **reference ရဲ့ တိုင်းထားသော အောက်ဘောင်** — မှန်းဆချက် မဟုတ်။
  #    Zin: 「graphic များများပါလေ သဘောကျလေ」(၂၀၂၆-၀၉-၂၄)။
- "headtop": dict( gfx_gap_max=4.2,
+ "headtop": dict( gfx_gap_max=4.2, grade_look="premium",
      label="Talking Head Motion Edit", theme="ikki", fps=30,
      plan=True, energy="standard", shot_grade=True,
      motionkit_profile="premium", broll_strict=True,

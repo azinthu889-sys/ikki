@@ -39,7 +39,54 @@ CBAL   = dict(rm=0.0, gm=0.035, bm=-0.03, rh=0.01, gh=0.03, bh=-0.045)
 try: from recipes import NATURAL
 except ImportError: from core.recipes import NATURAL
 
+# ══ premium look (Zin ၂၀၂၆-၁၀-၀၆ 「Color grading သေချာလုပ်」) ══════════════
+# j_d96beb16229d (yuvj420p · flat · အစိမ်းစောင်း) မှာ ယခင် lift က အနက်ကိုပါ
+# ဆွဲတင်ပြီး **နို့ရည်ရောင်** — sweater Y ၄၅ → ၆၃ · skin ၁၃၃/၁၂၄/၁၁၃ → ၁၈၀/၁၇၁/၁၅၇
+# (ဖြူဖျော့)。 premium ⇒ အနက် **နက်နက်** (×၀.၇၅ knee) · အသားရေကို ပစ်မှတ်ရဲ့ ၆၄%
+# သာ တင် · highlight roll-off · နွေး ၅၆၀၀K mix ၀.၄၀ · vibrance (အသားရေ မထိ
+# စေရန် sat မဟုတ်) · vignette ပါးပါး。 တိုင်းချက် (frame ၂၆s):
+#   မူရင်း  skin 133/124/113 (R−G 9) · sweater 45 · wall 144/146/148 · p02 33
+#   ယခင်    skin 180/171/157 (R−G 9) · sweater 63 · wall 188/192/193 · p02 40
+#   premium skin 161/143/124 (R−G 18) · sweater 42 · wall 148/144/141 · p02 20
+PREMIUM_LOOK = "colortemperature=temperature=5600:mix=0.40,vibrance=intensity=0.28,vignette=a=0.30"
+
+
+def _premium_lut(sk, tg):
+    tgt = sk + 0.64 * (tg - sk)
+    bk = min(36.0, sk * 0.47)
+    hi_x, hi_y = 190.0, 219.0
+    if not (bk + 4 < sk < hi_x - 10):
+        return ""
+    return ("lutyuv=y='"
+            f"if(lt(val,{bk:.1f}),val*0.75,"
+            f"if(lt(val,{sk:.1f}),{bk*0.75:.2f}+(val-{bk:.1f})*{(tgt-bk*0.75)/(sk-bk):.5f},"
+            f"if(lt(val,{hi_x:.1f}),{tgt:.2f}+(val-{sk:.1f})*{(hi_y-tgt)/(hi_x-sk):.5f},"
+            f"{hi_y:.1f}+(val-{hi_x:.1f})*{(255.0-hi_y)/(255.0-hi_x):.5f})))'")
+
+
+def look_filter(rc):
+    """premium look (RGB) — **အဆုံးမှာ တစ်ခါတည်း** ထည့်ရမည် (အပိုင်းလိုက် မဟုတ် ·
+    yuv↔rgb အသွားအပြန် မပွားစေရန် — `luma_filter` မှတ်ချက် ကြည့်)。"""
+    return PREMIUM_LOOK if rc.get("grade_look") == "premium" else ""
+
+
 def luma_filter(rc):
+    """အသားရေ အလင်း — premium ဆိုလျှင် အနက် နက်စေသော lut、မဟုတ်လျှင် ယခင်အတိုင်း。"""
+    if rc.get("grade_look") == "premium":
+        _ll = rc.get("luma_lift")
+        try:
+            if not _ll or len(_ll) < 2:
+                return ""
+            _sk, _tg = float(_ll[0]), float(_ll[1])
+        except (TypeError, ValueError):
+            return ""
+        if not (8.0 < _sk < 240.0 and _tg > _sk + 4.0):
+            return ""
+        return _premium_lut(_sk, _tg)
+    return _luma_only(rc)
+
+
+def _luma_only(rc):
     """အသားရေ အလင်း တင်ရန် `lutyuv` တစ်ကြောင်း — မလိုလျှင် `""`
 
     ⚠⚠ **ဒါက YUV filter** ⇒ RGB filter (`colorlevels`/`curves`) ကြားမှာ
@@ -170,6 +217,9 @@ def chain(rc, lift=True):
         _lf = luma_filter(rc)
         if _lf:
             parts.append(_lf)
+        _lk = look_filter(rc)
+        if _lk:
+            parts.append(_lk)
     g = rc.get("gamma")
     if g:
         g = max(0.85, min(1.30, float(g)))
