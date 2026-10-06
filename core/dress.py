@@ -804,6 +804,7 @@ def track(gfx, out, work, W, H, fps, T1, T2, brand, label, log=print,
             #    non-int" · "invalid literal for int()" — တကယ် ဖြစ်ခဲ့)。
             # ⚠️ renderer v2 (60fps · motion blur) သုံးမည်ဆိုလျှင် builder ကိုပါ
             #    60fps နဲ့ ဆောက်ရသည် — 30fps ဖရိမ်တွေနဲ့ blur မထွက်。
+            a = _modern_dur(g["kind"], a, g.get("hold") or hold)
             _r = _r2()
             if _r is not None:
                 with _r.hifps(60):
@@ -1666,6 +1667,25 @@ def _shape_fix(kind, args, texts):
         return out
     except Exception:
         return args
+
+
+# ⚠️ `modern.mt_*` ရဲ့ ပုံသေ အရှည် (၂.၆–၄.၆s) က တို ဗီဒီယိုမှာ ရှည်လွန်းသည် —
+#    `hold` က ကတ်ကို **ရှည်အောင်ပဲ** လုပ်နိုင်၍ ၆၀s ထွက်ဖိုင်မှာ ၉ ခု × ၃.၃s =
+#    share ၀.၄၈၉ ⇒ `_fit_gfx` က ၅ ခု ဖယ် ⇒ SFX ၄ ခုသာ ⇒ `headtop_sfx_moments`
+#    ကျ (j_d96beb16229d · ၂၀၂၆-၁၀-၀၆)。 modern template တွေက `dur` ကို
+#    ယူနိုင်သဖြင့် worker ရဲ့ `hold` ကို ပေးသည် — **ဖတ်လို့ရသော အနည်းဆုံး**
+#    (animation ပြီးပြီး ~၀.၄s ငြိမ်) အောက် မတိုစေ。
+MODERN_MIN_DUR = {"mt_neon_box": 1.4, "mt_section": 1.5, "mt_counter": 1.8,
+                  "mt_compare": 2.0, "mt_pill_list": 2.2, "mt_explainer_page": 2.2}
+
+
+def _modern_dur(kind, args, hold):
+    if not hold or not isinstance(args, dict) or not str(kind).startswith("modern."):
+        return args
+    lo = MODERN_MIN_DUR.get(str(kind).split(".", 1)[1])
+    if lo is None or "dur" in args:
+        return args
+    return dict(args, dur=round(max(lo, float(hold)), 2))
 
 
 def _call_template(fn, kind, tag, args):

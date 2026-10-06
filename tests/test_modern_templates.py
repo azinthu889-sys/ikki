@@ -64,12 +64,23 @@ def main():
         import motmeas as MM
         import modern as M
         import infogfx as IG
+        import dress as DR
+        check(DR._modern_dur("modern.mt_neon_box", {"text": "x"}, 1.0)["dur"] == 1.4
+              and DR._modern_dur("modern.mt_section", {"head": "x"}, 3.0)["dur"] == 3.0
+              and DR._modern_dur("modern.mt_section", {"head": "x", "dur": 2.6}, 1.0)["dur"] == 2.6
+              and "dur" not in DR._modern_dur("modern.mt_counter", {"value": "1"}, None)
+              and DR._modern_dur("prem7.compare_bar", {"a": 1}, 1.0) == {"a": 1},
+              "dress `hold` ⇒ modern `dur` (အနည်းဆုံး ချိန်ချက်)")
 
         for asp in ("16:9", "9:16"):
             TH.use("ikki", asp)
             for k in IDS:
-                for dur in (None, 2.2):
+                # ⚠️ "min" = dress ရဲ့ ဖတ်လို့ရသော အနည်းဆုံး (worker `hold` တိုလျှင်) —
+                #    motion QC လည်း အောင်ရမည် (j_d96beb16229d)
+                for dur in (None, 2.2, "min"):
                     kw = dict(ARGS[k])
+                    if dur == "min":
+                        dur = DR.MODERN_MIN_DUR[k]
                     if dur:
                         kw["dur"] = dur
                     try:
@@ -79,7 +90,7 @@ def main():
                         continue
                     an = r.get("anim") or []
                     check(bool(an) and r.get("dur"), f"{asp} {k} dur={dur} — frame {len(an)}")
-                    if dur or k == "mt_explainer_page":
+                    if dur == 2.2 or k == "mt_explainer_page":
                         continue
                     # ink — အလယ် frame + ပြည့်ချိန် frame (alpha > 8 ကို dress နဲ့ တူ)
                     al = [np.asarray(Image.open(p).convert("RGBA").getchannel("A"))
