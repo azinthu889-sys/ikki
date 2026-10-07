@@ -439,7 +439,9 @@ def mix(base, cues, out, cue_path, log=print, stem=None):
         return out, 0
     # ⚠️ lead ကြောင့်် အစီအစစ်ဉ် ပြောင်းနိုင်သည် ⇒ အချိန်အလိုက် ပြန်စီသည်
     use.sort(key=lambda x: x[0])
-    use = use[:60]                      # ⚠️ ကန့်သတ် — ၆၀ ထက် ပို မလို
+    # ⚠️ ယခင် ၆၀ ကန့်သတ် ⇒ ၇ မိနစ် headtop (cue ၆၅) မှာ နောက်ဆုံး ၅ ခု **တိတ်တဆိတ် ပြုတ်**ပြီး
+    #    stem QC 「အသံမရှိ」ဖြင့် job ကျ (Raw.mp4 · ၂၀၂၆-၁၀-၀၇) ⇒ policy cap (≤18/min) က ထိန်းပြီးသား
+    use = use[:400]
     for i,(at,p,db) in enumerate(use):
         ins += ["-i",p]; ms=int(at*1000)
         fc.append(f"[{i+1}:a]aformat=sample_rates=48000:channel_layouts=stereo,"

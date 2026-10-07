@@ -4743,7 +4743,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
             #    「အသံမရှိ」ဟု ဖမ်း (8/67) ⇒ whoosh_in (ချက်ချင်း ကြားရ) သုံး
             for _mv in ((locals().get("_cmv") or []) if locals().get("_cm_done") else []):
                 if float(_mv[3]) > float(_mv[2]):
-                    _acc.append((float(_mv[0]), "whoosh_in", -18))
+                    # whoosh_in လည်း hit 0.49s ⇒ ducking နောက် −60 dB အောက် ကျ (2/65) ⇒ attack မြန် swipe
+                    _acc.append((float(_mv[0]), "swipe", -18))
             _ex = [float(c[0]) for c in cues]
             _add2 = []
             for _t, _r, _d in sorted(_acc):
@@ -5550,17 +5551,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
             # ⚠️ gfx_share ဘောင် အပေါ်ကို မကျော်စေ — beat ~3s ⇒ ဘောင်ထဲ ဝင်သလောက်သာ
             _shb0 = rc.get("gfx_share")
             _mx0 = None
-            if _shb0 and not slides:
+            if _shb0:
                 _cov0 = sum(float(d_) for _a0, d_ in (_cards or []))
                 _mx0 = max(0, int((float(_shb0[1]) * 0.92 * _bd0 - _cov0) / 3.2))
             _bt_pre = _DIR0.direct(st.get("segs") or [], _bd0, pack=rc.get("beat_pack") or "default",
-                                   max_n=_mx0, busy=locals().get("_gbusy") or [],
+                                   max_n=_mx0,
+                                   busy=(list(locals().get("_gbusy") or [])
+                                         + [(float(x[1]) - 0.3, float(x[2]) + 0.3) for x in (slides or [])]
+                                         + [(float(x[0]) - 0.2, float(x[0]) + float(x[2]) + 0.2) for x in (pmov or [])]
+                                         + [(float(x[0]) - 0.2, float(x[0]) + float(x[2]) + 0.2) for x in (bmov or [])]),
                                    face_x=_DIR0.face_x_of(locals().get("_pose_fr")), log=log,
                                    ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
             _bt_pre = [_b for _b in _bt_pre
                        if ((user_ev or {}).get("b%.2f" % float(_b["at"])) or {}).get("mode") != "none"]
-            if not slides:
-                _cards = list(_cards) + [(float(_b["at"]), float(_b.get("dur") or 3.0)) for _b in _bt_pre]
+            _cards = list(_cards) + [(float(_b["at"]), float(_b.get("dur") or 3.0)) for _b in _bt_pre]
         except Exception as _bpe:
             log(f"  ⚠️ beats စီစဉ် မရ ({type(_bpe).__name__}: {_bpe}) — IKKI ကတ် အတိုင်း")
             _bt_pre = None
@@ -5578,7 +5582,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
         except Exception as _mce:
             _mchecks = [dict(key="motion_measured", ok=False, value="—",
                              want=f"motion QC error: {type(_mce).__name__}")]
-        _real_gfx = len(gmov or []) + len(_bt_pre or [])
+        # ⚠️ plan ရဲ့ 「ဖြတ်ပြောင်း」 အကိုင်းက တင်သော ကတ် (`slides`) ကိုပါ ရေတွက် — gmov သာ ရေလျှင်
+        #    ကတ် ၃ ခု တကယ် ပေါ်လျက် headtop_gfx=0 ⇒ QC ကျ (Raw.mp4 · ၂၀၂၆-၁၀-၀၇)。
+        #    `pmov` (keyword pop) က ကတ် မဟုတ် ⇒ မရေ
+        _real_gfx = len(gmov or []) + len(slides or []) + len(_bt_pre or [])
         _need_gfx = 2 if float(mo_dur or 0) < 45.0 else 3
         _mchecks.append(dict(key="headtop_gfx", ok=_real_gfx >= _need_gfx,
                              value=_real_gfx, want=f"≥ {_need_gfx} realised overlays"))

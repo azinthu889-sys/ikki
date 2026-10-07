@@ -23,9 +23,31 @@ BRANDS = (("western union", "WESTERN UNION"), ("kbz pay", "KBZ PAY"), ("kbzpay",
 _NUM = re.compile(r"[0-9၀-၉][0-9၀-၉,\.]*\s*(?:သိန်း|သောင်း|ထောင်|ကျပ်|ကြိမ်|%|ရက်)?\S*")
 
 
+def _npx():
+    """npx လမ်းကြောင်း — ⚠️ launchd worker ရဲ့ PATH မှာ `/usr/local/bin` မပါ ⇒ `which` က None ⇒
+    Remotion/beats **တစ်ခါမှ မပြေးခဲ့** (Raw.mp4 · ၂၀၂၆-၁၀-၀၇ တွေ့) ⇒ နေရာ သိထားသော ဖိုဒါများ ထပ်ရှာ"""
+    p = shutil.which("npx")
+    if p:
+        return p
+    for d in ("/usr/local/bin", "/opt/homebrew/bin", os.path.expanduser("~/.volta/bin")):
+        q = os.path.join(d, "npx")
+        if os.path.exists(q):
+            return q
+    return None
+
+
+def _env():
+    """node/npx ရှိသော ဖိုဒါကို PATH ရှေ့ ထည့် (npx က `node` ကို PATH ကနေ ရှာ)"""
+    e = dict(os.environ)
+    p = _npx()
+    if p:
+        e["PATH"] = os.path.dirname(p) + os.pathsep + e.get("PATH", "")
+    return e
+
+
 def available():
     return (os.path.isdir(os.path.join(REMO, "node_modules", "remotion"))
-            and shutil.which("npx") is not None)
+            and _npx() is not None)
 
 
 def _brand(t):
@@ -128,10 +150,10 @@ def compose(base, scenes, work, log=print, timeout=3600):
         if b <= a:
             continue
         seg = os.path.join(work, f"remo_s{i}.mp4")
-        r = subprocess.run(["npx", "remotion", "render", "src/index.ts", "Auto", seg,
+        r = subprocess.run([_npx(), "remotion", "render", "src/index.ts", "Auto", seg,
                             f"--props={props}", f"--public-dir={pub}", f"--frames={a}-{b}",
                             "--codec=h264", "--crf=16", "--log=error"],
-                           cwd=REMO, capture_output=True, text=True, timeout=timeout)
+                           cwd=REMO, capture_output=True, text=True, timeout=timeout, env=_env())
         if r.returncode or not os.path.exists(seg):
             log(f"  ⚠️ Remotion scene {i} မအောင် ({(r.stderr or r.stdout or '')[-200:]}) ⇒ ကျော်")
             continue
@@ -282,12 +304,12 @@ def _build_beats(src, beats, work, pub, dur, brand, sfx_gain, log, timeout, tag=
         # ⚠️ TMPDIR ကို exFAT (/Volumes/a) သို့ ပြောင်းလျှင် OffthreadVideo က **ဗီဒီယို မဖတ်နိုင်ဘဲ
         #    နောက်ခံ အမည်း** ထွက်သည် (၂၀၂၆-၁၀-၀၇ တိုင်း: env ⇒ luma 5 · default ⇒ 105)。
         #    ⇒ default ထား · `IKKI_REMO_TMP` (APFS ဖြစ်ရမည်) ပေးမှသာ ပြောင်း。 writeFile ကျ ⇒ ၁ ကြိမ် ပြန်ကြိုး
-        env = dict(os.environ)
+        env = _env()
         if os.environ.get("IKKI_REMO_TMP"):
             env["TMPDIR"] = os.environ["IKKI_REMO_TMP"]
         r = None
         for _try in range(2):
-            r = subprocess.run(["npx", "remotion", "render", "src/index.ts", "Beats", seg,
+            r = subprocess.run([_npx(), "remotion", "render", "src/index.ts", "Beats", seg,
                                 f"--props={props}", f"--public-dir={pub}", f"--frames={fa}-{fb}", "--muted",
                                 "--codec=h264", "--crf=16", "--log=error"],
                                cwd=REMO, capture_output=True, text=True, timeout=timeout,
