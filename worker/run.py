@@ -6808,7 +6808,11 @@ def handle(d):
               f"(ထပ်မြှင့်မိခြင်း မဖြစ်စေရန်)", flush=True)
     out = os.path.join(SCRATCH, jid + ".mp4")
     def stage(n, name):
-        req(f"/api/w/{jid}/stage", {"stage":n,"name":name,"minutes":(time.time()-t0)/60})
+        # ⚠️⚠️ **ရပ်ခိုင်းချက်ကို ဒီမှာ စစ်သည်**。 server က `want=False` ပြန်လျှင်
+        #    `Cancelled` ပစ်ပြီး render က ချက်ချင်း ရပ်သည် — ဖျက်ထားတဲ့ job ကို
+        #    အဆင့် ၇ ခုလုံး ဆက်လုပ်နေခြင်း မဖြစ်စေရန် (၂၀၂၆-၁၀-၀၇ တွေ့)。
+        _want(req(f"/api/w/{jid}/stage",
+                  {"stage":n,"name":name,"minutes":(time.time()-t0)/60}))
         print(f"  {n}/7 {name}", flush=True)
     REPORT.clear()
     _TOPFAIL[0] = False
@@ -6997,8 +7001,11 @@ def cine_handle(d, t0):
         raise RuntimeError(f"disk နေရာ မလုံလောက်ပါ — clip {len(srcs)} ခု {_sz:.1f} GB · "
                            f"~{need:.1f} GB လို · ကျန် {free_gb(BIG):.1f} GB")
     def stage(n, name):
-        req(f"/api/w/{jid}/stage", {"stage": n, "name": name,
-                                    "minutes": (time.time() - t0) / 60})
+        # ⚠️ render() ရဲ့ `stage` နဲ့ **တူညီရမည်** — လမ်းကြောင်း ၂ ခုစလုံးက
+        #    ရပ်ခိုင်းချက်ကို နားထောင်ရသည် (တစ်ခုပဲ ထည့်လျှင် cinematic job က
+        #    ဖျက်လို့ မရတော့)。
+        _want(req(f"/api/w/{jid}/stage", {"stage": n, "name": name,
+                                          "minutes": (time.time() - t0) / 60}))
         print(f"  {n}/7 {name}", flush=True)
     log = lambda x: print(x, flush=True)
     log(f"  🎬 Cinematic engine · clip {len(srcs)} · {_sz:.1f} GB · "
@@ -7365,6 +7372,58 @@ def _guard_remote(health=None, sleep=time.sleep, poll=None):
             f"`docker compose up -d` က ပြန်ဖန်တီးတတ်သည်。")
 
 
+# ══ ရပ်ခိုင်းချက် · အသက်ရှင်ကြောင်း ═══════════════════════════════════
+# ⚠️⚠️ **ဖျက်လိုက်တာကို worker က မသိခဲ့ပါ**。 `cancel` က DB ကိုပဲ ပြောင်းပြီး
+#    worker ကို ဘာမှ မအကြောင်းကြားသဖြင့် အဆင့် ၇ ခုလုံး ဆက်လုပ်နေသည်。
+#    တကယ် ဖြစ်ခဲ့ (၂၀၂၆-၁၀-၀၇ · j_4dd59bb90b5a): ဖျက်ပြီး **၆၃ မိနစ်** ကြာမှ
+#    ffmpeg ၂ ခု CPU ၇၇–၉၄% နဲ့ ဆက်လည်နေ · busy marker ကိုင်ထား ⇒ job အသစ်
+#    မယူနိုင် · heartbeat ရိုး၍ server က 「worker မရှိ」 ပြနေခဲ့သည်。
+# ⇒ စည်းမျဉ်း **တစ်ခုတည်း**: server က အဆင့်တိုင်း/beat တိုင်းမှာ
+#   `want` ပြန်ပြောသည် — `False` ဆိုလျှင် worker က ချက်ချင်း ရပ်သည်。
+class Cancelled(Exception):
+    """job ကို ဖျက်လိုက်ပြီ — render ဆက်မလုပ်တော့。"""
+
+
+_BEAT = {"jid": None, "stop": None, "cancelled": False}
+
+
+def _want(d):
+    """server ရဲ့ အဖြေကို စစ်သည် — `want=False` ဆိုလျှင် ရပ်。"""
+    if isinstance(d, dict) and d.get("want") is False:
+        _BEAT["cancelled"] = True
+        raise Cancelled(f"job ကို {d.get('status') or 'ဖျက်'} ထားသည်")
+    return d
+
+
+def _beat_start(jid):
+    """အဆင့် ရှည်နေချိန် ၃၀s တစ်ခါ အသက်ရှင်ကြောင်း ပို့သည်。
+
+    ⚠️ အဆင့်တစ်ခုက ရှည်နိုင်သည် (တိုင်းထား: `sound` ၂၇ မိနစ်)。 အဲဒီကြားမှာ
+       `stage` မပို့သဖြင့် server က 「worker မရှိ」 ပြခဲ့သည်。
+    ⚠️ daemon thread — worker ထွက်လျှင် အတူ သေရမည်。
+    """
+    import threading
+    _beat_stop()
+    _BEAT["jid"] = jid; _BEAT["cancelled"] = False
+    ev = threading.Event(); _BEAT["stop"] = ev
+
+    def loop():
+        while not ev.wait(30):
+            try: _want(req(f"/api/w/{jid}/beat", {}))
+            except Cancelled:
+                print("  ⛔ ဖျက်လိုက်ပြီ — ရပ်ရန် အချက်ပြသည်", flush=True)
+                return
+            except Exception:
+                pass          # ⚠️ ကွန်ရက် ပြတ်တာက render ကို မရပ်စေရ
+    t = threading.Thread(target=loop, daemon=True); t.start()
+
+
+def _beat_stop():
+    ev = _BEAT.get("stop")
+    if ev is not None: ev.set()
+    _BEAT["stop"] = None; _BEAT["jid"] = None
+
+
 def main(once=False):
     _guard_env()
     _guard_lock()
@@ -7411,12 +7470,23 @@ def main(once=False):
                     with open(BUSY, "w") as _bf:
                         _bf.write(f"{os.getpid()} {jid}\n")
                 except OSError: pass
+                _beat_start(jid)
                 try: handle(d)
+                except Cancelled as e:
+                    # ⚠️ ဖျက်ထားတာက **အမှား မဟုတ်** ⇒ `fail` မပို့ရ
+                    #    (ပို့လျှင် status က `failed` ပြန်ဖြစ်ပြီး သုံးစွဲသူက
+                    #     「ဖျက်လိုက်တာ ပျက်သွားတယ်」 ဟု မြင်မည်)。
+                    print(f"⛔ ရပ်လိုက်သည် — {e}", flush=True)
                 except Exception as e:
                     tb = traceback.format_exc(); print(f"❌ {e}\n{tb}", flush=True)
                     try: req(f"/api/w/{jid}/fail", {"err": str(e)[:800]})
                     except Exception: pass
                 finally:
+                    _beat_stop()
+                    # ⚠️ scratch ရှင်းရမည် — မရှင်းလျှင် ဖျက်လိုက်တဲ့ job တွေရဲ့
+                    #    ကြားဖြတ် ဖိုင်တွေက disk ဖြည့်သည် (ikki-scratch-leak)
+                    try: sweep_scratch(keep=None)
+                    except Exception: pass
                     try: os.remove(BUSY)
                     except OSError: pass
                 if once: return
