@@ -132,6 +132,8 @@ def my_upload(h, uid, t2=""):
 @app.get("/api/accounts")
 def accounts(authorization: str = Header(None)):
     auth(authorization, UTOKEN)
+    # ⚠️ ၂၀၂၆-၁၀-၀၇ — customer token နဲ့ အကောင့် စာရင်း ကြည့်/ဖန်တီး/ဖျက် လို့ ရနေခဲ့ ⇒ owner သာ
+    _need_owner(authorization)
     rows = db.rows("SELECT id,name,quota,created FROM accounts ORDER BY created")
     return {"accounts": rows}
 
@@ -140,6 +142,7 @@ def accounts(authorization: str = Header(None)):
 async def account_new(req: Request, authorization: str = Header(None)):
     """အကောင့် အသစ် — token ကို **တစ်ခါပဲ** ပြသည်。"""
     auth(authorization, UTOKEN)
+    _need_owner(authorization)
     b = await req.json()
     nm = (b.get("name") or "").strip()[:40]
     if not nm: raise HTTPException(400, "အမည် လိုသည်")
@@ -154,6 +157,7 @@ async def account_new(req: Request, authorization: str = Header(None)):
 @app.delete("/api/accounts/{a}")
 def account_del(a: str, authorization: str = Header(None)):
     auth(authorization, UTOKEN)
+    _need_owner(authorization)
     if a == "a_default": raise HTTPException(400, "ပုံသေ အကောင့်ကို မဖျက်ရ")
     db.run("DELETE FROM accounts WHERE id=?", a)
     return {"ok": True}
