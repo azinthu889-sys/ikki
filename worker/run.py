@@ -4738,9 +4738,12 @@ def render(job, brand, src, out, stage, log=print, over=None):
             for _ba, _bp, _bd, _bt in (bmov or []):
                 _acc.append((max(0.0, float(_ba) - 0.15), "whoosh_in", -16))
                 _acc.append((float(_ba) + float(_bd) - 0.12, "swipe", -19))
-            for _mv in (locals().get("_cmv") or []):
+            # ⚠️ camera move **တကယ် render ဖြစ်မှ** (`_cm_done`) — ကျလျှင် `_cmv` ကျန်ပြီး ရုပ်မရှိသော
+            #    riser ၂၂ ခု ထွက်ခဲ့ (Raw.mp4 · ၂၀၂၆-၁၀-၀၇)。 riser_soft က attack နှေး ⇒ stem QC မှာ
+            #    「အသံမရှိ」ဟု ဖမ်း (8/67) ⇒ whoosh_in (ချက်ချင်း ကြားရ) သုံး
+            for _mv in ((locals().get("_cmv") or []) if locals().get("_cm_done") else []):
                 if float(_mv[3]) > float(_mv[2]):
-                    _acc.append((float(_mv[0]), "riser_soft", -19))
+                    _acc.append((float(_mv[0]), "whoosh_in", -18))
             _ex = [float(c[0]) for c in cues]
             _add2 = []
             for _t, _r, _d in sorted(_acc):
@@ -5536,6 +5539,31 @@ def render(job, brand, src, out, stage, log=print, over=None):
         REPORT["motion"] = _MM.summary(_movs, log=log)
     except Exception as _me:
         log(f"  ⚠️ လှုပ်ရှားမှု မတိုင်းနိုင်: {type(_me).__name__}: {_me}")
+    # ══ Beats ကို QC မတိုင်ခင် စီစဉ် (Zin ၂၀၂၆-၁၀-၀၇) — beats mode မှာ IKKI modern ကတ်ကို မတင်ဘဲ
+    #    beat က ဂရပ်ဖစ် အဖြစ် ဝင်သည် ⇒ QC (gfx_share · headtop_gfx) က beat ကို **ရေတွက်ရမည်**。
+    #    မရေတွက်လျှင် Raw.mp4 (j_4dd59bb90b5a) လို headtop_gfx=0 ⇒ QC ကျ ⇒ beat မထွက်。
+    _bt_pre = None
+    if rc.get("engine") == "beats" and locals().get("_remo_ev") is not None:
+        try:
+            import director as _DIR0
+            _bd0 = float(mo_dur or probe(out).get("dur") or 0)
+            # ⚠️ gfx_share ဘောင် အပေါ်ကို မကျော်စေ — beat ~3s ⇒ ဘောင်ထဲ ဝင်သလောက်သာ
+            _shb0 = rc.get("gfx_share")
+            _mx0 = None
+            if _shb0 and not slides:
+                _cov0 = sum(float(d_) for _a0, d_ in (_cards or []))
+                _mx0 = max(0, int((float(_shb0[1]) * 0.92 * _bd0 - _cov0) / 3.2))
+            _bt_pre = _DIR0.direct(st.get("segs") or [], _bd0, pack=rc.get("beat_pack") or "default",
+                                   max_n=_mx0, busy=locals().get("_gbusy") or [],
+                                   face_x=_DIR0.face_x_of(locals().get("_pose_fr")), log=log,
+                                   ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
+            _bt_pre = [_b for _b in _bt_pre
+                       if ((user_ev or {}).get("b%.2f" % float(_b["at"])) or {}).get("mode") != "none"]
+            if not slides:
+                _cards = list(_cards) + [(float(_b["at"]), float(_b.get("dur") or 3.0)) for _b in _bt_pre]
+        except Exception as _bpe:
+            log(f"  ⚠️ beats စီစဉ် မရ ({type(_bpe).__name__}: {_bpe}) — IKKI ကတ် အတိုင်း")
+            _bt_pre = None
     ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
                         share=rc.get("gfx_share"))
@@ -5550,7 +5578,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
         except Exception as _mce:
             _mchecks = [dict(key="motion_measured", ok=False, value="—",
                              want=f"motion QC error: {type(_mce).__name__}")]
-        _real_gfx = len(gmov or [])
+        _real_gfx = len(gmov or []) + len(_bt_pre or [])
         _need_gfx = 2 if float(mo_dur or 0) < 45.0 else 3
         _mchecks.append(dict(key="headtop_gfx", ok=_real_gfx >= _need_gfx,
                              value=_real_gfx, want=f"≥ {_need_gfx} realised overlays"))
@@ -5653,9 +5681,10 @@ def render(job, brand, src, out, stage, log=print, over=None):
             import director as _DIR
             _bd = float(probe(out).get("dur") or 0)
             _fx = _DIR.face_x_of(locals().get("_pose_fr"))
-            _bt = _DIR.direct(st.get("segs") or [], _bd, pack=rc.get("beat_pack") or "default",
-                              busy=locals().get("_gbusy") or [], face_x=_fx, log=log,
-                              ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
+            _bt = list(_bt_pre) if _bt_pre is not None else \
+                _DIR.direct(st.get("segs") or [], _bd, pack=rc.get("beat_pack") or "default",
+                            busy=locals().get("_gbusy") or [], face_x=_fx, log=log,
+                            ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
             # ── editor ပြင်ချက် — ဖြုတ် (`_ev` none) · ပြင် (`_beats.edits`) · ထည့် (`_beats.add`) ──
             _bid = lambda _b: "b%.2f" % float(_b["at"])
             _bt = [_b for _b in _bt if ((user_ev or {}).get(_bid(_b)) or {}).get("mode") != "none"]

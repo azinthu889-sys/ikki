@@ -16,7 +16,7 @@ card), and at least `gap` s apart.
 Rendering is done per frame with a single PIL resample from the native crop,
 so there is no integer-pixel jitter (ffmpeg zoompan rounds x/y per frame).
 """
-import math, subprocess
+import math, re, subprocess
 import numpy as np
 
 ZMAX = 1.20
@@ -68,7 +68,9 @@ def render(src, out, fps, moves, W, H, pivot=(0.5, 0.40), log=None):
     from PIL import Image
     pr = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
                          "stream=width,height", "-of", "csv=p=0", src], capture_output=True, text=True)
-    sw, sh = [int(x) for x in pr.stdout.strip().split(",")[:2]]
+    # ⚠️ side data (rotation matrix) ပါသော ဖိုင်မှာ csv က `1440\n\n2560` ပုံစံ ထွက် ⇒ ကိန်း ၂ လုံးကိုသာ ယူ
+    #    (Raw.mp4 · j_4dd59bb90b5a · ၂၀၂၆-၁၀-၀၇ — camera move ကျ ⇒ breathing zoom ဖြစ်ခဲ့)
+    sw, sh = [int(x) for x in re.findall(r"\d+", pr.stdout)[:2]]
     cw = min(sw, int(sh * W / H) // 2 * 2); ch = min(sh, int(sw * H / W) // 2 * 2)
     rd = subprocess.Popen(["ffmpeg", "-v", "error", "-i", src, "-vf",
                            f"crop={cw}:{ch},fps={fps}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
