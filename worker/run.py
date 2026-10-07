@@ -1242,6 +1242,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
     #    ဖြုတ်ခြင်းက `_ev[id] = {"mode":"none"}` (Visual Plan နဲ့ အတူ)。
     user_beats = over.pop("_beats", None) or {}
     if not isinstance(user_beats, dict): user_beats = {}
+    # ⚠️ user taste (API က job ဖန်တီးချိန် ဖြည့်) — `clean()` က မသိသော key ဖြုတ်မည် ⇒ အရင် ခွဲထုတ်
+    user_avoid = [str(x) for x in (over.pop("_avoid_types", None) or [])][:20]
+    over.pop("_taste", None)
     # ── Reference **Style DNA** ────────────────────────────────────
     # ⚠️ **နှစ်ပိုင်း ခွဲရမည်** (Zin ရဲ့ §4):
     #      ဖြတ်ချက် ပိုင်း (`cut`) ⇒ **cut preview မတိုင်မီ** — မဟုတ်လျှင်
@@ -2194,6 +2197,7 @@ def render(job, brand, src, out, stage, log=print, over=None):
                               base["SKY"], base["RED"]],
                       mmf=base["MMF"], latin=base["LATIN"], jp=base["JP"])
         use_fmt = fmt or native
+        _brand_bd = dict(bd)   # ⚠️ `bd` ကို နောက်ပိုင်း B-roll loop (`for at, bp, bd, _t`) က float နဲ့ ဖုံးသည်
         TH = FM.theme(bd, use_fmt)
         # ⚠️ `accent` — recipe က theme ရဲ့ GOLD ကို လွှမ်းနိုင်သည်。
         #    ၂၀၂၆-၀၉-၂၀: High-Retention reference (`KCN4-2hyUBM`) ရဲ့ accent က
@@ -5549,11 +5553,14 @@ def render(job, brand, src, out, stage, log=print, over=None):
             import director as _DIR0
             _bd0 = float(mo_dur or probe(out).get("dur") or 0)
             # ⚠️ gfx_share ဘောင် အပေါ်ကို မကျော်စေ — beat ~3s ⇒ ဘောင်ထဲ ဝင်သလောက်သာ
+            # ⚠️ beat က ဘေး panel (full-frame မဟုတ်) ⇒ gfx_share ဘောင် အပေါ်ကို BEAT_SHARE ထပ်ခွင့်ပြု。
+            #    မခွဲလျှင် IKKI ကတ်က ဘောင် ပြည့်ပြီး beat ၀ ခု (smoke 37s · ၂၀၂၆-၁၀-၀၇)
             _shb0 = rc.get("gfx_share")
             _mx0 = None
             if _shb0:
+                _shb0 = (float(_shb0[0]), float(_shb0[1]) + BEAT_SHARE)
                 _cov0 = sum(float(d_) for _a0, d_ in (_cards or []))
-                _mx0 = max(0, int((float(_shb0[1]) * 0.92 * _bd0 - _cov0) / 3.2))
+                _mx0 = max(0, int((_shb0[1] * 0.92 * _bd0 - _cov0) / 3.2))
             _bt_pre = _DIR0.direct(st.get("segs") or [], _bd0, pack=rc.get("beat_pack") or "default",
                                    max_n=_mx0,
                                    busy=(list(locals().get("_gbusy") or [])
@@ -5561,16 +5568,20 @@ def render(job, brand, src, out, stage, log=print, over=None):
                                          + [(float(x[0]) - 0.2, float(x[0]) + float(x[2]) + 0.2) for x in (pmov or [])]
                                          + [(float(x[0]) - 0.2, float(x[0]) + float(x[2]) + 0.2) for x in (bmov or [])]),
                                    face_x=_DIR0.face_x_of(locals().get("_pose_fr")), log=log,
-                                   ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")))
+                                   ai=bool(rc.get("director_ai", True)), cta_end=bool(rc.get("beat_cta")),
+                                   avoid=user_avoid)
             _bt_pre = [_b for _b in _bt_pre
                        if ((user_ev or {}).get("b%.2f" % float(_b["at"])) or {}).get("mode") != "none"]
             _cards = list(_cards) + [(float(_b["at"]), float(_b.get("dur") or 3.0)) for _b in _bt_pre]
         except Exception as _bpe:
             log(f"  ⚠️ beats စီစဉ် မရ ({type(_bpe).__name__}: {_bpe}) — IKKI ကတ် အတိုင်း")
             _bt_pre = None
+    _qshare = rc.get("gfx_share")
+    if _bt_pre and _qshare:
+        _qshare = (float(_qshare[0]), float(_qshare[1]) + BEAT_SHARE)
     ok, checks = QC.run(out, st, TH2, caps=caps, cards=_cards, sfx_pol=_qpol,
                         sfx=(_sfxt if rc.get("sfx", True) else []),
-                        share=rc.get("gfx_share"))
+                        share=_qshare)
     # Headtop က `motion` number ကို report သီးသန့်အဖြစ်သာထားလျှင် 2/10
     # overlay ရှိသော်လည်း audio/size QC အောင်တာနဲ့ final ကိုပို့မိနိုင်သည်。
     # Premium pack အတွက် actual overlay timing နဲ့ minimum realised graphics
@@ -5714,7 +5725,9 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _bt.sort(key=lambda _b: _b["at"])
             import brandkit as _BK
             _brep = {}
-            _bk = rc.get("brand_kit") or _BK.kit(locals().get("bd"), rc, seed=(locals().get("bd") or {}).get("id"))
+            # ⚠️ `bd` က B-roll loop မှာ float ဖြစ်သွားပြီး 'float'.get ⇒ beat မထွက် (smoke ၂၀၂၆-၁၀-၀၇) ⇒ မူရင်း ကော်ပီ
+            _bbd = locals().get("_brand_bd") or {}
+            _bk = rc.get("brand_kit") or _BK.kit(_bbd, rc, seed=_bbd.get("id"))
             REPORT["beats"] = dict(n=len(_bt), types=[b["type"] for b in _bt], face_x=_fx, kit=_bk,
                                    ok=_REMO.compose_beats(out, _bt, work, brand=_bk,
                                                           sfx_gain=float(rc.get("beat_sfx_gain") or 1.0), log=log,
@@ -5733,6 +5746,8 @@ def render(job, brand, src, out, stage, log=print, over=None):
             _remo_ev = None
         except Exception as _bte:
             log(f"  ⚠️ beats ({type(_bte).__name__}: {_bte}) — IKKI ထွက်ဖိုင် အတိုင်း")
+            for _l in traceback.format_exc().strip().splitlines()[-6:]:
+                log(f"     {_l}")
             _remo_ev = None
     if locals().get("_remo_ev"):
         try:
@@ -6490,6 +6505,11 @@ def post_report(jid, text):
     return req(f"/api/w/{jid}/report", {"report": text})
 
 
+BEAT_SHARE = 0.12   # beats mode — ဘေး panel beat အတွက် gfx_share အပေါ်ဘောင် ထပ်ခွင့်
+PX_KEEP_H = float(os.environ.get("IKKI_PX_KEEP_H", "48"))     # retry proxy ချန်ချိန် (နာရီ)
+PX_MIN_FREE = float(os.environ.get("IKKI_PX_MIN_FREE", "6"))  # ဒီ GB အောက်ဆို proxy ပါ ဖျက်
+
+
 def sweep_scratch(keep=None, failed=False):
     """job scratch ဖိုင်များကို ရှင်းသည်。 `keep` = မဖျက်ရမည့် job id。
 
@@ -6514,12 +6534,26 @@ def sweep_scratch(keep=None, failed=False):
                    key=lambda x: os.path.getmtime(os.path.join(SCRATCH, x)),
                    reverse=True)
     recent = set(wdirs[:KEEP_LAST])
+    # ⚠️ **retry အတွက် proxy/take timeline ကို ချန်** (Zin ၂၀၂၆-၁၀-၀၇ 「နောက်တစ်ခါ မဖြစ်စေနဲ့」)。
+    #    worker စတိုင်း (deploy · restart) `keep=None` နဲ့ ရှင်းသဖြင့် ကျထားသော job ရဲ့
+    #    proxy ပါ ပျက်ပြီး retry တိုင်း 3.2 GB ပြန်ဆွဲချ + ပြန်ချုံ့ ဖြစ်ခဲ့ (Raw.mp4 ၃ ကြိမ်)。
+    #    ⇒ PX_KEEP_H နာရီအတွင်း proxy ကို ချန် · disk PX_MIN_FREE GB အောက်ဆိုမှ ဖျက်။
+    def _retry_cache(nm, p):
+        if not re.match(r"^j_[0-9a-f]+_(px(_s\d+)?\.mp4|takes\.(mp4|json))$", nm):
+            return False
+        try:
+            young = (time.time() - os.path.getmtime(p)) < PX_KEEP_H * 3600
+        except OSError:
+            return False
+        return young and free_gb() > PX_MIN_FREE
     for _d, nm in [(SCRATCH, x) for x in names] + _extra:
         if not nm.startswith("j_"): continue
         if keep and nm.startswith(keep): continue
         if nm.endswith("_w") and (KEEP_WORK or failed or nm in recent):
             continue
         p = os.path.join(_d, nm)
+        if _retry_cache(nm, p):
+            continue
         try:
             if os.path.isdir(p): _sh.rmtree(p)
             else: os.unlink(p)

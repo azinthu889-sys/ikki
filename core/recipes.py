@@ -897,6 +897,10 @@ BOUNDS = dict(
  # share of captions with one recoloured keyword (0 = off)
  cap_kw   = ("float", 0.0, 0.6),
  cap_accent=("hex",),
+ # ⚠️ Reference visual style (၂၀၂၆-၁၀-၀၇) — reference ကနေ accent · beat panel ပုံစံ。
+ #    user ကိုယ်ပိုင် brand အရောင် ရှိလျှင် brand က အနိုင် (`brandkit.kit`)。
+ ref_accent=("hex",),
+ beat_variant=("choice", ["glass", "light", "neon", "solid", "outline", "paper", "frost"]),
  # "color" = recoloured word · "box" = white word on a solid box (refs r2/r4)
  cap_kw_style=("choice", ["color", "box"]),
  cap_kw_box=("hex",),

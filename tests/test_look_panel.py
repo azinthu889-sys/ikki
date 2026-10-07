@@ -151,7 +151,8 @@ class Panel(unittest.TestCase):
            「ပုံသေပုံသေ」 (စမ်းစဉ် တွေ့)。"""
         i = self.s.find("var _shown=(cur!==null")
         self.assertGreater(i, 0)
-        self.assertIn("(!on && _shown)", self.s[i:i + 300])
+        # ⚠️ window ၁၀၀၀ — row markup မှာ animation canvas · taste ♡ ထည့်ပြီး (၂၀၂၆-၁၀-၀၇)
+        self.assertIn("(!on && _shown)", self.s[i:i + 1000])
 
     def test_the_saved_message_survives_the_redraw(self):
         """⚠️⚠️ `lkRows()` က box တစ်ခုလုံး ပြန်ဆောက်သဖြင့် အရင် ထည့်လျှင်
@@ -173,7 +174,7 @@ class Panel(unittest.TestCase):
     def test_the_free_preview_is_right_there(self):
         """⚠️ ချိန်ပြီး **မြင်ရမည်** — မမြင်ရလျှင် မှန်းပြီး ချိန်ရမည်"""
         i = self.s.find("function lkRows(")
-        self.assertIn("အခမဲ့ preview", self.s[i:i + 2600])
+        self.assertIn("အခမဲ့ preview", self.s[i:i + 5000])   # taste banner · canvas ထည့်ပြီး ရှည်လာ
 
 
 if __name__ == "__main__":

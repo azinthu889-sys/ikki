@@ -273,7 +273,15 @@ body.rv #tlnext,body.done #tlnext,body.prep #tlnext{display:none}
 .lk>summary::-webkit-details-marker{display:none}
 .lk>summary s{text-decoration:none;font-weight:400;font-size:12.5px;color:#57534E}
 .lkb{padding:4px 14px 14px;border-top:1px solid #F5F5F4}
-.lkr{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #FAFAF9}
+.lkr{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #FAFAF9;flex-wrap:wrap}
+.lkr canvas.lka{flex:0 0 112px;width:112px;height:63px;border-radius:8px;background:#1C1917}
+.lkr .lkm{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px;text-align:left}
+.lkr .lkh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.lkr .lkh b{font-size:13px;font-weight:600}
+.lkr .lkh .v{font-size:12.5px;color:#57534E}
+.lkr .lkd{color:#A8A29E;font-size:11.5px}
+.lkr .lkm input[type=range],.lkr .lkm select{width:100%}
+.lkr.on .lkh b::after{content:" ●";color:#F5D000}
 .lkr:last-child{border-bottom:0}
 .lkr>b{flex:0 0 150px;font-size:13px;font-weight:600}
 .lkr>span.v{flex:0 0 96px;font-size:12.5px;color:#57534E;text-align:right;
@@ -1599,28 +1607,40 @@ function lkLoad(jid){
    .then(function(r){return r.json()}).then(function(d){
      LOOK=d; LOOKD=Object.assign({}, d.over||{});
      lkRows(jid);
+     /* ♡ user taste — မှတ်ထားတာ ပြ (ဘာကြောင့် ဒီလို ဖြစ်နေလဲ သိရ · ပြန်ဖျက်နိုင်) */
+     fetch("/api/taste",{headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+      .then(function(r){return r.ok?r.json():null}).then(function(t){ TASTE=t; lkRows(jid) }).catch(function(){});
    }).catch(function(){ box.innerHTML='<p class="vpn">ချိန်ညှိချက် ဖတ်၍ မရပါ</p>' });
 }
+var TASTE=null;
 function lkRows(jid){
   var box=document.getElementById("lkrows"); if(!box||!LOOK) return;
   var h='';
+  var _ti=(TASTE&&TASTE.items)||[];
+  if(_ti.length){
+    h+='<div class="lktaste" style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px">'
+      +'♡ <b>ခင်ဗျား ခဏခဏ ရွေးတာကို မှတ်ထားပါတယ်</b>'
+      +(((LOOK.taste||[]).length)?' — ဒီဗီဒီယိုမှာ အလိုလို ထည့်ထားပါတယ် (ပြန်ပြင်လို့ရ)':'')
+      +'<br><span style="color:#78716C">'+_ti.map(esc).join(" · ")+'</span> '
+      +'<button class="btn ghost" id="lkforget" style="padding:2px 10px;font-size:12px;margin-left:6px">မေ့လိုက်</button></div>';
+  }
   (LOOK.keys||[]).forEach(function(k){
     var b=(LOOK.bounds||{})[k]; if(!b) return;
     var lab=LOOKL[k]||[k,""], base=(LOOK.base||{})[k];
     var cur=(k in LOOKD)?LOOKD[k]:base;
     var on=(k in LOOKD);
-    h+='<div class="lkr'+(on?' on':'')+'" data-lk="'+k+'"><b title="'+esc(lab[1])+'">'+esc(lab[0])+'</b>';
+    var _ctl='';
     if(b[0]==="bool"){
-      h+='<label class="ck" style="flex:1"><input type="checkbox" data-lkc="'+k+'"'
-        +((cur===true)?" checked":"")+'> '+esc(lab[1])+'</label>';
+      _ctl+='<label class="ck" style="flex:1"><input type="checkbox" data-lkc="'+k+'"'
+        +((cur===true)?" checked":"")+'> ဖွင့်မယ်</label>';
     } else if(b[0]==="choice"){
-      h+='<select data-lks="'+k+'">';
+      _ctl+='<select data-lks="'+k+'">';
       (b[1]||[]).forEach(function(o){
         var val=(o===null?"":String(o));
-        h+='<option value="'+esc(val)+'"'+((cur===o)?" selected":"")+'>'
+        _ctl+='<option value="'+esc(val)+'"'+((cur===o)?" selected":"")+'>'
           +esc(MUSL[val]||val||"—")+'</option>';
       });
-      h+='</select>';
+      _ctl+='</select>';
     } else {
       var lo=b[1], hi=b[2], st=(b[0]==="int")?1:((hi-lo)/100);
       // ⚠️ ပုံသေက `null` ဆိုလျှင် slider ကို ဘောင်ရဲ့ အလယ် မထားရ —
@@ -1628,13 +1648,19 @@ function lkRows(jid){
       //    စာသားမှာ 「ပုံသေ」 ဟု ပြသည်。
       var pos=(cur===null||cur===undefined)
               ? Math.max(lo, Math.min(hi, 0)) : cur;
-      h+='<input type="range" data-lkr="'+k+'" min="'+lo+'" max="'+hi+'" step="'+st+'" value="'+pos+'">';
+      _ctl+='<input type="range" data-lkr="'+k+'" min="'+lo+'" max="'+hi+'" step="'+st+'" value="'+pos+'">';
     }
     // ⚠️ တန်ဖိုးက `null` ဆိုလျှင် `lkFmt` ကိုယ်တိုင် 「ပုံသေ」 ပြပြီးသား ⇒
     //    နောက်ကပ် အညွှန်း ထပ်ထည့်လျှင် 「ပုံသေပုံသေ」 ဖြစ်မည် (စမ်းစဉ် တွေ့)。
     var _shown=(cur!==null && cur!==undefined);
-    h+='<span class="v" data-lkv="'+k+'">'+esc(lkFmt(k,cur,on))
-      +((!on && _shown)?'<br><s class="dflt">ပုံသေ</s>':'')+'</span></div>';
+    // ⚠️ ပုံ (animation) ဘယ် · စာ+ထိန်းချုပ် ညာ — ကျဉ်းသော panel မှာလည်း မပြို
+    h+='<div class="lkr'+(on?' on':'')+'" data-lk="'+k+'">'
+      +'<canvas class="lka" data-lka="'+k+'" width="224" height="126" aria-label="'+esc(lab[1])+'"></canvas>'
+      +'<div class="lkm"><div class="lkh"><b title="'+esc(lab[1])+'">'+esc(lab[0])
+      +(((LOOK.taste||[]).indexOf(k)>=0)?' <span title="ခင်ဗျား ခဏခဏ ရွေးတာ" style="color:#D97706">♡</span>':'')+'</b>'
+      +'<span class="v" data-lkv="'+k+'">'+esc(lkFmt(k,cur,on))
+      +((!on && _shown)?' <small class="dflt">ပုံသေ</small>':'')+'</span></div>'
+      +'<small class="lkd">'+esc(lab[1])+'</small>'+_ctl+'</div></div>';
   });
   h+='<div class="lkacts">'
     +'<button class="btn" id="lksave">သိမ်းမယ်</button>'
@@ -1655,10 +1681,108 @@ function lkRows(jid){
       LOOKD[k]=(e.value===""?null:e.value); lkTouch(k) };
   });
   document.getElementById("lksave").onclick=function(){ lkSave(jid) };
+  var _fg=document.getElementById("lkforget");
+  if(_fg) _fg.onclick=function(){
+    if(!confirm("မှတ်ထားတဲ့ ပုံစံကို ဖျက်မလား? (နောက်ဗီဒီယိုတွေမှာ မသုံးတော့ပါ)")) return;
+    fetch("/api/taste/reset",{method:"POST",headers:{Authorization:"Bearer "+(localStorage.getItem("ikki_token")||"")}})
+     .then(function(){ TASTE=null; lkRows(jid) });
+  };
   LKJID=jid;
   try{ lkFilter() }catch(e){}
   document.getElementById("lkreset").onclick=function(){ LOOKD={}; lkRows(jid); lkSave(jid) };
   lkSum();
+  lkAnimStart();
+}
+
+/* ══ Look mini-preview animation (Zin ၂၀၂၆-၁၀-၀၇ 「မည်သူမဆို မြင်ပြီး နားလည်နိုင်အောင်」) ══
+   ⚠️ ကိန်းစာ မဖတ်ဘဲ **ပုံနဲ့ မြင်ရ** — slider ရွှေ့တာနဲ့ ချက်ချင်း လိုက်ပြောင်း。
+   ပြောသူ (အဝိုင်း + ကိုယ်ထည်) ပါသော ဗီဒီယိုဘောင် သေးလေးပေါ်မှာ setting တစ်ခုချင်းရဲ့ အကျိုး。 */
+var _LKA=null;
+function _lkVal(k){
+  var b=(LOOK&&LOOK.base)||{};
+  var v=(k in LOOKD)?LOOKD[k]:b[k];
+  return v;
+}
+function _lkSpk(c,W,H,sc,dx){            // ပြောသူ
+  sc=sc||1; dx=dx||0;
+  c.save(); c.translate(W/2+dx,H*0.62); c.scale(sc,sc);
+  c.fillStyle="#D6D3D1"; c.beginPath(); c.arc(0,-26,15,0,6.283); c.fill();
+  c.fillStyle="#78716C"; c.beginPath(); c.ellipse(0,22,34,28,0,3.1416,6.283); c.fill();
+  c.restore();
+}
+function _lkBg(c,W,H){ var g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,"#44403C"); g.addColorStop(1,"#1C1917");
+  c.fillStyle=g; c.fillRect(0,0,W,H) }
+function _lkLand(c,W,H,a){               // B-roll ရှုခင်း
+  c.globalAlpha=a; var g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,"#7DD3FC"); g.addColorStop(1,"#FDE68A");
+  c.fillStyle=g; c.fillRect(0,0,W,H); c.fillStyle="#15803D";
+  c.beginPath(); c.moveTo(0,H); c.lineTo(W*0.3,H*0.45); c.lineTo(W*0.55,H*0.8); c.lineTo(W*0.75,H*0.5); c.lineTo(W,H); c.fill();
+  c.fillStyle="#FBBF24"; c.beginPath(); c.arc(W*0.8,H*0.25,12,0,6.283); c.fill(); c.globalAlpha=1;
+}
+function _lkTxt(c,W,H,t){ c.fillStyle="rgba(0,0,0,.55)"; c.fillRect(0,H-24,W,24);
+  c.fillStyle="#fff"; c.font="bold 15px sans-serif"; c.textAlign="center"; c.fillText(t,W/2,H-7) }
+function _lkDraw(cv,k,t){
+  var c=cv.getContext("2d"), W=cv.width, H=cv.height, v=_lkVal(k), b=(LOOK.bounds||{})[k]||[];
+  c.clearRect(0,0,W,H); _lkBg(c,W,H);
+  var Y="#F5D000";
+  if(k==="gfx"){                          // ကတ် ဘယ်နှစ်ခု — 6s အတွင်း ပေါ်/ပျောက်
+    _lkSpk(c,W,H);
+    var n=Math.round(((+v||0)/Math.max(1,b[2]||30))*6), per=6/Math.max(1,n), ph=t%6;
+    for(var i=0;i<n;i++){ var a0=i*per, u=(ph-a0)/1.2;
+      if(u>0&&u<1){ var s=Math.min(1,u*4), o=u>0.8?(1-u)*5:1; c.globalAlpha=o;
+        c.fillStyle=Y; var x=(i%2?18:W-96); c.fillRect(x,24+8*(1-s),78*s,40*s);
+        c.fillStyle="#1C1917"; c.fillRect(x+8,34,40*s,7); c.fillRect(x+8,48,56*s,6); c.globalAlpha=1 } }
+    _lkTxt(c,W,H, n? ("ကတ် ~"+n+" ခု / ၆ စက္ကန့်") : "ကတ် မပါ");
+  } else if(k==="broll_pct"){             // ရှုခင်း ဗီဒီယို ဘယ်လောက်ကြာ
+    var p=Math.max(0,Math.min(1,+v||0)), on=(t%4)/4<p;
+    _lkSpk(c,W,H); if(on) _lkLand(c,W,H,1);
+    c.fillStyle="rgba(255,255,255,.25)"; c.fillRect(8,8,W-16,6); c.fillStyle=Y; c.fillRect(8,8,(W-16)*p,6);
+    _lkTxt(c,W,H,"ရှုခင်း "+Math.round(p*100)+"%");
+  } else if(k==="sfx_per_min"||k==="sfx_trim"){   // အသံထူး — အကွက်ဝိုင်း လှိုင်း
+    _lkSpk(c,W,H);
+    var rate=(k==="sfx_per_min")?Math.max(0.2,+v||1):2, loud=(k==="sfx_trim")?Math.pow(10,(+v||0)/20):1;
+    var gap=60/Math.max(0.2,rate)/10, u2=(t%gap)/Math.min(gap,1.2);
+    if(u2<1){ c.strokeStyle=Y; c.lineWidth=3*loud; c.globalAlpha=1-u2;
+      for(var r=0;r<3;r++){ c.beginPath(); c.arc(W*0.22,H*0.35,10+(u2*40+r*12)*loud,0,6.283); c.stroke() } c.globalAlpha=1 }
+    c.fillStyle=Y; c.font="bold 22px sans-serif"; c.textAlign="center"; c.fillText("♪",W*0.22,H*0.42);
+    _lkTxt(c,W,H,k==="sfx_per_min"?((+v||0).toFixed(1)+" ခု / မိနစ်"):((+v>0?"+":"")+(+v||0).toFixed(1)+" dB"));
+  } else if(k==="music"||k==="music_lufs"){       // တီးလုံး — equalizer
+    _lkSpk(c,W,H,0.8,-40);
+    var mu=(k==="music")?v:_lkVal("music"), off=(mu===null||mu===""||mu===undefined)&&k==="music"&&("music" in LOOKD);
+    var sp={calm:1.2,inspiration:1.8,corporate:2.2,folk:2,upbeat:3.5,trending:4,zae:2.5}[mu]||2.4;
+    var lvl=(k==="music_lufs")?Math.max(0.15,Math.min(1,((+v||-26)+40)/26)):0.7;
+    for(var j=0;j<7;j++){ var hh=off?3:(8+Math.abs(Math.sin(t*sp+j*1.3))*40*lvl);
+      c.fillStyle=off?"#57534E":Y; c.fillRect(W*0.55+j*12,H*0.68-hh,8,hh) }
+    _lkTxt(c,W,H, off?"တီးလုံး မထည့်":(k==="music"?(MUSL[mu||""]||mu||"ပုံသေ"):("အသံ "+Math.round(lvl*100)+"%")));
+  } else if(k==="cam_moves"){             // ကင်မရာ ချဲ့/ကျုံ့
+    var z=(v===true)?1+0.12*(0.5-0.5*Math.cos(t*1.6)):1;
+    _lkSpk(c,W,H,z); _lkTxt(c,W,H,v===true?"ဖြည်းဖြည်း zoom ဝင်/ထွက်":"ကင်မရာ ငြိမ်");
+  } else if(k==="broll_whip"){            // အကူး လွှဲချက်
+    var ph2=(t%3)/3, sl=Math.max(0,Math.min(1,(ph2-0.4)/0.2));
+    if(v===true){ c.save(); c.translate(-W*sl,0); _lkSpk(c,W,H); c.restore();
+      c.save(); c.translate(W*(1-sl),0); _lkLand(c,W,H,1); c.restore();
+      if(sl>0&&sl<1){ c.fillStyle="rgba(255,255,255,.35)"; for(var q=0;q<6;q++) c.fillRect(0,q*22+4,W,3) } }
+    else { if(ph2<0.5) _lkSpk(c,W,H); else _lkLand(c,W,H,1) }
+    _lkTxt(c,W,H,v===true?"လွှဲပြီး ကူး":"ချက်ချင်း ဖြတ်ကူး");
+  } else if(k==="kin_title"){             // စကားလုံး ကြီး
+    _lkSpk(c,W,H);
+    if(v===true){ var u3=(t%2.5)/2.5, s3=u3<0.15?u3/0.15:1, o3=u3>0.8?(1-u3)*5:1;
+      c.globalAlpha=o3; c.save(); c.translate(W/2,H*0.42); c.scale(0.6+0.4*s3,0.6+0.4*s3);
+      c.fillStyle=Y; c.font="900 34px sans-serif"; c.textAlign="center"; c.fillText("WOW!",0,0); c.restore(); c.globalAlpha=1 }
+    _lkTxt(c,W,H,v===true?"အဓိက စကားလုံး ကြီးကြီး":"စကားလုံး မပြ");
+  } else { _lkSpk(c,W,H) }
+}
+function lkAnimStart(){
+  if(_LKA) return;
+  var t0=performance.now();
+  (function loop(now){
+    var cs=document.querySelectorAll("canvas.lka");
+    if(!cs.length){ _LKA=null; return }
+    var t=(now-t0)/1000;
+    for(var i=0;i<cs.length;i++){ var r=cs[i].getBoundingClientRect();
+      if(r.bottom<0||r.top>innerHeight||!r.width) continue;
+      try{ _lkDraw(cs[i], cs[i].getAttribute("data-lka"), t) }catch(e){} }
+    _LKA=requestAnimationFrame(loop);
+  })(t0);
 }
 var LKJID=null, _LKT=null;
 function lkTouch(k){
@@ -2767,7 +2891,7 @@ function beatForm(e, b, ty){
     +'<label class="vpn">ပုံစံ <select class="bty">'+opts+'</select></label> '
     +'<label class="vpn">နေရာ <select class="bpos">'+["","right","left","center"].map(function(p){
         return '<option value="'+p+'"'+((b.pos||"")===p?' selected':'')+'>'+(p||"auto")+'</option>' }).join("")+'</select></label> '
-    +'<label class="vpn">style <select class="bvar">'+["","glass","light","neon"].map(function(p){
+    +'<label class="vpn">style <select class="bvar">'+["","glass","light","neon","solid","outline","paper","frost"].map(function(p){
         return '<option value="'+p+'"'+((b.variant||"")===p?' selected':'')+'>'+(p||"auto")+'</option>' }).join("")+'</select></label>';
   Object.keys(meta.params||{}).forEach(function(k){
     var kind=meta.params[k], multi=/\[\]/.test(kind);

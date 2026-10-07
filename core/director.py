@@ -478,7 +478,8 @@ def schedule(cands, segs, dur, pack="default", busy=(), face_x=None, max_n=None)
     return taken
 
 
-def direct(segs, dur, pack="default", busy=(), face_x=None, log=print, ai=True, cta_end=False, max_n=None):
+def direct(segs, dur, pack="default", busy=(), face_x=None, log=print, ai=True, cta_end=False, max_n=None,
+           avoid=()):
     """ဝါကျ (`o0/o1` · `words`) ⇒ beat စာရင်း。 `busy` = [(a, b)] ရှောင်ရမည့် အချိန်"""
     segs = [s for s in (segs or []) if str(s.get("text") or "").strip()]
     if not segs or dur <= 0:
@@ -490,8 +491,18 @@ def direct(segs, dur, pack="default", busy=(), face_x=None, log=print, ai=True, 
         if g:
             cands = g + cands
             src = "gemini+rules"
+    # ⚠️ user taste — ခဏခဏ ဖြုတ်/လဲခဲ့သော type ကို မရွေး (`taste.avoid_types`)
+    if avoid:
+        av = set(avoid)
+        n0 = len(cands)
+        cands = [c for c in cands if str(c.get("type")) not in av]
+        if n0 != len(cands):
+            log(f"  ♡ taste · {', '.join(sorted(av))} ရှောင် ({n0 - len(cands)} ခု)")
     out = schedule(cands, segs, dur, pack=pack, busy=busy, face_x=face_x, max_n=max_n)
-    if cta_end and dur > 20 and not any(b["type"] == "cta" for b in out):
+    # ⚠️ CTA ကိုလည်း `max_n` (gfx_share ဘောင်) ထဲက ယူရမည် — ဘောင်ပြင်ပ ထည့်မိ၍ smoke 37s မှာ
+    #    gfx_share 0.253 > 0.18 ⇒ QC ကျ (၂၀၂၆-၁၀-၀၇)
+    room = max_n is None or len(out) < int(max_n)
+    if cta_end and room and dur > 20 and not any(b["type"] == "cta" for b in out):
         at = round(dur - 3.2, 3)
         if _free(at - 0.2, dur, busy) and all(abs(at - b["at"]) >= b["dur"] + 0.3 for b in out if b["at"] < at):
             out.append(dict(type="cta", text="Subscribe", at=at, dur=3.0))

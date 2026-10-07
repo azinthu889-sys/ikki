@@ -54,6 +54,31 @@ if [ "${IKKI_DEPLOY_NOWAIT:-0}" != "1" ]; then
   [ "$_w" -gt 0 ] && echo "✓ job ပြီးပြီ ($((_w / 60)) မိနစ် စောင့်ခဲ့) — deploy စသည်"
 fi
 
+# ── render smoke gate (Zin 2026-10-07) ─────────────────────────────────
+# worker/ core/ ပြောင်းထားလျှင် ဤ commit နဲ့ smoke မအောင်ရသေးပါက တိုတောင်း clip ဖြင့်
+# pipeline တစ်ခုလုံး (render + QC + beats) ကို local မှာ အရင်ပြေး。 မအောင် ⇒ deploy မလုပ်。
+# Raw.mp4 က QC မှာ ၂ ကြိမ် ကျခဲ့ပြီး ၂ နာရီ ဆုံးရှုံးခဲ့သဖြင့်。 ကျော်ချင်လျှင် IKKI_SKIP_SMOKE=1
+_head=$(git rev-parse HEAD 2>/dev/null || echo none)
+_okc=$(cat "$HOME/.ikki/smoke_ok_commit" 2>/dev/null || echo none)
+if [ "${IKKI_SKIP_SMOKE:-0}" != "1" ] && [ "$_okc" != "$_head" ]; then
+  if [ "$_okc" = "none" ] || ! git diff --quiet "$_okc" "$_head" -- worker core 2>/dev/null; then
+    echo "── smoke render (worker/core ပြောင်းထား · ~5–10 မိနစ်) ──"
+    if python3 tools/smoke_render.py; then
+      echo "$_head" > "$HOME/.ikki/smoke_ok_commit"
+    else
+      _rc=$?
+      if [ "$_rc" = "2" ]; then
+        echo "⚠️ smoke clip မရှိ — ~/.ikki/smoke/headtop_60s.mp4 ထားပါ (ယခု ကျော်သည်)"
+      else
+        echo "❌ smoke မအောင် — deploy မလုပ်ပါ。 ~/.ikki/smoke_last.json ကြည့်ပါ"
+        exit 1
+      fi
+    fi
+  else
+    echo "$_head" > "$HOME/.ikki/smoke_ok_commit"
+  fi
+fi
+
 echo "── asset version ──"
 ~/.ikki/venv/bin/python tools/stamp.py
 

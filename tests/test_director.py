@@ -75,6 +75,18 @@ class Director(unittest.TestCase):
         self.assertNotRegex(s[-1:], r"[က-ဪ]$|^$") if False else None
         self.assertFalse(s.endswith("င"))
 
+    def test_cta_respects_budget(self):
+        segs, dur = _wu()
+        b = D.direct(segs, dur, ai=False, cta_end=True, max_n=0, log=lambda *_: None)
+        self.assertEqual(b, [])
+        b = D.direct(segs, dur, ai=False, cta_end=True, max_n=2, log=lambda *_: None)
+        self.assertLessEqual(len(b), 2)
+
+    def test_avoid_types(self):
+        segs, dur = _wu()
+        b = D.direct(segs, dur, ai=False, avoid=["timeline", "stat"], log=lambda *_: None)
+        self.assertFalse({"timeline", "stat"} & {x["type"] for x in b})
+
     def test_face_side(self):
         segs, dur = _wu()
         b = D.direct(segs, dur, ai=False, face_x=0.3, log=lambda *_: None)
@@ -99,8 +111,12 @@ class BrandKit(unittest.TestCase):
         self.assertEqual(k["accent"], "#1E90FF")
 
     def test_recipe_accent_wins_and_stable_pack(self):
-        k = BK.kit({"colors": ["#1E90FF"], "id": "zae"}, {"accent": "#FFD60A"})
+        k = BK.kit({"colors": ["#1E90FF"], "id": "zae"}, {"accent": "#FFD60A"})   # house ⇒ style accent
         self.assertEqual(k["accent"], "#FFD60A")
+        k2 = BK.kit({"colors": ["#1E90FF"], "id": "u_shop"}, {"accent": "#FFD60A", "ref_accent": "#FF0000"})
+        self.assertEqual(k2["accent"], "#1E90FF")                                  # user brand ⇒ အနိုင်
+        k3 = BK.kit({"id": "ikki"}, {"accent": "#FFD60A", "ref_accent": "#22AAFF"})
+        self.assertEqual(k3["accent"], "#22AAFF")                                  # reference > style
         self.assertEqual(BK.kit({"id": "zae"}, {})["pack"], BK.kit({"id": "zae"}, {})["pack"])
 
     def test_users_differ(self):

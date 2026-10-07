@@ -278,6 +278,130 @@ def colour(path, a=None, b=None):
                 luma_sd=round(float(np.std(yavg)), 1))
 
 
+# ══ Visual style (Zin ၂၀၂၆-၁၀-၀၇ 「typography · ဂရပ်ဖစ် ပုံစံ ကိုလည်း ယူ」) ══════════════════
+#    ⚠️ **ကိန်း/အရောင်သာ** — reference ရဲ့ ပုံ · logo · font ဖိုင် ဘယ်တော့မှ မကူး。
+#    နည်း: frame အချိန်လိုက် **အလယ်ကိန်း (median) = နောက်ခံ** ⇒ နောက်ခံနဲ့ ကွာသော pixel = overlay
+#    (စာတန်း · ကတ် · ဂရပ်ဖစ်)。 talking-head (ကင်မရာ ငြိမ်) မှာ ယုံကြည်ရ · ရွေ့လျားလွန်းလျှင် conf နိမ့်。
+VIS_W, VIS_H = 240, 136
+
+
+def _hex(rgb):
+    return "#" + "".join(f"{max(0, min(255, int(round(c * 255)))):02X}" for c in rgb)
+
+
+def visual(path, a=None, b=None):
+    """`{accent, accent_conf, cap_fill, cap_stroke, cap_conf, panel, panel_conf, overlay}` (မရ ⇒ None)"""
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+    pr = probe(path)
+    dur = float((b - a) if (a is not None and b) else (pr.get("dur") or 0))
+    if dur <= 0:
+        return None
+    fps = min(1.0, 48.0 / dur)
+    cmd = ["ffmpeg", "-v", "error"]
+    if a: cmd += ["-ss", f"{a:.3f}"]
+    cmd += ["-i", path]
+    if b and a is not None: cmd += ["-t", f"{max(0.1, b - a):.3f}"]
+    cmd += ["-vf", f"fps={fps:.4f},scale={VIS_W}:{VIS_H}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"]
+    raw = subprocess.run(cmd, capture_output=True).stdout
+    fsz = VIS_W * VIS_H * 3
+    n = len(raw) // fsz
+    if n < 6:
+        return None
+    F = np.frombuffer(raw[:n * fsz], np.uint8).reshape(n, VIS_H, VIS_W, 3).astype(np.float32) / 255.0
+    bg = np.median(F, axis=0)
+    diff = np.abs(F - bg).max(axis=3)                         # n,h,w
+    ov = diff > 0.30
+    mx, mn = F.max(axis=3), F.min(axis=3)
+    V = mx
+    S = np.where(mx > 1e-3, (mx - mn) / np.maximum(mx, 1e-3), 0)
+    # ⚠️ ပြောသူ လှုပ်ရှားမှုကို overlay ဟု မမှားရ (WU မူရင်း — overlay မရှိဘဲ panel=dark conf 1.0 ထွက်ခဲ့)
+    #    ⇒ **frame ၂ ခု ဆက်တိုက် မပြောင်းဘဲ ရပ်နေ**သော overlay pixel သာ (ကတ်/စာတန်း က ခဏ ရပ်သည်)
+    st = np.zeros_like(ov)
+    st[:-1] = ov[:-1] & ov[1:] & (np.abs(F[:-1] - F[1:]).max(axis=3) < 0.06)
+    ov_raw, ov = ov, st     # ⚠️ စာတန်းက word-pop (<1s) ⇒ stable မဖြစ် ⇒ စာတန်း ဇုန်မှာ ov_raw + စာလုံး စစ်ချက်
+    y0 = int(VIS_H * CAP_LO)
+    out = {}
+    # ⚠️ ကင်မရာ ရွေ့လွန်း (ဗီဒီယို တစ်ခုလုံး ပြောင်း) ⇒ median နောက်ခံ မမှန် ⇒ ယုံကြည်မှု ချ
+    move = float((diff > 0.30).mean())
+    trust = 1.0 if move < 0.18 else (0.5 if move < 0.35 else 0.0)
+    out["overlay"] = round(move, 3)
+    # ── စာတန်း ဇုန် ──
+    cb = ov_raw[:, y0:, :]
+    Fc = F[:, y0:, :, :]
+    # ⚠️ စာလုံး = တောက်ပ pixel **ဘေးမှာ အမှောင် (stroke/နောက်ခံ) ကပ်** — နံရံ/အဝတ် လို ပြန့်ပြူး
+    #    အလင်း မဟုတ် (WU — cap_fill #BFCDE2 မှားထွက်ခဲ့)
+    Vb = V[:, y0:, :]
+    vmin = Vb.copy()
+    for dy in (-2, -1, 1, 2):
+        vmin = np.minimum(vmin, np.roll(Vb, dy, axis=1))
+    for dx in (-2, -1, 1, 2):
+        vmin = np.minimum(vmin, np.roll(Vb, dx, axis=2))
+    bright = cb & (Vb > 0.62) & (vmin < 0.25)
+    dark = cb & (Vb < 0.20)
+    nb, nd = int(bright.sum()), int(dark.sum())
+    if nb > 40:
+        # ⚠️ median က ပြောသူ အဝတ်/လက် ရောလာ ⇒ **အများဆုံး ထပ်တူ အရောင် (mode)** ကို ယူ
+        px = Fc[bright]
+        sp = S[:, y0:, :][bright]
+        # ⚠️ အရောင်ရင့် စာ (အဝါ စသည်) က ≥၂၀% ဆိုလျှင် အဲဒါ — premium caption က အရောင်/အဖြူ နှစ်မျိုးသာ。
+        #    မဟုတ်လျှင် အဖြူဘက် (V အမြင့်ဆုံး ၃၀%) ⇒ mic စာ / အဝတ် ရော မပါစေ
+        _mx, _mn = px.max(1), px.min(1)
+        _d = np.maximum(_mx - _mn, 1e-3)
+        _h = np.where(_mx == px[:, 0], ((px[:, 1] - px[:, 2]) / _d) % 6,
+                      np.where(_mx == px[:, 1], (px[:, 2] - px[:, 0]) / _d + 2, (px[:, 0] - px[:, 1]) / _d + 4)) * 60
+        colr = (sp > 0.55) & ~((_h < 45) & (sp < 0.75))        # အသားအရောင် မပါ
+        if colr.mean() >= 0.15:
+            px = px[colr]
+        else:
+            vv = px.max(axis=1)
+            px = px[vv >= np.quantile(vv, 0.7)]
+        q = np.round(px * 15).astype(np.int32)
+        key = q[:, 0] * 256 + q[:, 1] * 16 + q[:, 2]
+        vals, cnts = np.unique(key, return_counts=True)
+        top = vals[cnts.argmax()]
+        cl = px[key == top]
+        cl = cl[cl.max(axis=1) >= np.quantile(cl.max(axis=1), 0.6)]    # anti-alias အစွန်း မပါ ⇒ အလယ် အရောင်
+        col = cl.mean(axis=0)
+        col = col / max(1e-3, float(col.max()))      # စာတန်း = အလင်းအပြည့် (encode/grade ကြောင့် မှိန်တာ ပြန်ညှိ)
+        out["cap_fill"] = _hex(col)
+        out["cap_stroke"] = bool(nd > 0.25 * nb)
+        out["cap_conf"] = round(min(1.0, nb / 2000.0) * trust, 2)
+    # ── ဂရပ်ဖစ် (စာတန်း ဇုန် အပေါ်) ──
+    go = ov[:, :y0, :]
+    Fg, Sg, Vg = F[:, :y0], S[:, :y0], V[:, :y0]
+    ng = int(go.sum())
+    # ⚠️ ဂရပ်ဖစ် ရှိမှန်း သေချာမှ (တောက်ပ/အရောင်ရင့် overlay ≥ 0.2%) — မဟုတ်လျှင် accent/panel 「မသိ」
+    sig = int((go & (((Vg > 0.85) & (Sg < 0.15)) | ((Sg > 0.45) & (Vg > 0.45)))).sum())
+    if ng > 60 and sig > 0.002 * go.size:
+        sat = go & (Sg > 0.45) & (Vg > 0.45)
+        # ⚠️ အသားအရောင် (hue ~0–45° · sat အလယ်) ကို accent အဖြစ် မယူ
+        if int(sat.sum()) > 30:
+            px = Fg[sat]
+            r, g, bb = px[:, 0], px[:, 1], px[:, 2]
+            mxp, mnp = px.max(1), px.min(1)
+            d = np.maximum(mxp - mnp, 1e-3)
+            h = np.where(mxp == r, ((g - bb) / d) % 6, np.where(mxp == g, (bb - r) / d + 2, (r - g) / d + 4)) * 60
+            skin = (h < 45) & ((mxp - mnp) / np.maximum(mxp, 1e-3) < 0.62)
+            h, px = h[~skin], px[~skin]
+            if len(h) > 30:
+                hist, edges = np.histogram(h, bins=18, range=(0, 360))
+                k = int(hist.argmax())
+                sel = (h >= edges[k]) & (h < edges[k + 1])
+                out["accent"] = _hex(np.median(px[sel], axis=0))
+                out["accent_conf"] = round(min(1.0, sel.sum() / 600.0) * (hist[k] / max(1, hist.sum())) ** 0.5 * trust, 2)
+        lite = int((go & (Vg > 0.85) & (Sg < 0.15)).sum())
+        drk = int((go & (Vg < 0.25)).sum())
+        sol = int((go & (Sg > 0.5) & (Vg > 0.4)).sum())
+        tot = max(1, lite + drk + sol)
+        panel = max((("light", lite), ("dark", drk), ("solid", sol)), key=lambda x: x[1])
+        out["panel"] = panel[0]
+        out["panel_conf"] = round((panel[1] / tot) * min(1.0, ng / 3000.0) * trust, 2)
+    return out
+
+
 def measure(path, a=None, b=None, log=print):
     """reference တစ်ခုရဲ့ **ကြမ်းထမ်း တိုင်းချက်** အားလုံး。"""
     def _l(m):
@@ -299,6 +423,12 @@ def measure(path, a=None, b=None, log=print):
     _l(f"  ref · လူ ပေါ်မှု {out['person']}")
     out["colour"] = colour(path, a, b)
     _l(f"  ref · အရောင် {out['colour']}")
+    try:
+        out["visual"] = visual(path, a, b)
+    except Exception as e:
+        out["visual"] = None
+        _l(f"  ref · visual မတိုင်နိုင် ({type(e).__name__})")
+    _l(f"  ref · visual {out['visual']}")
     out["range"] = [a, b] if a is not None else None
     return out
 
@@ -379,6 +509,16 @@ def labels(meas):
                      ("unlikely" if ml <= 0.25 else "uncertain")))
     conf["music"] = 0.0 if ml is None else 0.5   # ⚠️ ယုံကြည်မှု **နိမ့်**
 
+    # ── visual style (accent · စာတန်း အရောင် · panel ပုံစံ) ──
+    vi = meas.get("visual") or {}
+    out["accent"] = vi.get("accent") or UNK
+    conf["accent"] = float(vi.get("accent_conf") or 0.0)
+    out["cap_fill"] = vi.get("cap_fill") or UNK
+    out["cap_stroke"] = UNK if vi.get("cap_stroke") is None else ("yes" if vi["cap_stroke"] else "no")
+    conf["cap_fill"] = float(vi.get("cap_conf") or 0.0)
+    out["panel"] = vi.get("panel") or UNK
+    conf["panel"] = float(vi.get("panel_conf") or 0.0)
+
     out["aspect"] = pr.get("aspect") or UNK
     out["fps"] = pr.get("fps")
     out["dur"] = pr.get("dur")
@@ -432,7 +572,8 @@ def compat(dna, fmt=None, dur=None):
 #     ဒီ module ရဲ့ note က ဖော်ပြသဖြင့် ဖမ်းမိသည်)。
 ALLOW = ("cut", "gfx", "broll", "broll_pct", "broll_freq",
          "sfx_per_min", "zoom_amt", "cap_cover", "music",
-         "energy", "motion", "motionkit_profile")
+         "energy", "motion", "motionkit_profile",
+         "ref_accent", "cap_fill", "beat_variant")       # visual style (၂၀၂၆-၁၀-၀၇)
 
 # label → အကြံပြု တန်ဖိုး (BOUNDS က နောက်ဆုံး ကန့်သတ်သည်)
 _PACE = {"calm": "gentle", "balanced": "normal", "fast": "tight"}
@@ -514,6 +655,22 @@ def apply_to(dna, base, fmt=None, min_conf=0.45):
         notes.append("music: reference မှာ မရှိဟု ခန့်မှန်း ⇒ တီးလုံး ပိတ်")
     elif mu in (UNK, "uncertain", "likely"):
         notes.append("music: မရေရာ ⇒ IKKI ရဲ့ ရွေးချက် (AI ကိုက်)")
+
+    # ── visual style ──
+    ac = _use("accent")
+    if ac and isinstance(ac, str) and ac.startswith("#"):
+        over["ref_accent"] = ac
+    cf2 = _use("cap_fill")
+    if cf2 and isinstance(cf2, str) and cf2.startswith("#"):
+        # ⚠️ မြန်မာ စာတန်း ဖတ်ရလွယ်မှု — **တောက်ပ** သော အရောင်သာ (stroke အမည်းနဲ့ တွဲ)
+        rr, gg, bb2 = (int(cf2[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        if 0.2126 * rr + 0.7152 * gg + 0.0722 * bb2 >= 0.6:
+            over["cap_fill"] = cf2
+        else:
+            notes.append(f"cap_fill: {cf2} မှောင်လွန်း ⇒ ဖတ်ရခက် ⇒ IKKI ပုံသေ")
+    pn = _use("panel")
+    if pn in ("light", "dark", "solid"):
+        over["beat_variant"] = {"light": "light", "dark": "glass", "solid": "solid"}[pn]
 
     # ── ✦ **ဂိတ်** — `recipes.BOUNDS` နဲ့ စစ်ပြီး ခွင့်ပြုသော key သာ ──
     over = {k: v for k, v in over.items() if k in ALLOW}

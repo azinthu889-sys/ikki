@@ -542,6 +542,8 @@ async def job_new(req: Request, authorization: str = Header(None)):
     if speech_speed not in (1.0, 1.03, 1.06):
         raise HTTPException(400, "စကားပြောအရှိန် 1.00×၊ 1.03× သို့မဟုတ် 1.06× သာ ရွေးနိုင်သည်")
     if speech_speed != 1.0: over["_speech_speed"] = speech_speed
+    # ⚠️ user taste — ခဏခဏ ပြင်ခဲ့တာ ပုံသေအဖြစ် (ဒီ job မှာ ပြန်ပြင်လို့ ရ)
+    over = _taste_apply(aid(authorization), over)
     db.run("INSERT INTO jobs(id,title,upload_id,brand_id,recipe,font,fmt,cap,status,stage,"
            "mode,vfmt,over,acct,created) VALUES(?,?,?,?,?,?,?,?,'queued',0,?,?,?,?,?)",
            # ⚠️ ပုံသေ brand က **`"zjl"`** ဟု ရေးထားခဲ့သည် — IKKI ထုတ်ကုန်မှာ
@@ -2170,6 +2172,7 @@ def job_look(jid: str, authorization: str = Header(None)):
             "base": {k: base.get(k) for k in LOOK_KEYS},
             "over": {k: over[k] for k in LOOK_KEYS if k in over},
             "bounds": {k: list(_RC.BOUNDS[k]) for k in LOOK_KEYS if k in _RC.BOUNDS},
+            "taste": [k for k in (over.get("_taste") or []) if k in LOOK_KEYS],
             # ⚠️ ကြားထဲ ခဏရပ် — UI မှာ ကိန်းသေ မရေးရ (style အလိုက် ကွဲသည်)
             "cut": {"min_sil": over.get("min_sil", base.get("min_sil")),
                     "keep_pause": over.get("keep_pause", base.get("keep_pause")),
@@ -2231,6 +2234,11 @@ async def job_finetune(jid: str, req: Request, authorization: str = Header(None)
         # ⚠️ ပို့မလာသော key ကို **ဖြုတ်ရမည်** — ချန်ထားလျှင် ပြန်ဖွင့်လို့ မရ
         for k in LOOK_KEYS: over.pop(k, None)
         over.update(lk)
+        # ⚠️ သုံးစွဲသူ ကိုယ်တိုင် ထိလိုက်သော key ⇒ taste ဖြည့်ချက် မဟုတ်တော့ (ပြန်သင်ခွင့်)
+        if over.get("_taste"):
+            _tl = [k for k in over["_taste"] if k not in lk]
+            if _tl: over["_taste"] = _tl
+            else: over.pop("_taste", None)
         db.run("UPDATE jobs SET over=? WHERE id=?",
                json.dumps(over, ensure_ascii=False) if over else None, jid)
         out["look"] = lk
@@ -2334,6 +2342,84 @@ async def job_vplan(jid: str, req: Request, authorization: str = Header(None)):
     return {"ok": True, "n": len(clean)}
 
 
+# ══ User taste memory (Zin ၂၀၂၆-၁၀-၀၇ 「ခဏခဏ ပြင်တာ မှတ်ပြီး နောက်ဗီဒီယိုမှာ လိုက်လုပ်」) ══
+#    job ပြီးတိုင်း (w_result) သုံးစွဲသူ ပြင်ခဲ့တာကို account အလိုက် မှတ် ⇒ job အသစ်မှာ ပုံသေ ဖြည့်。
+#    ⚠️ taste က ဖြည့်ခဲ့တဲ့ key (`_taste`) ကို ပြန်မသင် — ကိုယ့်ကိုယ်ကို အားဖြည့်တဲ့ loop မဖြစ်စေ。
+def _taste_db():
+    db.run("CREATE TABLE IF NOT EXISTS taste(acct TEXT PRIMARY KEY, data TEXT, updated REAL)")
+
+
+def _taste_get(acct):
+    _taste_db()
+    r = db.one("SELECT data FROM taste WHERE acct=?", acct)
+    try: return json.loads((r or {}).get("data") or "{}") or {}
+    except Exception: return {}
+
+
+def _taste_put(acct, store):
+    _taste_db()
+    db.run("INSERT INTO taste(acct,data,updated) VALUES(?,?,?) "
+           "ON CONFLICT(acct) DO UPDATE SET data=excluded.data, updated=excluded.updated",
+           acct, json.dumps(store, ensure_ascii=False), time.time())
+
+
+def _taste_learn(jid):
+    import taste as _T
+    j = db.one("SELECT acct, over, vplan, mode FROM jobs WHERE id=?", jid)
+    if not j or not j.get("acct") or (j.get("mode") or "") == "prev":
+        return
+    try: over = json.loads(j.get("over") or "{}") or {}
+    except Exception: over = {}
+    try: vp = json.loads(j.get("vplan") or "[]") or []
+    except Exception: vp = []
+    auto = set(over.get("_taste") or [])
+    look = {k: over[k] for k in LOOK_KEYS if k in over and k not in auto}
+    id2 = {str(e.get("id")): str(e.get("tpl") or "") for e in vp if isinstance(e, dict)}
+    ev = over.get("_ev") or {}
+    removed = [id2.get(str(k)) for k, v in ev.items() if (v or {}).get("mode") == "none"]
+    swaps = [(id2.get(str(k)), (v or {}).get("tpl")) for k, v in ev.items() if (v or {}).get("mode") == "tpl"]
+    bt = over.get("_beats") or {}
+    for k, e in (bt.get("edits") or {}).items():
+        old = (bt.get("was") or {}).get(k)
+        if old and isinstance(e, dict) and e.get("type"):
+            swaps.append((old, "beat." + str(e["type"])))
+    if not (look or removed or swaps):
+        return
+    st = _T.observe(_taste_get(j["acct"]), jid, look=look, removed=[r for r in removed if r], swaps=swaps)
+    _taste_put(j["acct"], st)
+
+
+def _taste_apply(acct, over):
+    """job အသစ် — taste ပုံသေ ဖြည့် (ရှိပြီးသား key မထိ)"""
+    try:
+        import taste as _T, recipes as _RC
+        return _T.apply(_T.aggregate(_taste_get(acct)), over, _RC.clean)[0]
+    except Exception:
+        return over
+
+
+@app.get("/api/taste")
+def taste_get(authorization: str = Header(None)):
+    """မှတ်ထားသော ပုံစံ (UI chip)"""
+    auth(authorization, UTOKEN)
+    import taste as _T
+    d = _T.aggregate(_taste_get(aid(authorization)))
+    try:
+        import director as _DIR
+        tn = {k: v.get("my") for k, v in _DIR.types().items()}
+    except Exception:
+        tn = {}
+    return {"items": _T.summary(d, tn), "jobs": d.get("n_jobs", 0)}
+
+
+@app.post("/api/taste/reset")
+def taste_reset(authorization: str = Header(None)):
+    """「မေ့လိုက်」 — မှတ်ထားသမျှ ဖျက်"""
+    auth(authorization, UTOKEN)
+    _taste_put(aid(authorization), {})
+    return {"ok": True}
+
+
 @app.post("/api/jobs/{jid}/beats")
 async def job_beats(jid: str, req: Request, authorization: str = Header(None)):
     """Beats (AI director infographic) ပြင်ချက် သိမ်း (Zin ၂၀၂၆-၁၀-၀၇)。
@@ -2361,7 +2447,8 @@ async def job_beats(jid: str, req: Request, authorization: str = Header(None)):
         if not vv:
             raise HTTPException(400, f"{str(k)[:12]} — «{str((v or {}).get('type'))[:20]}» ပုံစံ/စာ မပြည့်စုံ")
         for o in ("pos", "variant"):
-            if (v or {}).get(o) in ("left", "right", "center", "glass", "light", "neon"):
+            if (v or {}).get(o) in ("left", "right", "center", "glass", "light", "neon",
+                                    "solid", "outline", "paper", "frost"):
                 vv[o] = v[o]
         ce[str(k)[:16]] = vv
     for v in add:
@@ -2376,8 +2463,14 @@ async def job_beats(jid: str, req: Request, authorization: str = Header(None)):
     over = {}
     try: over = json.loads(j.get("over") or "{}") or {}
     except Exception: over = {}
+    try: _vp = json.loads(j.get("vplan") or "[]") or []
+    except Exception: _vp = []
+    _was0 = ((over.get("_beats") or {}).get("was") or {})
+    _was = {str(e.get("id")): str(e.get("tpl") or "") for e in _vp
+            if isinstance(e, dict) and str(e.get("id")) in ce and str(e.get("tpl") or "").startswith("beat.")}
+    _was = {k: _was0.get(k, v) for k, v in _was.items()}     # ⚠️ ပထမ ပုံစံ (ပြန်ပြင်လည်း မပြောင်း)
     over.pop("_beats", None)
-    if ce or ca: over["_beats"] = {"edits": ce, "add": ca}
+    if ce or ca: over["_beats"] = {"edits": ce, "add": ca, "was": _was}
     db.run("UPDATE jobs SET over=? WHERE id=?",
            json.dumps(over, ensure_ascii=False) if over else None, jid)
     return {"ok": True, "edits": len(ce), "add": len(ca)}
@@ -2542,7 +2635,37 @@ async def w_stage(jid: str, req: Request, authorization: str = Header(None)):
     b = await req.json()
     db.run("UPDATE jobs SET stage=?,stage_name=?,minutes=? WHERE id=?",
            int(b.get("stage",0)), b.get("name",""), float(b.get("minutes",0)), jid)
-    return {"ok": True}
+    # ⚠️⚠️ **အခြေအနေကို ပြန်ပြောရမည်**。 `cancel` က DB ကိုပဲ ပြောင်းပြီး
+    #    worker ကို ဘာမှ မအကြောင်းကြားပါ ⇒ worker က အဆင့် ၇ ခုလုံး ဆက်လုပ်နေသည်。
+    #    တကယ် ဖြစ်ခဲ့ (၂၀၂၆-၁၀-၀၇ · j_4dd59bb90b5a): ဖျက်ပြီး **၆၃ မိနစ်** ကြာမှ
+    #    ffmpeg ၂ ခု CPU ၇၇–၉၄% နဲ့ ဆက်လည်နေ · busy marker ကိုင်ထား ⇒ job
+    #    အသစ် မယူနိုင် · heartbeat ရိုး၍ server က 「worker မရှိ」 ပြနေခဲ့သည်。
+    #    ⇒ **ရပ်ခိုင်းချက်ကို ဒီတစ်နေရာကပဲ ပေး**သည် (endpoint အသစ် မလို ·
+    #      worker က အဆင့်တိုင်း ဒီကို ခေါ်ပြီးသား)。
+    return _w_want(jid)
+
+def _w_want(jid):
+    """worker ကို 「ဆက်လုပ်ရမလား」 ပြောသည် — အခြေအနေ တစ်ခုတည်းသော အရင်းအမြစ်。"""
+    j = db.one("SELECT status FROM jobs WHERE id=?", jid) or {}
+    stt = j.get("status")
+    return {"ok": True, "status": stt,
+            # ⚠️ job ပျောက်သွားလျှင် (ဖျက်ထား) လည်း ရပ်ရမည် — `None` က
+            #    「ဆက်လုပ်」 မဟုတ်。
+            "want": stt in ("running", "cutting")}
+
+
+@app.post("/api/w/{jid}/beat")
+def w_beat(jid: str, authorization: str = Header(None)):
+    """အဆင့် ရှည်နေချိန် အသက်ရှင်ကြောင်း + ဆက်လုပ်ရမလား。
+
+    ⚠️ အဆင့်တစ်ခုက ရှည်နိုင်သည် (တိုင်းထား: `sound` ၂၇ မိနစ်)。 အဲဒီကြားမှာ
+       `stage` မပို့သဖြင့် `worker_seen` ရိုးပြီး `/api/health` က
+       **「worker မရှိ」** ပြသည် — တကယ် render လုပ်နေပါလျက်。
+    """
+    auth(authorization, WTOKEN)
+    _beat()
+    return _w_want(jid)
+
 
 @app.post("/api/w/{jid}/fail")
 async def w_fail(jid: str, req: Request, authorization: str = Header(None)):
@@ -2656,6 +2779,8 @@ async def w_result(jid: str, file: UploadFile = File(None), meta: str = Form("{}
                _chg, time.strftime("%Y-%m"))
     if (_jm or "") == "prev":
         db.run("UPDATE jobs SET minutes=0,prev_at=? WHERE id=?", time.time(), jid)
+    try: _taste_learn(jid)
+    except Exception as _te: print(f"taste learn: {type(_te).__name__}: {_te}", flush=True)
     _notify(jid, m)
     return {"ok": True, "version": n}
 
@@ -3454,9 +3579,16 @@ def health():
     seen = float(r["v"]) if r and r["v"] else 0.0
     ago = (time.time() - seen) if seen else None
     q = db.one("SELECT COUNT(*) n FROM jobs WHERE status='queued'")
+    # ⚠️ **「အလုပ်များနေ」 နဲ့ 「ပျောက်နေ」 ခွဲပြရမည်** — အရင်က `worker_seen`
+    #    တစ်ခုတည်းနဲ့ စစ်သဖြင့် render ရှည်တိုင်း 「worker မရှိ」 ပြပြီး
+    #    သုံးစွဲသူက 「ပျက်နေပြီ」 ထင်ခဲ့သည် (၂၀၂၆-၁၀-၀၇ တိုင်းထား)。
+    r2 = db.one("SELECT id,stage,stage_name FROM jobs WHERE status='running'"
+                " ORDER BY claimed DESC LIMIT 1")
     return {"ok": True, "t": time.time(),
             "worker": (ago is not None and ago < 60),
             "worker_ago": round(ago, 1) if ago is not None else None,
+            "busy": ({"job": r2["id"], "stage": r2["stage"],
+                      "name": r2["stage_name"]} if r2 else None),
             "queued": (q or {}).get("n", 0)}
 
 # ⚠️ index.html ကို cache မထားစေရ — ထားလျှင် deploy လုပ်လည်း သုံးစွဲသူက
